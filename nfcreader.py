@@ -16,7 +16,7 @@ def create_reader():
     return pn532
 
 
-def parse_rawuid(rawuid):
+def parse_rawuid(rawuid: str):
     uid = ""
     for i in rawuid:
         bit = str(hex(i)).lower()[2:]

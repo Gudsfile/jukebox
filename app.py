@@ -8,7 +8,7 @@ from soco import SoCo
 from soco.plugins.sharelink import ShareLinkPlugin
 
 
-def play(sharelink, uri, shuffle):
+def play(sharelink: ShareLinkPlugin, uri: str, shuffle: bool):
     sharelink.soco.clear_queue()
     _ = sharelink.add_share_link_to_queue(uri, position=1)
     if shuffle:
@@ -18,11 +18,11 @@ def play(sharelink, uri, shuffle):
     sharelink.soco.play_from_queue(index=0, start=True)
 
 
-def stop(speaker):
+def stop(speaker: SoCo):
     speaker.clear_queue()
 
 
-def create_speaker(host):
+def create_speaker(host: str):
     sonos = SoCo(host)
     sharelink = ShareLinkPlugin(sonos)
     return sharelink
