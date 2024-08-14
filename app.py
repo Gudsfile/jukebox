@@ -14,6 +14,16 @@ def play(sharelink, uri):
     sharelink.soco.play_from_queue(index=0, start=True)
 
 
+def stop(speaker):
+    speaker.clear_queue()
+
+
+def create_speaker(host):
+    sonos = SoCo(host)
+    sharelink = ShareLinkPlugin(sonos)
+    return sharelink
+
+
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-l", "--library", default="library.json", help="path to the library JSON file")
@@ -22,6 +32,7 @@ def get_args():
     play_parser.add_argument("--artist", required=True, help="specify the artist name to play")
     play_parser.add_argument("--album", required=True, help="specify the album name to play")
     _ = subparsers.add_parser("list", help="list library contents")
+    _ = subparsers.add_parser("stop", help="stop music and clear queue")
     return parser.parse_args()
 
 
@@ -41,10 +52,15 @@ def main():
             pprint(library)
         case "play":
             sonos_host = get_env()
+            sharelink = create_speaker(sonos_host)
             uri = library[args.artist][args.album]
-            sonos = SoCo(sonos_host)
-            sharelink = ShareLinkPlugin(sonos)
             play(sharelink, uri)
+        case "stop":
+            sonos_host = get_env()
+            sharelink = create_speaker(sonos_host)
+            stop(sharelink.soco)
+        case _:
+            print(f"{args.command} command not implemented yet")
 
 
 if __name__ == "__main__":
