@@ -51,7 +51,7 @@ def get_env():
 
 def main():
     args = get_args()
-    library = json.load(open(args.library, "r", encoding="utf-8"))
+    library = json.load(open(args.library, "r", encoding="utf-8"))["library"]
     match args.command:
         case "list":
             pprint(library)

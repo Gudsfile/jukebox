@@ -1,5 +1,18 @@
 {
+  "library": {
     "Your favorite artist": {
-        "Your favorite album by this artist": "URI of this album."
+      "Your favorite album by this artist": "URI of this album."
     }
+  },
+  "tags": {
+    "Your tag id": {
+      "artist": "Your favorite artist",
+      "album": "Your favorite album by this artist"
+    },
+    "Another tag id": {
+      "artist": "Your favorite artist",
+      "album": "Your favorite album by this artist",
+      "shuffle": true
+    }
+  }
 }
