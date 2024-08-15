@@ -16,14 +16,8 @@ def create_reader():
     return pn532
 
 
-def parse_rawuid(rawuid: str):
-    uid = ""
-    for i in rawuid:
-        bit = str(hex(i)).lower()[2:]
-        if len(bit) == 1:
-            bit = "0" + bit
-        uid += bit + ":"
-    return uid[:-1]
+def parse_raw_uid(raw: bytearray):
+    return ":".join([hex(i)[2:].lower().rjust(2, "0") for i in raw])
 
 
 def get_args():
@@ -82,7 +76,7 @@ def main():
                 resume(sonos.soco)
                 awaiting_seconds = 0
             case "play":
-                uid = parse_rawuid(rawuid)
+                uid = parse_raw_uid(rawuid)
                 last_rawuid = rawuid
                 print(f"Found card with UID: {uid}")
                 metadata = library["tags"].get(uid)
