@@ -5,7 +5,7 @@
 🚧 For the moment: 
 - artist, album and URI must be pre-populated in a JSON file
 - only works with Spotify URIs
-- as soon as the tag is removed, the music stops and **the position is lost**
+- **as soon as** the NFC tag is removed, the music pauses, then resumes when the NFC tag is replaced
 
 💡 Inspired by:
 - https://github.com/hankhank10/vinylemulator
