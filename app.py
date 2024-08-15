@@ -1,4 +1,3 @@
-#!python
 import argparse
 import json
 import os
@@ -16,6 +15,14 @@ def play(sharelink: ShareLinkPlugin, uri: str, shuffle: bool):
     else:
         sharelink.soco.play_mode = "NORMAL"
     sharelink.soco.play_from_queue(index=0, start=True)
+
+
+def resume(speaker: SoCo):
+    speaker.play()
+
+
+def pause(speaker: SoCo):
+    speaker.pause()
 
 
 def stop(speaker: SoCo):

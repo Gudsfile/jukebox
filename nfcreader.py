@@ -2,10 +2,10 @@ import argparse
 import json
 from time import sleep
 
-import RPi.GPIO as GPIO
-
-from app import create_speaker, get_env, play, stop
+from app import create_speaker, get_env, pause, play, resume, stop
 from pn532 import PN532_SPI
+
+DEFAULT_PAUSE_DURATION = 900
 
 
 def create_reader():
@@ -29,7 +29,38 @@ def parse_rawuid(rawuid: str):
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-l", "--library", default="library.json", help="path to the library JSON file")
+    parser.add_argument(
+        "--pause-duration",
+        default=DEFAULT_PAUSE_DURATION,
+        help="specify the maximum duration of a pause in seconds before resetting the queue",
+    )
     return parser.parse_args()
+
+
+def determine_action(
+    current_tag: str | None,
+    previous_tag: str | None,
+    awaiting_seconds: float,
+    max_pause_duration: int,
+):
+    is_detecting_tag = current_tag is not None
+    is_same_tag_has_the_previous = current_tag == previous_tag
+    is_paused = awaiting_seconds > 0
+    is_acceptable_pause_duration = awaiting_seconds < max_pause_duration
+
+    match is_detecting_tag, is_same_tag_has_the_previous, is_paused, is_acceptable_pause_duration:
+        case True, True, False, _:
+            return "continue"
+        case True, True, True, True:
+            return "resume"
+        case True, _, _, _:
+            return "play"
+        case False, False, False, True:
+            return "pause"
+        case False, False, _, False:
+            return "stop"
+        case _, _, _, _:
+            return "idle"
 
 
 def main():
@@ -39,30 +70,43 @@ def main():
     pn532 = create_reader()
 
     last_rawuid = None
+    awaiting_seconds = 0.0
     while True:
         rawuid = pn532.read_passive_target(timeout=0.5)
-        if rawuid is None and last_rawuid is not None:
-            print("s")
-            last_rawuid = None
-            stop(sonos.soco)
-        elif rawuid is None:
-            # print(".", end="")
-            sleep(0.2)
-        elif rawuid is not None and rawuid == last_rawuid:
-            print("p", end="")
-        elif rawuid is not None and rawuid != last_rawuid:
-            last_rawuid = rawuid
-            uid = parse_rawuid(rawuid)
-            print(f"Found card with UID: {uid}")
-            metadata = library["tags"].get(uid)
-            if metadata is not None:
-                print(f"Found corresponding metadata: {metadata}")
-                uri = library["library"][metadata["artist"]][metadata["album"]]
-                shuffle = metadata.get("shuffle", False)
-                print(f"Found corresponding URI: {uri}")
-                play(sonos, uri, shuffle)
-            else:
-                print(f"Unknown URI found for UID: {uid}")
+        action = determine_action(rawuid, last_rawuid, awaiting_seconds, args.pause_duration)
+        print(f"{action} \t\t {rawuid} | {last_rawuid} | {awaiting_seconds} | {args.pause_duration}")
+        match action:
+            case "continue":
+                pass
+            case "resume":
+                resume(sonos.soco)
+                awaiting_seconds = 0
+            case "play":
+                uid = parse_rawuid(rawuid)
+                last_rawuid = rawuid
+                print(f"Found card with UID: {uid}")
+                metadata = library["tags"].get(uid)
+                if metadata is not None:
+                    print(f"Found corresponding metadata: {metadata}")
+                    uri = library["library"][metadata["artist"]][metadata["album"]]
+                    shuffle = metadata.get("shuffle", False)
+                    print(f"Found corresponding URI: {uri}")
+                    play(sonos, uri, shuffle)
+                    awaiting_seconds = 0
+                else:
+                    print(f"No URI found for UID: {uid}")
+            case "pause":
+                pause(sonos.soco)
+                awaiting_seconds += 1
+            case "stop":
+                stop(sonos.soco)
+                last_rawuid = None
+            case "idle":
+                if awaiting_seconds < args.pause_duration:
+                    awaiting_seconds += 1
+            case _:
+                print(f"`{action}` action is not implemented yet")
+        sleep(0.5)
 
 
 if __name__ == "__main__":

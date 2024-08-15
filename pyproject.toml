@@ -13,6 +13,7 @@ soco = "^0.30.4"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.6"
+pytest = "^8.3.2"
 
 [tool.ruff]
 line-length = 120
