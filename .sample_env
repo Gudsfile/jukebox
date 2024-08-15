@@ -1,1 +1,10 @@
+## To load environment variables from this .env file paste the following line in
+## your .bashrc (or .bash_profile, .zshrc, etc.)
+## Don't forget to remove the leading # signs and your own path to the .env file
+#
+# JUKEBOX_ENV_PATH="/your/path/jukebox/.env"
+# if [ -f $JUKEBOX_ENV_PATH ]; then
+#     export $(grep -v '^#' $JUKEBOX_ENV_PATH | xargs)
+# fi
+
 SONOS_HOST="IP address of your Sonos Zone Player"
