@@ -44,12 +44,12 @@ Create a `library.json` file (`cp sample_library.json library.json`) and complet
 
 Show help message
 ```shell
-poetry run python app.py --help
+poetry run python jukebox/sonosplayer.py --help
 ```
 
 Play a specific album
 ```shell
-poetry run python app.py play --artist "Your favorite artist" --album "Your favorite album by this artist"
+poetry run python jukebox/sonosplayer play --artist "Your favorite artist" --album "Your favorite album by this artist"
 ```
 Artist and album must be entered in the library's JSON file. This file can be specified with the `--library` parameter.
 
@@ -72,7 +72,7 @@ Complete the `tags` part of the `library.json` file with each tag id and the exp
 
 Start the script (show help message with `--help`)
 ```shell
-poetry run python nfcreader.py
+poetry run python jukebox/nfcreader.py
 ```
 
 🎉 By approaching a NFC tag stored in the `library.json` file, you should hear the associated music begin.

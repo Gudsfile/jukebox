@@ -1,12 +1,12 @@
 def test_parse_raw_uid(mock_lib_installed):
-    from nfcreader import parse_raw_uid
+    from jukebox.nfcreader import parse_raw_uid
 
     raw_uid = bytearray(b"\x04\xf2=v\x8fa\x80")
     assert parse_raw_uid(raw_uid) == "04:f2:3d:76:8f:61:80"
 
 
 def test_determine_action(mock_lib_installed):
-    from nfcreader import determine_action
+    from jukebox.nfcreader import determine_action
 
     id_1 = "id-1"
     id_2 = "id-2"

@@ -2,7 +2,7 @@ import argparse
 import json
 from time import sleep
 
-from app import create_speaker, get_env, pause, play, resume, stop
+from jukebox.sonosplayer import create_speaker, get_env, pause, play, resume, stop
 from pn532 import PN532_SPI
 
 DEFAULT_PAUSE_DURATION = 900
