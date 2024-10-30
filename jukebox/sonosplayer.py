@@ -3,6 +3,7 @@ import json
 import os
 from pprint import pprint
 
+from dotenv import load_dotenv
 from soco import SoCo
 from soco.plugins.sharelink import ShareLinkPlugin
 
@@ -30,6 +31,7 @@ def stop(speaker: SoCo):
 
 
 def create_speaker(host: str):
+    load_dotenv()
     sonos = SoCo(host)
     sharelink = ShareLinkPlugin(sonos)
     return sharelink
