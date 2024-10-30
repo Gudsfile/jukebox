@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import json
 from time import sleep
@@ -42,19 +44,18 @@ def determine_action(
     is_paused = awaiting_seconds > 0
     is_acceptable_pause_duration = awaiting_seconds < max_pause_duration
 
-    match is_detecting_tag, is_same_tag_has_the_previous, is_paused, is_acceptable_pause_duration:
-        case True, True, False, _:
-            return "continue"
-        case True, True, True, True:
-            return "resume"
-        case True, _, _, _:
-            return "play"
-        case False, False, False, True:
-            return "pause"
-        case False, False, _, False:
-            return "stop"
-        case _, _, _, _:
-            return "idle"
+    if is_detecting_tag and is_same_tag_has_the_previous and not is_paused:
+        return "continue"
+    elif is_detecting_tag and is_same_tag_has_the_previous and is_paused and is_acceptable_pause_duration:
+        return "resume"
+    elif is_detecting_tag:
+        return "play"
+    elif not is_detecting_tag and not is_same_tag_has_the_previous and not is_paused and is_acceptable_pause_duration:
+        return "pause"
+    elif not is_detecting_tag and not is_same_tag_has_the_previous and not is_acceptable_pause_duration:
+        return "stop"
+    else:
+        return "idle"
 
 
 def main():
@@ -69,37 +70,36 @@ def main():
         rawuid = pn532.read_passive_target(timeout=0.5)
         action = determine_action(rawuid, last_rawuid, awaiting_seconds, args.pause_duration)
         print(f"{action} \t\t {rawuid} | {last_rawuid} | {awaiting_seconds} | {args.pause_duration}")
-        match action:
-            case "continue":
-                pass
-            case "resume":
-                resume(sonos.soco)
+        if action == "continue":
+            pass
+        elif action == "resume":
+            resume(sonos.soco)
+            awaiting_seconds = 0
+        elif action == "play":
+            uid = parse_raw_uid(rawuid)
+            last_rawuid = rawuid
+            print(f"Found card with UID: {uid}")
+            metadata = library["tags"].get(uid)
+            if metadata is not None:
+                print(f"Found corresponding metadata: {metadata}")
+                uri = library["library"][metadata["artist"]][metadata["album"]]
+                shuffle = metadata.get("shuffle", False)
+                print(f"Found corresponding URI: {uri}")
+                play(sonos, uri, shuffle)
                 awaiting_seconds = 0
-            case "play":
-                uid = parse_raw_uid(rawuid)
-                last_rawuid = rawuid
-                print(f"Found card with UID: {uid}")
-                metadata = library["tags"].get(uid)
-                if metadata is not None:
-                    print(f"Found corresponding metadata: {metadata}")
-                    uri = library["library"][metadata["artist"]][metadata["album"]]
-                    shuffle = metadata.get("shuffle", False)
-                    print(f"Found corresponding URI: {uri}")
-                    play(sonos, uri, shuffle)
-                    awaiting_seconds = 0
-                else:
-                    print(f"No URI found for UID: {uid}")
-            case "pause":
-                pause(sonos.soco)
+            else:
+                print(f"No URI found for UID: {uid}")
+        elif action == "pause":
+            pause(sonos.soco)
+            awaiting_seconds += 1
+        elif action == "stop":
+            stop(sonos.soco)
+            last_rawuid = None
+        elif action == "idle":
+            if awaiting_seconds < args.pause_duration:
                 awaiting_seconds += 1
-            case "stop":
-                stop(sonos.soco)
-                last_rawuid = None
-            case "idle":
-                if awaiting_seconds < args.pause_duration:
-                    awaiting_seconds += 1
-            case _:
-                print(f"`{action}` action is not implemented yet")
+        else:
+            print(f"`{action}` action is not implemented yet")
         sleep(0.5)
 
 

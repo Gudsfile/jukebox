@@ -61,20 +61,19 @@ def get_env():
 def main():
     args = get_args()
     library = json.load(open(args.library, "r", encoding="utf-8"))["library"]
-    match args.command:
-        case "list":
-            pprint(library)
-        case "play":
-            sonos_host = get_env()
-            sharelink = create_speaker(sonos_host)
-            uri = library[args.artist][args.album]
-            play(sharelink, uri, args.shuffle)
-        case "stop":
-            sonos_host = get_env()
-            sharelink = create_speaker(sonos_host)
-            stop(sharelink.soco)
-        case _:
-            print(f"{args.command} command not implemented yet")
+    if args.command == "list":
+        pprint(library)
+    elif args.command == "play":
+        sonos_host = get_env()
+        sharelink = create_speaker(sonos_host)
+        uri = library[args.artist][args.album]
+        play(sharelink, uri, args.shuffle)
+    elif args.command == "stop":
+        sonos_host = get_env()
+        sharelink = create_speaker(sonos_host)
+        stop(sharelink.soco)
+    else:
+        print(f"{args.command} command not implemented yet")
 
 
 if __name__ == "__main__":
