@@ -4,7 +4,9 @@ import argparse
 import json
 from time import sleep
 
-from jukebox.players.sonos import create_speaker, get_env, pause, play, resume, stop
+from dotenv import load_dotenv
+
+from jukebox.players.utils import get_player
 from pn532 import PN532_SPI
 
 DEFAULT_PAUSE_DURATION = 900
@@ -24,6 +26,7 @@ def parse_raw_uid(raw: bytearray):
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("player", choices=["dryrun", "sonos"], help="player to use")
     parser.add_argument("-l", "--library", default="library.json", help="path to the library JSON file")
     parser.add_argument(
         "--pause-duration",
@@ -60,8 +63,9 @@ def determine_action(
 
 def main():
     args = get_args()
+    load_dotenv()
     library = json.load(open(args.library, "r", encoding="utf-8"))
-    sonos = create_speaker(get_env())
+    player = get_player(args.player)()
     pn532 = create_reader()
 
     last_rawuid = None
@@ -73,7 +77,7 @@ def main():
         if action == "continue":
             pass
         elif action == "resume":
-            resume(sonos.soco)
+            player.resume()
             awaiting_seconds = 0
         elif action == "play":
             uid = parse_raw_uid(rawuid)
@@ -85,15 +89,15 @@ def main():
                 uri = library["library"][metadata["artist"]][metadata["album"]]
                 shuffle = metadata.get("shuffle", False)
                 print(f"Found corresponding URI: {uri}")
-                play(sonos, uri, shuffle)
+                player.play(uri, shuffle)
                 awaiting_seconds = 0
             else:
                 print(f"No URI found for UID: {uid}")
         elif action == "pause":
-            pause(sonos.soco)
+            player.pause()
             awaiting_seconds += 1
         elif action == "stop":
-            stop(sonos.soco)
+            player.stop()
             last_rawuid = None
         elif action == "idle":
             if awaiting_seconds < args.pause_duration:
