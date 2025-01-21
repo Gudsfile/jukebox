@@ -45,24 +45,6 @@ Create a `library.json` file (`cp sample_library.json library.json`) and complet
 
 ## Usage
 
-### player (`players/utils.py`)
-
-Show help message
-```shell
-uv run player --help
-```
-
-Play a specific album
-```shell
-uv run player sonos play --artist "Your favorite artist" --album "Your favorite album by this artist"
-```
-Artist and album must be entered in the library's JSON file. This file can be specified with the `--library` parameter.
-
-For the moment, the player can only play music through Sonos speakers.
-A "dryrun" player is also available for testing the script without any speakers configured.
-
-### nfcreader (`nfcreader.py`)
-
 This script works with an NFC reader like the **PN532** and NFC tags like the **NTAG2xx**.
 It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT).
 
@@ -80,7 +62,44 @@ Complete the `tags` part of the `library.json` file with each tag id and the exp
 
 Start the script (show help message with `--help`)
 ```shell
-uv run jukebox
+uv run jukebox PLAYER_TO_USE READER_TO_USE
 ```
 
 🎉 By approaching a NFC tag stored in the `library.json` file, you should hear the associated music begin.
+
+### player (`players/utils.py`)
+
+This part allows to play music through a player.
+It is used by `app.py` but can be used separately.
+
+Show help message
+```shell
+uv run player --help
+```
+
+Play a specific album
+```shell
+uv run player sonos play --artist "Your favorite artist" --album "Your favorite album by this artist"
+```
+Artist and album must be entered in the library's JSON file. This file can be specified with the `--library` parameter.
+
+For the moment, the player can only play music through Sonos speakers.
+A "dryrun" player is also available for testing the script without any speakers configured.
+
+### reader (`readers/utils.py`)
+
+This part allows to read an input like a NFC tag.
+It is used by `app.py` but can be used separately, even if it is useless.
+
+Show help message
+```shell
+uv run reader --help
+```
+
+Read an input
+```shell
+uv run reader nfc
+```
+
+For the moment, this part can only works with PN532 NFC reader.
+A "dryrun" reader is also available for testing the script without any NFC reader configured.
