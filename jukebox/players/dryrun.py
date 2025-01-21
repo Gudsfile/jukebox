@@ -6,13 +6,13 @@ class DryRunPlayer(Player):
         print("creating player")
 
     def play(self, uri: str, shuffle: bool):
-        print(f"playing {uri}")
+        print(f"playing {uri} on player")
 
     def pause(self):
-        print("pausing")
+        print("pausing player")
 
     def resume(self):
-        print("resuming")
+        print("resuming player")
 
     def stop(self):
-        print("stopping")
+        print("stopping player")
