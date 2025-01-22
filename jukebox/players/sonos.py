@@ -4,7 +4,7 @@ from typing import Union
 from soco import SoCo
 from soco.plugins.sharelink import ShareLinkPlugin
 
-from jukebox.players.player import Player
+from .player import Player
 
 
 class SonosPlayer(Player):
