@@ -18,7 +18,7 @@ def get_reader(reader: str) -> Reader:
             exit(1)
         except ModuleNotFoundError as err:
             print(f"nfc reader not available: {err}")
-    raise ValueError(f"Unknown reader: {reader}")
+    raise ValueError(f"The `{reader}` reader is not yet implemented.")
 
 
 def get_args():
