@@ -12,9 +12,7 @@ def get_player(player: str) -> Player:
         return DryRunPlayer
     elif player == "sonos":
         return SonosPlayer
-    else:
-        print(f"{player} player not implemented yet")
-        exit(1)
+    raise ValueError(f"The `{player}` player is not yet implemented.")
 
 
 def get_args():
