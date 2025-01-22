@@ -1,7 +1,7 @@
 import signal
 from typing import Union
 
-from jukebox.readers.reader import Reader
+from .reader import Reader
 
 
 class TimeoutExpired(Exception):
