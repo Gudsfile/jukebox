@@ -1,8 +1,8 @@
 import argparse
 from time import sleep
 
-from jukebox.readers.dryrun import DryRunReader
-from jukebox.readers.reader import Reader
+from .dryrun import DryRunReader
+from .reader import Reader
 
 
 def get_reader(reader: str) -> Reader:
@@ -10,7 +10,7 @@ def get_reader(reader: str) -> Reader:
         return DryRunReader
     if reader == "nfc":
         try:
-            from jukebox.readers.nfc import NFCReader
+            from .nfc import NFCReader
 
             return NFCReader
         except ImportError as err:

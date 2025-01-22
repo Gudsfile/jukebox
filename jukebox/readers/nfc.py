@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from jukebox.readers.reader import Reader
 from pn532 import PN532_SPI
+
+from .reader import Reader
 
 
 def parse_raw_uid(raw: bytearray):
