@@ -8,12 +8,13 @@ from dotenv import load_dotenv
 from .players import Player, get_player
 from .readers import Reader, get_reader
 
+DEFAULT_LIBRARY_PATH = "library.json"
 DEFAULT_PAUSE_DURATION = 900
 
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-l", "--library", default="library.json", help="path to the library JSON file")
+    parser.add_argument("-l", "--library", default=DEFAULT_LIBRARY_PATH, help="path to the library JSON file")
     parser.add_argument("player", choices=["dryrun", "sonos"], help="player to use")
     parser.add_argument("reader", choices=["dryrun", "nfc"], help="reader to use")
     parser.add_argument(
