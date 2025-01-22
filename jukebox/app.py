@@ -5,10 +5,10 @@ from typing import Union
 
 from dotenv import load_dotenv
 
-from jukebox.players.player import Player
-from jukebox.players.utils import get_player
 from jukebox.readers.reader import Reader
 from jukebox.readers.utils import get_reader
+
+from .players import Player, get_player
 
 DEFAULT_PAUSE_DURATION = 900
 

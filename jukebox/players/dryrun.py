@@ -1,4 +1,4 @@
-from jukebox.players.player import Player
+from .player import Player
 
 
 class DryRunPlayer(Player):

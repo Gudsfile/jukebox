@@ -2,9 +2,9 @@ import argparse
 import json
 from pprint import pprint
 
-from jukebox.players.dryrun import DryRunPlayer
-from jukebox.players.player import Player
-from jukebox.players.sonos import SonosPlayer
+from .dryrun import DryRunPlayer
+from .player import Player
+from .sonos import SonosPlayer
 
 
 def get_player(player: str) -> Player:
