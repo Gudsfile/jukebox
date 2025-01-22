@@ -6,7 +6,7 @@ class DryRunPlayer(Player):
         print("creating player")
 
     def play(self, uri: str, shuffle: bool):
-        print(f"playing {uri} on player")
+        print(f"random playback of {uri} on the player" if shuffle else f"playing {uri} on player")
 
     def pause(self):
         print("pausing player")
