@@ -12,8 +12,7 @@ class SonosPlayer(Player):
         if host is None:
             host = os.environ.get("SONOS_HOST", None)
         if host is None:
-            print("host is required, from env var `SONOS_HOST` or from argument")
-            exit(1)
+            raise ValueError("Host must be provided, either as an argument or in the SONOS_HOST environment variable.")
         self.speaker = SoCo(host)
         self.sharelink = ShareLinkPlugin(self.speaker)
 
