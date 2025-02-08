@@ -14,7 +14,7 @@
 
 ## Notes
 
-The project remains in Python 3.9 to make it easier to use on hardware like raspberry.
+The project remains in Python 3.7 to make it easier to use on hardware like raspberry.
 
 ## Install
 
@@ -41,7 +41,6 @@ Create a `library.json` file (`cp sample_library.json library.json`) and complet
   "tags": {…}
 }
 ```
-
 
 ## Usage
 
@@ -103,3 +102,38 @@ uv run reader nfc
 
 For the moment, this part can only works with PN532 NFC reader.
 A "dryrun" reader is also available for testing the script without any NFC reader configured.
+
+## Build and install on Raspberry Pi
+
+### Install
+
+Build the project
+```shell
+uv build
+```
+
+Copy the tar.gz file to the Raspberry Pi
+```shell
+scp dist/jukebox-0.1.0-py3-none-any.tar.gz pi@raspberrypi.local:~
+```
+
+Install the project
+```shell
+ssh pi@raspberrypi.local
+pip install jukebox-0.1.0-py3-none-any.tar.gz
+```
+
+Add `SONOS_HOST` to env with IP address of your Sonos Zone Player.
+```shell
+export SONOS_HOST=
+```
+
+Create a `library.json` file and complete it with the desired artists and albums (take a look at `sample_library.json`).
+
+### Usage
+
+You can start the jukebox with the `jukebox` command.
+
+```shell
+jukebox -l ~/library.json sonos nfc
+```

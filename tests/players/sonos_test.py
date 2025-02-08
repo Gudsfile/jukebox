@@ -6,58 +6,50 @@ from pytest import fixture, raises
 
 @fixture(scope="function")
 def mock_sonos_player():
-    with (
-        patch("jukebox.players.sonos.SoCo"),
-        patch("jukebox.players.sonos.ShareLinkPlugin"),
-    ):
-        from jukebox.players.sonos import SonosPlayer
+    with patch("jukebox.players.sonos.SoCo"):
+        with patch("jukebox.players.sonos.ShareLinkPlugin"):
+            from jukebox.players.sonos import SonosPlayer
 
-        mocked_player = SonosPlayer("192.168.0.1")
-        mocked_speaker = MagicMock()
-        mocked_sharelink = MagicMock(soco=mocked_speaker)
-        mocked_player.sharelink = mocked_sharelink
-        mocked_player.speaker = mocked_speaker
-        yield mocked_player, mocked_speaker, mocked_sharelink
+            mocked_player = SonosPlayer("192.168.0.1")
+            mocked_speaker = MagicMock()
+            mocked_sharelink = MagicMock(soco=mocked_speaker)
+            mocked_player.sharelink = mocked_sharelink
+            mocked_player.speaker = mocked_speaker
+            yield mocked_player, mocked_speaker, mocked_sharelink
 
 
 def test_init_should_use_provided_host_to_connect():
     """Test if the host is set to the value of the argument"""
-    with (
-        patch.dict(os.environ, {}),
-        patch("jukebox.players.sonos.SoCo") as mocked_speaker,
-        patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink,
-    ):
-        from jukebox.players.sonos import SonosPlayer
+    with patch.dict(os.environ, {}):
+        with patch("jukebox.players.sonos.SoCo") as mocked_speaker:
+            with patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink:
+                from jukebox.players.sonos import SonosPlayer
 
-        SonosPlayer("host-from-arg")
+                SonosPlayer("host-from-arg")
     mocked_speaker.assert_called_once_with("host-from-arg")
     mocked_sharelink.assert_called_once_with(mocked_speaker.return_value)
 
 
 def test_init_should_prefer_provided_host_over_env_var():
     """Test if the host is set to the value of the argument if provided even if the SONOS_HOST environment variable is set"""
-    with (
-        patch.dict(os.environ, {"SONOS_HOST": "host-from-env-var"}),
-        patch("jukebox.players.sonos.SoCo") as mocked_speaker,
-        patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink,
-    ):
-        from jukebox.players.sonos import SonosPlayer
+    with patch.dict(os.environ, {"SONOS_HOST": "host-from-env-var"}):
+        with patch("jukebox.players.sonos.SoCo") as mocked_speaker:
+            with patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink:
+                from jukebox.players.sonos import SonosPlayer
 
-        SonosPlayer("host-from-arg")
+                SonosPlayer("host-from-arg")
     mocked_speaker.assert_called_once_with("host-from-arg")
     mocked_sharelink.assert_called_once_with(mocked_speaker.return_value)
 
 
 def test_init_should_user_env_var_if_provided_host_is_none():
     """Test if the host is set to the value of the SONOS_HOST environment variable"""
-    with (
-        patch.dict(os.environ, {"SONOS_HOST": "host-from-env-var"}),
-        patch("jukebox.players.sonos.SoCo") as mocked_speaker,
-        patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink,
-    ):
-        from jukebox.players.sonos import SonosPlayer
+    with patch.dict(os.environ, {"SONOS_HOST": "host-from-env-var"}):
+        with patch("jukebox.players.sonos.SoCo") as mocked_speaker:
+            with patch("jukebox.players.sonos.ShareLinkPlugin") as mocked_sharelink:
+                from jukebox.players.sonos import SonosPlayer
 
-        SonosPlayer()
+                SonosPlayer()
     mocked_speaker.assert_called_once_with("host-from-env-var")
     mocked_sharelink.assert_called_once_with(mocked_speaker.return_value)
 
