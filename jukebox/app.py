@@ -3,8 +3,6 @@ import json
 from time import sleep
 from typing import Union
 
-from dotenv import load_dotenv
-
 from .players import Player, get_player
 from .readers import Reader, get_reader
 
@@ -94,7 +92,6 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
 
 
 def main():
-    load_dotenv()
     args = get_args()
     library = load_library(args.library)
     player = get_player(args.player)()
