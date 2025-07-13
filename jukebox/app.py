@@ -21,6 +21,7 @@ def get_args():
     parser.add_argument(
         "--pause-duration",
         default=DEFAULT_PAUSE_DURATION,
+        type=int,
         help="specify the maximum duration of a pause in seconds before resetting the queue",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
