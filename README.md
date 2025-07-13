@@ -29,9 +29,9 @@ The project remains in Python 3.7 to make it easier to use on hardware like Rasp
 
 Install the package from the pre-built available on the [releases page](https://github.com/Gudsfile/jukebox/releases)
 ```shell
-JUKEBOX_RELEASE_VERSION=v0.1.0 pip3 install https://github.com/Gudsfile/jukebox/releases/download/$JUKEBOX_RELEASE_VERSION/jukebox-0.1.0.tar.gz
+pip3 install https://github.com/Gudsfile/jukebox/releases/latest/download/jukebox-0.1.0.tar.gz
 ```
-The `jukebox-0.1.0.tar.gz` is for now fixed to the version `0.1.0`, don't change it, only replace the `JUKEBOX_RELEASE_VERSION` variable.
+The `jukebox-0.1.0.tar.gz` is for now fixed to the version `0.1.0`, don't change it. Use `pip3 install https://github.com/Gudsfile/jukebox/releases/download/vX.Y.Z/jukebox-0.1.0.tar.gz` if you want a precise version.
 
 Create a `library.json` file and complete it with the desired artists and albums.
 Complete the `tags` part of the `library.json` file with each tag id and the expected artist and album.
