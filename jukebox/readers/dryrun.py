@@ -1,7 +1,10 @@
+import logging
 import signal
 from typing import Union
 
 from .reader import Reader
+
+LOGGER = logging.getLogger("jukebox")
 
 
 class TimeoutExpired(Exception):
@@ -10,7 +13,7 @@ class TimeoutExpired(Exception):
 
 class DryRunReader(Reader):
     def __init__(self):
-        print("creating reader")
+        LOGGER.info("Creating reader")
 
     def read(self) -> Union[str, None]:
         def alarm_handler(signum, frame):
@@ -20,7 +23,7 @@ class DryRunReader(Reader):
         signal.alarm(1)
 
         try:
-            return input("type reader input: ")
+            return input()
         except TimeoutExpired:
             return None
         finally:

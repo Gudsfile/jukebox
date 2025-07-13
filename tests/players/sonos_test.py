@@ -1,7 +1,10 @@
+import logging
 import os
 from unittest.mock import MagicMock, patch
 
 from pytest import fixture, raises
+
+LOGGER = logging.getLogger(__name__)
 
 
 @fixture(scope="function")
@@ -11,7 +14,7 @@ def mock_sonos_player():
             from jukebox.players.sonos import SonosPlayer
 
             mocked_player = SonosPlayer("192.168.0.1")
-            mocked_speaker = MagicMock()
+            mocked_speaker = MagicMock(player_name="MockedPlayer")
             mocked_sharelink = MagicMock(soco=mocked_speaker)
             mocked_player.sharelink = mocked_sharelink
             mocked_player.speaker = mocked_speaker
@@ -66,52 +69,62 @@ def test_init_should_raise_an_error_if_no_host_is_provided():
     )
 
 
-def test_play_as_normal_mode(mock_sonos_player):
+def test_play_as_normal_mode(mock_sonos_player, caplog):
     """Test if the queue is clear, the uri is added to the queue, the speaker is set to normal mode and the queue is played"""
     mocked_player, mocked_speaker, mocked_sharelink = mock_sonos_player
 
-    mocked_player.play(uri="dummy-uri", shuffle=False)
+    with caplog.at_level(logging.INFO):
+        mocked_player.play(uri="dummy-uri", shuffle=False)
 
+    assert "Playing `dummy-uri` on the player `MockedPlayer`" in caplog.text
     mocked_speaker.clear_queue.assert_called_once_with()
     mocked_sharelink.add_share_link_to_queue.assert_called_once_with("dummy-uri", position=1)
     assert mocked_speaker.play_mode == "NORMAL"
     mocked_speaker.play_from_queue.assert_called_once_with(index=0, start=True)
 
 
-def test_play_with_shuffle(mock_sonos_player):
+def test_play_with_shuffle(mock_sonos_player, caplog):
     """Test if the queue is clear, the uri is added to the queue, the speaker is set to shuffle mode and the queue is played"""
     mocked_player, mocked_speaker, mocked_sharelink = mock_sonos_player
 
-    mocked_player.play(uri="dummy-uri", shuffle=True)
+    with caplog.at_level(logging.INFO):
+        mocked_player.play(uri="dummy-uri", shuffle=True)
 
+    assert "Playing `dummy-uri` on the player `MockedPlayer`" in caplog.text
     mocked_speaker.clear_queue.assert_called_once_with()
     mocked_sharelink.add_share_link_to_queue.assert_called_once_with("dummy-uri", position=1)
     assert mocked_speaker.play_mode == "SHUFFLE_NOREPEAT"
     mocked_speaker.play_from_queue.assert_called_once_with(index=0, start=True)
 
 
-def test_pause(mock_sonos_player):
+def test_pause(mock_sonos_player, caplog):
     """Test if pause is called on the speaker"""
     mocked_player, mocked_speaker, _ = mock_sonos_player
 
-    mocked_player.pause()
+    with caplog.at_level(logging.INFO):
+        mocked_player.pause()
 
+    assert "Pausing player `MockedPlayer`" in caplog.text
     mocked_speaker.pause.assert_called_once_with()
 
 
-def test_resume(mock_sonos_player):
+def test_resume(mock_sonos_player, caplog):
     """Test if play is called on the speaker"""
     mocked_player, mocked_speaker, _ = mock_sonos_player
 
-    mocked_player.resume()
+    with caplog.at_level(logging.INFO):
+        mocked_player.resume()
 
+    assert "Resuming player `MockedPlayer`" in caplog.text
     mocked_speaker.play.assert_called_once_with()
 
 
-def test_stop(mock_sonos_player):
+def test_stop(mock_sonos_player, caplog):
     """Test if the speaker is cleared of its queue"""
     mocked_player, mocked_speaker, _ = mock_sonos_player
 
-    mocked_player.stop()
+    with caplog.at_level(logging.INFO):
+        mocked_player.stop()
 
+    assert "Stopping player `MockedPlayer` and clearing its queue" in caplog.text
     mocked_speaker.clear_queue.assert_called_once_with()

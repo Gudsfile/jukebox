@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from pn532 import PN532_SPI
 
 from .reader import Reader
+
+LOGGER = logging.getLogger("jukebox")
 
 
 def parse_raw_uid(raw: bytearray):
@@ -13,7 +17,7 @@ class NFCReader(Reader):
     def __init__(self):
         self.pn532 = PN532_SPI(debug=False, reset=20, cs=4)
         ic, ver, rev, support = self.pn532.get_firmware_version()
-        print(f"Found PN532 with firmware version: {ver}.{rev}")
+        LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
         self.pn532.SAM_configuration()
 
     def read(self) -> str:

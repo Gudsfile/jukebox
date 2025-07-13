@@ -1,8 +1,10 @@
-from unittest.mock import patch
+import logging
 
 from pytest import fixture
 
 from jukebox.players.dryrun import DryRunPlayer
+
+LOGGER = logging.getLogger(__name__)
 
 
 @fixture(scope="module")
@@ -10,36 +12,36 @@ def player():
     yield DryRunPlayer()
 
 
-def test_play(player):
-    """Test if the dryrun player print the message about playing"""
-    with patch("builtins.print") as mock_print:
+def test_play(player, caplog):
+    """Test if the dryrun player log the message about playing"""
+    with caplog.at_level(logging.INFO):
         player.play(uri="dummy-uri", shuffle=False)
-    mock_print.assert_called_once_with("playing dummy-uri on player")
+    assert "Playing `dummy-uri` on player" in caplog.text
 
 
-def test_play_with_shuffle(player):
-    """Test if the dryrun player print the message about random playback"""
-    with patch("builtins.print") as mock_print:
+def test_play_with_shuffle(player, caplog):
+    """Test if the dryrun player log the message about random playback"""
+    with caplog.at_level(logging.INFO):
         player.play(uri="another-dummy-uri", shuffle=True)
-    mock_print.assert_called_once_with("random playback of another-dummy-uri on the player")
+    assert "Random playback of `another-dummy-uri` on the player" in caplog.text
 
 
-def test_pause(player):
-    """Test if the dryrun player print the message about pausing"""
-    with patch("builtins.print") as mock_print:
+def test_pause(player, caplog):
+    """Test if the dryrun player log the message about pausing"""
+    with caplog.at_level(logging.INFO):
         player.pause()
-    mock_print.assert_called_once_with("pausing player")
+    assert "Pausing player" in caplog.text
 
 
-def test_resume(player):
-    """Test if the dryrun player print the message about resuming"""
-    with patch("builtins.print") as mock_print:
+def test_resume(player, caplog):
+    """Test if the dryrun player log the message about resuming"""
+    with caplog.at_level(logging.INFO):
         player.resume()
-    mock_print.assert_called_once_with("resuming player")
+    assert "Resuming player" in caplog.text
 
 
-def test_stop(player):
-    """Test if the dryrun player print the message about stopping"""
-    with patch("builtins.print") as mock_print:
+def test_stop(player, caplog):
+    """Test if the dryrun player log the message about stopping"""
+    with caplog.at_level(logging.INFO):
         player.stop()
-    mock_print.assert_called_once_with("stopping player")
+    assert "Stopping player" in caplog.text

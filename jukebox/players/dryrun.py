@@ -1,18 +1,22 @@
+import logging
+
 from .player import Player
+
+LOGGER = logging.getLogger("jukebox")
 
 
 class DryRunPlayer(Player):
     def __init__(self, **kwargs):
-        print("creating player")
+        LOGGER.info("Creating player")
 
     def play(self, uri: str, shuffle: bool):
-        print(f"random playback of {uri} on the player" if shuffle else f"playing {uri} on player")
+        LOGGER.info(f"Random playback of `{uri}` on the player" if shuffle else f"Playing `{uri}` on player")
 
     def pause(self):
-        print("pausing player")
+        LOGGER.info("Pausing player")
 
     def resume(self):
-        print("resuming player")
+        LOGGER.info("Resuming player")
 
     def stop(self):
-        print("stopping player")
+        LOGGER.info("Stopping player")

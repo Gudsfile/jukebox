@@ -1,8 +1,11 @@
 import argparse
+import logging
 from time import sleep
 
 from .dryrun import DryRunReader
 from .reader import Reader
+
+LOGGER = logging.getLogger("jukebox")
 
 
 def get_reader(reader: str) -> Reader:
@@ -13,11 +16,10 @@ def get_reader(reader: str) -> Reader:
             from .nfc import NFCReader
 
             return NFCReader
-        except ImportError as err:
-            print(f"nfc reader not available: {err}")
-            exit(1)
         except ModuleNotFoundError as err:
-            print(f"nfc reader not available: {err}")
+            LOGGER.warning(f"NFC reader not available: {err}")
+        except ImportError as err:
+            LOGGER.warning(f"NFC reader not available: {err}")
     raise ValueError(f"The `{reader}` reader is not yet implemented.")
 
 
@@ -33,8 +35,8 @@ def main():
     for i in range(60):
         msg = reader.read()
         if not msg:
-            print()
-        print(f"read `{msg}`")
+            LOGGER.info()
+        LOGGER.info(f"Read `{msg}`")
         sleep(0.5)
 
 

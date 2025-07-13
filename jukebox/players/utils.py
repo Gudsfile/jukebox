@@ -1,10 +1,13 @@
 import argparse
 import json
+import logging
 from pprint import pprint
 
 from .dryrun import DryRunPlayer
 from .player import Player
 from .sonos import SonosPlayer
+
+LOGGER = logging.getLogger("jukebox")
 
 
 def get_player(player: str) -> Player:
@@ -45,7 +48,7 @@ def main():
         player = player_class(host=args.host)
         player.stop()
     else:
-        print(f"{args.command} command not implemented yet")
+        LOGGER.warning(f"`{args.command}` command not implemented yet")
 
 
 if __name__ == "__main__":

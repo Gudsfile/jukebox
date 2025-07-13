@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 from time import sleep
 from typing import Union
 
@@ -8,6 +9,8 @@ from .readers import Reader, get_reader
 
 DEFAULT_LIBRARY_PATH = "library.json"
 DEFAULT_PAUSE_DURATION = 900
+
+LOGGER = logging.getLogger("jukebox")
 
 
 def get_args():
@@ -20,7 +23,20 @@ def get_args():
         default=DEFAULT_PAUSE_DURATION,
         help="specify the maximum duration of a pause in seconds before resetting the queue",
     )
+    parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
     return parser.parse_args()
+
+
+def set_logger(verbose: bool = False):
+    level = logging.DEBUG if verbose else logging.INFO
+    logger = logging.getLogger("jukebox")
+    logger.setLevel(level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s\t - %(message)s")
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    return logger
 
 
 def load_library(path: str):
@@ -58,7 +74,7 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
     while True:
         uid = reader.read()
         action = determine_action(uid, last_uid, awaiting_seconds, pause_duration)
-        print(f"{action} \t\t {uid} | {last_uid} | {awaiting_seconds} | {pause_duration}")
+        LOGGER.debug(f"{action} \t\t {uid} | {last_uid} | {awaiting_seconds} | {pause_duration}")
         if action == "continue":
             pass
         elif action == "resume":
@@ -66,17 +82,17 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
             awaiting_seconds = 0
         elif action == "play":
             last_uid = uid
-            print(f"Found card with UID: {uid}")
+            LOGGER.info(f"Found card with UID: {uid}")
             metadata = library["tags"].get(uid)
             if metadata is not None:
-                print(f"Found corresponding metadata: {metadata}")
+                LOGGER.info(f"Found corresponding metadata: {metadata}")
                 uri = library["library"][metadata["artist"]][metadata["album"]]
                 shuffle = metadata.get("shuffle", False)
-                print(f"Found corresponding URI: {uri}")
+                LOGGER.info(f"Found corresponding URI: {uri}")
                 player.play(uri, shuffle)
                 awaiting_seconds = 0
             else:
-                print(f"No URI found for UID: {uid}")
+                LOGGER.warning(f"No URI found for UID: {uid}")
         elif action == "pause":
             player.pause()
             awaiting_seconds += 1
@@ -87,12 +103,13 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
             if awaiting_seconds < pause_duration:
                 awaiting_seconds += 1
         else:
-            print(f"`{action}` action is not implemented yet")
+            LOGGER.info(f"`{action}` action is not implemented yet")
         sleep(0.5)
 
 
 def main():
     args = get_args()
+    set_logger(args.verbose)
     library = load_library(args.library)
     player = get_player(args.player)()
     reader = get_reader(args.reader)()
