@@ -1,13 +1,14 @@
 import argparse
 import json
 import logging
+import os
 from time import sleep
 from typing import Union
 
 from .players import Player, get_player
 from .readers import Reader, get_reader
 
-DEFAULT_LIBRARY_PATH = "library.json"
+DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
 DEFAULT_PAUSE_DURATION = 900
 
 LOGGER = logging.getLogger("jukebox")
@@ -15,7 +16,12 @@ LOGGER = logging.getLogger("jukebox")
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-l", "--library", default=DEFAULT_LIBRARY_PATH, help="path to the library JSON file")
+    parser.add_argument(
+        "-l",
+        "--library",
+        default=os.environ.get("JUKEBOX_LIBRARY_PATH", DEFAULT_LIBRARY_PATH),
+        help="path to the library JSON file",
+    )
     parser.add_argument("player", choices=["dryrun", "sonos"], help="player to use")
     parser.add_argument("reader", choices=["dryrun", "nfc"], help="reader to use")
     parser.add_argument(
@@ -41,7 +47,14 @@ def set_logger(verbose: bool = False):
 
 
 def load_library(path: str):
-    return json.load(open(path, "r", encoding="utf-8"))
+    try:
+        library = json.load(open(path, "r", encoding="utf-8"))
+        return library
+    except FileNotFoundError as err:
+        LOGGER.error(
+            f"Library file not found at `{path}`, place the file at `{DEFAULT_LIBRARY_PATH}` or choose another path with env variable `JUKEBOX_LIBRARY_PATH` or argument `--library`"
+        )
+        raise err
 
 
 def determine_action(

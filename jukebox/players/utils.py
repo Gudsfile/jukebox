@@ -1,6 +1,7 @@
 import argparse
 import json
 import logging
+import os
 from pprint import pprint
 
 from .dryrun import DryRunPlayer
@@ -20,7 +21,12 @@ def get_player(player: str) -> Player:
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-l", "--library", default="library.json", help="path to the library JSON file")
+    parser.add_argument(
+        "-l",
+        "--library",
+        default=os.environ.get("JUKEBOX_LIBRARY_PATH", "~/.library.json"),
+        help="path to the library JSON file",
+    )
     parser.add_argument("player", choices=["dryrun", "sonos"], help="player to use")
     subparsers = parser.add_subparsers(required=True, dest="command", help="subcommands")
     play_parser = subparsers.add_parser("play", help="play specific songs")

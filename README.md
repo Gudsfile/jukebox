@@ -76,6 +76,8 @@ Or set it in a `.env` file to use the `uv run --env-file .env <command to run>` 
 The `library.json` file is a JSON file that contains the artists, albums and tags.
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
 
+By default, this file should be placed at `~/.jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
+
 ```json
 {
   "library": {
