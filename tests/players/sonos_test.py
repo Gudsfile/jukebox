@@ -15,7 +15,9 @@ def mock_sonos_player():
 
             mocked_player = SonosPlayer("192.168.0.1")
             mocked_speaker = MagicMock(player_name="MockedPlayer")
-            mocked_sharelink = MagicMock(soco=mocked_speaker)
+            mocked_sharelink = MagicMock(
+                soco=mocked_speaker, is_share_link=lambda x: True if x.startswith("sharelink:") else False
+            )
             mocked_player.sharelink = mocked_sharelink
             mocked_player.speaker = mocked_speaker
             yield mocked_player, mocked_speaker, mocked_sharelink
@@ -78,7 +80,7 @@ def test_play_as_normal_mode(mock_sonos_player, caplog):
 
     assert "Playing `dummy-uri` on the player `MockedPlayer`" in caplog.text
     mocked_speaker.clear_queue.assert_called_once_with()
-    mocked_sharelink.add_share_link_to_queue.assert_called_once_with("dummy-uri", position=1)
+    mocked_speaker.add_uri_to_queue.assert_called_once_with("dummy-uri", position=1)
     assert mocked_speaker.play_mode == "NORMAL"
     mocked_speaker.play_from_queue.assert_called_once_with(index=0, start=True)
 
@@ -92,7 +94,21 @@ def test_play_with_shuffle(mock_sonos_player, caplog):
 
     assert "Playing `dummy-uri` on the player `MockedPlayer`" in caplog.text
     mocked_speaker.clear_queue.assert_called_once_with()
-    mocked_sharelink.add_share_link_to_queue.assert_called_once_with("dummy-uri", position=1)
+    mocked_speaker.add_uri_to_queue.assert_called_once_with("dummy-uri", position=1)
+    assert mocked_speaker.play_mode == "SHUFFLE_NOREPEAT"
+    mocked_speaker.play_from_queue.assert_called_once_with(index=0, start=True)
+
+
+def test_play_with_sharelink_compatible_uri(mock_sonos_player, caplog):
+    """Test if ShareLink compatible uri is add to the queue"""
+    mocked_player, mocked_speaker, mocked_sharelink = mock_sonos_player
+
+    with caplog.at_level(logging.INFO):
+        mocked_player.play(uri="sharelink:uri", shuffle=True)
+
+    assert "Playing `sharelink:uri` on the player `MockedPlayer`" in caplog.text
+    mocked_speaker.clear_queue.assert_called_once_with()
+    mocked_sharelink.add_share_link_to_queue.assert_called_once_with("sharelink:uri", position=1)
     assert mocked_speaker.play_mode == "SHUFFLE_NOREPEAT"
     mocked_speaker.play_from_queue.assert_called_once_with(index=0, start=True)
 

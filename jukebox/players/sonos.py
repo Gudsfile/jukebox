@@ -24,13 +24,10 @@ class SonosPlayer(Player):
 
     def play(self, uri: str, shuffle: bool):
         LOGGER.info(f"Playing `{uri}` on the player `{self.speaker.player_name}`")
-        self.sharelink.soco.clear_queue()
-        _ = self.sharelink.add_share_link_to_queue(uri, position=1)
-        if shuffle:
-            self.sharelink.soco.play_mode = "SHUFFLE_NOREPEAT"
-        else:
-            self.sharelink.soco.play_mode = "NORMAL"
-        self.sharelink.soco.play_from_queue(index=0, start=True)
+        self.speaker.clear_queue()
+        _ = self.handle_uri(uri)
+        self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
+        self.speaker.play_from_queue(index=0, start=True)
 
     def pause(self):
         LOGGER.info(f"Pausing player `{self.speaker.player_name}`")
@@ -43,3 +40,8 @@ class SonosPlayer(Player):
     def stop(self):
         LOGGER.info(f"Stopping player `{self.speaker.player_name}` and clearing its queue")
         self.speaker.clear_queue()
+
+    def handle_uri(self, uri):
+        if self.sharelink.is_share_link(uri):
+            return self.sharelink.add_share_link_to_queue(uri, position=1)
+        return self.speaker.add_uri_to_queue(uri, position=1)
