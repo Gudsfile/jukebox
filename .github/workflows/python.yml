@@ -5,6 +5,8 @@ on:
     branches: ["main"]
   pull_request:
     branches: ["main"]
+    types: [opened, synchronize, reopened, unlabeled]
+
   workflow_dispatch:
 
 permissions:
@@ -23,6 +25,7 @@ jobs:
     # The version '3.7' with architecture 'x64' is only available in version 22.04:
     # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
     runs-on: ubuntu-22.04
+    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'no-ci')
 
     strategy:
       matrix:
