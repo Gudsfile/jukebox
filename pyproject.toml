@@ -3,7 +3,7 @@ name = "jukebox"
 version = "0.1.0"
 description = ""
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.7,<3.14"
 dependencies = [
     "soco==0.30.10",
 ]
