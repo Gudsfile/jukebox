@@ -5,7 +5,14 @@ description = ""
 readme = "README.md"
 requires-python = ">=3.7,<3.14"
 dependencies = [
-    "soco==0.30.11",
+ "pydantic==2.5.3",
+ "soco==0.30.11",
+]
+
+[project.optional-dependencies]
+discstore = ["discstore"]
+discstore-api = [
+    "discstore[api]; python_version >= '3.8'",
 ]
 
 [dependency-groups]
@@ -30,6 +37,14 @@ include = ["jukebox", "pn532"]
 
 [tool.hatch.build.targets.wheel]
 include = ["jukebox", "pn532"]
+
+[tool.uv.workspace]
+members = [
+    "discstore",
+]
+
+[tool.uv.sources]
+discstore = { workspace = true }
 
 [project.scripts]
 jukebox = "jukebox.app:main"

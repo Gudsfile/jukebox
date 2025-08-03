@@ -1,2 +1,13 @@
 .env
+
+.venv
+venv
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+built-package/
+*.egg-info
+dist/
+
 library.json
+library/
