@@ -3,6 +3,7 @@ from discstore.adapters.inbound.interactive_cli_controller import InteractiveCLI
 from discstore.adapters.outbound.json_library_repository import JsonLibraryRepository
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+from discstore.domain.use_cases.remove_disc import RemoveDisc
 
 
 def build_cli_controller(library_path: str):
@@ -29,5 +30,6 @@ def build_api_app(library_path: str):
     APIController(
         AddDisc(repository),
         ListDiscs(repository),
+        RemoveDisc(repository),
     )
     return fastapi_app
