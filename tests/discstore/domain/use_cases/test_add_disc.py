@@ -43,4 +43,4 @@ def test_add_disc_fails_if_tag_exists():
     with pytest.raises(ValueError) as exc:
         use_case.execute("tag42", new_disc)
 
-    assert "existe déjà" in str(exc.value)
+    assert "Already existing tag: tag_id='tag42'" in str(exc.value)

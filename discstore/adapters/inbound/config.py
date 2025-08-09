@@ -1,8 +1,13 @@
 import argparse
+import logging
+import os
 from enum import Enum
 from typing import Literal, Optional, Union
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, ValidationError
+
+DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
+LOGGER = logging.getLogger("discstore")
 
 
 class Command(BaseModel):
@@ -38,7 +43,7 @@ class ApiCommand(Command):
 
 
 class CLIConfig(BaseModel):
-    library: str = Field(..., alias="library_path")
+    library: str
     verbose: bool = False
 
     command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand]
@@ -47,26 +52,31 @@ class CLIConfig(BaseModel):
 def parse_config() -> CLIConfig:
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-l", "--library-path", required=True, help="Library file path")
-    parser.add_argument("-v", "--verbose", action="store_true", help="Mode verbeux")
+    parser.add_argument(
+        "-l",
+        "--library",
+        default=os.environ.get("JUKEBOX_LIBRARY_PATH", DEFAULT_LIBRARY_PATH),
+        help="path to the library JSON file",
+    )
+    parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # CLI
-    add_parser = subparsers.add_parser("add", help="Ajouter un CD")
-    add_parser.add_argument("tag", help="Tag du CD")
-    add_parser.add_argument("uri", help="URI du CD")
-    add_parser.add_argument("--title", required=False, help="Titre")
-    add_parser.add_argument("--artist", required=False, help="Artiste")
-    add_parser.add_argument("--album", required=False, help="Album")
-    add_parser.add_argument("--opts", required=False, help="Options")
+    add_parser = subparsers.add_parser("add", help="Add a CD")
+    add_parser.add_argument("tag", help="Tag of to be associated with the CD")
+    add_parser.add_argument("uri", help="Path or URI of the media file")
+    add_parser.add_argument("--title", required=False, help="Name of the track")
+    add_parser.add_argument("--artist", required=False, help="Name of the artist or band")
+    add_parser.add_argument("--album", required=False, help="Name of the album")
+    add_parser.add_argument("--opts", required=False, help="Playback options for the discs")
 
-    list_parser = subparsers.add_parser("list", help="Lister les CDs")
-    list_parser.add_argument("mode", choices=["line", "table"], help="Mode d'affichage")
+    list_parser = subparsers.add_parser("list", help="List all CDs")
+    list_parser.add_argument("mode", choices=["line", "table"], help="Displaying mode")
 
     # API
-    api_parser = subparsers.add_parser("api", help="Lancer le serveur API")
-    api_parser.add_argument("--port", type=int, default=8000, help="Port API")
+    api_parser = subparsers.add_parser("api", help="Start an API server")
+    api_parser.add_argument("--port", type=int, default=8000, help="port")
 
     # Interactive
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")
@@ -75,7 +85,7 @@ def parse_config() -> CLIConfig:
     args_dict = vars(args)
 
     base_data = {
-        "library_path": args_dict.pop("library_path"),
+        "library": args_dict.pop("library"),
         "verbose": args_dict.pop("verbose"),
     }
 
@@ -86,9 +96,8 @@ def parse_config() -> CLIConfig:
 
     try:
         validated = CLIConfig(**config_data)
-    except ValidationError as e:
-        print("\n[CONFIG ERROR]")
-        print(e)
+    except ValidationError as err:
+        LOGGER.error("Config error", err)
         exit(1)
 
     return validated

@@ -1,9 +1,12 @@
+import logging
 from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+
+LOGGER = logging.getLogger("discstore")
 
 
 class InteractiveCLIController:
@@ -13,10 +16,10 @@ class InteractiveCLIController:
 
     def run(self) -> None:
         while True:
-            print("\n--- Gestionnaire de Discothèque ---")
-            print("1. Ajouter un CD")
-            print("3. Lister les CD")
-            print("5. Quitter")
+            print("\n=== Discstore management ===")
+            print("1. Add a CD")
+            print("3. List all CDs")
+            print("5. Exit")
 
             choix = input("Votre choix : ")
             self.handle_command(choix)
@@ -29,12 +32,13 @@ class InteractiveCLIController:
             elif command in ("3", "list"):
                 self.list_discs_flow()
             elif command in ("5"):
-                print("À bientôt !")
+                print("See you soon!")
                 exit(0)
             else:
-                print("Choix invalide.")
-        except Exception as e:
-            print(f"[ERREUR] {e}")
+                print("Invalid choice")
+        except Exception as err:
+            print(f"Error: {err}")
+            LOGGER.error("Error during handling command", err)
 
     def add_discs_flow(self) -> None:
         print("\n-- Ajouter un CD --")

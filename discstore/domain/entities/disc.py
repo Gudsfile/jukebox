@@ -4,18 +4,18 @@ from pydantic import BaseModel, Field
 
 
 class DiscOption(BaseModel):
-    shuffle: bool = Field(default=False, description="Active ou non la lecture aléatoire des pistes")
-    is_test: bool = Field(default=False, description="Indique s'il s'agit d'un disque de test")
+    shuffle: bool = Field(default=False, description="Enable or disable shuffle playback")
+    is_test: bool = Field(default=False, description="Indicates whether this is a test disc")
 
 
 class DiscMetadata(BaseModel):
-    artist: Optional[str] = Field(default=None, description="Nom de l'artiste ou du groupe", examples=["Zubi"])
-    album: Optional[str] = Field(default=None, description="Nom de l'album", examples=["Dear Z"])
-    track: Optional[str] = Field(default=None, description="Nom de la piste ou chanson", examples=["dey ok"])
-    playlist: Optional[str] = Field(default=None, description="Nom de la playlist", examples=["dey ok"])
+    artist: Optional[str] = Field(default=None, description="Name of the artist or band", examples=["Zubi", None])
+    album: Optional[str] = Field(default=None, description="Name of the album", examples=["Dear Z", None])
+    track: Optional[str] = Field(default=None, description="Name of the track", examples=["dey ok", None])
+    playlist: Optional[str] = Field(default=None, description="Name of the playlist", examples=["dey ok", None])
 
 
 class Disc(BaseModel):
-    uri: str = Field(description="Chemin ou URI du fichier média", examples=["spotify:track:5yYCqkCxYnXFLqApA98Ltv"])
-    option: DiscOption = Field(default=DiscOption(), description="Options de lecture du disque")
-    metadata: DiscMetadata = Field(description="Métadonnées liées au disque")
+    uri: str = Field(description="Path or URI of the media file", examples=["spotify:track:5yYCqkCxYnXFLqApA98Ltv"])
+    option: DiscOption = Field(default=DiscOption(), description="Playback options for the disc")
+    metadata: DiscMetadata = Field(description="Metadata associated with the disc")

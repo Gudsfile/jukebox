@@ -7,4 +7,4 @@ from discstore.domain.entities.disc import Disc
 
 class Library(BaseModel):
     model_config = ConfigDict(strict=True)
-    discs: Dict[str, Disc] = Field(default={}, description="CD de la librairie")
+    discs: Dict[str, Disc] = Field(default={}, description="Correspondences between tags and CDs")

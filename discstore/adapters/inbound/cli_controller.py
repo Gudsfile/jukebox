@@ -1,3 +1,4 @@
+import logging
 from typing import Union
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
@@ -5,6 +6,8 @@ from discstore.adapters.inbound.config import CliAddCommand, CliListCommand
 from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+
+LOGGER = logging.getLogger("discstore")
 
 
 class CLIController:
@@ -26,7 +29,7 @@ class CLIController:
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        print("✅ CD ajouté avec succès.")
+        LOGGER.info("✅ CD successfully added")
 
     def list_discs_flow(self, command) -> None:
         discs = self.list_discs.execute()
@@ -36,4 +39,4 @@ class CLIController:
         if command.mode == "line":
             display_library_line(discs)
             return
-        print(f"Displaying mode not implemented yet: {command.mode}")
+        LOGGER.error(f"Displaying mode not implemented yet: mode='{command.mode}'")
