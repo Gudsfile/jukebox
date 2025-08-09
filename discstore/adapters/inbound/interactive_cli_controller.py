@@ -5,19 +5,22 @@ from discstore.adapters.inbound.cli_display import display_library_line, display
 from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+from discstore.domain.use_cases.remove_disc import RemoveDisc
 
 LOGGER = logging.getLogger("discstore")
 
 
 class InteractiveCLIController:
-    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs):
+    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs, remove_disc: RemoveDisc):
         self.add_disc = add_disc
         self.list_discs = list_discs
+        self.remove_disc = remove_disc
 
     def run(self) -> None:
         while True:
             print("\n=== Discstore management ===")
             print("1. Add a CD")
+            print("2. Remove a CD")
             print("3. List all CDs")
             print("5. Exit")
 
@@ -29,6 +32,8 @@ class InteractiveCLIController:
         try:
             if command in ("1"):
                 self.add_disc_flow()
+            elif command in ("2"):
+                self.remove_disc_flow()
             elif command in ("3"):
                 self.list_discs_flow()
             elif command in ("5"):
@@ -63,3 +68,9 @@ class InteractiveCLIController:
             display_library_line(discs)
             return
         print(f"Displaying mode not implemented yet: {mode}")
+
+    def remove_disc_flow(self) -> None:
+        print("\n-- Remove a CD --")
+        tag = input("Tag: ").strip()
+        self.remove_disc.execute(tag)
+        print("🗑️ CD successfully removed")
