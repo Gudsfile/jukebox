@@ -34,7 +34,6 @@ resolution-markers = [
 ]
 dependencies = [
     { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.8.*'" },
-    { name = "typing-extensions", version = "4.14.1", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
 wheels = [
@@ -325,6 +324,7 @@ source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
     { name = "soco" },
+    { name = "typing-extensions", version = "4.7.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.8'" },
 ]
 
 [package.optional-dependencies]
@@ -344,6 +344,7 @@ requires-dist = [
     { name = "fastapi", marker = "python_full_version >= '3.8' and extra == 'api'", specifier = "==0.116.1" },
     { name = "pydantic", specifier = "==2.5.3" },
     { name = "soco", specifier = "==0.30.11" },
+    { name = "typing-extensions", marker = "python_full_version == '3.7.*'" },
     { name = "uvicorn", marker = "python_full_version >= '3.8' and extra == 'api'", specifier = "==0.33.0" },
 ]
 provides-extras = ["api"]

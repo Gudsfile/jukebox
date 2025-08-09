@@ -7,6 +7,7 @@ requires-python = ">=3.7,<3.13"
 dependencies = [
     "pydantic==2.5.3",
     "soco==0.30.11",
+    "typing_extensions; python_version=='3.7.*'",
 ]
 
 [project.optional-dependencies]
