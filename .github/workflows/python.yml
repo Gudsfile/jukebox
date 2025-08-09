@@ -6,8 +6,12 @@ on:
   pull_request:
     branches: ["main"]
     types: [opened, synchronize, reopened, unlabeled]
-
   workflow_dispatch:
+    inputs:
+      python-version:
+        description: "Python version (empty for all)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -29,13 +33,11 @@ jobs:
 
     strategy:
       matrix:
-        python-version:
-          - "3.7"
-          - "3.8"
-          - "3.9"
-          - "3.10"
-          - "3.11"
-          - "3.12"
+        python-version: ${{ fromJson(
+          github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
+          && format('["{0}"]', github.event.inputs.python-version)
+          || '["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]'
+          ) }}
 
     steps:
       - uses: actions/checkout@v4
