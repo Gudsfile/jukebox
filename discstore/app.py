@@ -1,18 +1,24 @@
-import sys
+from discstore.adapters.inbound.config import parse_config
+from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller
 
-from discstore.di_container import build_api_app, build_cli_controller
-
-DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
 
 def main():
-    if len(sys.argv) > 1 and sys.argv[1] == "api":
+    config = parse_config()
+
+    if config.command.type == "api":
         import uvicorn
 
-        app = build_api_app(DEFAULT_LIBRARY_PATH)
-        uvicorn.run(app, host="0.0.0.0", port=8000)
-    else:
-        controller = build_cli_controller(DEFAULT_LIBRARY_PATH)
-        controller.run()
+        app = build_api_app(config.library)
+        uvicorn.run(app, host="0.0.0.0", port=config.command.port)
+        return
+
+    if config.command.type == "interactive":
+        interactive_cli = build_interactive_cli_controller(config.library)
+        interactive_cli.run()
+        return
+
+    cli = build_cli_controller(config.library)
+    cli.run(config.command)
 
 
 if __name__ == "__main__":
