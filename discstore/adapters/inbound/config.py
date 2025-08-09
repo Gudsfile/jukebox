@@ -33,7 +33,7 @@ class CliListCommandModes(str, Enum):
     line = "line"
 
 
-class CliListCommand(BaseModel):
+class CliListCommand(Command):
     type: Literal["list"]
     mode: CliListCommandModes = CliListCommandModes.table
 
@@ -69,7 +69,7 @@ def parse_config() -> CLIConfig:
 
     # CLI
     add_parser = subparsers.add_parser("add", help="Add a CD")
-    add_parser.add_argument("tag", help="Tag of to be associated with the CD")
+    add_parser.add_argument("tag", help="Tag to be associated with the CD")
     add_parser.add_argument("uri", help="Path or URI of the media file")
     add_parser.add_argument("--title", required=False, help="Name of the track")
     add_parser.add_argument("--artist", required=False, help="Name of the artist or band")

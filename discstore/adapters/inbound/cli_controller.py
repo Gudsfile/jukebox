@@ -17,11 +17,11 @@ class CLIController:
 
     def run(self, command: Union[CliAddCommand, CliListCommand]) -> None:
         if isinstance(command, CliAddCommand):
-            self.add_discs_flow(command)
+            self.add_disc_flow(command)
         elif isinstance(command, CliListCommand):
             self.list_discs_flow(command)
 
-    def add_discs_flow(self, command: CliAddCommand) -> None:
+    def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = command.tag
         uri = command.uri
         option = DiscOption()
@@ -31,7 +31,7 @@ class CLIController:
         self.add_disc.execute(tag, disc)
         LOGGER.info("✅ CD successfully added")
 
-    def list_discs_flow(self, command) -> None:
+    def list_discs_flow(self, command: CliListCommand) -> None:
         discs = self.list_discs.execute()
         if command.mode == "table":
             display_library_table(discs)

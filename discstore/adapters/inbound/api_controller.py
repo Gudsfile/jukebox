@@ -28,12 +28,12 @@ class APIController:
         def list_discs():
             return self.list_discs.execute()
 
-        @app.post("/discs", status_code=201)
+        @app.post("/disc", status_code=201)
         def add_disc(tag_id: str, disc: DiscInput):
             try:
                 self.add_disc.execute(tag_id, Disc(**disc.model_dump()))
                 return {"message": "Disc added"}
             except ValueError as valueErr:
-                raise HTTPException(status_code=400, detail=str(valueErr))
-            except Exception as exc:
-                raise HTTPException(status_code=500, detail=f"Server errror: {str(exc)}")
+                raise HTTPException(status_code=409, detail=str(valueErr))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
