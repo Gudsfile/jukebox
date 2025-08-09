@@ -11,6 +11,7 @@ def build_cli_controller(library_path: str):
     return CLIController(
         AddDisc(repository),
         ListDiscs(repository),
+        RemoveDisc(repository),
     )
 
 

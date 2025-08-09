@@ -2,24 +2,30 @@ import logging
 from typing import Union
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.adapters.inbound.config import CliAddCommand, CliListCommand
+from discstore.adapters.inbound.config import CliAddCommand, CliListCommand, CliRemoveCommand
 from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+from discstore.domain.use_cases.remove_disc import RemoveDisc
 
 LOGGER = logging.getLogger("discstore")
 
 
 class CLIController:
-    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs):
+    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs, remove_disc: RemoveDisc):
         self.add_disc = add_disc
         self.list_discs = list_discs
+        self.remove_disc = remove_disc
 
-    def run(self, command: Union[CliAddCommand, CliListCommand]) -> None:
+    def run(self, command: Union[CliAddCommand, CliListCommand, CliRemoveCommand]) -> None:
         if isinstance(command, CliAddCommand):
             self.add_disc_flow(command)
         elif isinstance(command, CliListCommand):
             self.list_discs_flow(command)
+        elif isinstance(command, CliRemoveCommand):
+            self.remove_disc_flow(command)
+        else:
+            LOGGER.error(f"Command not implemented yet: command='{command}'")
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = command.tag
@@ -40,3 +46,7 @@ class CLIController:
             display_library_line(discs)
             return
         LOGGER.error(f"Displaying mode not implemented yet: mode='{command.mode}'")
+
+    def remove_disc_flow(self, command) -> None:
+        self.remove_disc.execute(command.tag)
+        LOGGER.info("🗑️ CD successfully removed")
