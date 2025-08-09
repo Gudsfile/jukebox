@@ -37,6 +37,9 @@ class CliListCommand(Command):
     type: Literal["list"]
     mode: CliListCommandModes = CliListCommandModes.table
 
+class CliRemoveCommand(Command):
+    type: Literal["remove"]
+    tag: str
 
 class InteractiveCliCommand(Command):
     type: Literal["interactive"]
@@ -51,7 +54,7 @@ class CLIConfig(BaseModel):
     library: str
     verbose: bool = False
 
-    command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand]
+    command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand]
 
 
 def parse_config() -> CLIConfig:
@@ -78,6 +81,9 @@ def parse_config() -> CLIConfig:
 
     list_parser = subparsers.add_parser("list", help="List all CDs")
     list_parser.add_argument("mode", choices=["line", "table"], help="Displaying mode")
+
+    remove_parser = subparsers.add_parser("remove", help="Remove a CD")
+    remove_parser.add_argument("tag", help="Tag to remove")
 
     # API
     api_parser = subparsers.add_parser("api", help="Start an API server")
