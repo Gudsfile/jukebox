@@ -1,18 +1,18 @@
 [project]
 name = "jukebox"
 version = "0.1.0"
-description = ""
+description = "jukebox and disc store bundle"
 readme = "README.md"
 requires-python = ">=3.7,<3.14"
 dependencies = [
- "pydantic==2.5.3",
- "soco==0.30.11",
+    "pydantic==2.5.3",
+    "soco==0.30.11",
 ]
 
 [project.optional-dependencies]
-discstore = ["discstore"]
-discstore-api = [
-    "discstore[api]; python_version >= '3.8'",
+api = [
+    "fastapi==0.116.1; python_version >= '3.8'",
+    "uvicorn==0.33.0; python_version >= '3.8'",
 ]
 
 [dependency-groups]
@@ -28,25 +28,17 @@ target-version = "py312"
 extend-exclude = ["pn532/"]
 
 [build-system]
-# uv does not provide a build backend yet
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.sdist]
-include = ["jukebox", "pn532"]
+include = ["jukebox", "discstore", "pn532"]
 
 [tool.hatch.build.targets.wheel]
-include = ["jukebox", "pn532"]
-
-[tool.uv.workspace]
-members = [
-    "discstore",
-]
-
-[tool.uv.sources]
-discstore = { workspace = true }
+include = ["jukebox", "discstore", "pn532"]
 
 [project.scripts]
 jukebox = "jukebox.app:main"
 player = "jukebox.players.utils:main"
 reader = "jukebox.readers.utils:main"
+discstore = "discstore.app:main"
