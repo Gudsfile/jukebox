@@ -19,6 +19,7 @@ def build_interactive_cli_controller(library_path: str):
     return InteractiveCLIController(
         AddDisc(repository),
         ListDiscs(repository),
+        RemoveDisc(repository),
     )
 
 
