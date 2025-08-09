@@ -6,11 +6,11 @@ class AddDisc:
     def __init__(self, repository: LibraryRepository):
         self.repository = repository
 
-    def execute(self, disc_id: str, disc: Disc) -> None:
+    def execute(self, tag_id: str, disc: Disc) -> None:
         library = self.repository.load()
 
-        if disc_id in library.discs:
-            raise ValueError(f"Un disque avec l'ID '{disc_id}' existe déjà.")
+        if tag_id in library.discs:
+            raise ValueError(f"Already existing tag: tag_id='{tag_id}'")
 
-        library.discs[disc_id] = disc
+        library.discs[tag_id] = disc
         self.repository.save(library)

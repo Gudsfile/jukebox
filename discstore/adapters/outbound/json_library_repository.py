@@ -1,9 +1,12 @@
 import json
+import logging
 
 from pydantic import ValidationError
 
 from discstore.domain.entities.library import Library
 from discstore.domain.repositories.library_repository import LibraryRepository
+
+LOGGER = logging.getLogger("discstore")
 
 
 class JsonLibraryRepository(LibraryRepository):
@@ -16,10 +19,12 @@ class JsonLibraryRepository(LibraryRepository):
                 data = json.load(f)
                 return Library.model_validate(data)
         except FileNotFoundError as err:
-            print(err)
+            LOGGER.warning(f"File not found, continuing with an empty library: filepath: {self.filepath}", err)
             return Library()
         except (json.JSONDecodeError, ValidationError) as err:
-            print(err)
+            LOGGER.warning(
+                f"Error deserializing library, continuing with empty library: filepath: {self.filepath}", err
+            )
             return Library()
 
     def save(self, library: Library) -> None:

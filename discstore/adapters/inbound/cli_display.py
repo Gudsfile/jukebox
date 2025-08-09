@@ -9,18 +9,17 @@ MAX_COL_WIDTH = 20
 
 def display_library_line(discs: Dict[str, Disc]) -> None:
     if not discs:
-        print("La librairie est vide")
+        print("The library is empty")
         return
 
-    print("=== Librairie de CDs ===\n")
+    print("=== CDs Library ===\n")
     for disc_id, disc in discs.items():
         print(f"ID : {disc_id}")
         print(f"  URI      : {disc.uri}")
-        print(f"  Artiste  : {disc.metadata.artist or '/'}")
+        print(f"  Artist   : {disc.metadata.artist or '/'}")
         print(f"  Album    : {disc.metadata.album or '/'}")
-        print(f"  Titre    : {disc.metadata.track or '/'}")
+        print(f"  Track    : {disc.metadata.track or '/'}")
         print(f"  Playlist : {disc.metadata.playlist or '/'}")
-        print(f"  Test     : {disc.option.is_test}")
         print(f"  Shuffle  : {disc.option.shuffle}")
         print("-" * 30)
 
@@ -33,10 +32,10 @@ def truncate(text: str, max_length: int) -> str:
 
 def display_library_table(discs: Dict[str, Disc]) -> None:
     if not discs:
-        print("La librairie est vide")
+        print("The library is empty")
         return
 
-    headers = ["ID", "URI", "Artiste", "Album", "Titre", "Playlist", "Test", "Shuffle"]
+    headers = ["ID", "URI", "Artist", "Album", "Track", "Playlist", "Shuffle"]
     rows = []
     for disc_id, disc in discs.items():
         rows.append(
@@ -47,7 +46,6 @@ def display_library_table(discs: Dict[str, Disc]) -> None:
                 truncate(disc.metadata.album or "/", MAX_COL_WIDTH),
                 truncate(disc.metadata.track or "/", MAX_COL_WIDTH),
                 truncate(disc.metadata.playlist or "/", MAX_COL_WIDTH),
-                str(disc.option.is_test),
                 str(disc.option.shuffle),
             ]
         )

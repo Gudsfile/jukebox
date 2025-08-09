@@ -36,4 +36,4 @@ class APIController:
             except ValueError as valueErr:
                 raise HTTPException(status_code=400, detail=str(valueErr))
             except Exception as exc:
-                raise HTTPException(status_code=500, detail=f"Erreur serveur : {str(exc)}")
+                raise HTTPException(status_code=500, detail=f"Server errror: {str(exc)}")

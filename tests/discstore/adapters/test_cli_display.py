@@ -34,24 +34,22 @@ def test_display_library_line(sample_discs):
     output = capture_output(display_library_line, sample_discs)
     assert (
         output
-        == """=== Librairie de CDs ===
+        == """=== CDs Library ===
 
 ID : abc123
   URI      : /path/to/music.mp3
-  Artiste  : Test Artist
+  Artist   : Test Artist
   Album    : Test Album
-  Titre    : Test Track
+  Track    : Test Track
   Playlist : /
-  Test     : False
   Shuffle  : True
 ------------------------------
 ID : xyz789
   URI      : /another/track.mp3
-  Artiste  : Another Artist
+  Artist   : Another Artist
   Album    : /
-  Titre    : /
+  Track    : /
   Playlist : /
-  Test     : False
   Shuffle  : False
 ------------------------------
 """
@@ -61,8 +59,8 @@ ID : xyz789
 def test_display_library_table(sample_discs):
     output = capture_output(display_library_table, sample_discs).split("\n")
     assert len(output) == 5
-    assert output[0] == "ID     | URI                | Artiste        | Album      | Titre      | Playlist | Test  | Shuffle"  # fmt: skip
-    assert output[1] == "-------+--------------------+----------------+------------+------------+----------+-------+--------"  # fmt: skip
-    assert output[2] == "abc123 | /path/to/music.mp3 | Test Artist    | Test Album | Test Track | /        | False | True   "  # fmt: skip
-    assert output[3] == "xyz789 | /another/track.mp3 | Another Artist | /          | /          | /        | False | False  "  # fmt: skip
+    assert output[0] == "ID     | URI                | Artist         | Album      | Track      | Playlist | Shuffle"  # fmt: skip
+    assert output[1] == "-------+--------------------+----------------+------------+------------+----------+--------"  # fmt: skip
+    assert output[2] == "abc123 | /path/to/music.mp3 | Test Artist    | Test Album | Test Track | /        | True   "  # fmt: skip
+    assert output[3] == "xyz789 | /another/track.mp3 | Another Artist | /          | /          | /        | False  "  # fmt: skip
     assert output[4] == ""
