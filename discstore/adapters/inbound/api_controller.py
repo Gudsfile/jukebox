@@ -5,6 +5,7 @@ from fastapi import FastAPI, HTTPException
 from discstore.domain.entities.disc import Disc
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+from discstore.domain.use_cases.remove_disc import RemoveDisc
 
 app = FastAPI()
 
@@ -18,9 +19,10 @@ class DiscOutput(Disc):
 
 
 class APIController:
-    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs):
+    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs, remove_disc: RemoveDisc):
         self.add_disc = add_disc
         self.list_discs = list_discs
+        self.remove_disc = remove_disc
         self.register_routes()
 
     def register_routes(self):
@@ -35,5 +37,15 @@ class APIController:
                 return {"message": "Disc added"}
             except ValueError as valueErr:
                 raise HTTPException(status_code=409, detail=str(valueErr))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @app.delete("/disc", status_code=200)
+        def remove_disc(tag_id: str):
+            try:
+                self.remove_disc.execute(tag_id)
+                return {"message": "Disc removed"}
+            except ValueError as valueErr:
+                raise HTTPException(status_code=404, detail=str(valueErr))
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
