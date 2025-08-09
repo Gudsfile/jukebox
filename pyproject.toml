@@ -3,7 +3,7 @@ name = "jukebox"
 version = "0.1.0"
 description = "jukebox and disc store bundle"
 readme = "README.md"
-requires-python = ">=3.7,<3.14"
+requires-python = ">=3.7,<3.13"
 dependencies = [
     "pydantic==2.5.3",
     "soco==0.30.11",
