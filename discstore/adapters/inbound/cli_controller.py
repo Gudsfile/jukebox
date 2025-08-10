@@ -47,6 +47,6 @@ class CLIController:
             return
         LOGGER.error(f"Displaying mode not implemented yet: mode='{command.mode}'")
 
-    def remove_disc_flow(self, command) -> None:
+    def remove_disc_flow(self, command: CliRemoveCommand) -> None:
         self.remove_disc.execute(command.tag)
         LOGGER.info("🗑️ CD successfully removed")
