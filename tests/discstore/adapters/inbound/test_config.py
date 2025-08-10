@@ -4,6 +4,7 @@ from discstore.adapters.inbound.config import (
     DEFAULT_LIBRARY_PATH,
     ApiCommand,
     CliAddCommand,
+    CliEditCommand,
     CliListCommand,
     CliRemoveCommand,
     InteractiveCliCommand,
@@ -58,6 +59,33 @@ def test_parse_remove_command(mocker):
     assert isinstance(config.command, CliRemoveCommand)
     assert config.command.type == "remove"
     assert config.command.tag == "tag-to-delete"
+
+
+def test_parse_edit_command(mocker):
+    argv = [
+        "prog_name",
+        "edit",
+        "my-tag",
+        "/path/to/media.mp3",
+        "--title",
+        "My Song",
+        "--artist",
+        "The Testers",
+        "--album",
+        "Code Hits",
+    ]
+    mocker.patch("sys.argv", argv)
+
+    config = parse_config()
+
+    assert config.verbose is False
+    assert isinstance(config.command, CliEditCommand)
+    assert config.command.type == "edit"
+    assert config.command.tag == "my-tag"
+    assert config.command.uri == "/path/to/media.mp3"
+    assert config.command.title == "My Song"
+    assert config.command.artist == "The Testers"
+    assert config.command.album == "Code Hits"
 
 
 def test_parse_api_command_with_port(mocker):
