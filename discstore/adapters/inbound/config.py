@@ -15,11 +15,7 @@ DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
 LOGGER = logging.getLogger("discstore")
 
 
-class Command(BaseModel):
-    type: str
-
-
-class CliAddCommand(Command):
+class CliAddCommand(BaseModel):
     type: Literal["add"]
     tag: str
     uri: str
@@ -33,19 +29,21 @@ class CliListCommandModes(str, Enum):
     line = "line"
 
 
-class CliListCommand(Command):
+class CliListCommand(BaseModel):
     type: Literal["list"]
     mode: CliListCommandModes = CliListCommandModes.table
 
-class CliRemoveCommand(Command):
+
+class CliRemoveCommand(BaseModel):
     type: Literal["remove"]
     tag: str
 
-class InteractiveCliCommand(Command):
+
+class InteractiveCliCommand(BaseModel):
     type: Literal["interactive"]
 
 
-class ApiCommand(Command):
+class ApiCommand(BaseModel):
     type: Literal["api"]
     port: int = 8000
 
