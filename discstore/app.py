@@ -1,6 +1,6 @@
 from discstore.adapters.inbound.config import parse_config
 from discstore.adapters.inbound.logger import set_logger
-from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller
+from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
 
 
 def main():
@@ -12,6 +12,13 @@ def main():
 
         api = build_api_app(config.library)
         uvicorn.run(api.app, host="0.0.0.0", port=config.command.port)
+        return
+
+    if config.command.type == "ui":
+        import uvicorn
+
+        ui = build_ui_app(config.library)
+        uvicorn.run(ui.app, host="0.0.0.0", port=config.command.port)
         return
 
     if config.command.type == "interactive":

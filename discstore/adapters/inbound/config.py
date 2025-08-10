@@ -57,11 +57,18 @@ class ApiCommand(BaseModel):
     port: int = 8000
 
 
+class UiCommand(BaseModel):
+    type: Literal["ui"]
+    port: int = 8000
+
+
 class CLIConfig(BaseModel):
     library: str
     verbose: bool = False
 
-    command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand]
+    command: Union[
+        ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand, UiCommand
+    ]
 
 
 def parse_config() -> CLIConfig:
@@ -103,6 +110,9 @@ def parse_config() -> CLIConfig:
     # API
     api_parser = subparsers.add_parser("api", help="Start an API server")
     api_parser.add_argument("--port", type=int, default=8000, help="port")
+
+    # UI
+    _ = subparsers.add_parser("ui", help="Start an UI server")
 
     # Interactive
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")

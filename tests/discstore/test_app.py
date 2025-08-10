@@ -12,6 +12,7 @@ from discstore.adapters.inbound.config import (
     CliListCommandModes,
     CliRemoveCommand,
     InteractiveCliCommand,
+    UiCommand,
 )
 
 
@@ -24,6 +25,7 @@ def test_main_starts_api(mocker):
     mock_build_api_app = mocker.patch("discstore.app.build_api_app")
     mock_build_interactive = mocker.patch("discstore.app.build_interactive_cli_controller")
     mock_build_cli = mocker.patch("discstore.app.build_cli_controller")
+    mock_build_ui_app = mocker.patch("discstore.app.build_ui_app")
 
     config = CLIConfig(library="fake_library_path", verbose=True, command=ApiCommand(type="api", port=1234))
 
@@ -41,6 +43,7 @@ def test_main_starts_api(mocker):
 
     mock_build_interactive.assert_not_called()
     mock_build_cli.assert_not_called()
+    mock_build_ui_app.assert_not_called()
 
 
 def test_main_starts_interactive_cli(mocker):
@@ -49,6 +52,7 @@ def test_main_starts_interactive_cli(mocker):
     mock_build_api_app = mocker.patch("discstore.app.build_api_app")
     mock_build_interactive = mocker.patch("discstore.app.build_interactive_cli_controller")
     mock_build_cli = mocker.patch("discstore.app.build_cli_controller")
+    mock_build_ui_app = mocker.patch("discstore.app.build_ui_app")
 
     config = CLIConfig(library="fake_library_path", verbose=True, command=InteractiveCliCommand(type="interactive"))
 
@@ -66,6 +70,7 @@ def test_main_starts_interactive_cli(mocker):
 
     mock_build_api_app.assert_not_called()
     mock_build_cli.assert_not_called()
+    mock_build_ui_app.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -83,6 +88,7 @@ def test_main_starts_standard_cli(mocker, cli_command):
     mock_build_api_app = mocker.patch("discstore.app.build_api_app")
     mock_build_interactive = mocker.patch("discstore.app.build_interactive_cli_controller")
     mock_build_cli = mocker.patch("discstore.app.build_cli_controller")
+    mock_build_ui_app = mocker.patch("discstore.app.build_ui_app")
 
     config = CLIConfig(library="fake_library_path", verbose=True, command=cli_command)
 
@@ -100,3 +106,34 @@ def test_main_starts_standard_cli(mocker, cli_command):
 
     mock_build_api_app.assert_not_called()
     mock_build_interactive.assert_not_called()
+    mock_build_ui_app.assert_not_called()
+
+
+def test_main_starts_ui(mocker):
+    mock_uvicorn = MagicMock()
+    mocker.patch.dict("sys.modules", {"uvicorn": mock_uvicorn})
+
+    mock_parse_config = mocker.patch("discstore.app.parse_config")
+    mock_set_logger = mocker.patch("discstore.app.set_logger")
+    mock_build_api_app = mocker.patch("discstore.app.build_api_app")
+    mock_build_interactive = mocker.patch("discstore.app.build_interactive_cli_controller")
+    mock_build_cli = mocker.patch("discstore.app.build_cli_controller")
+    mock_build_ui_app = mocker.patch("discstore.app.build_ui_app")
+
+    config = CLIConfig(library="fake_library_path", verbose=True, command=UiCommand(type="ui", port=1234))
+
+    mock_parse_config.return_value = config
+
+    fake_app = MagicMock()
+    mock_build_ui_app.return_value = MagicMock(app=fake_app)
+
+    app.main()
+
+    mock_parse_config.assert_called_once()
+    mock_set_logger.assert_called_once_with(True)
+    mock_build_ui_app.assert_called_once_with("fake_library_path")
+    mock_uvicorn.run.assert_called_once_with(fake_app, host="0.0.0.0", port=1234)
+
+    mock_build_interactive.assert_not_called()
+    mock_build_cli.assert_not_called()
+    mock_build_api_app.assert_not_called()
