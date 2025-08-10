@@ -30,12 +30,11 @@ def build_interactive_cli_controller(library_path: str):
 def build_api_app(library_path: str):
     repository = JsonLibraryRepository(library_path)
     from discstore.adapters.inbound.api_controller import APIController
-    from discstore.adapters.inbound.api_controller import app as fastapi_app
 
-    APIController(
+    api_controller = APIController(
         AddDisc(repository),
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
     )
-    return fastapi_app
+    return api_controller
