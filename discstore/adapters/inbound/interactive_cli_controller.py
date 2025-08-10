@@ -58,10 +58,10 @@ class InteractiveCLIController:
 
     def list_discs_flow(self) -> None:
         print("\n-- List all CDs --")
-        mode = input("Mode: ").strip()
+        mode = input("Mode (table/line): ").strip()
 
         discs = self.list_discs.execute()
-        if mode == "table":
+        if mode == "table" or mode == "":
             display_library_table(discs)
             return
         if mode == "line":
