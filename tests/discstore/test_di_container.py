@@ -6,6 +6,7 @@ from discstore.di_container import (
     build_api_app,
     build_cli_controller,
     build_interactive_cli_controller,
+    build_ui_app,
 )
 
 
@@ -90,3 +91,23 @@ def test_build_api_app_wiring(mocker, mocks):
         mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
     )
     assert result is mock_api_instance
+
+
+def test_build_ui_app_wiring(mocker, mocks):
+    mock_ui_instance = MagicMock()
+    mock_ui_controller_class = MagicMock(return_value=mock_ui_instance)
+    mocker.patch.dict(
+        "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
+    )
+
+    result = build_ui_app("fake_library_path")
+
+    mocks.repo_class.assert_called_once_with("fake_library_path")
+    mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
+    mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
+    mock_ui_controller_class.assert_called_once_with(
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
+    )
+    assert result is mock_ui_instance

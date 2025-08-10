@@ -38,3 +38,16 @@ def build_api_app(library_path: str):
         EditDisc(repository),
     )
     return api_controller
+
+
+def build_ui_app(library_path: str):
+    repository = JsonLibraryRepository(library_path)
+    from discstore.adapters.inbound.ui_controller import UIController
+
+    ui_controller = UIController(
+        AddDisc(repository),
+        ListDiscs(repository),
+        RemoveDisc(repository),
+        EditDisc(repository),
+    )
+    return ui_controller
