@@ -30,13 +30,13 @@ class InteractiveCLIController:
     def handle_command(self, command: str, args: Optional[dict] = None) -> None:
         args = args or {}
         try:
-            if command in ("1"):
+            if command == "1":
                 self.add_disc_flow()
-            elif command in ("2"):
+            elif command == "2":
                 self.remove_disc_flow()
-            elif command in ("3"):
+            elif command == "3":
                 self.list_discs_flow()
-            elif command in ("5"):
+            elif command == "5":
                 print("See you soon!")
                 exit(0)
             else:

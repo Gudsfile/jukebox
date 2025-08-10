@@ -64,9 +64,7 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mock_interactive_cli_class.assert_called_once_with(
-        mocks.add_disc_instance,
-        mocks.list_discs_instance,
-        mocks.remove_disc_instance,
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance
     )
     assert result is mock_interactive_cli_instance
 
@@ -86,8 +84,6 @@ def test_build_api_app_wiring(mocker, mocks):
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mock_api_controller_class.assert_called_once_with(
-        mocks.add_disc_instance,
-        mocks.list_discs_instance,
-        mocks.remove_disc_instance,
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance
     )
     assert result is mock_fastapi_app_instance
