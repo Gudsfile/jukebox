@@ -16,10 +16,12 @@ def mocks(mocker):
         add_disc_class: MagicMock = mocker.patch("discstore.di_container.AddDisc")
         list_discs_class: MagicMock = mocker.patch("discstore.di_container.ListDiscs")
         remove_disc_class: MagicMock = mocker.patch("discstore.di_container.RemoveDisc")
+        edit_disc_class: MagicMock = mocker.patch("discstore.di_container.EditDisc")
         repo_instance: MagicMock = MagicMock()
         add_disc_instance: MagicMock = MagicMock()
         list_discs_instance: MagicMock = MagicMock()
         remove_disc_instance: MagicMock = MagicMock()
+        edit_disc_instance: MagicMock = MagicMock()
 
     mocks = Mocks()
 
@@ -27,6 +29,7 @@ def mocks(mocker):
     mocks.add_disc_class.return_value = mocks.add_disc_instance
     mocks.list_discs_class.return_value = mocks.list_discs_instance
     mocks.remove_disc_class.return_value = mocks.remove_disc_instance
+    mocks.edit_disc_class.return_value = mocks.edit_disc_instance
 
     return mocks
 
@@ -43,10 +46,9 @@ def test_build_cli_controller_wiring(mocker, mocks):
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
     mock_cli_controller_class.assert_called_once_with(
-        mocks.add_disc_instance,
-        mocks.list_discs_instance,
-        mocks.remove_disc_instance,
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
     )
     assert result is mock_cli_controller_instance
 
@@ -63,8 +65,9 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
     mock_interactive_cli_class.assert_called_once_with(
-        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
     )
     assert result is mock_interactive_cli_instance
 
@@ -83,7 +86,8 @@ def test_build_api_app_wiring(mocker, mocks):
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
     mock_api_controller_class.assert_called_once_with(
-        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance
+        mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
     )
     assert result is mock_fastapi_app_instance

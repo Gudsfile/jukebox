@@ -39,6 +39,15 @@ class CliRemoveCommand(BaseModel):
     tag: str
 
 
+class CliEditCommand(BaseModel):
+    type: Literal["edit"]
+    tag: str
+    uri: str
+    title: Optional[str] = None
+    artist: Optional[str] = None
+    album: Optional[str] = None
+
+
 class InteractiveCliCommand(BaseModel):
     type: Literal["interactive"]
 
@@ -52,7 +61,7 @@ class CLIConfig(BaseModel):
     library: str
     verbose: bool = False
 
-    command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand]
+    command: Union[ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand]
 
 
 def parse_config() -> CLIConfig:
@@ -82,6 +91,14 @@ def parse_config() -> CLIConfig:
 
     remove_parser = subparsers.add_parser("remove", help="Remove a CD")
     remove_parser.add_argument("tag", help="Tag to remove")
+
+    edit_parser = subparsers.add_parser("edit", help="Edit a CD")
+    edit_parser.add_argument("tag", help="Tag to be edited")
+    edit_parser.add_argument("uri", help="Path or URI of the media file")
+    edit_parser.add_argument("--title", required=False, help="Name of the track")
+    edit_parser.add_argument("--artist", required=False, help="Name of the artist or band")
+    edit_parser.add_argument("--album", required=False, help="Name of the album")
+    edit_parser.add_argument("--opts", required=False, help="Playback options for the discs")
 
     # API
     api_parser = subparsers.add_parser("api", help="Start an API server")

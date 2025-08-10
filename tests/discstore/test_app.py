@@ -7,6 +7,7 @@ from discstore.adapters.inbound.config import (
     ApiCommand,
     CliAddCommand,
     CLIConfig,
+    CliEditCommand,
     CliListCommand,
     CliListCommandModes,
     CliRemoveCommand,
@@ -73,6 +74,7 @@ def test_main_starts_interactive_cli(mocker):
         (CliAddCommand(type="add", tag="dummy_tag", uri="dummy_uri")),
         (CliRemoveCommand(type="remove", tag="dummy_tag")),
         (CliListCommand(type="list", mode=CliListCommandModes.table)),
+        (CliEditCommand(type="edit", tag="dummy_tag", uri="dummy_uri")),
     ],
 )
 def test_main_starts_standard_cli(mocker, cli_command):
