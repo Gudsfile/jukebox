@@ -10,8 +10,8 @@ def main():
     if config.command.type == "api":
         import uvicorn
 
-        app = build_api_app(config.library)
-        uvicorn.run(app, host="0.0.0.0", port=config.command.port)
+        api = build_api_app(config.library)
+        uvicorn.run(api.app, host="0.0.0.0", port=config.command.port)
         return
 
     if config.command.type == "interactive":

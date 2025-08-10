@@ -8,8 +8,6 @@ from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 
-app = FastAPI()
-
 
 class DiscInput(Disc):
     pass
@@ -25,6 +23,7 @@ class APIController:
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
+        self.app = FastAPI()
         self.register_routes()
 
     def register_routes(self):

@@ -73,12 +73,11 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
 
 
 def test_build_api_app_wiring(mocker, mocks):
-    mock_api_controller_module = MagicMock()
-    mock_api_controller_class = MagicMock()
-    mock_fastapi_app_instance = MagicMock()
-    mock_api_controller_module.APIController = mock_api_controller_class
-    mock_api_controller_module.app = mock_fastapi_app_instance
-    mocker.patch.dict("sys.modules", {"discstore.adapters.inbound.api_controller": mock_api_controller_module})
+    mock_api_instance = MagicMock()
+    mock_api_controller_class = MagicMock(return_value=mock_api_instance)
+    mocker.patch.dict(
+        "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
+    )
 
     result = build_api_app("fake_library_path")
 
@@ -90,4 +89,4 @@ def test_build_api_app_wiring(mocker, mocks):
     mock_api_controller_class.assert_called_once_with(
         mocks.add_disc_instance, mocks.list_discs_instance, mocks.remove_disc_instance, mocks.edit_disc_instance
     )
-    assert result is mock_fastapi_app_instance
+    assert result is mock_api_instance

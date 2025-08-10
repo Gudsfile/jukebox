@@ -30,7 +30,7 @@ def test_main_starts_api(mocker):
     mock_parse_config.return_value = config
 
     fake_app = MagicMock()
-    mock_build_api_app.return_value = fake_app
+    mock_build_api_app.return_value = MagicMock(app=fake_app)
 
     app.main()
 
