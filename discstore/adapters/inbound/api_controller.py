@@ -28,11 +28,11 @@ class APIController:
         self.register_routes()
 
     def register_routes(self):
-        @app.get("/discs", response_model=Dict[str, DiscOutput])
+        @self.app.get("/api/v1/discs", response_model=Dict[str, DiscOutput])
         def list_discs():
             return self.list_discs.execute()
 
-        @app.post("/disc", status_code=201)
+        @self.app.post("/api/v1/disc", status_code=201)
         def add_or_edit_disc(tag_id: str, disc: DiscInput):
             try:
                 self.add_disc.execute(tag_id, Disc(**disc.model_dump()))
@@ -43,7 +43,7 @@ class APIController:
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
-        @app.delete("/disc", status_code=200)
+        @self.app.delete("/api/v1/disc", status_code=200)
         def remove_disc(tag_id: str):
             try:
                 self.remove_disc.execute(tag_id)
