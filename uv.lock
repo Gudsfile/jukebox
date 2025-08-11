@@ -370,10 +370,10 @@ api = [
     { name = "uvicorn", version = "0.35.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 ui = [
-    { name = "fastapi", marker = "python_full_version >= '3.10'" },
+    { name = "fastapi", marker = "python_full_version >= '3.8'" },
     { name = "fastui", marker = "python_full_version >= '3.10'" },
-    { name = "pydantic", version = "2.10.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
     { name = "python-multipart", marker = "python_full_version >= '3.10'" },
+    { name = "uvicorn", version = "0.33.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8' and python_full_version < '3.10'" },
     { name = "uvicorn", version = "0.35.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
 
@@ -387,17 +387,15 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "python_full_version >= '3.8' and extra == 'api'", specifier = "==0.116.1" },
-    { name = "fastapi", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.116.1" },
     { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.7.0" },
+    { name = "jukebox", extras = ["api"], marker = "extra == 'ui'" },
     { name = "pydantic", marker = "python_full_version < '3.10'", specifier = "==2.5.3" },
     { name = "pydantic", marker = "python_full_version >= '3.10'", specifier = "==2.10.6" },
-    { name = "pydantic", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==2.10.6" },
     { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.20" },
     { name = "soco", specifier = "==0.30.11" },
     { name = "typing-extensions", marker = "python_full_version == '3.7.*'" },
     { name = "uvicorn", marker = "python_full_version >= '3.8' and python_full_version < '3.10' and extra == 'api'", specifier = "==0.33.0" },
     { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.35.0" },
-    { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.35.0" },
 ]
 provides-extras = ["api", "ui"]
 

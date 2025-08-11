@@ -1,11 +1,21 @@
+import sys
+
+if sys.version_info < (3, 10):
+    raise RuntimeError("The `ui_controller` module requires Python 3.10+.")
+
 from typing import Annotated, List
 
-from fastapi import HTTPException
-from fastapi.responses import HTMLResponse
-from fastui import AnyComponent, FastUI, prebuilt_html
-from fastui import components as c
-from fastui.events import GoToEvent, PageEvent
-from fastui.forms import fastui_form
+try:
+    from fastapi import HTTPException
+    from fastapi.responses import HTMLResponse
+    from fastui import AnyComponent, FastUI, prebuilt_html
+    from fastui import components as c
+    from fastui.events import GoToEvent, PageEvent
+    from fastui.forms import fastui_form
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The `ui_controller` module requires FastUI dependency. Install it with: pip install jukebox[ui]."
+    ) from e
 from pydantic import BaseModel, Field
 
 from discstore.adapters.inbound.api_controller import APIController

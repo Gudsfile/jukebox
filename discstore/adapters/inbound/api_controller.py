@@ -1,6 +1,16 @@
+import sys
+
+if sys.version_info < (3, 8):
+    raise RuntimeError("The `api_controller` module requires Python 3.8+.")
+
 from typing import Dict
 
-from fastapi import FastAPI, HTTPException
+try:
+    from fastapi import FastAPI, HTTPException
+except ModuleNotFoundError as e:
+    raise ModuleNotFoundError(
+        "The `api_controller` module requires FastAPI dependencies. Install them with: pip install jukebox[api]."
+    ) from e
 
 from discstore.domain.entities.disc import Disc
 from discstore.domain.use_cases.add_disc import AddDisc
