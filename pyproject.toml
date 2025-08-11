@@ -1,10 +1,11 @@
 [project]
 name = "jukebox"
 version = "0.1.0"
-description = "jukebox and disc store bundle"
+description = "A Jukebox to play music on speakers using 'CD' with NFC tag"
 authors = [{ name = "Gudsfile" }]
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.7,<3.13"
 dependencies = [
     "pydantic==2.5.3; python_version < '3.10'",
@@ -12,6 +13,21 @@ dependencies = [
     "soco==0.30.11",
     "typing_extensions; python_version=='3.7.*'",
 ]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+keywords = ["jukebox", "discstore", "music", "nfc"]
+
+[project.urls]
+Repository = "https://github.com/Gudsfile/jukebox"
 
 [project.optional-dependencies]
 api = [
