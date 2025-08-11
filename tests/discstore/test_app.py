@@ -1,3 +1,4 @@
+import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -48,6 +49,7 @@ def app_mocks(mocker):
     return Mocks()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason="uvicorn requires Python 3.8+")
 @pytest.mark.parametrize(
     "command, expected_builder",
     [
