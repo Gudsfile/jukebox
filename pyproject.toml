@@ -2,7 +2,9 @@
 name = "jukebox"
 version = "0.1.0"
 description = "jukebox and disc store bundle"
+authors = [{ name = "Gudsfile" }]
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.7,<3.13"
 dependencies = [
     "pydantic==2.5.3; python_version < '3.10'",
