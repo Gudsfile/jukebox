@@ -1,18 +1,13 @@
 {
-  "library": {
-    "Your favorite artist": {
-      "Your favorite album by this artist": "URI of this album."
-    }
-  },
-  "tags": {
-    "Your tag id": {
-      "artist": "Your favorite artist",
-      "album": "Your favorite album by this artist"
+  "discs": {
+    "Your:tag:uid": {
+      "uri": "URI of a track, an album or a playlist on many providers",
+      "option": {
+        "shuffle": true
+      }
     },
-    "Another tag id": {
-      "artist": "Your favorite artist",
-      "album": "Your favorite album by this artist",
-      "shuffle": true
+    "Another:tag:uid": {
+      "uri": "spotify:album:3IvUwbVgAZSqNh06PVxwG7"
     }
   }
 }

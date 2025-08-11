@@ -3,18 +3,22 @@
 💿 Play music on speakers using NFC tags.
 
 🚧 At the moment:
-- artist, album and URI must be pre-populated in a JSON file (supports playlists via a workaround)
+
+- NFC tags - CDs must be pre-populated in a JSON file (`discstore` included with `jukebox` may be of help to you)
 - supports many music providers (Spotify, Apple Music, etc.), just add the URIs to the JSON file
-- only works with Sonos speakers (or a "dryrun" player), but code is designed to be modified to add new ones
+- only works with Sonos speakers (there is a "dryrun" player for development), but code is designed to be modified to add new ones
 - **as soon as** the NFC tag is removed, the music pauses, then resumes when the NFC tag is replaced
 
 💡 Inspired by:
+
 - https://github.com/hankhank10/vinylemulator
 - https://github.com/zacharycohn/jukebox
 
 📋 Table of contents:
+
 - [Install](#install)
 - [Usage](#usage)
+- [First steps](#first-steps)
 - [Avaible players and readers](#avaible-players-and-readers)
   - [Readers](#readers)
   - [Players](#players)
@@ -24,24 +28,82 @@
 ## Notes
 
 The project remains in Python 3.7 to make it easier to use on hardware like Raspberry Pi.
+However, it works on Python versions 3.7+.
+The `api` and `ui` extras are only available for Python versions 3.8+ and 3.10+.
 
 ## Install
 
-Install the package from the pre-built available on the [releases page](https://github.com/Gudsfile/jukebox/releases)
-```shell
-pip3 install https://github.com/Gudsfile/jukebox/releases/latest/download/jukebox-0.1.0.tar.gz
-```
-The `jukebox-0.1.0.tar.gz` is for now fixed to the version `0.1.0`, don't change it. Use `pip3 install https://github.com/Gudsfile/jukebox/releases/download/vX.Y.Z/jukebox-0.1.0.tar.gz` if you want a precise version.
+### PyPI
 
-Create a `library.json` file and complete it with the desired artists and albums.
-Complete the `tags` part of the `library.json` file with each tag id and the expected artist and album.
-Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
+Install the package from [PyPI](https://pypi.org/project/gukebox/).
+
+> [!WARNING]
+> The package name is `gukebox` with `g` instead of a `j` (due to a name already taken).
+
+To invoke the tool without installing it you could use `uvx`:
+
+```shell
+uvx --from gukebox jukebox
+```
+
+It is recommended to installing `jukebox` into an isolated environment, e.g., with `uv tool install`:
+
+```shell
+uv tool install gukebox
+```
+
+or with `pipx`
+
+```shell
+pipx install gukebox
+```
+
+However you could install it with `pip`:
+
+```shell
+pip install gukebox
+```
+
+### GitHub Releases
+
+All releases can be downloaded from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
+
+## First steps
 
 Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+
+Create a `~/.jukebox/library.json` file and complete it with the desired artists and albums.
+For this, you can use `discstore` installed with the package or write it manually.
+
+### Using the discstore
+
+To associate an URI with an NFC tag:
+
+```shell
+discstore add tag_id uri
+```
+
+Other commands are available, use `--help` to see them.
+
+To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
+
+```shell
+# Python 3.8+ required
+uv tool install gukebox[api]
+
+# Python 3.10+ required, ui includes the api extra
+uv tool install gukebox[ui]
+```
+
+### Manually
+
+Complete your `~/.jukebox/library.json` file with each tag id and the expected media URI.
+Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
 
 ## Usage
 
 Start the jukebox with the `jukebox` command (show help message with `--help`)
+
 ```shell
 jukebox PLAYER_TO_USE READER_TO_USE -l YOUR_LIBRARY_FILE
 ```
@@ -53,7 +115,7 @@ jukebox PLAYER_TO_USE READER_TO_USE -l YOUR_LIBRARY_FILE
 ### Readers
 
 **Dry run** (`dryrun`)
-Read an input that does nothing.
+Read a text entry.
 
 **NFC** (`nfc`)
 Read an NFC tag and get its UID.
@@ -63,7 +125,7 @@ It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.c
 ### Players
 
 **Dry run** (`dryrun`)
-Play music through a speaker that does nothing.
+Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.).
 
 **Sonos** (`sonos`)
 Play music through a Sonos speaker.
@@ -75,56 +137,66 @@ Or set it in a `.env` file to use the `uv run --env-file .env <command to run>` 
 
 The `library.json` file is a JSON file that contains the artists, albums and tags.
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
+And the `discsstore` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `discstore --help`).
 
 By default, this file should be placed at `~/.jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
 
 ```json
 {
-  "library": {
-    "artist a": {
-        "album 1": "uri",
-        "album 2": "uri"
+  "discs": {
+    "a:tag:uid": {
+      "uri": "URI of a track, an album or a playlist on many providers",
+      "option": { "shuffle": true }
     },
-    "artist b": {
-        "album 2": "uri"
-    }
-  },
-  "tags": {…}
-}
-```
-
-The `library` part is a dictionary containing artists as keys.
-Each artist is a dictionary containing albums as keys and URIs as values.
-URIs are the URIs of the music providers (Spotify, Apple Music, etc.).
-
-The `tags` part is a dictionary that contains the tags UIDs as keys and the corresponding metadata as values.
-Metadata contains the artist and album names.
-
-For example, if you have the following `library.json` file:
-
-```json
-{
-  "library": {
-    "artist a": {
-        "album 1": "uri",
-        "album 2": "uri"
+    "another:tag:uid": {
+      "uri": "uri"
     },
-    "artist b": {
-        "album 2": "uri"
-    }
-  },
-  "tags": {
-    "ta:g1:id": {"artist": "artist a", "album": "album 1"},
-    "ta:g2:id": {"artist": "artist a", "album": "album 2", "shuffle": true},
+    …
   }
 }
 ```
 
-Then, the jukebox will find the metadata for the tag `ta:g1:id` and play the corresponding album.
+The `discs` part is a dictionary containing NFC tag UIDs.
+Each UID is associated with an URI.
+URIs are the URIs of the music providers (Spotify, Apple Music, etc.) and relate to tracks, albums, playlists, etc.
 
-It is also possible to use the `shuffle` key to play the album in shuffle mode.
+`metadata` is an optional section where the names of the artist, album, song, or playlist are entered:
 
-💡 You can add `{"playlists": {"playlist-name": "playlist-uri"}}` to the `library` part and configure a tag with `{"artist": "playlists", "album": "playlist-name"}` to allow playing a playlist with the jukebox.
+```json
+    "a:tag:uid": {
+      "uri": "uri",
+      "metadata": { "artist": "artist" }
+    }
+```
+
+It is also possible to use the `shuffle` key to play the album in shuffle mode:
+
+```json
+    "a:tag:uid": {
+      "uri": "uri",
+      "option": { "shuffle": true }
+    }
+```
+
+To summarize, for example, if you have the following `~/.jukebox/library.json` file:
+
+```json
+{
+  "discs": {
+    "ta:g1:id": {
+      "uri": "uri1",
+      "metadata": { "artist": "a", "album": "a" }
+    },
+    "ta:g2:id": {
+      "uri": "uri2",
+      "metadata": { "playlist": "b" },
+      "option": { "shuffle": true }
+    }
+  }
+}
+```
+
+Then, the jukebox will find the metadata for the tag `ta:g2:id` and will send the `uri2` to the speaker so that it plays playlist "b" in random order.
 
 ## Developer setup
 
@@ -132,21 +204,24 @@ It is also possible to use the `shuffle` key to play the album in shuffle mode.
 
 Clone the project.
 
-Installing dependencies with [uv](https://github.com/astral-sh/uv)
+Installing dependencies with [uv](https://github.com/astral-sh/uv):
+
 ```shell
 uv sync
 ```
 
+Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
+
 Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
 
-Create a `library.json` file and complete it with the desired artists and albums.
-Complete the `tags` part of the `library.json` file with each tag id and the expected artist and album.
+Create a `library.json` file and complete it with the desired NFC tags and CDs.
 Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
 
 ### Usage
 
 Start the jukebox with `uv` and use `--help` to show help message
+
 ```shell
 uv run jukebox PLAYER_TO_USE READER_TO_USE
 ```
@@ -157,14 +232,17 @@ This part allows to play music through a player.
 It is used by `app.py` but can be used separately.
 
 Show help message
+
 ```shell
 uv run player --help
 ```
 
 Play a specific album
+
 ```shell
 uv run player sonos play --artist "Your favorite artist" --album "Your favorite album by this artist"
 ```
+
 Artist and album must be entered in the library's JSON file. This file can be specified with the `--library` parameter.
 
 For the moment, the player can only play music through Sonos speakers.
@@ -176,11 +254,13 @@ This part allows to read an input like a NFC tag.
 It is used by `app.py` but can be used separately, even if it is useless.
 
 Show help message
+
 ```shell
 uv run reader --help
 ```
 
 Read an input
+
 ```shell
 uv run reader nfc
 ```
