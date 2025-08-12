@@ -12,6 +12,9 @@ LOGGER = logging.getLogger("discstore")
 
 
 class InteractiveCLIController:
+    available_commands = "\n* " + "\n* ".join(["add", "remove", "list", "edit", "exit", "help"])
+    help_message = f"\nAvailable commands: {available_commands}"
+
     def __init__(self, add_disc: AddDisc, list_discs: ListDiscs, remove_disc: RemoveDisc, edit_disc: EditDisc):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -19,41 +22,38 @@ class InteractiveCLIController:
         self.edit_disc = edit_disc
 
     def run(self) -> None:
+        print(self.help_message)
         while True:
-            print("\n=== Discstore management ===")
-            print("1. Add a CD")
-            print("2. Remove a CD")
-            print("3. List all CDs")
-            print("4. Edit a CD")
-            print("5. Exit")
-
-            choix = input("Your choice: ")
-            self.handle_command(choix)
+            command = input("discstore> ")
+            self.handle_command(command)
 
     def handle_command(self, command: str, args: Optional[dict] = None) -> None:
         args = args or {}
         try:
-            if command == "1":
+            if command == "add":
                 self.add_disc_flow()
-            elif command == "2":
+            elif command == "remove":
                 self.remove_disc_flow()
-            elif command == "3":
+            elif command == "list":
                 self.list_discs_flow()
-            elif command == "4":
+            elif command == "edit":
                 self.edit_disc_flow()
-            elif command == "5":
+            elif command == "exit":
                 print("See you soon!")
                 exit(0)
+            elif command == "help":
+                print(self.help_message)
             else:
-                print("Invalid choice")
+                print(f"Invalid command `{command}`")
+                print(self.help_message)
         except Exception as err:
             print(f"Error: {err}")
             LOGGER.error("Error during handling command", err)
 
     def add_disc_flow(self) -> None:
         print("\n-- Add a CD --")
-        tag = input("Tag: ").strip()
-        uri = input("URI: ").strip()
+        tag = input("discstore> add tag> ").strip()
+        uri = input("discstore> add uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
 
@@ -63,7 +63,7 @@ class InteractiveCLIController:
 
     def list_discs_flow(self) -> None:
         print("\n-- List all CDs --")
-        mode = input("Mode (table/line): ").strip()
+        mode = input("discstore> list mode(table/line)> ").strip()
 
         discs = self.list_discs.execute()
         if mode == "table" or mode == "":
@@ -72,18 +72,18 @@ class InteractiveCLIController:
         if mode == "line":
             display_library_line(discs)
             return
-        print(f"Displaying mode not implemented yet: {mode}")
+        print(f"Displaying mode not implemented yet: `{mode}`")
 
     def remove_disc_flow(self) -> None:
         print("\n-- Remove a CD --")
-        tag = input("Tag: ").strip()
+        tag = input("discstore> remove tag> ").strip()
         self.remove_disc.execute(tag)
         print("🗑️ CD successfully removed")
 
     def edit_disc_flow(self) -> None:
         print("\n-- Edit a CD --")
-        tag = input("Tag: ").strip()
-        uri = input("URI: ").strip()
+        tag = input("discstore> edit tag> ").strip()
+        uri = input("discstore> edit uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
 
