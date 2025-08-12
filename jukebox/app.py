@@ -41,7 +41,9 @@ def get_args():
         help="specify the maximum duration of a pause in seconds before resetting the queue",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
-    parser.add_argument("--version", action="version", version=f'%(prog)s {__version__}',help="show current installed version")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}", help="show current installed version"
+    )
     return parser.parse_args()
 
 
@@ -111,8 +113,8 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
             disc = library.get(uid)
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
-                uri = disc['uri']
-                shuffle = disc.get('option', {'shuffle': False}).get("shuffle", False)
+                uri = disc["uri"]
+                shuffle = disc.get("option", {"shuffle": False}).get("shuffle", False)
                 player.play(uri, shuffle)
                 awaiting_seconds = 0
             else:
@@ -134,7 +136,7 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
 def main():
     args = get_args()
     set_logger(args.verbose)
-    library = load_library(args.library)['discs']
+    library = load_library(args.library)["discs"]
     player = get_player(args.player)()
     reader = get_reader(args.reader)()
     actions_loop(reader, player, library, args.pause_duration)
