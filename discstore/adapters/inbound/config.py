@@ -15,6 +15,17 @@ DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
 LOGGER = logging.getLogger("discstore")
 
 
+try:
+    from importlib.metadata import PackageNotFoundError, version
+except ImportError:
+    from importlib_metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("jukebox")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
+
 class CliAddCommand(BaseModel):
     type: Literal["add"]
     tag: str
@@ -81,6 +92,7 @@ def parse_config() -> CLIConfig:
         help="path to the library JSON file",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
+    parser.add_argument("--version", action="version", version= f"%(prog)s {__version__}", help="show more details")
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
