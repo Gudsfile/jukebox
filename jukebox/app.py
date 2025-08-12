@@ -97,16 +97,15 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
         elif action == "play":
             last_uid = uid
             LOGGER.info(f"Found card with UID: {uid}")
-            metadata = library["tags"].get(uid)
-            if metadata is not None:
-                LOGGER.info(f"Found corresponding metadata: {metadata}")
-                uri = library["library"][metadata["artist"]][metadata["album"]]
-                shuffle = metadata.get("shuffle", False)
-                LOGGER.info(f"Found corresponding URI: {uri}")
+            disc = library.get(uid)
+            if disc is not None:
+                LOGGER.info(f"Found corresponding disc: {disc}")
+                uri = disc['uri']
+                shuffle = disc.get('option', {'shuffle': False}).get("shuffle", False)
                 player.play(uri, shuffle)
                 awaiting_seconds = 0
             else:
-                LOGGER.warning(f"No URI found for UID: {uid}")
+                LOGGER.warning(f"No disc found for UID: {uid}")
         elif action == "pause":
             player.pause()
             awaiting_seconds += 1
@@ -124,7 +123,7 @@ def actions_loop(reader: Reader, player: Player, library: dict, pause_duration: 
 def main():
     args = get_args()
     set_logger(args.verbose)
-    library = load_library(args.library)
+    library = load_library(args.library)['discs']
     player = get_player(args.player)()
     reader = get_reader(args.reader)()
     actions_loop(reader, player, library, args.pause_duration)
