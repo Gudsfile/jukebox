@@ -13,6 +13,16 @@ DEFAULT_PAUSE_DURATION = 900
 
 LOGGER = logging.getLogger("jukebox")
 
+try:
+    from importlib.metadata import PackageNotFoundError, version
+except ImportError:
+    from importlib_metadata import PackageNotFoundError, version
+
+try:
+    __version__ = version("jukebox")
+except PackageNotFoundError:
+    __version__ = "unknown"
+
 
 def get_args():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -31,6 +41,7 @@ def get_args():
         help="specify the maximum duration of a pause in seconds before resetting the queue",
     )
     parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
+    parser.add_argument("--version", action="version", version=f'%(prog)s {__version__}',help="show current installed version")
     return parser.parse_args()
 
 
