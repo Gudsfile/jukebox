@@ -11,7 +11,7 @@ except ImportError:
 
 from pydantic import BaseModel, ValidationError
 
-DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
+DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
 LOGGER = logging.getLogger("discstore")
 
 
