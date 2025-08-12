@@ -1,6 +1,6 @@
 [project]
-name = "jukebox"
-version = "0.1.0"
+name = "gukebox"
+version = "0.3.0-alpha"
 description = "A Jukebox to play music on speakers using 'CD' with NFC tag"
 authors = [{ name = "Gudsfile" }]
 readme = "README.md"
@@ -36,7 +36,7 @@ api = [
     "uvicorn==0.35.0; python_version >= '3.10'",
 ]
 ui = [
-    "jukebox[api]",
+    "gukebox[api]",
     "fastui==0.7.0; python_version >= '3.10'",
     "python-multipart==0.0.20; python_version >= '3.10'",
 ]
@@ -65,6 +65,7 @@ include = ["jukebox", "discstore", "pn532"]
 include = ["jukebox", "discstore", "pn532"]
 
 [project.scripts]
+gukebox = "jukebox.app:main"
 jukebox = "jukebox.app:main"
 player = "jukebox.players.utils:main"
 reader = "jukebox.readers.utils:main"

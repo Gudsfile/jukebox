@@ -32,6 +32,9 @@ jobs:
       - name: Build package
         run: uv build
 
+      - name: Publish package on PyPI
+        run: uv publish
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:

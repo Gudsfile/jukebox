@@ -21,7 +21,7 @@ except ImportError:
     from importlib_metadata import PackageNotFoundError, version
 
 try:
-    __version__ = version("jukebox")
+    __version__ = version("gukebox")
 except PackageNotFoundError:
     __version__ = "unknown"
 
