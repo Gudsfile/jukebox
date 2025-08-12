@@ -26,7 +26,7 @@
 - [Install](#install)
 - [Usage](#usage)
 - [First steps](#first-steps)
-- [Avaible players and readers](#avaible-players-and-readers)
+- [Available players and readers](#available-players-and-readers)
   - [Readers](#readers)
   - [Players](#players)
 - [The library file](#the-library-file)
@@ -117,7 +117,7 @@ jukebox PLAYER_TO_USE READER_TO_USE -l YOUR_LIBRARY_FILE
 
 🎉 With choosing the `sonos` player and `nfc` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
 
-## Avaible players and readers
+## Available players and readers
 
 ### Readers
 
