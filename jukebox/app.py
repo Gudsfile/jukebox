@@ -8,7 +8,7 @@ from typing import Union
 from .players import Player, get_player
 from .readers import Reader, get_reader
 
-DEFAULT_LIBRARY_PATH = "~/.jukebox/library.json"
+DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
 DEFAULT_PAUSE_DURATION = 900
 
 LOGGER = logging.getLogger("jukebox")
