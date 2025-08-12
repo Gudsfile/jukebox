@@ -1,5 +1,12 @@
 # My jukebox
 
+[![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
+[![gukebox last version](https://img.shields.io/pypi/v/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
+[![license](https://img.shields.io/pypi/l/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
+[![actions status](https://github.com/gudsfile/jukebox/actions/workflows/python.yml/badge.svg)](https://github.com/gudsfile/jukebox/actions)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 💿 Play music on speakers using NFC tags.
 
 🚧 At the moment:
@@ -127,7 +134,7 @@ It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.c
 **Dry run** (`dryrun`)
 Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.).
 
-**Sonos** (`sonos`)
+**Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
 Play music through a Sonos speaker.
 `SONOS_HOST` environment variable must be set with the IP address of your Sonos Zone Player.
 You could set the environment varible with `export SONOS_HOST=192.168.0.???` to use this speaker through the `jukebox` command.
