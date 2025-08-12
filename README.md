@@ -1,4 +1,4 @@
-# My jukebox
+# Jukebox \[gukebox\]
 
 [![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
 [![gukebox last version](https://img.shields.io/pypi/v/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
