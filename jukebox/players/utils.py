@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pprint import pprint
+from typing import Type
 
 from .dryrun import DryRunPlayer
 from .player import Player
@@ -11,7 +12,7 @@ from .sonos import SonosPlayer
 LOGGER = logging.getLogger("jukebox")
 
 
-def get_player(player: str) -> Player:
+def get_player(player: str) -> Type[Player]:
     if player == "dryrun":
         return DryRunPlayer
     elif player == "sonos":

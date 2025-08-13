@@ -1,6 +1,7 @@
 import argparse
 import logging
 from time import sleep
+from typing import Type
 
 from .dryrun import DryRunReader
 from .reader import Reader
@@ -8,7 +9,7 @@ from .reader import Reader
 LOGGER = logging.getLogger("jukebox")
 
 
-def get_reader(reader: str) -> Reader:
+def get_reader(reader: str) -> Type[Reader]:
     if reader == "dryrun":
         return DryRunReader
     if reader == "nfc":
