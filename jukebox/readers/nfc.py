@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Union
 
 from pn532 import PN532_SPI
 
@@ -20,7 +21,7 @@ class NFCReader(Reader):
         LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
         self.pn532.SAM_configuration()
 
-    def read(self) -> str:
+    def read(self) -> Union[str, None]:
         rawuid = self.pn532.read_passive_target(timeout=0.5)
         if rawuid is None:
             return None
