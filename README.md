@@ -128,6 +128,7 @@ Read a text entry.
 Read an NFC tag and get its UID.
 This project works with an NFC reader like the **PN532** and NFC tags like the **NTAG2xx**.
 It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT).
+Don't forget to enable the SPI interface using the command `sudo raspi-config`, then go to: `Interface Options > SPI > Enable > Yes`.
 
 ### Players
 
