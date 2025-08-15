@@ -303,6 +303,11 @@ api = [
     { name = "uvicorn", version = "0.33.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8' and python_full_version < '3.10'" },
     { name = "uvicorn", version = "0.35.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
+nfc = [
+    { name = "pyserial" },
+    { name = "rpi-gpio" },
+    { name = "spidev" },
+]
 ui = [
     { name = "fastapi", marker = "python_full_version >= '3.8'" },
     { name = "fastui", marker = "python_full_version >= '3.10'" },
@@ -325,13 +330,16 @@ requires-dist = [
     { name = "gukebox", extras = ["api"], marker = "extra == 'ui'" },
     { name = "pydantic", marker = "python_full_version < '3.10'", specifier = "==2.5.3" },
     { name = "pydantic", marker = "python_full_version >= '3.10'", specifier = "==2.10.6" },
+    { name = "pyserial", marker = "extra == 'nfc'", specifier = "==3.5" },
     { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.20" },
+    { name = "rpi-gpio", marker = "extra == 'nfc'", specifier = "==0.7.1" },
     { name = "soco", specifier = "==0.30.11" },
+    { name = "spidev", marker = "extra == 'nfc'", specifier = "==3.7" },
     { name = "typing-extensions", marker = "python_full_version == '3.7.*'" },
     { name = "uvicorn", marker = "python_full_version >= '3.8' and python_full_version < '3.10' and extra == 'api'", specifier = "==0.33.0" },
     { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.35.0" },
 ]
-provides-extras = ["api", "ui"]
+provides-extras = ["api", "ui", "nfc"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -946,6 +954,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pyserial"
+version = "3.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/7d/ae3f0a63f41e4d2f6cb66a5b57197850f919f59e558159a4dd3a818f5082/pyserial-3.5.tar.gz", hash = "sha256:3c77e014170dfffbd816e6ffc205e9842efb10be9f58ec16d3e8675b4925cddb", size = 159125, upload-time = "2020-11-23T03:59:15.045Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/07/bc/587a445451b253b285629263eb51c2d8e9bcea4fc97826266d186f96f558/pyserial-3.5-py2.py3-none-any.whl", hash = "sha256:c4451db6ba391ca6ca299fb3ec7bae67a5c55dde170964c7a14ceefec02f2cf0", size = 90585, upload-time = "2020-11-23T03:59:13.41Z" },
+]
+
+[[package]]
 name = "pytest"
 version = "7.4.4"
 source = { registry = "https://pypi.org/simple" }
@@ -1029,6 +1046,18 @@ wheels = [
 ]
 
 [[package]]
+name = "rpi-gpio"
+version = "0.7.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/0f/10b524a12b3445af1c607c27b2f5ed122ef55756e29942900e5c950735f2/RPi.GPIO-0.7.1.tar.gz", hash = "sha256:cd61c4b03c37b62bba4a5acfea9862749c33c618e0295e7e90aa4713fb373b70", size = 29090, upload-time = "2022-02-06T15:15:06.022Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/48/e5698d5589d63907593c2909b8e4f0e7b559af19a73de003b1dabb5332c7/RPi.GPIO-0.7.1-cp310-cp310-linux_armv6l.whl", hash = "sha256:57b6c044ef5375a78c8dda27cdfadf329e76aa6943cd6cffbbbd345a9adf9ca5", size = 69820, upload-time = "2022-02-06T15:14:56.019Z" },
+    { url = "https://files.pythonhosted.org/packages/0c/c7/5f7aa692960e0eb187fa8206ab1f219757a259570c634fe15e2ca7d95aa2/RPi.GPIO-0.7.1-cp37-cp37m-linux_armv6l.whl", hash = "sha256:77afb817b81331ce3049a4b8f94a85e41b7c404d8e56b61ac0f1eb75c3120868", size = 70407, upload-time = "2022-02-06T15:14:57.904Z" },
+    { url = "https://files.pythonhosted.org/packages/b4/4e/1ff704c41ae2dd5d9e0481fa41781ec2f62c80159b02769b2a69215b5600/RPi.GPIO-0.7.1-cp38-cp38-linux_armv6l.whl", hash = "sha256:29226823da8b5ccb9001d795a944f2e00924eeae583490f0bc7317581172c624", size = 68353, upload-time = "2022-02-06T15:14:59.444Z" },
+    { url = "https://files.pythonhosted.org/packages/b7/f4/19ac7172e60983148970abcd96a5c5d099febf538f35e9f569b3c1a70543/RPi.GPIO-0.7.1-cp39-cp39-linux_armv6l.whl", hash = "sha256:15311d3b063b71dee738cd26570effc9985a952454d162937c34e08c0fc99902", size = 69302, upload-time = "2022-02-06T15:15:01.252Z" },
+]
+
+[[package]]
 name = "ruff"
 version = "0.12.8"
 source = { registry = "https://pypi.org/simple" }
@@ -1078,6 +1107,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f3/a2/46e200f6a5dd0459dbc39be5cfd26be15329be66d6774e185b13ac492376/soco-0.30.11.tar.gz", hash = "sha256:7227dbd965eb91e66f40a6f3205b350133d7ceea992c256f9d545ca0b510b30d", size = 734241, upload-time = "2025-08-05T14:36:47.287Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/c9/07/29f5c5848a900f240c7787e046cecfd24a411c5d1144cd03edfc933ebc3d/soco-0.30.11-py2.py3-none-any.whl", hash = "sha256:8d1a519d363be52624f97a2f007730d617129f93fca705d72a9f5ceb0a2e0c5c", size = 163171, upload-time = "2025-08-05T14:36:45.029Z" },
+]
+
+[[package]]
+name = "spidev"
+version = "3.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/b5/99/dd50af8200e224ce9412ad01cdbeeb5b39b2d61acd72138f2b92c4a6d619/spidev-3.7.tar.gz", hash = "sha256:ce628a5ff489f45132679879bff5f455a66abf9751af01843850155b06ae92f0", size = 11616, upload-time = "2025-05-06T14:23:30.783Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8d/42/85b595079ff6819c94eeb6d337ae45b5a9924b7e7b4fdec8f27d29e53f76/spidev-3.7-cp39-cp39-linux_armv7l.whl", hash = "sha256:6f9a51d72eac0785d3b7a839c5ee1b6a16a9b711fe053d56adecdf18786e2550", size = 38455, upload-time = "2025-05-06T14:23:29.588Z" },
 ]
 
 [[package]]
