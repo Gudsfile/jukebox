@@ -50,26 +50,30 @@ Install the package from [PyPI](https://pypi.org/project/gukebox/).
 To invoke the tool without installing it you could use `uvx`:
 
 ```shell
-uvx --from gukebox jukebox
+uvx --from gukebox[nfc] jukebox
 ```
 
 It is recommended to installing `jukebox` into an isolated environment, e.g., with `uv tool install`:
 
 ```shell
-uv tool install gukebox
+uv tool install gukebox[nfc]
 ```
 
 or with `pipx`
 
 ```shell
-pipx install gukebox
+pipx install gukebox[nfc]
 ```
 
 However you could install it with `pip`:
 
 ```shell
-pip install gukebox
+pip install gukebox[nfc]
 ```
+
+> [!NOTE]
+> The `nfc` extra is optional but required for installations in isolated environments.
+> This extra is used for NFC reading, [check compatibility](#available-players-and-readers)).
 
 ### GitHub Releases
 
