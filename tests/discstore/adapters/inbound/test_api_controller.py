@@ -21,6 +21,6 @@ def test_dependencies_import_failure(mocker):
         import discstore.adapters.inbound.api_controller  # noqa: F401
 
     assert (
-        "The `api_controller` module requires FastAPI dependencies. Install them with: pip install jukebox[api]."
+        "The `api_controller` module requires FastAPI dependencies. Install them with: pip install gukebox[api]."
         in str(err.value)
     )

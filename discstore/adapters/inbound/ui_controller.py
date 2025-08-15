@@ -14,7 +14,7 @@ try:
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
-        "The `ui_controller` module requires FastUI dependency. Install it with: pip install jukebox[ui]."
+        "The `ui_controller` module requires FastUI dependency. Install it with: pip install gukebox[ui]."
     ) from e
 from pydantic import BaseModel, Field
 

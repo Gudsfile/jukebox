@@ -9,7 +9,7 @@ try:
     from fastapi import FastAPI, HTTPException
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
-        "The `api_controller` module requires FastAPI dependencies. Install them with: pip install jukebox[api]."
+        "The `api_controller` module requires FastAPI dependencies. Install them with: pip install gukebox[api]."
     ) from e
 
 from discstore.domain.entities.disc import Disc
