@@ -32,12 +32,22 @@ def get_args():
 
 def main():
     args = get_args()
+
+    level = logging.INFO
+    logger = logging.getLogger("jukebox")
+    logger.setLevel(level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s\t - %(message)s")
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
     reader = get_reader(args.reader)()
     for i in range(60):
         msg = reader.read()
-        if not msg:
-            LOGGER.info()
-        LOGGER.info(f"Read `{msg}`")
+        if msg:
+            LOGGER.info(f"Read `{msg}`")
+
         sleep(0.5)
 
 
