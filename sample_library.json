@@ -8,6 +8,9 @@
     },
     "Another:tag:uid": {
       "uri": "spotify:album:3IvUwbVgAZSqNh06PVxwG7"
+    },
+    "A:third:tag:uid": {
+      "uri": "x-rincon-playlist:RINCON_xxx#A:ALBUM/Added%20NAS%20Library"
     }
   }
 }
