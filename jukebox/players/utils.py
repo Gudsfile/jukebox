@@ -2,14 +2,11 @@ import argparse
 import json
 import logging
 import os
-from pprint import pprint
 from typing import Type
 
 from .dryrun import DryRunPlayer
 from .player import Player
 from .sonos import SonosPlayer
-
-LOGGER = logging.getLogger("jukebox")
 
 
 def get_player(player: str) -> Type[Player]:
@@ -25,16 +22,13 @@ def get_args():
     parser.add_argument(
         "-l",
         "--library",
-        default=os.environ.get("JUKEBOX_LIBRARY_PATH", "~/.library.json"),
+        default=os.environ.get("JUKEBOX_LIBRARY_PATH", os.path.expanduser("~/.jukebox/library.json")),
         help="path to the library JSON file",
     )
     parser.add_argument("player", choices=["dryrun", "sonos"], help="player to use")
     subparsers = parser.add_subparsers(required=True, dest="command", help="subcommands")
     play_parser = subparsers.add_parser("play", help="play specific songs")
-    play_parser.add_argument("--artist", required=True, help="specify the artist name to play")
-    play_parser.add_argument("--album", required=True, help="specify the album name to play")
-    play_parser.add_argument("--shuffle", action="store_true", help="turns on shuffle")
-    _ = subparsers.add_parser("list", help="list library contents")
+    play_parser.add_argument("tag_uid", help="specify the tag_uid of the CD to play")
     _ = subparsers.add_parser("stop", help="stop music and clear queue")
     parser.add_argument("--host", default=None, help="specify the host to use for the player")
     return parser.parse_args()
@@ -42,20 +36,29 @@ def get_args():
 
 def main():
     args = get_args()
-    library = json.load(open(args.library, "r", encoding="utf-8"))["library"]
-    if args.command == "list":
-        pprint(library)
-    elif args.command == "play":
-        player_class = get_player(args.player)
-        player = player_class(host=args.host)
-        uri = library[args.artist][args.album]
-        player.play(uri, args.shuffle)
+
+    level = logging.INFO
+    logger = logging.getLogger("jukebox")
+    logger.setLevel(level)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(level)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s\t - %(message)s")
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+
+    discs = json.load(open(args.library, "r", encoding="utf-8"))["discs"]
+    player_class = get_player(args.player)
+    player = player_class(host=args.host)
+    if args.command == "play":
+        if args.tag_uid in discs:
+            disc = discs[args.tag_uid]
+            player.play(disc["uri"], disc.get("option", {}).get("shuffle", False))
+        else:
+            logger.warning(f"Uknown tag_uid: {args.tag_uid}")
     elif args.command == "stop":
-        player_class = get_player(args.player)
-        player = player_class(host=args.host)
         player.stop()
     else:
-        LOGGER.warning(f"`{args.command}` command not implemented yet")
+        logger.warning(f"Comment not implemented yet: `{args.command}`")
 
 
 if __name__ == "__main__":
