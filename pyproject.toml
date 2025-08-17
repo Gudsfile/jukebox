@@ -41,7 +41,12 @@ ui = [
 nfc = ["pyserial==3.5", "rpi-gpio==0.7.1", "spidev==3.8"]
 
 [dependency-groups]
-dev = ["pytest==7.4.4", "pytest-mock==3.11.1", "ruff==0.14.9"]
+dev = [
+    "pytest==7.4.4",
+    "pytest-mock==3.11.1",
+    "ruff==0.14.9",
+    "ty==0.0.1a34",
+]
 
 [tool.ruff]
 line-length = 120
@@ -53,6 +58,9 @@ extend-exclude = ["pn532/"]
 select = [
     "I",
 ]
+
+[tool.ty.src]
+exclude = ["pn532/"]
 
 [build-system]
 requires = ["uv_build>=0.8.7,<0.9.0"]
