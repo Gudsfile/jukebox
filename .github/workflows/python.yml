@@ -59,6 +59,9 @@ jobs:
       - name: Test with pytest
         run: uv run pytest
 
+      - name: Type check with ty
+        run: uv run ty check --output-format github
+
   build:
     name: Build Package
     needs: test-and-lint
