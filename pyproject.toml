@@ -37,7 +37,7 @@ api = [
 ]
 ui = [
     "gukebox[api]",
-    "fastui==0.7.0; python_version >= '3.10'",
+    "fastui==0.8.0; python_version >= '3.10'",
     "python-multipart==0.0.20; python_version >= '3.10'",
 ]
 nfc = ["pyserial==3.5", "rpi-gpio==0.7.1", "spidev==3.7"]

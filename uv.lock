@@ -276,14 +276,14 @@ wheels = [
 
 [[package]]
 name = "fastui"
-version = "0.7.0"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", version = "2.10.6", source = { registry = "https://pypi.org/simple" }, extra = ["email"], marker = "python_full_version >= '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/87/97/3f001410200256026ff98a4588ec8cb4f3b48bc74a28325e32bfb3b08ffd/fastui-0.7.0.tar.gz", hash = "sha256:08ec1b8437653fc37caaf3dae46566a43dbda3f190c62c43f8f3d063261dd1e8", size = 28950, upload-time = "2024-08-22T15:20:40.655Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8f/4e/f37c5dd7ba26eee02f82e5269025f5fb642291903017988f6476024e8e37/fastui-0.8.0.tar.gz", hash = "sha256:3d8aa940b454043ff05d5747698e6b88ae2673e36752091d4c1f0816f685fa46", size = 29628, upload-time = "2025-09-03T08:44:36.944Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/44/0122aa71d3074e7674e864a6c67381d8dc244054ebe0380b60fc6c15f6cc/fastui-0.7.0-py3-none-any.whl", hash = "sha256:3e903828b26ecaef2da46e30bbe1123db20cf4a1c32d6c082665f52de9f639d2", size = 28622, upload-time = "2024-08-22T15:20:39.253Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/63/88abdc9bf6b0b4929c74f3f53fb9724abf5646246fede9b03e72b9fc1279/fastui-0.8.0-py3-none-any.whl", hash = "sha256:c29e819de7eecd6bcc088e42228c1d7fbb3150f6753315ee2edeeed21231295d", size = 29353, upload-time = "2025-09-03T08:44:34.728Z" },
 ]
 
 [[package]]
@@ -326,7 +326,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi", marker = "python_full_version >= '3.8' and extra == 'api'", specifier = "==0.116.1" },
-    { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.7.0" },
+    { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.8.0" },
     { name = "gukebox", extras = ["api"], marker = "extra == 'ui'" },
     { name = "pydantic", marker = "python_full_version < '3.10'", specifier = "==2.5.3" },
     { name = "pydantic", marker = "python_full_version >= '3.10'", specifier = "==2.10.6" },
