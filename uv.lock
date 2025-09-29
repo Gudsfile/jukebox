@@ -333,7 +333,7 @@ requires-dist = [
     { name = "pyserial", marker = "extra == 'nfc'", specifier = "==3.5" },
     { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.20" },
     { name = "rpi-gpio", marker = "extra == 'nfc'", specifier = "==0.7.1" },
-    { name = "soco", specifier = "==0.30.11" },
+    { name = "soco", specifier = "==0.30.12" },
     { name = "spidev", marker = "extra == 'nfc'", specifier = "==3.7" },
     { name = "typing-extensions", marker = "python_full_version == '3.7.*'" },
     { name = "uvicorn", marker = "python_full_version >= '3.8' and python_full_version < '3.10' and extra == 'api'", specifier = "==0.33.0" },
@@ -1094,7 +1094,7 @@ wheels = [
 
 [[package]]
 name = "soco"
-version = "0.30.11"
+version = "0.30.12"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -1105,9 +1105,9 @@ dependencies = [
     { name = "requests", version = "2.32.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.8'" },
     { name = "xmltodict" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f3/a2/46e200f6a5dd0459dbc39be5cfd26be15329be66d6774e185b13ac492376/soco-0.30.11.tar.gz", hash = "sha256:7227dbd965eb91e66f40a6f3205b350133d7ceea992c256f9d545ca0b510b30d", size = 734241, upload-time = "2025-08-05T14:36:47.287Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/25/c3/cabd20db960a38b0bfe14d5dad3009bcc4ae8ccdcdabec09d3fcf9db4ed8/soco-0.30.12.tar.gz", hash = "sha256:9c5ee8191e0fbb2c79b8992931a2d38fb4360097a190d0aca20fef330138af51", size = 734372, upload-time = "2025-09-22T14:06:15.891Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c9/07/29f5c5848a900f240c7787e046cecfd24a411c5d1144cd03edfc933ebc3d/soco-0.30.11-py2.py3-none-any.whl", hash = "sha256:8d1a519d363be52624f97a2f007730d617129f93fca705d72a9f5ceb0a2e0c5c", size = 163171, upload-time = "2025-08-05T14:36:45.029Z" },
+    { url = "https://files.pythonhosted.org/packages/42/16/5ff76fd817c2f4c98680a8711673f71854ba4adbee89e3706f72a7b51159/soco-0.30.12-py2.py3-none-any.whl", hash = "sha256:bb6c3bc7d5dd25cce77f76ff2da4df6dc17e387ff7c713f60205092f43da8766", size = 163296, upload-time = "2025-09-22T14:06:13.338Z" },
 ]
 
 [[package]]
