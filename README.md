@@ -73,7 +73,14 @@ pip install gukebox[nfc]
 
 > [!NOTE]
 > The `nfc` extra is optional but required for installations in isolated environments.
-> This extra is used for NFC reading, [check compatibility](#available-players-and-readers)).
+> This extra is used for NFC reading, [check compatibility](#available-players-and-readers).
+
+For developement, you can install the project by cloning it and then installing the dependencies:
+
+```shell
+git clone https://github.com/Gudsfile/jukebox.git
+uv sync
+```
 
 ### GitHub Releases
 
