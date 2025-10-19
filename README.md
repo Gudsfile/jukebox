@@ -34,9 +34,8 @@
 
 ## Notes
 
-The project remains in Python 3.7 to make it easier to use on hardware like Raspberry Pi.
-However, it works on Python versions 3.7+.
-The `api` and `ui` extras are only available for Python versions 3.8+ and 3.10+.
+Python 3.7 is supported by Jukebox up to version 0.4.1.
+The `ui` extension is only available for Python versions 3.10 and above.
 
 ## Install
 

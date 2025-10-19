@@ -26,9 +26,7 @@ env:
 jobs:
   test-and-lint:
     name: Run Tests & Linting
-    # The version '3.7' with architecture 'x64' is only available in version 22.04:
-    # https://raw.githubusercontent.com/actions/python-versions/main/versions-manifest.json
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'no-ci')
 
     strategy:
@@ -36,7 +34,7 @@ jobs:
         python-version: ${{ fromJson(
           github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
           && format('["{0}"]', github.event.inputs.python-version)
-          || '["3.7", "3.8", "3.9", "3.10", "3.11", "3.12"]'
+          || '["3.8", "3.9", "3.10", "3.11", "3.12"]'
           ) }}
 
     steps:
@@ -72,7 +70,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v6
