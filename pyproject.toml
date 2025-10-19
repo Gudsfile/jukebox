@@ -1,6 +1,6 @@
 [project]
 name = "gukebox"
-version = "0.4.1"
+version = "0.5.0"
 description = "A Jukebox to play music on speakers using 'CD' with NFC tag"
 authors = [{ name = "Gudsfile" }]
 readme = "README.md"
