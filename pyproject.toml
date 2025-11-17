@@ -29,7 +29,7 @@ Repository = "https://github.com/Gudsfile/jukebox"
 
 [project.optional-dependencies]
 api = [
-    "fastapi==0.121.1",
+    "fastapi==0.121.2",
     "uvicorn==0.33.0; python_version < '3.9'",
     "uvicorn==0.38.0; python_version >= '3.10'",
 ]
