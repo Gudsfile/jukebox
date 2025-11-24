@@ -9,6 +9,8 @@ __pycache__/
 built-package/
 *.egg-info
 dist/
+.pypirc
 
 library.json
 library/
+*.bak*
