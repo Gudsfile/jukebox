@@ -1,27 +1,17 @@
-from typing import Optional
-
 import pytest
 
 from discstore.domain.entities.disc import Disc, DiscMetadata
 from discstore.domain.entities.library import Library
-from discstore.domain.repositories.library_repository import LibraryRepository
 from discstore.domain.use_cases.add_disc import AddDisc
+from tests.discstore.domain.use_cases.mock_repo import MockRepo
 
 
-class FakeRepo(LibraryRepository):
-    def __init__(self):
-        self.saved_library: Optional[Library] = None
-        self.library = Library(discs={"existing-tag": Disc(uri="/existing.mp3", metadata=DiscMetadata())})
-
-    def load(self):
-        return self.library
-
-    def save(self, library: Library):
-        self.saved_library = library
+@pytest.fixture
+def repo():
+    return MockRepo(Library(discs={"existing-tag": Disc(uri="/existing.mp3", metadata=DiscMetadata())}))
 
 
-def test_add_disc_adds_disc():
-    repo = FakeRepo()
+def test_add_disc_adds_disc(repo):
     use_case = AddDisc(repo)
 
     new_disc = Disc(uri="/new.mp3", metadata=DiscMetadata())
@@ -35,8 +25,7 @@ def test_add_disc_adds_disc():
     assert repo.saved_library.discs["non-existing-tag"] == new_disc
 
 
-def test_add_disc_fails_if_tag_exists():
-    repo = FakeRepo()
+def test_add_disc_fails_if_tag_exists(repo):
     use_case = AddDisc(repo)
 
     new_disc = Disc(uri="/new.mp3", metadata=DiscMetadata())

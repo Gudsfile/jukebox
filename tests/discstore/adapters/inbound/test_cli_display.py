@@ -34,7 +34,7 @@ def test_display_library_line(sample_discs):
     output = capture_output(display_library_line, sample_discs)
     assert (
         output
-        == """=== CDs Library ===
+        == """=== Discs Library ===
 
 ID : abc123
   URI      : /path/to/music.mp3

@@ -18,7 +18,7 @@ def test_parse_add_command(mocker):
         "add",
         "my-tag",
         "/path/to/media.mp3",
-        "--title",
+        "--track",
         "My Song",
         "--artist",
         "The Testers",
@@ -34,7 +34,7 @@ def test_parse_add_command(mocker):
     assert config.command.type == "add"
     assert config.command.tag == "my-tag"
     assert config.command.uri == "/path/to/media.mp3"
-    assert config.command.title == "My Song"
+    assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
     assert config.command.album == "Code Hits"
 
@@ -66,8 +66,9 @@ def test_parse_edit_command(mocker):
         "prog_name",
         "edit",
         "my-tag",
+        "--uri",
         "/path/to/media.mp3",
-        "--title",
+        "--track",
         "My Song",
         "--artist",
         "The Testers",
@@ -83,7 +84,7 @@ def test_parse_edit_command(mocker):
     assert config.command.type == "edit"
     assert config.command.tag == "my-tag"
     assert config.command.uri == "/path/to/media.mp3"
-    assert config.command.title == "My Song"
+    assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
     assert config.command.album == "Code Hits"
 

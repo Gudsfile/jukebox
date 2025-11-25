@@ -1,10 +1,14 @@
 from discstore.adapters.inbound.cli_controller import CLIController
-from discstore.adapters.inbound.interactive_cli_controller import InteractiveCLIController
+from discstore.adapters.inbound.interactive_cli_controller import (
+    InteractiveCLIController,
+)
 from discstore.adapters.outbound.json_library_repository import JsonLibraryRepository
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
+from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
+from discstore.domain.use_cases.search_discs import SearchDiscs
 
 
 def build_cli_controller(library_path: str):
@@ -14,6 +18,8 @@ def build_cli_controller(library_path: str):
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
+        GetDisc(repository),
+        SearchDiscs(repository),
     )
 
 
