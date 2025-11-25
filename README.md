@@ -13,7 +13,7 @@
 
 - NFC tags - CDs must be pre-populated in a JSON file (`discstore` included with `jukebox` may be of help to you)
 - supports many music providers (Spotify, Apple Music, etc.), just add the URIs to the JSON file
-- only works with Sonos speakers (there is a "dryrun" player for development), but code is designed to be modified to add new ones
+- only works with Sonos speakers (there is a "dryrun" player for development), but code is designed to **add new ones**
 - **as soon as** the NFC tag is removed, the music pauses, then resumes when the NFC tag is replaced
 
 💡 Inspired by:
@@ -24,9 +24,9 @@
 📋 Table of contents:
 
 - [Install](#install)
-- [Usage](#usage)
 - [First steps](#first-steps)
-- [Available players and readers](#available-players-and-readers)
+  - [Discstore](#manage-the-library-with-the-discstore)
+- [Usage](#usage)
   - [Readers](#readers)
   - [Players](#players)
 - [The library file](#the-library-file)
@@ -52,47 +52,32 @@ To invoke the tool without installing it you could use `uvx`:
 uvx --from gukebox[nfc] jukebox
 ```
 
-It is recommended to installing `jukebox` into an isolated environment, e.g., with `uv tool install`:
-
-```shell
-uv tool install gukebox[nfc]
-```
-
-or with `pipx`
-
-```shell
-pipx install gukebox[nfc]
-```
-
-However you could install it with `pip`:
-
-```shell
-pip install gukebox[nfc]
-```
+Or install it into an isolated environment with `uv tool install` or `pipx`.
 
 > [!NOTE]
-> The `nfc` extra is optional but required for installations in isolated environments.
-> This extra is used for NFC reading, [check compatibility](#available-players-and-readers).
+> The `nfc` extra is optional but required for NFC reading, [check compatibility](#available-players-and-readers).
 
-For developement, you can install the project by cloning it and then installing the dependencies:
+### GitHub Releases
 
+All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
+
+### Developer setup
+
+For development read the [Developer setup](##developer-setup) section.
+
+tl;dr:
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
 uv sync
 ```
 
-### GitHub Releases
-
-All releases can be downloaded from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
-
 ## First steps
 
 Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
 
-Create a `~/.jukebox/library.json` file and complete it with the desired artists and albums.
-For this, you can use `discstore` installed with the package or write it manually.
+Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
 
-### Using the discstore
+### Manage the library with the discstore
 
 To associate an URI with an NFC tag:
 
@@ -112,7 +97,7 @@ uv tool install gukebox[api]
 uv tool install gukebox[ui]
 ```
 
-### Manually
+### Manage the library manually
 
 Complete your `~/.jukebox/library.json` file with each tag id and the expected media URI.
 Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
@@ -122,17 +107,31 @@ Take a look at `sample_library.json` and the [The library file](#the-library-fil
 Start the jukebox with the `jukebox` command (show help message with `--help`)
 
 ```shell
-jukebox PLAYER_TO_USE READER_TO_USE -l YOUR_LIBRARY_FILE
+jukebox PLAYER_TO_USE READER_TO_USE
 ```
 
 🎉 With choosing the `sonos` player and `nfc` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
 
-## Available players and readers
+Optional Parameters
+
+| Parameter | Description |
+| --- | --- |
+| `--help` | Show help message. |
+| `--library` | Path to the library file, default: `~/.jukebox/library.json`. |
+| `--pause-delay SECONDS` | Grace period (in seconds) before pausing when the NFC tag is removed. This prevents accidental pauses if the tag briefly loses contact. Default: 1 second. |
+| `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
+| `--verbose` | Enable verbose logging. |
+| `--version` | Show version. |
 
 ### Readers
 
 **Dry run** (`dryrun`)
 Read a text entry.
+Allows you to simulate reading an NFC tag by writting the tag id in the console.
+Expected syntax: `tag_id` or `tag_id counter`.
+- tag_id: the full identifier of the tag, in the format required by the system
+- counter: an integer used to simulate the internal counter of the tag. Increasing the counter simulates the tag remaining in place and being read repeatedly by the system.
+Complete example: `your:tag:uid 10`
 
 **NFC** (`nfc`)
 Read an NFC tag and get its UID.
@@ -155,7 +154,7 @@ Or set it in a `.env` file to use the `uv run --env-file .env <command to run>` 
 
 The `library.json` file is a JSON file that contains the artists, albums and tags.
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
-And the `discsstore` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `discstore --help`).
+And the `discstore` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `discstore --help`).
 
 By default, this file should be placed at `~/.jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
 
@@ -220,11 +219,10 @@ Then, the jukebox will find the metadata for the tag `ta:g2:id` and will send th
 
 ### Install
 
-Clone the project.
-
-Installing dependencies with [uv](https://github.com/astral-sh/uv):
+Install the project by cloning it and using [uv](https://github.com/astral-sh/uv) to install the dependencies:
 
 ```shell
+git clone https://github.com/Gudsfile/jukebox.git
 uv sync
 ```
 
@@ -232,6 +230,7 @@ Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
 Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
+A `sample.env` file is available, you can copy it and modify it to use it.
 
 Create a `library.json` file and complete it with the desired NFC tags and CDs.
 Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
@@ -244,47 +243,19 @@ Start the jukebox with `uv` and use `--help` to show help message
 uv run jukebox PLAYER_TO_USE READER_TO_USE
 ```
 
-#### player (`players/utils.py`)
-
-This part allows to play music through a player.
-It is used by `app.py` but can be used separately.
-
-Show help message
-
+Start the discstore `uv` and use `--help` to show help message
 ```shell
-uv run player --help
+uv run discstore --help
 ```
 
-Play a specific album
+Other commands are available:
 
-```shell
-uv run player sonos play --artist "Your favorite artist" --album "Your favorite album by this artist"
-```
-
-Artist and album must be entered in the library's JSON file. This file can be specified with the `--library` parameter.
-
-For the moment, the player can only play music through Sonos speakers.
-A "dryrun" player is also available for testing the script without any speakers configured.
-
-#### reader (`readers/utils.py`)
-
-This part allows to read an input like a NFC tag.
-It is used by `app.py` but can be used separately, even if it is useless.
-
-Show help message
-
-```shell
-uv run reader --help
-```
-
-Read an input
-
-```shell
-uv run reader nfc
-```
-
-For the moment, this part can only works with PN532 NFC reader.
-A "dryrun" reader is also available for testing the script without any NFC reader configured.
+| Command | Description |
+| --- | --- |
+| `uv run ruff format` | Format the code. |
+| `uv run ruff check` | Check the code. |
+| `uv run ruff check --fix` | Fix the code. |
+| `uv run pytest` | Run the tests. |
 
 ## Contributing
 

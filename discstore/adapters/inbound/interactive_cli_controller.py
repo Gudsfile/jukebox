@@ -27,8 +27,7 @@ class InteractiveCLIController:
             command = input("discstore> ")
             self.handle_command(command)
 
-    def handle_command(self, command: str, args: Optional[dict] = None) -> None:
-        args = args or {}
+    def handle_command(self, command: str) -> None:
         try:
             if command == "add":
                 self.add_disc_flow()
@@ -51,7 +50,7 @@ class InteractiveCLIController:
             LOGGER.error("Error during handling command", err)
 
     def add_disc_flow(self) -> None:
-        print("\n-- Add a CD --")
+        print("\n-- Add a disc --")
         tag = input("discstore> add tag> ").strip()
         uri = input("discstore> add uri> ").strip()
         option = DiscOption()
@@ -59,10 +58,10 @@ class InteractiveCLIController:
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        print("✅ CD successfully added")
+        print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
-        print("\n-- List all CDs --")
+        print("\n-- List all discs --")
         mode = input("discstore> list mode(table/line)> ").strip()
 
         discs = self.list_discs.execute()
@@ -75,13 +74,13 @@ class InteractiveCLIController:
         print(f"Displaying mode not implemented yet: `{mode}`")
 
     def remove_disc_flow(self) -> None:
-        print("\n-- Remove a CD --")
+        print("\n-- Remove a disc --")
         tag = input("discstore> remove tag> ").strip()
         self.remove_disc.execute(tag)
-        print("🗑️ CD successfully removed")
+        print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:
-        print("\n-- Edit a CD --")
+        print("\n-- Edit a disc --")
         tag = input("discstore> edit tag> ").strip()
         uri = input("discstore> edit uri> ").strip()
         option = DiscOption()
@@ -89,4 +88,4 @@ class InteractiveCLIController:
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.edit_disc.execute(tag, disc)
-        print("✅ CD successfully edited")
+        print("✅ Disc successfully edited")

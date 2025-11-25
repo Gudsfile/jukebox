@@ -49,6 +49,11 @@ indent-width = 4
 target-version = "py312"
 extend-exclude = ["pn532/"]
 
+[tool.ruff.lint]
+select = [
+    "I",
+]
+
 [build-system]
 requires = ["uv_build>=0.8.7,<0.9.0"]
 build-backend = "uv_build"
@@ -60,6 +65,4 @@ module-root = ""
 [project.scripts]
 gukebox = "jukebox.app:main"
 jukebox = "jukebox.app:main"
-player = "jukebox.players.utils:main"
-reader = "jukebox.readers.utils:main"
 discstore = "discstore.app:main"

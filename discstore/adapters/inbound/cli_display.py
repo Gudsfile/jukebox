@@ -12,7 +12,7 @@ def display_library_line(discs: Dict[str, Disc]) -> None:
         print("The library is empty")
         return
 
-    print("=== CDs Library ===\n")
+    print("=== Discs Library ===\n")
     for disc_id, disc in discs.items():
         print(f"ID : {disc_id}")
         print(f"  URI      : {disc.uri}")

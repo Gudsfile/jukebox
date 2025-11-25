@@ -33,7 +33,12 @@ class APIController:
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
-        self.app = FastAPI()
+        self.app = FastAPI(
+            title="DiscStore API",
+            description="API for managing Jukebox disc library",
+            docs_url="/docs",
+            redoc_url="/redoc",
+        )
         self.register_routes()
 
     def register_routes(self):

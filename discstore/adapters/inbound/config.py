@@ -30,7 +30,7 @@ class CliAddCommand(BaseModel):
     type: Literal["add"]
     tag: str
     uri: str
-    title: Optional[str] = None
+    track: Optional[str] = None
     artist: Optional[str] = None
     album: Optional[str] = None
 
@@ -53,10 +53,20 @@ class CliRemoveCommand(BaseModel):
 class CliEditCommand(BaseModel):
     type: Literal["edit"]
     tag: str
-    uri: str
-    title: Optional[str] = None
+    uri: Optional[str] = None
+    track: Optional[str] = None
     artist: Optional[str] = None
     album: Optional[str] = None
+
+
+class CliGetCommand(BaseModel):
+    type: Literal["get"]
+    tag: str
+
+
+class CliSearchCommand(BaseModel):
+    type: Literal["search"]
+    query: str
 
 
 class InteractiveCliCommand(BaseModel):
@@ -78,7 +88,15 @@ class CLIConfig(BaseModel):
     verbose: bool = False
 
     command: Union[
-        ApiCommand, InteractiveCliCommand, CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand, UiCommand
+        ApiCommand,
+        InteractiveCliCommand,
+        CliAddCommand,
+        CliListCommand,
+        CliRemoveCommand,
+        CliEditCommand,
+        CliGetCommand,
+        CliSearchCommand,
+        UiCommand,
     ]
 
 
@@ -97,27 +115,33 @@ def parse_config() -> CLIConfig:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     # CLI
-    add_parser = subparsers.add_parser("add", help="Add a CD")
-    add_parser.add_argument("tag", help="Tag to be associated with the CD")
+    add_parser = subparsers.add_parser("add", help="Add a disc")
+    add_parser.add_argument("tag", help="Tag to be associated with the disc")
     add_parser.add_argument("uri", help="Path or URI of the media file")
-    add_parser.add_argument("--title", required=False, help="Name of the track")
+    add_parser.add_argument("--track", required=False, help="Name of the track")
     add_parser.add_argument("--artist", required=False, help="Name of the artist or band")
     add_parser.add_argument("--album", required=False, help="Name of the album")
     add_parser.add_argument("--opts", required=False, help="Playback options for the discs")
 
-    list_parser = subparsers.add_parser("list", help="List all CDs")
+    list_parser = subparsers.add_parser("list", help="List all discs")
     list_parser.add_argument("mode", choices=["line", "table"], help="Displaying mode")
 
-    remove_parser = subparsers.add_parser("remove", help="Remove a CD")
+    remove_parser = subparsers.add_parser("remove", help="Remove a disc")
     remove_parser.add_argument("tag", help="Tag to remove")
 
-    edit_parser = subparsers.add_parser("edit", help="Edit a CD")
+    edit_parser = subparsers.add_parser("edit", help="Edit a disc (partial updates supported)")
     edit_parser.add_argument("tag", help="Tag to be edited")
-    edit_parser.add_argument("uri", help="Path or URI of the media file")
-    edit_parser.add_argument("--title", required=False, help="Name of the track")
+    edit_parser.add_argument("--uri", required=False, help="Path or URI of the media file")
+    edit_parser.add_argument("--track", required=False, help="Name of the track")
     edit_parser.add_argument("--artist", required=False, help="Name of the artist or band")
     edit_parser.add_argument("--album", required=False, help="Name of the album")
     edit_parser.add_argument("--opts", required=False, help="Playback options for the discs")
+
+    get_parser = subparsers.add_parser("get", help="Get a disc by tag ID")
+    get_parser.add_argument("tag", help="Tag to retrieve")
+
+    search_parser = subparsers.add_parser("search", help="Search discs by query")
+    search_parser.add_argument("query", help="Search query (matches artist, album, track, playlist, or tag)")
 
     # API
     api_parser = subparsers.add_parser("api", help="Start an API server")
