@@ -32,7 +32,7 @@ using SPI on the Raspberry Pi.
 
 import time
 import spidev
-import RPi.GPIO as GPIO
+import lgpio
 from .pn532 import PN532
 
 # pylint: disable=bad-whitespace
@@ -44,44 +44,44 @@ _SPI_READY                     = 0x01
 
 class SPIDevice:
     """Implements SPI device on spidev"""
-    def __init__(self, cs=None):
+    def __init__(self, h, cs=None):
         self.spi = spidev.SpiDev(0, 0)
-        GPIO.setmode(GPIO.BCM)
+        self._h = h
         self._cs = cs
-        if cs:
-            GPIO.setup(self._cs, GPIO.OUT)
-            GPIO.output(self._cs, GPIO.HIGH)
+        if cs is not None:
+            lgpio.gpio_claim_output(self._h, self._cs)
+            lgpio.gpio_write(self._h, self._cs, 1)
         self.spi.max_speed_hz = 1000000
         self.spi.mode = 0b10    # CPOL=1 & CPHA=0
 
     def writebytes(self, buf):
-        if self._cs:
-            GPIO.output(self._cs, GPIO.LOW)
-            time.sleep(0.001);
+        if self._cs is not None:
+            lgpio.gpio_write(self._h, self._cs, 0)
+            time.sleep(0.001)
         ret = self.spi.writebytes(list(buf))
-        if self._cs:
-            time.sleep(0.001);
-            GPIO.output(self._cs, GPIO.HIGH)
+        if self._cs is not None:
+            time.sleep(0.001)
+            lgpio.gpio_write(self._h, self._cs, 1)
         return ret
 
     def readbytes(self, count):
-        if self._cs:
-            GPIO.output(self._cs, GPIO.LOW)
-            time.sleep(0.001);
+        if self._cs is not None:
+            lgpio.gpio_write(self._h, self._cs, 0)
+            time.sleep(0.001)
         ret = bytearray(self.spi.readbytes(count))
-        if self._cs:
-            time.sleep(0.001);
-            GPIO.output(self._cs, GPIO.HIGH)
+        if self._cs is not None:
+            time.sleep(0.001)
+            lgpio.gpio_write(self._h, self._cs, 1)
         return ret
 
     def xfer(self, buf):
-        if self._cs:
-            GPIO.output(self._cs, GPIO.LOW)
-            time.sleep(0.001);
+        if self._cs is not None:
+            lgpio.gpio_write(self._h, self._cs, 0)
+            time.sleep(0.001)
         buf = bytearray(self.spi.xfer(buf))
-        if self._cs:
-            time.sleep(0.001);
-            GPIO.output(self._cs, GPIO.HIGH)
+        if self._cs is not None:
+            time.sleep(0.001)
+            lgpio.gpio_write(self._h, self._cs, 1)
         return buf
 
 
@@ -103,37 +103,42 @@ class PN532_SPI(PN532):
     def __init__(self, cs=None, irq=None, reset=None, debug=False):
         """Create an instance of the PN532 class using SPI"""
         self.debug = debug
+        self._h = lgpio.gpiochip_open(0)
         self._gpio_init(cs=cs, irq=irq, reset=reset)
-        self._spi = SPIDevice(cs)
+        self._spi = SPIDevice(self._h, cs)
         super().__init__(debug=debug, reset=reset)
 
+    def __del__(self):
+        if hasattr(self, '_h'):
+            lgpio.gpiochip_close(self._h)
+
     def _gpio_init(self, reset=None, cs=None, irq=None):
+        # self._h 已在 __init__ 打开
         self._cs = cs
         self._irq = irq
-        GPIO.setmode(GPIO.BCM)
-        if reset:
-            GPIO.setup(reset, GPIO.OUT)
-            GPIO.output(reset, True)
-        if cs:
-            GPIO.setup(cs, GPIO.OUT)
-            GPIO.output(cs, True)
-        if irq:
-            GPIO.setup(irq, GPIO.IN)
+        if reset is not None:
+            lgpio.gpio_claim_output(self._h, reset)
+            lgpio.gpio_write(self._h, reset, 1)
+        if cs is not None:
+            lgpio.gpio_claim_output(self._h, cs)
+            lgpio.gpio_write(self._h, cs, 1)
+        if irq is not None:
+            lgpio.gpio_claim_input(self._h, irq)
 
     def _reset(self, pin):
         """Perform a hardware reset toggle"""
-        GPIO.output(pin, True)
+        lgpio.gpio_write(self._h, pin, 1)
         time.sleep(0.1)
-        GPIO.output(pin, False)
+        lgpio.gpio_write(self._h, pin, 0)
         time.sleep(0.5)
-        GPIO.output(pin, True)
+        lgpio.gpio_write(self._h, pin, 1)
         time.sleep(0.1)
 
     def _wakeup(self):
         """Send any special commands/data to wake up PN532"""
         time.sleep(1)
-        if self._cs:
-            GPIO.output(self._cs, GPIO.LOW)
+        if self._cs is not None:
+            lgpio.gpio_write(self._h, self._cs, 0)
         time.sleep(0.002)   # T_osc_start
         self._spi.writebytes(bytearray([0x00])) #pylint: disable=no-member
         time.sleep(1)
