@@ -34,7 +34,7 @@ jobs:
         python-version: ${{ fromJson(
           github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
           && format('["{0}"]', github.event.inputs.python-version)
-          || '["3.8", "3.9", "3.10", "3.11", "3.12"]'
+          || '["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]'
           ) }}
 
     steps:
