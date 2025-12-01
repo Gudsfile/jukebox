@@ -41,7 +41,7 @@ ui = [
 nfc = ["pyserial==3.5", "rpi-gpio==0.7.1", "spidev==3.8"]
 
 [dependency-groups]
-dev = ["pytest==7.4.4", "pytest-mock==3.11.1", "ruff==0.14.6"]
+dev = ["pytest==7.4.4", "pytest-mock==3.11.1", "ruff==0.14.7"]
 
 [tool.ruff]
 line-length = 120
