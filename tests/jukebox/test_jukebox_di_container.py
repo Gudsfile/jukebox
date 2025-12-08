@@ -2,6 +2,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from jukebox.adapters.inbound.config import (
+    DryrunPlayerConfig,
+    DryrunReaderConfig,
+    JukeboxConfig,
+    NfcReaderConfig,
+    PlaybackConfig,
+    SonosPlayerConfig,
+)
 from jukebox.di_container import build_jukebox
 
 
@@ -23,19 +31,21 @@ class TestBuildJukebox:
             },
         )
 
-        reader, handle_tag_event = build_jukebox(
-            library_path="/test/library.json",
-            player_type="sonos",
-            reader_type="nfc",
-            pause_duration=50,
-            pause_delay=3,
+        config = JukeboxConfig(
+            library="/test/library.json",
+            verbose=False,
+            player=SonosPlayerConfig(type="sonos", host="192.168.1.100"),
+            reader=NfcReaderConfig(type="nfc"),
+            playback=PlaybackConfig(pause_duration=50, pause_delay=3),
         )
+
+        reader, handle_tag_event = build_jukebox(config)
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
 
         # Should create player and reader
-        mock_player.assert_called_once()
+        mock_player.assert_called_once_with(host="192.168.1.100")
         mock_nfc_controller_class.assert_called_once()
 
         # Should return reader and use case
@@ -47,13 +57,15 @@ class TestBuildJukebox:
     @patch("jukebox.di_container.JsonLibraryAdapter")
     def test_build_jukebox_with_dryrun(self, mock_library, mock_reader, mock_player):
         """Should build jukebox with dryrun player and reader."""
-        reader, handle_tag_event = build_jukebox(
-            library_path="/test/library.json",
-            player_type="dryrun",
-            reader_type="dryrun",
-            pause_duration=100,
-            pause_delay=5,
+        config = JukeboxConfig(
+            library="/test/library.json",
+            verbose=False,
+            player=DryrunPlayerConfig(type="dryrun"),
+            reader=DryrunReaderConfig(type="dryrun"),
+            playback=PlaybackConfig(pause_duration=100, pause_delay=5),
         )
+
+        reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_player.assert_called_once()
@@ -62,44 +74,20 @@ class TestBuildJukebox:
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
 
-    @patch("jukebox.di_container.JsonLibraryAdapter")
-    @patch("jukebox.di_container.DryrunReaderAdapter")
-    def test_build_jukebox_raises_error_for_unknown_player(self, mock_reader, mock_library):
-        """Should raise error for unknown player type."""
-        with pytest.raises(ValueError, match="Unknown player type: unknown"):
-            build_jukebox(
-                library_path="/test/library.json",
-                player_type="unknown",
-                reader_type="dryrun",
-                pause_duration=50,
-                pause_delay=3,
-            )
-
-    @patch("jukebox.di_container.DryrunPlayerAdapter")
-    @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_raises_error_for_unknown_reader(self, mock_library, mock_player):
-        """Should raise error for unknown reader type."""
-        with pytest.raises(ValueError, match="Unknown reader type: unknown"):
-            build_jukebox(
-                library_path="/test/library.json",
-                player_type="dryrun",
-                reader_type="unknown",
-                pause_duration=50,
-                pause_delay=3,
-            )
-
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
     def test_build_jukebox_passes_correct_parameters_to_determine_action(self, mock_library, mock_reader, mock_player):
         """Should pass pause_delay and max_pause_duration to DetermineAction."""
-        reader, handle_tag_event = build_jukebox(
-            library_path="/test/library.json",
-            player_type="dryrun",
-            reader_type="dryrun",
-            pause_duration=200,
-            pause_delay=10,
+        config = JukeboxConfig(
+            library="/test/library.json",
+            verbose=False,
+            player=DryrunPlayerConfig(type="dryrun"),
+            reader=DryrunReaderConfig(type="dryrun"),
+            playback=PlaybackConfig(pause_duration=200, pause_delay=10),
         )
+
+        reader, handle_tag_event = build_jukebox(config)
 
         # Verify DetermineAction was created with correct parameters
         assert handle_tag_event.determine_action.pause_delay == 10

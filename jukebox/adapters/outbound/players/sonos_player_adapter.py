@@ -1,6 +1,4 @@
 import logging
-import os
-from typing import Union
 
 from soco import SoCo
 from soco.exceptions import SoCoUPnPException
@@ -32,11 +30,9 @@ def catch_soco_upnp_exception(func):
 class SonosPlayerAdapter(PlayerPort):
     """Adapter for Sonos player implementing PlayerPort."""
 
-    def __init__(self, host: Union[str, None] = None, **kwargs):
-        if host is None:
-            host = os.environ.get("SONOS_HOST", None)
-        if host is None:
-            raise ValueError("Host must be provided, either as an argument or in the SONOS_HOST environment variable.")
+    def __init__(self, host: str):
+        if not host:
+            raise ValueError("Host must be provided for Sonos player")
         self.speaker = SoCo(host)
         LOGGER.info(
             f"Found `{self.speaker.player_name}` with software version: {self.speaker.get_speaker_info().get('software_version', None)}"

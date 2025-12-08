@@ -1,4 +1,5 @@
 import argparse
+import copy
 import logging
 import os
 from enum import Enum
@@ -83,7 +84,7 @@ class UiCommand(BaseModel):
     port: int = 8000
 
 
-class CLIConfig(BaseModel):
+class DiscStoreConfig(BaseModel):
     library: str
     verbose: bool = False
 
@@ -100,21 +101,35 @@ class CLIConfig(BaseModel):
     ]
 
 
-def parse_config() -> CLIConfig:
-    parser = argparse.ArgumentParser()
+def get_library_path() -> str:
+    deprecated_library_path = os.environ.get("LIBRARY_PATH")
+    if deprecated_library_path:
+        LOGGER.warning("The LIBRARY_PATH environment variable is deprecated, use JUKEBOX_LIBRARY_PATH instead.")
+    return os.environ.get("JUKEBOX_LIBRARY_PATH", deprecated_library_path or DEFAULT_LIBRARY_PATH)
 
+
+def parse_config() -> DiscStoreConfig:
+    parser = argparse.ArgumentParser(
+        prog="discstore",
+        description="Manage your disc collection for jukebox",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    # Global arguments
     parser.add_argument(
         "-l",
         "--library",
-        default=os.environ.get("JUKEBOX_LIBRARY_PATH", DEFAULT_LIBRARY_PATH),
+        default=get_library_path(),
         help="path to the library JSON file",
     )
-    parser.add_argument("-v", "--verbose", action="store_true", help="show more details")
-    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}", help="show more details")
+    parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose logging")
+    parser.add_argument(
+        "--version", action="version", version=f"%(prog)s {__version__}", help="show current installed version"
+    )
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # CLI
+    # CLI commands
     add_parser = subparsers.add_parser("add", help="Add a disc")
     add_parser.add_argument("tag", help="Tag to be associated with the disc")
     add_parser.add_argument("uri", help="Path or URI of the media file")
@@ -143,33 +158,30 @@ def parse_config() -> CLIConfig:
     search_parser = subparsers.add_parser("search", help="Search discs by query")
     search_parser.add_argument("query", help="Search query (matches artist, album, track, playlist, or tag)")
 
-    # API
+    # API commands
     api_parser = subparsers.add_parser("api", help="Start an API server")
     api_parser.add_argument("--port", type=int, default=8000, help="port")
 
-    # UI
+    # UI commands
     _ = subparsers.add_parser("ui", help="Start an UI server")
 
-    # Interactive
+    # Interactive commands
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")
 
     args = parser.parse_args()
-    args_dict = vars(args)
 
-    base_data = {
-        "library": args_dict.pop("library"),
-        "verbose": args_dict.pop("verbose"),
-    }
-
+    # Build command config
+    args_dict = vars(copy.deepcopy(args))
+    args_dict.pop("verbose")
+    args_dict.pop("library")
     command_name = args_dict.pop("command")
-    command_data = {"type": command_name, **args_dict}
+    command_config = {"type": command_name, **args_dict}
 
-    config_data = {**base_data, "command": command_data}
-
+    # Build and validate final config
     try:
-        validated = CLIConfig(**config_data)
+        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)
     except ValidationError as err:
         LOGGER.error("Config error", err)
         exit(1)
 
-    return validated
+    return config
