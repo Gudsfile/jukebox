@@ -73,7 +73,7 @@ uv sync
 
 ## First steps
 
-Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
 
 Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
 
@@ -100,7 +100,7 @@ uv tool install gukebox[ui]
 ### Manage the library manually
 
 Complete your `~/.jukebox/library.json` file with each tag id and the expected media URI.
-Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
+Take a look at `library.example.json` and the [The library file](#the-library-file) section for more information.
 
 ## Usage
 
@@ -146,8 +146,8 @@ Displays the events that a real speaker would have performed (`playing …`, `pa
 
 **Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
 Play music through a Sonos speaker.
-`SONOS_HOST` environment variable must be set with the IP address of your Sonos Zone Player.
-You could set the environment varible with `export SONOS_HOST=192.168.0.???` to use this speaker through the `jukebox` command.
+`JUKEBOX_SONOS_HOST` environment variable must be set with the IP address of your Sonos Zone Player.
+You could set the environment varible with `export JUKEBOX_SONOS_HOST=192.168.0.???` to use this speaker through the `jukebox` command.
 Or set it in a `.env` file to use the `uv run --env-file .env <command to run>` version.
 
 ## The library file
@@ -228,12 +228,12 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-Set the `SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
-A `sample.env` file is available, you can copy it and modify it to use it.
+A `.env.example` file is available, you can copy it and modify it to use it.
 
 Create a `library.json` file and complete it with the desired NFC tags and CDs.
-Take a look at `sample_library.json` and the [The library file](#the-library-file) section for more information.
+Take a look at `library.example.json` and the [The library file](#the-library-file) section for more information.
 
 ### Usage
 

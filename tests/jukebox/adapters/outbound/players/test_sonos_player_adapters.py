@@ -1,4 +1,3 @@
-import os
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,22 +15,12 @@ def test_init_with_host(mock_sharelink, mock_soco):
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
-def test_init_with_host_from_env(mock_sharelink, mock_soco):
-    with patch.dict(os.environ, {"SONOS_HOST": "192.168.1.100"}, clear=True):
-        SonosPlayerAdapter()
-    mock_soco.assert_called_once_with("192.168.1.100")
-    mock_sharelink.assert_called_once_with(mock_soco.return_value)
-
-
-@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
-@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_without_host(mock_sharelink, mock_soco):
-    with pytest.raises(ValueError) as excinfo:
+    """Should raise ValueError when host is empty or None."""
+    with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
+        SonosPlayerAdapter(host="")
+    with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
         SonosPlayerAdapter(host=None)
-    assert (
-        excinfo.value.args[0]
-        == "Host must be provided, either as an argument or in the SONOS_HOST environment variable."
-    )
     mock_soco.assert_not_called()
     mock_sharelink.assert_not_called()
 

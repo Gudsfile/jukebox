@@ -7,11 +7,11 @@ from discstore import app
 from discstore.adapters.inbound.config import (
     ApiCommand,
     CliAddCommand,
-    CLIConfig,
     CliEditCommand,
     CliListCommand,
     CliListCommandModes,
     CliRemoveCommand,
+    DiscStoreConfig,
     InteractiveCliCommand,
     UiCommand,
 )
@@ -59,7 +59,7 @@ def app_mocks(mocker):
 )
 def test_main_starts_api(mocker, app_mocks, command, expected_builder):
     mock_uvicorn = mocker.patch.dict("sys.modules", {"uvicorn": MagicMock()})["uvicorn"]
-    config = CLIConfig(library="fake_library_path", verbose=True, command=command)
+    config = DiscStoreConfig(library="fake_library_path", verbose=True, command=command)
     app_mocks.parse_config.return_value = config
     fake_apps = {
         "build_api_app": MagicMock(),
@@ -82,7 +82,9 @@ def test_main_starts_api(mocker, app_mocks, command, expected_builder):
 
 
 def test_main_starts_interactive_cli(app_mocks):
-    config = CLIConfig(library="fake_library_path", verbose=True, command=InteractiveCliCommand(type="interactive"))
+    config = DiscStoreConfig(
+        library="fake_library_path", verbose=True, command=InteractiveCliCommand(type="interactive")
+    )
     app_mocks.parse_config.return_value = config
     mock_interactive_cli = MagicMock()
     app_mocks.build_interactive.return_value = mock_interactive_cli
@@ -110,7 +112,7 @@ def test_main_starts_interactive_cli(app_mocks):
     ],
 )
 def test_main_starts_standard_cli(app_mocks, cli_command):
-    config = CLIConfig(library="fake_library_path", verbose=True, command=cli_command)
+    config = DiscStoreConfig(library="fake_library_path", verbose=True, command=cli_command)
     app_mocks.parse_config.return_value = config
     mock_standard_cli = MagicMock()
     app_mocks.build_cli.return_value = mock_standard_cli
