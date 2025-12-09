@@ -1,7 +1,6 @@
 import pytest
 
-from discstore.domain.entities.disc import Disc, DiscMetadata
-from discstore.domain.entities.library import Library
+from discstore.domain.entities import Disc, DiscMetadata, Library
 from discstore.domain.use_cases.get_disc import GetDisc
 from tests.discstore.domain.use_cases.mock_repo import MockRepo
 

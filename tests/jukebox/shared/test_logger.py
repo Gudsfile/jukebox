@@ -5,12 +5,12 @@ from contextlib import redirect_stderr
 
 import pytest
 
-from discstore.adapters.inbound.logger import LOGGER_NAME, set_logger
+from jukebox.shared.logger import set_logger
 
 
 @pytest.fixture(autouse=True)
 def clean_logger():
-    logger = logging.getLogger(LOGGER_NAME)
+    logger = logging.getLogger("dummy")
     if logger.hasHandlers():
         logger.handlers.clear()
 
@@ -22,14 +22,14 @@ def clean_logger():
     "verbose, expected_regex",
     [
         (False, ""),
-        (True, r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - discstore - DEBUG\t - This is a debug message\.$"),
+        (True, r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - dummy - DEBUG\t - This is a debug message\.$"),
     ],
 )
 def test_set_logger(verbose, expected_regex):
     log_capture_string = io.StringIO()
 
     with redirect_stderr(log_capture_string):
-        logger = set_logger(verbose=verbose)
+        logger = set_logger("dummy", verbose=verbose)
         logger.debug("This is a debug message.")
 
     output = log_capture_string.getvalue()

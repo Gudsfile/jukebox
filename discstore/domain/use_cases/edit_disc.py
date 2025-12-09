@@ -1,7 +1,7 @@
 from typing import Optional
 
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
-from discstore.domain.repositories.library_repository import LibraryRepository
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+from discstore.domain.repositories import LibraryRepository
 
 
 class EditDisc:

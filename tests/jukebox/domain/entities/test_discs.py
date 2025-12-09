@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
 
 def test_minimal_disc():

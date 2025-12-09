@@ -1,8 +1,7 @@
 import logging
-from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.list_discs import ListDiscs

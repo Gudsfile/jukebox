@@ -4,7 +4,6 @@ from unittest.mock import patch
 import pytest
 
 from discstore.adapters.inbound.config import (
-    DEFAULT_LIBRARY_PATH,
     ApiCommand,
     CliAddCommand,
     CliEditCommand,
@@ -13,6 +12,7 @@ from discstore.adapters.inbound.config import (
     InteractiveCliCommand,
     parse_config,
 )
+from jukebox.shared.config_utils import DEFAULT_LIBRARY_PATH
 
 
 @patch(

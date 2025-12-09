@@ -74,7 +74,10 @@ def test_main_starts_api(mocker, app_mocks, command, expected_builder):
         app_mocks,
         {
             "parse_config": (),
-            "set_logger": (True,),
+            "set_logger": (
+                "discstore",
+                True,
+            ),
             expected_builder: ("fake_library_path",),
         },
     )
@@ -95,7 +98,10 @@ def test_main_starts_interactive_cli(app_mocks):
         app_mocks,
         {
             "parse_config": (),
-            "set_logger": (True,),
+            "set_logger": (
+                "discstore",
+                True,
+            ),
             "build_interactive": ("fake_library_path",),
         },
     )
@@ -123,7 +129,10 @@ def test_main_starts_standard_cli(app_mocks, cli_command):
         app_mocks,
         {
             "parse_config": (),
-            "set_logger": (True,),
+            "set_logger": (
+                "discstore",
+                True,
+            ),
             "build_cli": ("fake_library_path",),
         },
     )

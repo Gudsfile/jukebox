@@ -3,8 +3,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
-from jukebox.domain.entities import PlaybackSession, TagEvent
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 

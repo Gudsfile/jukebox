@@ -1,7 +1,7 @@
 from typing import Dict
 
-from discstore.domain.entities.disc import Disc
-from discstore.domain.repositories.library_repository import LibraryRepository
+from discstore.domain.entities import Disc
+from discstore.domain.repositories import LibraryRepository
 
 
 class ListDiscs:

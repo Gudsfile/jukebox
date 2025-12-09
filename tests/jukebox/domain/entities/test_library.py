@@ -1,5 +1,4 @@
-from discstore.domain.entities.disc import Disc, DiscMetadata
-from discstore.domain.entities.library import Library
+from discstore.domain.entities import Disc, DiscMetadata, Library
 
 
 def test_library():

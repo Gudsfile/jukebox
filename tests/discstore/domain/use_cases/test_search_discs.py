@@ -1,5 +1,4 @@
-from discstore.domain.entities.disc import Disc, DiscMetadata
-from discstore.domain.entities.library import Library
+from discstore.domain.entities import Disc, DiscMetadata, Library
 from discstore.domain.use_cases.search_discs import SearchDiscs
 
 from .mock_repo import MockRepo
@@ -109,9 +108,18 @@ def test_search_multiple_fields():
     repo = MockRepo(
         Library(
             discs={
-                "tag:1": Disc(uri="uri1", metadata=DiscMetadata(artist="Test Artist", album="Album")),
-                "tag:2": Disc(uri="uri2", metadata=DiscMetadata(artist="Artist", album="Test Album")),
-                "tag:3": Disc(uri="uri3", metadata=DiscMetadata(artist="Other", track="Test Track")),
+                "tag:1": Disc(
+                    uri="uri1",
+                    metadata=DiscMetadata(artist="Test Artist", album="Album"),
+                ),
+                "tag:2": Disc(
+                    uri="uri2",
+                    metadata=DiscMetadata(artist="Artist", album="Test Album"),
+                ),
+                "tag:3": Disc(
+                    uri="uri3",
+                    metadata=DiscMetadata(artist="Other", track="Test Track"),
+                ),
             }
         )
     )

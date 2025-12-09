@@ -10,7 +10,7 @@ from discstore.adapters.inbound.config import (
     CliRemoveCommand,
     CliSearchCommand,
 )
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_disc import GetDisc

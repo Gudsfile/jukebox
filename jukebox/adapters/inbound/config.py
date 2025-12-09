@@ -10,21 +10,17 @@ except ImportError:
 
 from pydantic import BaseModel, ValidationError
 
-DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
+from jukebox.shared.config_utils import (
+    add_library_arg,
+    add_verbose_arg,
+    add_version_arg,
+    get_deprecated_env_with_warning,
+)
+
 DEFAULT_PAUSE_DURATION = 900
 DEFAULT_PAUSE_DELAY = 1
 
 LOGGER = logging.getLogger("jukebox")
-
-try:
-    from importlib.metadata import PackageNotFoundError, version
-except ImportError:
-    from importlib_metadata import PackageNotFoundError, version
-
-try:
-    __version__ = version("gukebox")
-except PackageNotFoundError:
-    __version__ = "unknown"
 
 
 class DryrunPlayerConfig(BaseModel):
@@ -57,20 +53,6 @@ class JukeboxConfig(BaseModel):
     playback: PlaybackConfig
 
 
-def get_library_path() -> str:
-    deprecated_library_path = os.environ.get("LIBRARY_PATH")
-    if deprecated_library_path:
-        LOGGER.warning("The LIBRARY_PATH environment variable is deprecated, use JUKEBOX_LIBRARY_PATH instead.")
-    return os.environ.get("JUKEBOX_LIBRARY_PATH", deprecated_library_path or DEFAULT_LIBRARY_PATH)
-
-
-def get_sonos_host() -> str:
-    deprecated_sonos_host = os.environ.get("SONOS_HOST")
-    if deprecated_sonos_host:
-        LOGGER.warning("The SONOS_HOST environment variable is deprecated, use JUKEBOX_SONOS_HOST instead.")
-    return os.environ.get("JUKEBOX_SONOS_HOST", deprecated_sonos_host)
-
-
 def parse_config() -> JukeboxConfig:
     parser = argparse.ArgumentParser(
         prog="jukebox",
@@ -79,16 +61,9 @@ def parse_config() -> JukeboxConfig:
     )
 
     # Global arguments
-    parser.add_argument(
-        "-l",
-        "--library",
-        default=get_library_path(),
-        help="path to the library JSON file",
-    )
-    parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose logging")
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}", help="show current installed version"
-    )
+    add_library_arg(parser)
+    add_verbose_arg(parser)
+    add_version_arg(parser)
 
     # Player and reader types
     parser.add_argument("player", choices=["dryrun", "sonos"], help="player type to use")
@@ -97,7 +72,12 @@ def parse_config() -> JukeboxConfig:
     # Player-specific arguments
     parser.add_argument(
         "--sonos-host",
-        default=get_sonos_host(),
+        default=get_deprecated_env_with_warning(
+            "JUKEBOX_SONOS_HOST",
+            "SONOS_HOST",
+            None,
+            LOGGER.warning,
+        ),
         help="IP address or hostname of Sonos speaker (required for sonos player)",
     )
 

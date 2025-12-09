@@ -1,7 +1,7 @@
 from typing import Optional
 
-from discstore.domain.entities.library import Library
-from discstore.domain.repositories.library_repository import LibraryRepository
+from discstore.domain.entities import Library
+from discstore.domain.repositories import LibraryRepository
 
 
 class MockRepo(LibraryRepository):
@@ -14,3 +14,6 @@ class MockRepo(LibraryRepository):
 
     def save(self, library: Library):
         self.saved_library = library
+
+    def get_disc(self, tag: str):
+        return self.library.discs.get(tag)

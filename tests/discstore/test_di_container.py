@@ -13,7 +13,7 @@ from discstore.di_container import (
 @pytest.fixture
 def mocks(mocker):
     class Mocks:
-        repo_class: MagicMock = mocker.patch("discstore.di_container.JsonLibraryRepository")
+        repo_class: MagicMock = mocker.patch("discstore.di_container.JsonLibraryAdapter")
         add_disc_class: MagicMock = mocker.patch("discstore.di_container.AddDisc")
         list_discs_class: MagicMock = mocker.patch("discstore.di_container.ListDiscs")
         remove_disc_class: MagicMock = mocker.patch("discstore.di_container.RemoveDisc")
