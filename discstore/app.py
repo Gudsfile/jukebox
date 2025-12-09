@@ -1,11 +1,11 @@
 from discstore.adapters.inbound.config import parse_config
-from discstore.adapters.inbound.logger import set_logger
 from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
+from jukebox.shared.logger import set_logger
 
 
 def main():
     config = parse_config()
-    set_logger(config.verbose)
+    set_logger("discstore", config.verbose)
 
     if config.command.type == "api":
         import uvicorn

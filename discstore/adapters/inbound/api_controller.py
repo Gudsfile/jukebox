@@ -12,7 +12,7 @@ except ModuleNotFoundError as e:
         "The `api_controller` module requires FastAPI dependencies. Install them with: pip install gukebox[api]."
     ) from e
 
-from discstore.domain.entities.disc import Disc
+from discstore.domain.entities import Disc
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.list_discs import ListDiscs

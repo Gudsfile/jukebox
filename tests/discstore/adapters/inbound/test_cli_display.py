@@ -5,7 +5,7 @@ from typing import Dict
 import pytest
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.domain.entities.disc import Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
 
 @pytest.fixture

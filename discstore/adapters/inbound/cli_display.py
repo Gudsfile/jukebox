@@ -1,8 +1,6 @@
-# adapters/inbound/cli_display.py
-
 from typing import Dict
 
-from discstore.domain.entities.disc import Disc
+from discstore.domain.entities import Disc
 
 MAX_COL_WIDTH = 20
 

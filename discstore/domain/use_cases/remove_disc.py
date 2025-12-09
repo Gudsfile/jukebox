@@ -1,4 +1,4 @@
-from discstore.domain.repositories.library_repository import LibraryRepository
+from discstore.domain.repositories import LibraryRepository
 
 
 class RemoveDisc:

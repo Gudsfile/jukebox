@@ -1,7 +1,6 @@
 import argparse
 import copy
 import logging
-import os
 from enum import Enum
 from typing import Optional, Union
 
@@ -12,19 +11,9 @@ except ImportError:
 
 from pydantic import BaseModel, ValidationError
 
-DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
+from jukebox.shared.config_utils import add_library_arg, add_verbose_arg, add_version_arg
+
 LOGGER = logging.getLogger("discstore")
-
-
-try:
-    from importlib.metadata import PackageNotFoundError, version
-except ImportError:
-    from importlib_metadata import PackageNotFoundError, version
-
-try:
-    __version__ = version("gukebox")
-except PackageNotFoundError:
-    __version__ = "unknown"
 
 
 class CliAddCommand(BaseModel):
@@ -101,13 +90,6 @@ class DiscStoreConfig(BaseModel):
     ]
 
 
-def get_library_path() -> str:
-    deprecated_library_path = os.environ.get("LIBRARY_PATH")
-    if deprecated_library_path:
-        LOGGER.warning("The LIBRARY_PATH environment variable is deprecated, use JUKEBOX_LIBRARY_PATH instead.")
-    return os.environ.get("JUKEBOX_LIBRARY_PATH", deprecated_library_path or DEFAULT_LIBRARY_PATH)
-
-
 def parse_config() -> DiscStoreConfig:
     parser = argparse.ArgumentParser(
         prog="discstore",
@@ -116,16 +98,9 @@ def parse_config() -> DiscStoreConfig:
     )
 
     # Global arguments
-    parser.add_argument(
-        "-l",
-        "--library",
-        default=get_library_path(),
-        help="path to the library JSON file",
-    )
-    parser.add_argument("-v", "--verbose", action="store_true", help="enable verbose logging")
-    parser.add_argument(
-        "--version", action="version", version=f"%(prog)s {__version__}", help="show current installed version"
-    )
+    add_library_arg(parser)
+    add_verbose_arg(parser)
+    add_version_arg(parser)
 
     subparsers = parser.add_subparsers(dest="command", required=True)
 

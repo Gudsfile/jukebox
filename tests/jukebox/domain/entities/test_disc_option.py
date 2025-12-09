@@ -1,4 +1,4 @@
-from discstore.domain.entities.disc import DiscOption
+from discstore.domain.entities import DiscOption
 
 
 def test_default_values():

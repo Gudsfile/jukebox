@@ -1,4 +1,4 @@
-from discstore.domain.entities.disc import DiscMetadata
+from discstore.domain.entities import DiscMetadata
 
 
 def test_all_fields_optional():

@@ -1,7 +1,8 @@
 import logging
 
 from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
-from jukebox.domain.ports import LibraryPort, PlayerPort
+from jukebox.domain.ports import PlayerPort
+from jukebox.domain.repositories import LibraryRepository
 from jukebox.domain.use_cases.determine_action import DetermineAction
 
 LOGGER = logging.getLogger("jukebox")
@@ -13,7 +14,7 @@ class HandleTagEvent:
     def __init__(
         self,
         player: PlayerPort,
-        library: LibraryPort,
+        library: LibraryRepository,
         determine_action: DetermineAction,
     ):
         self.player = player

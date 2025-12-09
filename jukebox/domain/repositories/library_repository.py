@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
-from discstore.domain.entities.library import Library
+from jukebox.domain.entities import Disc, Library
 
 
 class LibraryRepository(ABC):
@@ -10,4 +11,8 @@ class LibraryRepository(ABC):
 
     @abstractmethod
     def save(self, library: Library) -> None:
+        pass
+
+    @abstractmethod
+    def get_disc(self, tag_id: str) -> Optional[Disc]:
         pass
