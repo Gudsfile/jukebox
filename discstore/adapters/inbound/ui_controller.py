@@ -114,7 +114,7 @@ class UIController(APIController):
                     return [
                         c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
                         c.FireEvent(event=PageEvent(name="toast-add-disc-success")),
-                        GoToEvent(url="/api/ui"),  # type: ignore
+                        c.FireEvent(event=GoToEvent(url=f"/?refresh={uuid.uuid4()}")),
                     ]
                 except ValueError:
                     # Disc exists, update it
@@ -127,6 +127,7 @@ class UIController(APIController):
                     return [
                         c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
                         c.FireEvent(event=PageEvent(name="toast-edit-disc-success")),
+                        c.FireEvent(event=GoToEvent(url=f"/?refresh={uuid.uuid4()}")),
                     ]
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
