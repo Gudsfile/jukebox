@@ -3,6 +3,7 @@ import sys
 if sys.version_info < (3, 10):
     raise RuntimeError("The `ui_controller` module requires Python 3.10+.")
 
+import uuid
 from typing import Annotated, List, Optional
 
 try:
@@ -83,6 +84,12 @@ class UIController(APIController):
                             open_trigger=PageEvent(name="toast-add-disc-success"),
                             position="top-center",
                         ),
+                        c.Toast(
+                            title="Toast",
+                            body=[c.Paragraph(text="🎉 Disc edited")],
+                            open_trigger=PageEvent(name="toast-edit-disc-success"),
+                            position="top-center",
+                        ),
                         c.Table(
                             data=discs_list,
                             no_data_message="No disc found",
@@ -102,31 +109,25 @@ class UIController(APIController):
                 )
                 option = DiscOption(shuffle=disc.shuffle)
 
-                self.add_disc.execute(disc.tag, Disc(uri=disc.uri, metadata=metadata, option=option))
-                return [
-                    c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
-                    c.FireEvent(event=PageEvent(name="toast-add-disc-success")),
-                    GoToEvent(url="/api/ui"),  # type: ignore
-                ]
-            except ValueError:
-                # Disc exists, update it
-                metadata = DiscMetadata(
-                    artist=disc.artist,
-                    album=disc.album,
-                    track=disc.track,
-                )
-                option = DiscOption(shuffle=disc.shuffle)
-
-                self.edit_disc.execute(
-                    tag_id=disc.tag,
-                    uri=disc.uri,
-                    metadata=metadata,
-                    option=option,
-                )
-                return [
-                    c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
-                    c.FireEvent(event=PageEvent(name="toast-add-disc-success")),
-                ]
+                try:
+                    self.add_disc.execute(disc.tag, Disc(uri=disc.uri, metadata=metadata, option=option))
+                    return [
+                        c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
+                        c.FireEvent(event=PageEvent(name="toast-add-disc-success")),
+                        GoToEvent(url="/api/ui"),  # type: ignore
+                    ]
+                except ValueError:
+                    # Disc exists, update it
+                    self.edit_disc.execute(
+                        tag_id=disc.tag,
+                        uri=disc.uri,
+                        metadata=metadata,
+                        option=option,
+                    )
+                    return [
+                        c.FireEvent(event=PageEvent(name="modal-add-disc", clear=True)),
+                        c.FireEvent(event=PageEvent(name="toast-edit-disc-success")),
+                    ]
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
