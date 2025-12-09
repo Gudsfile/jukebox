@@ -52,7 +52,8 @@ class APIController:
                 self.add_disc.execute(tag_id, Disc(**disc.model_dump()))
                 return {"message": "Disc added"}
             except ValueError:
-                self.edit_disc.execute(tag_id, Disc(**disc.model_dump()))
+                new_disc = Disc(**disc.model_dump())
+                self.edit_disc.execute(tag_id, new_disc.uri, new_disc.metadata, new_disc.option)
                 return {"message": "Disc edited"}
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")

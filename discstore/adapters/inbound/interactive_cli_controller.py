@@ -85,6 +85,5 @@ class InteractiveCLIController:
         option = DiscOption()
         metadata = DiscMetadata()
 
-        disc = Disc(uri=uri, metadata=metadata, option=option)
-        self.edit_disc.execute(tag, disc)
+        self.edit_disc.execute(tag, uri, metadata, option)
         print("✅ Disc successfully edited")
