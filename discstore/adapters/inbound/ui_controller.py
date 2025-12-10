@@ -7,12 +7,12 @@ import uuid
 from typing import Annotated, List, Optional
 
 try:
-    from fastapi import HTTPException
-    from fastapi.responses import HTMLResponse
-    from fastui import AnyComponent, FastUI, prebuilt_html
-    from fastui import components as c
-    from fastui.events import GoToEvent, PageEvent
-    from fastui.forms import fastui_form
+    from fastapi import HTTPException  # type: ignore[unresolved-import]
+    from fastapi.responses import HTMLResponse  # type: ignore[unresolved-import]
+    from fastui import AnyComponent, FastUI, prebuilt_html  # type: ignore[unresolved-import]
+    from fastui import components as c  # type: ignore[unresolved-import]
+    from fastui.events import GoToEvent, PageEvent  # type: ignore[unresolved-import]
+    from fastui.forms import fastui_form  # type: ignore[unresolved-import]
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
         "The `ui_controller` module requires FastUI dependency. Install it with: pip install gukebox[ui]."
