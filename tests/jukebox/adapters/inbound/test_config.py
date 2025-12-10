@@ -29,7 +29,7 @@ class TestConfigModels:
 
     def test_sonos_player_config_requires_host(self):
         with pytest.raises(ValidationError):
-            SonosPlayerConfig(type="sonos")
+            SonosPlayerConfig(type="sonos")  # type: ignore[missing-argument]
 
     def test_dryrun_reader_config(self):
         config = DryrunReaderConfig(type="dryrun")
