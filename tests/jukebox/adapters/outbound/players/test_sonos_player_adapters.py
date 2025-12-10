@@ -20,7 +20,7 @@ def test_init_without_host(mock_sharelink, mock_soco):
     with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
         SonosPlayerAdapter(host="")
     with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
-        SonosPlayerAdapter(host=None)
+        SonosPlayerAdapter(host=None)  # ty: ignore[invalid-argument-type]
     mock_soco.assert_not_called()
     mock_sharelink.assert_not_called()
 
