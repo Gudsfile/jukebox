@@ -32,13 +32,13 @@ def test_disc_with_options():
 def test_uri_required():
     """URI should be required"""
     with pytest.raises(ValidationError):
-        Disc(metadata=DiscMetadata())
+        Disc(metadata=DiscMetadata())  # ty: ignore[missing-argument]
 
 
 def test_metadata_required():
     """Metadata should be required"""
     with pytest.raises(ValidationError):
-        Disc(uri="uri:123")
+        Disc(uri="uri:123")  # ty: ignore[missing-argument]
 
 
 def test_empty_strings_in_metadata():
