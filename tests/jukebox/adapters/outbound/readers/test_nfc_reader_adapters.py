@@ -6,9 +6,9 @@ import pytest
 @pytest.fixture()
 def mock_pn532_lib_installed():
     module = type(sys)("pn532")
-    module.submodule = type(sys)("PN532_SPI")
+    module.submodule = type(sys)("PN532_SPI")  # type: ignore[unresolved-attribute]
     sys.modules["pn532"] = module
-    sys.modules["pn532.PN532_SPI"] = module.submodule
+    sys.modules["pn532.PN532_SPI"] = module.submodule  # type: ignore[unresolved-attribute]
 
     yield
 
