@@ -1,7 +1,6 @@
 import json
 import os
 import tempfile
-from unittest.mock import MagicMock
 
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
