@@ -6,7 +6,7 @@ if sys.version_info < (3, 8):
 from typing import Dict
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI, HTTPException  # type: ignore[unresolved-import]
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
         "The `api_controller` module requires FastAPI dependencies. Install them with: pip install gukebox[api]."
