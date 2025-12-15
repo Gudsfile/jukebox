@@ -4,11 +4,11 @@ import os
 from typing import Union
 
 try:
-    from typing import Literal
+    from typing import Annotated, Literal
 except ImportError:
-    from typing_extensions import Literal
+    from typing_extensions import Annotated, Literal
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from jukebox.shared.config_utils import (
     add_library_arg,
@@ -48,7 +48,10 @@ class PlaybackConfig(BaseModel):
 class JukeboxConfig(BaseModel):
     library: str
     verbose: bool = False
-    player: Union[DryrunPlayerConfig, SonosPlayerConfig]
+    player: Annotated[
+        Union[DryrunPlayerConfig, SonosPlayerConfig],
+        Field(discriminator="type"),
+    ]
     reader: Union[DryrunReaderConfig, NfcReaderConfig]
     playback: PlaybackConfig
 
