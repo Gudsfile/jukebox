@@ -73,6 +73,7 @@ class TestConfigModels:
         assert config.library == "/path/to/library.json"
         assert config.verbose is False
         assert config.player.type == "sonos"
+        assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.100"
         assert config.reader.type == "nfc"
         assert config.playback.pause_duration == 600
@@ -84,8 +85,8 @@ class TestParseConfig:
     @patch("sys.argv", ["jukebox", "dryrun", "dryrun"])
     def test_parse_config_dryrun_minimal(self):
         config = parse_config()
-        assert config.player.type == "dryrun"
-        assert config.reader.type == "dryrun"
+        assert isinstance(config.player, DryrunPlayerConfig)
+        assert isinstance(config.reader, DryrunReaderConfig)
         assert config.verbose is False
         assert config.playback.pause_duration == 900
         assert config.playback.pause_delay == 1
@@ -93,9 +94,9 @@ class TestParseConfig:
     @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.50"])
     def test_parse_config_sonos_with_cli_host(self):
         config = parse_config()
-        assert config.player.type == "sonos"
+        assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.50"
-        assert config.reader.type == "nfc"
+        assert isinstance(config.reader, NfcReaderConfig)
 
     @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.200"})
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
@@ -103,7 +104,7 @@ class TestParseConfig:
     def test_parse_config_sonos_with_env_host(self, mock_warning):
         config = parse_config()
         assert mock_warning.call_count == 0
-        assert config.player.type == "sonos"
+        assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.200"
 
     @patch.dict(os.environ, {"SONOS_HOST": "192.168.1.200"})
@@ -112,13 +113,14 @@ class TestParseConfig:
     def test_parse_config_sonos_with_deprecated_env_host(self, mock_warning):
         config = parse_config()
         assert mock_warning.call_count == 1
-        assert config.player.type == "sonos"
+        assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.200"
 
     @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.200"})
     @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.99"])
     def test_parse_config_cli_overrides_env(self):
         config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.99"
 
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
@@ -167,5 +169,5 @@ class TestParseConfig:
     @patch("sys.argv", ["jukebox", "dryrun", "nfc"])
     def test_parse_config_mixed_player_reader(self):
         config = parse_config()
-        assert config.player.type == "dryrun"
-        assert config.reader.type == "nfc"
+        assert isinstance(config.player, DryrunPlayerConfig)
+        assert isinstance(config.reader, NfcReaderConfig)
