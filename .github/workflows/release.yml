@@ -37,7 +37,7 @@ jobs:
         run: uv publish
 
       - name: Upload package artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: built-package
           path: dist/
