@@ -154,7 +154,7 @@ def parse_config() -> DiscStoreConfig:
 
     # Build and validate final config
     try:
-        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)
+        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)  # type: ignore[invalid-argument-type]
     except ValidationError as err:
         LOGGER.error("Config error", err)
         exit(1)
