@@ -1,4 +1,10 @@
-from jukebox.adapters.inbound.config import JukeboxConfig
+from jukebox.adapters.inbound.config import (
+    DryrunPlayerConfig,
+    DryrunReaderConfig,
+    JukeboxConfig,
+    NfcReaderConfig,
+    SonosPlayerConfig,
+)
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.players.dryrun_player_adapter import DryrunPlayerAdapter
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
@@ -22,18 +28,18 @@ def build_jukebox(config: JukeboxConfig):
     # Outbound adapters
     library = JsonLibraryAdapter(config.library)
 
-    if config.player.type == "sonos":
+    if isinstance(config.player, SonosPlayerConfig):
         player = SonosPlayerAdapter(host=config.player.host)
-    elif config.player.type == "dryrun":
+    elif isinstance(config.player, DryrunPlayerConfig):
         player = DryrunPlayerAdapter()
     else:
         raise ValueError(f"Unknown player type: {config.player.type}")
 
-    if config.reader.type == "nfc":
+    if isinstance(config.reader, NfcReaderConfig):
         from jukebox.adapters.outbound.readers.nfc_reader_adapter import NfcReaderAdapter
 
         reader = NfcReaderAdapter()
-    elif config.reader.type == "dryrun":
+    elif isinstance(config.reader, DryrunReaderConfig):
         reader = DryrunReaderAdapter()
     else:
         raise ValueError(f"Unknown reader type: {config.reader.type}")
