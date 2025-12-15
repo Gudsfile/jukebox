@@ -15,5 +15,5 @@ class MockRepo(LibraryRepository):
     def save(self, library: Library):
         self.saved_library = library
 
-    def get_disc(self, tag: str):
-        return self.library.discs.get(tag)
+    def get_disc(self, tag_id: str):
+        return self.library.discs.get(tag_id)
