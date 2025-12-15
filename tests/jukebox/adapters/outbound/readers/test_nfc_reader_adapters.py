@@ -28,7 +28,7 @@ def test_dependencies_import_failure(mocker):
     mocker.patch.dict("sys.modules", {"pn532": None})
 
     with pytest.raises(ModuleNotFoundError) as err:
-        import jukebox.adapters.outbound.readers.nfc_reader_adapter
+        import jukebox.adapters.outbound.readers.nfc_reader_adapter  # noqa: F401
 
     assert "The `nfc reader` requires `pip install gukebox[nfc]`." in str(err.value)
 
