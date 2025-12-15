@@ -42,7 +42,7 @@ class HandleTagEvent:
             session.previous_tag = tag_event.tag_id
             LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
 
-            disc = self.library.get_disc(tag_event.tag_id)
+            disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id else None
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
                 self.player.play(disc.uri, disc.option.shuffle)
