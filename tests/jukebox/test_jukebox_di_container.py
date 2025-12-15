@@ -1,7 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from jukebox.adapters.inbound.config import (
     DryrunPlayerConfig,
     DryrunReaderConfig,
