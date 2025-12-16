@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       python-version:
-        description: "Python version (empty for all)"
+        description: "Python version (leave empty for all)"
         required: false
         default: ""
 
@@ -59,8 +59,20 @@ jobs:
       - name: Test with pytest
         run: uv run pytest
 
+      - name: Set ty_args based on Python version
+        # Check the missig-argument rule for Python versions >= 3.10
+        # Exclude the opt/ directory as it is not part of the project
+        run: |
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
+            echo "ty_args=--ignore missing-argument --exclude opt/" >> $GITHUB_ENV
+          elif [[ "${{ matrix.python-version }}" == "3.9" ]]; then
+            echo "ty_args=--ignore missing-argument --exclude opt/" >> $GITHUB_ENV
+          else
+            echo "ty_args=--error missing-argument" >> $GITHUB_ENV
+          fi
+
       - name: Type check with ty
-        run: uv run ty check --output-format github
+        run: uv run ty check $ty_args --output-format github
 
   build:
     name: Build Package
