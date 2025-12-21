@@ -189,3 +189,31 @@ def test_handle_idle_action(handle_tag_event, mock_player):
     new_session = handle_tag_event.execute(tag_event, session)
 
     assert new_session.awaiting_seconds == 10.5
+
+
+def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_player, mock_library):
+    """Should NOT resume playback when an unregistered tag is read while paused.
+
+    Regression test for bug: When paused and a tag with no disc is read,
+    the player would incorrectly resume the previous disc on subsequent reads.
+    """
+    session = PlaybackSession(
+        current_tag="good-tag",
+        previous_tag="good-tag",
+        awaiting_seconds=10.0,  # Paused
+        is_paused=True,
+    )
+
+    mock_library.get_disc.return_value = None
+    bad_tag_event = TagEvent(tag_id="unknown-tag", timestamp=time.time())
+
+    session = handle_tag_event.execute(bad_tag_event, session)
+
+    mock_player.play.assert_not_called()
+    mock_player.resume.assert_not_called()
+
+    bad_tag_event2 = TagEvent(tag_id="unknown-tag", timestamp=bad_tag_event.timestamp + 0.5)
+    session = handle_tag_event.execute(bad_tag_event2, session)
+
+    mock_player.play.assert_not_called()
+    mock_player.resume.assert_not_called()
