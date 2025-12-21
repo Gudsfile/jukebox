@@ -40,7 +40,7 @@ The `ui` extension is only available for Python versions 3.10 and above.
 
 ## Install
 
-### PyPI
+### PyPI (Python < 3.13)
 
 Install the package from [PyPI](https://pypi.org/project/gukebox/).
 
@@ -57,6 +57,30 @@ Or install it into an isolated environment with `uv tool install` or `pipx`.
 
 > [!NOTE]
 > The `nfc` extra is optional but required for NFC reading, [check compatibility](#available-players-and-readers).
+
+### System Packages (Python >= 3.13)
+
+On Python **3.13 and newer**, prebuilt wheels for `lgpio` may not yet be available on PyPI. In this case, install the GPIO binding provided by your operating system and use a virtual environment that can access system packages.
+
+1. Install the system GPIO binding (installed by default on most RPi OS):
+```shell
+sudo apt update
+sudo apt install python3-lgpio
+```
+
+2. Create a virtual environment that can see system packages:
+```shell
+python3 -m venv --system-site-packages jukebox
+source jukebox/bin/activate
+```
+
+3. Install `gukebox` into the virtual environment with `uv` (or similar):
+```shell
+uv pip install "gukebox[nfc]"
+```
+
+> [!NOTE]
+> `uv tool install` / `uvx` cannot be used in this setup because isolated environments cannot access system-installed Python packages. You can use `pipx`, since it does support the `--system-site-packages` option.
 
 ### GitHub Releases
 
