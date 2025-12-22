@@ -47,7 +47,7 @@ dev = [
     "pytest==7.4.4",
     "pytest-mock==3.11.1",
     "ruff==0.14.9",
-    "ty==0.0.1a34",
+    "ty==0.0.5",
 ]
 
 [tool.ruff]
