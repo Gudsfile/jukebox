@@ -23,7 +23,6 @@ version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_version < '0'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ee/67/531ea369ba64dcff5ec9c3402f9f51bf748cec26dde048a2f973a4eea7f5/annotated_types-0.7.0.tar.gz", hash = "sha256:aff07c09a53a08bc8cfccb9c85b05f1aa9a2a6f23728d790723543408344ce89", size = 16081, upload-time = "2024-05-20T21:33:25.928Z" }
 wheels = [
@@ -213,7 +212,7 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "colorama", marker = "python_full_version < '3.10' and sys_platform == 'win32'" },
+    { name = "colorama", marker = "python_full_version < '3.9' and sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b9/2e/0090cbf739cee7d23781ad4b89a9894a41538e4fcf4c31dcdd705b78eb8b/click-8.1.8.tar.gz", hash = "sha256:ed53c9d8990d83c2a27deae68e4ee337473f6330c040a31d4225c9574d16096a", size = 226593, upload-time = "2024-12-21T18:38:44.339Z" }
 wheels = [
@@ -362,7 +361,7 @@ requires-dist = [
     { name = "pyserial", marker = "extra == 'nfc'", specifier = "==3.5" },
     { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.20" },
     { name = "rpi-gpio", marker = "extra == 'nfc'", specifier = "==0.7.1" },
-    { name = "soco", specifier = "==0.30.12" },
+    { name = "soco", specifier = "==0.30.13" },
     { name = "spidev", marker = "extra == 'nfc'", specifier = "==3.8" },
     { name = "uvicorn", marker = "python_full_version < '3.9' and extra == 'api'", specifier = "==0.33.0" },
     { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.38.0" },
@@ -1160,7 +1159,7 @@ wheels = [
 
 [[package]]
 name = "soco"
-version = "0.30.12"
+version = "0.30.13"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -1171,9 +1170,9 @@ dependencies = [
     { name = "xmltodict", version = "0.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "xmltodict", version = "1.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/25/c3/cabd20db960a38b0bfe14d5dad3009bcc4ae8ccdcdabec09d3fcf9db4ed8/soco-0.30.12.tar.gz", hash = "sha256:9c5ee8191e0fbb2c79b8992931a2d38fb4360097a190d0aca20fef330138af51", size = 734372, upload-time = "2025-09-22T14:06:15.891Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a1/f8/7cf192a721cf2e5a70473aa4b8509f8558b1241ca7f3c18cd9925e0db13d/soco-0.30.13.tar.gz", hash = "sha256:cb1d4beb53ba676323846b173050d6afbb91e2dbac67e0125b566fd8e5e743ca", size = 734388, upload-time = "2025-12-15T17:06:33.341Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/16/5ff76fd817c2f4c98680a8711673f71854ba4adbee89e3706f72a7b51159/soco-0.30.12-py2.py3-none-any.whl", hash = "sha256:bb6c3bc7d5dd25cce77f76ff2da4df6dc17e387ff7c713f60205092f43da8766", size = 163296, upload-time = "2025-09-22T14:06:13.338Z" },
+    { url = "https://files.pythonhosted.org/packages/47/f9/7b0df37a1004b80a3b093d63574ddeb1d236cee8dd635edd898f22ac85de/soco-0.30.13-py2.py3-none-any.whl", hash = "sha256:e20cbc14f22fcfc5e41a0d95dcaa875918623063ad6dbc1b8a4cecaab9737a7c", size = 163304, upload-time = "2025-12-15T17:06:31.383Z" },
 ]
 
 [[package]]
@@ -1380,10 +1379,9 @@ resolution-markers = [
     "python_full_version < '3.9'",
 ]
 dependencies = [
-    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
-    { name = "h11", marker = "python_full_version < '3.10'" },
+    { name = "click", version = "8.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "h11", marker = "python_full_version < '3.9'" },
     { name = "typing-extensions", version = "4.13.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typing-extensions", version = "4.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/cb/81/a083ae41716b00df56d45d4b5f6ca8e90fc233a62e6c04ab3ad3c476b6c4/uvicorn-0.33.0.tar.gz", hash = "sha256:3577119f82b7091cf4d3d4177bfda0bae4723ed92ab1439e8d779de880c9cc59", size = 76590, upload-time = "2024-12-14T11:14:46.526Z" }
 wheels = [
