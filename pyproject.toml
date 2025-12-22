@@ -46,7 +46,7 @@ nfc = ["pyserial==3.5", "rpi-gpio==0.7.1", "spidev==3.8"]
 dev = [
     "pytest==7.4.4",
     "pytest-mock==3.11.1",
-    "ruff==0.14.9",
+    "ruff==0.14.10",
     "ty==0.0.1a34",
 ]
 
