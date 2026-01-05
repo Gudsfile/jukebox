@@ -361,7 +361,7 @@ requires-dist = [
     { name = "pyserial", marker = "extra == 'nfc'", specifier = "==3.5" },
     { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.20" },
     { name = "rpi-gpio", marker = "extra == 'nfc'", specifier = "==0.7.1" },
-    { name = "soco", specifier = "==0.30.13" },
+    { name = "soco", specifier = "==0.30.14" },
     { name = "spidev", marker = "extra == 'nfc'", specifier = "==3.8" },
     { name = "uvicorn", marker = "python_full_version < '3.9' and extra == 'api'", specifier = "==0.33.0" },
     { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.38.0" },
@@ -1159,7 +1159,7 @@ wheels = [
 
 [[package]]
 name = "soco"
-version = "0.30.13"
+version = "0.30.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "appdirs" },
@@ -1170,9 +1170,9 @@ dependencies = [
     { name = "xmltodict", version = "0.15.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "xmltodict", version = "1.0.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a1/f8/7cf192a721cf2e5a70473aa4b8509f8558b1241ca7f3c18cd9925e0db13d/soco-0.30.13.tar.gz", hash = "sha256:cb1d4beb53ba676323846b173050d6afbb91e2dbac67e0125b566fd8e5e743ca", size = 734388, upload-time = "2025-12-15T17:06:33.341Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/5d/a4/3a2a37c138a57bf8267c11c7ed07627eae547583a59ac79f7ffb554321ab/soco-0.30.14.tar.gz", hash = "sha256:850a26481cb924dfb956fd020552c7df2bab3b321513101d6a804c24a598fa26", size = 734416, upload-time = "2025-12-31T11:09:12.29Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/47/f9/7b0df37a1004b80a3b093d63574ddeb1d236cee8dd635edd898f22ac85de/soco-0.30.13-py2.py3-none-any.whl", hash = "sha256:e20cbc14f22fcfc5e41a0d95dcaa875918623063ad6dbc1b8a4cecaab9737a7c", size = 163304, upload-time = "2025-12-15T17:06:31.383Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/9b/07b022ac77963a789c216f9d78f7fac86791283fd3e23e0658454d2baeb3/soco-0.30.14-py2.py3-none-any.whl", hash = "sha256:6953e0308c27e543ef99cd698eb07f976549310742760fdf8558bc7bf444e4b6", size = 163321, upload-time = "2025-12-31T11:09:10.492Z" },
 ]
 
 [[package]]
