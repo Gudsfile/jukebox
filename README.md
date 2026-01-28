@@ -47,8 +47,6 @@ The `ui` extension is only available for Python versions 3.10 and above.
 
 ### Raspberry Pi 3/4 (Bookworm, Python 3.11)
 
-On Raspberry Pi OS Bookworm, the system Python is 3.11 and `lgpio` can be installed directly from PyPI.
-
 Install the package from [PyPI](https://pypi.org/project/gukebox/).
 
 > [!WARNING]
