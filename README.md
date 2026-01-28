@@ -38,11 +38,16 @@
 Python 3.7 is supported by Jukebox up to version 0.4.1.
 The `ui` extension is only available for Python versions 3.10 and above.
 
-Raspberry Pi 5 on Python >= 3.13 is currently not supported (https://github.com/Gudsfile/jukebox/pull/86).
-
 ## Install
 
-### PyPI (Python < 3.13)
+> [!WARNING]
+> These instructions assume you're using the **system Python** that comes with your OS.
+> If you've installed a different Python version (via pyenv, uv, etc.), `lgpio` wheels
+> may not be available for Python 3.13+. Stick with the system Python for the simplest NFC setup.
+
+### Raspberry Pi 3/4 (Bookworm, Python 3.11)
+
+On Raspberry Pi OS Bookworm, the system Python is 3.11 and `lgpio` can be installed directly from PyPI.
 
 Install the package from [PyPI](https://pypi.org/project/gukebox/).
 
@@ -60,29 +65,29 @@ Or install it into an isolated environment with `uv tool install` or `pipx`.
 > [!NOTE]
 > The `nfc` extra is optional but required for NFC reading, [check compatibility](#available-players-and-readers).
 
-### System Packages (Python >= 3.13)
+### Raspberry Pi 5 (Trixie, Python 3.13)
 
-On Python **3.13 and newer**, prebuilt wheels for `lgpio` may not yet be available on PyPI. In this case, install the GPIO binding provided by your operating system and use a virtual environment that can access system packages.
+On Raspberry Pi OS Trixie, the system Python is 3.13. Prebuilt wheels for `lgpio` are not available on PyPI for Python 3.13, so you must use the system-installed `lgpio` package.
 
-1. Install the system GPIO binding (installed by default on most RPi OS):
+1. Ensure the system GPIO binding is installed (it is included by default on Pi OS Trixie):
 ```shell
 sudo apt update
 sudo apt install python3-lgpio
 ```
 
-2. Create a virtual environment that can see system packages:
+2. Create a virtual environment that can access system packages:
 ```shell
 python3 -m venv --system-site-packages jukebox
 source jukebox/bin/activate
 ```
 
-3. Install `gukebox` into the virtual environment with `uv` (or similar):
+3. Install `gukebox` into the virtual environment:
 ```shell
-uv pip install "gukebox[nfc]"
+pip install "gukebox[nfc]"
 ```
 
 > [!NOTE]
-> `uv tool install` / `uvx` cannot be used in this setup because isolated environments cannot access system-installed Python packages. You can use `pipx`, since it does support the `--system-site-packages` option.
+> `uv tool install` / `uvx` cannot be used in this setup because isolated environments cannot access system-installed Python packages. You can use `pipx` with the `--system-site-packages` option instead.
 
 ### GitHub Releases
 

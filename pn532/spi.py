@@ -32,7 +32,16 @@ using SPI on the Raspberry Pi.
 
 import time
 import spidev
-import lgpio
+try:
+    import lgpio
+except ImportError as e:
+    raise ImportError(
+        "lgpio is required for NFC support but could not be imported. "
+        "This usually happens when using Python 3.13+ without system packages. "
+        "Either use your system Python (recommended), or create a venv with "
+        "--system-site-packages after installing python3-lgpio via apt. "
+        "See: https://github.com/Gudsfile/jukebox#install"
+    ) from e
 from .pn532 import PN532
 
 # pylint: disable=bad-whitespace
