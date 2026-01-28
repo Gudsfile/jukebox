@@ -39,12 +39,12 @@ class HandleTagEvent:
             session.tag_removed_seconds = 0
 
         elif action == PlaybackAction.PLAY:
-            session.previous_tag = tag_event.tag_id
             LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
 
             disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id else None
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
+                session.previous_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
                 session.awaiting_seconds = 0
                 session.tag_removed_seconds = 0
