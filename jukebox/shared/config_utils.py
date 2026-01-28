@@ -4,7 +4,7 @@ import os
 from typing import Callable, Optional
 
 try:
-    from importlib.metadata import PackageNotFoundError, version  # type: ignore[unresolved-import]
+    from importlib.metadata import PackageNotFoundError, version
 except ImportError:
     from importlib_metadata import PackageNotFoundError, version  # type: ignore[unresolved-import]
 
