@@ -32,9 +32,6 @@ This module will let you communicate with a PN532 NFC Hat using I2C, SPI or UART
 The main difference is the interfaces implements.
 """
 
-import RPi.GPIO as GPIO
-
-
 # pylint: disable=bad-whitespace
 _PREAMBLE                      = 0x00
 _STARTCODE1                    = 0x00
