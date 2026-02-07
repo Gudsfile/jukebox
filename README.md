@@ -36,6 +36,9 @@
 ## Notes
 
 Python 3.7 is supported by Jukebox up to version 0.4.1.
+
+Python 3.8 is supported by Jukebox up to version 0.5.4.
+
 The `ui` extension is only available for Python versions 3.10 and above.
 
 Raspberry Pi 5 on Python >= 3.13 is currently not supported (https://github.com/Gudsfile/jukebox/pull/86).

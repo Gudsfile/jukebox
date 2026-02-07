@@ -44,7 +44,7 @@ jobs:
         python-version: ${{ fromJson(
           github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
           && format('["{0}"]', github.event.inputs.python-version)
-          || '["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]'
+          || '["3.9", "3.10", "3.11", "3.12", "3.13"]'
           ) }}
 
     steps:
@@ -73,9 +73,7 @@ jobs:
         # Check the missig-argument rule for Python versions >= 3.10
         # Exclude the opt/ directory as it is not part of the project
         run: |
-          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
-            echo "ty_args=--ignore missing-argument --exclude opt/" >> $GITHUB_ENV
-          elif [[ "${{ matrix.python-version }}" == "3.9" ]]; then
+          if [[ "${{ matrix.python-version }}" == "3.9" ]]; then
             echo "ty_args=--ignore missing-argument --exclude opt/" >> $GITHUB_ENV
           else
             echo "ty_args=--error missing-argument" >> $GITHUB_ENV
@@ -95,7 +93,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.8"
+          python-version: "3.9"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
