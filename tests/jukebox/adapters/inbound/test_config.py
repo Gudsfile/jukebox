@@ -46,15 +46,15 @@ class TestConfigModels:
         assert config.pause_delay == 1.0
 
     def test_playback_config_custom_values(self):
-        config = PlaybackConfig(pause_duration=300, pause_delay=0.25)
+        config = PlaybackConfig(pause_duration=300, pause_delay=0.2)
         assert config.pause_duration == 300
-        assert config.pause_delay == 0.25
+        assert config.pause_delay == 0.2
 
-    def test_playback_config_rejects_delay_below_runtime_resolution(self):
+    def test_playback_config_rejects_delay_below_minimum(self):
         with pytest.raises(ValidationError):
-            PlaybackConfig(pause_delay=0.2)
+            PlaybackConfig(pause_delay=0.19)
 
-    def test_playback_config_accepts_runtime_safe_minimum(self):
+    def test_playback_config_accepts_minimum(self):
         config = PlaybackConfig(pause_delay=MIN_PAUSE_DELAY_SECONDS)
         assert config.pause_delay == MIN_PAUSE_DELAY_SECONDS
 
@@ -169,14 +169,14 @@ class TestParseConfig:
         config = parse_config()
         assert config.verbose is True
 
-    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-duration", "300", "--pause-delay", "0.25"])
+    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-duration", "300", "--pause-delay", "0.2"])
     def test_parse_config_custom_playback_params(self):
         config = parse_config()
         assert config.playback.pause_duration == 300
-        assert config.playback.pause_delay == 0.25
+        assert config.playback.pause_delay == 0.2
 
-    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-delay", "0.2"])
-    def test_parse_config_rejects_pause_delay_below_runtime_resolution(self):
+    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-delay", "0.19"])
+    def test_parse_config_rejects_pause_delay_below_minimum(self):
         with pytest.raises(SystemExit):
             parse_config()
 
