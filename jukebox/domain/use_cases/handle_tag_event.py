@@ -87,7 +87,7 @@ class HandleTagEvent:
         if tag_event.tag_id is not None:
             return
 
-        if session.is_paused or session.awaiting_seconds > 0:
+        if session.is_paused:
             session.awaiting_seconds += elapsed_seconds
             return
 
