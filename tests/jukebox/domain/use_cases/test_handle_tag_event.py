@@ -112,16 +112,53 @@ def test_handle_pause_action(handle_tag_event, mock_player):
         previous_tag="test-tag",
         awaiting_seconds=0.0,
         tag_removed_seconds=5.0,
+        last_event_timestamp=100.0,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.2)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
     mock_player.pause.assert_called_once()
-    assert new_session.awaiting_seconds == 0.5
+    assert new_session.awaiting_seconds == 0.0
     assert new_session.tag_removed_seconds == 0
     assert new_session.is_paused is True
     assert new_session.current_tag == "test-tag"
+
+
+def test_handle_pause_then_stop_after_max_pause_duration(handle_tag_event, mock_player):
+    """Should accumulate paused time after PAUSE and eventually stop."""
+    handle_tag_event.determine_action.pause_delay = 0.25
+    handle_tag_event.determine_action.max_pause_duration = 0.5
+
+    session = PlaybackSession(
+        current_tag="test-tag",
+        previous_tag="test-tag",
+        awaiting_seconds=0.0,
+        tag_removed_seconds=0.24,
+        last_event_timestamp=100.0,
+    )
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.02), session)
+
+    assert session.awaiting_seconds == 0.0
+    assert session.is_paused is True
+    mock_player.pause.assert_called_once()
+    mock_player.stop.assert_not_called()
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.32), session)
+
+    assert session.awaiting_seconds == pytest.approx(0.3)
+    assert session.is_paused is True
+    mock_player.pause.assert_called_once()
+    mock_player.stop.assert_not_called()
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.62), session)
+
+    mock_player.stop.assert_called_once()
+    assert session.awaiting_seconds == 0.0
+    assert session.previous_tag is None
+    assert session.current_tag is None
+    assert session.is_paused is False
 
 
 def test_handle_stop_action(handle_tag_event, mock_player):
@@ -169,26 +206,45 @@ def test_handle_waiting_action(handle_tag_event, mock_player):
         previous_tag="test-tag",
         awaiting_seconds=0.0,
         tag_removed_seconds=1.0,
+        last_event_timestamp=100.0,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.25)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
     mock_player.pause.assert_not_called()
 
-    assert new_session.tag_removed_seconds == 1.5
+    assert new_session.tag_removed_seconds == 1.25
 
 
 def test_handle_idle_action(handle_tag_event, mock_player):
     """Should increment awaiting_seconds when action is IDLE."""
     session = PlaybackSession(
         awaiting_seconds=10.0,
+        last_event_timestamp=100.0,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.25)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
-    assert new_session.awaiting_seconds == 10.5
+    assert new_session.awaiting_seconds == 10.25
+
+
+def test_handle_waiting_uses_elapsed_time(handle_tag_event, mock_player):
+    """Should use elapsed timestamps for fractional grace periods."""
+    session = PlaybackSession(
+        current_tag="test-tag",
+        previous_tag="test-tag",
+        awaiting_seconds=0.0,
+        tag_removed_seconds=0.1,
+        last_event_timestamp=50.0,
+    )
+    tag_event = TagEvent(tag_id=None, timestamp=50.15)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.pause.assert_not_called()
+    assert new_session.tag_removed_seconds == pytest.approx(0.25)
 
 
 def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_player, mock_library):

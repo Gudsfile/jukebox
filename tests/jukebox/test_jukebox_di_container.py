@@ -82,11 +82,11 @@ class TestBuildJukebox:
             verbose=False,
             player=DryrunPlayerConfig(type="dryrun"),
             reader=DryrunReaderConfig(type="dryrun"),
-            playback=PlaybackConfig(pause_duration=200, pause_delay=10),
+            playback=PlaybackConfig(pause_duration=200, pause_delay=0.25),
         )
 
         reader, handle_tag_event = build_jukebox(config)
 
         # Verify DetermineAction was created with correct parameters
-        assert handle_tag_event.determine_action.pause_delay == 10
+        assert handle_tag_event.determine_action.pause_delay == 0.25
         assert handle_tag_event.determine_action.max_pause_duration == 200

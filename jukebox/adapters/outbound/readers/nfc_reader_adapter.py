@@ -10,6 +10,7 @@ except ModuleNotFoundError as err:
     raise ModuleNotFoundError("The `nfc reader` requires `pip install gukebox[nfc]`.") from err
 
 from jukebox.domain.ports import ReaderPort
+from jukebox.shared.timing import DEFAULT_NFC_READ_TIMEOUT_SECONDS
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -25,7 +26,7 @@ def spi_active():
 class NfcReaderAdapter(ReaderPort):
     """Adapter for NFC reader implementing ReaderPort."""
 
-    def __init__(self):
+    def __init__(self, read_timeout_seconds: float = DEFAULT_NFC_READ_TIMEOUT_SECONDS):
         if not spi_active():
             error_message = (
                 "The SPI interface is not enabled. Please enable it to use the NFC reader."
@@ -35,12 +36,13 @@ class NfcReaderAdapter(ReaderPort):
             raise RuntimeError("SPI interface not enabled. Use raspi-config to enable it.")
 
         self.pn532 = PN532_SPI(debug=False, reset=20, cs=4)
+        self.read_timeout_seconds = read_timeout_seconds
         ic, ver, rev, support = self.pn532.get_firmware_version()
         LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
         self.pn532.SAM_configuration()
 
     def read(self) -> Union[str, None]:
-        rawuid = self.pn532.read_passive_target(timeout=0.5)
+        rawuid = self.pn532.read_passive_target(timeout=self.read_timeout_seconds)
         if rawuid is None:
             return None
         return parse_raw_uid(rawuid)

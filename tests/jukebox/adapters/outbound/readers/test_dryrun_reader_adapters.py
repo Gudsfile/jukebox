@@ -1,10 +1,18 @@
-import builtins
 import logging
+import sys
 from unittest.mock import patch
 
 import pytest
 
 from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReaderAdapter
+
+
+class FakeStdin:
+    def __init__(self, line: str):
+        self.line = line
+
+    def readline(self):
+        return self.line
 
 
 def test_init_creates_reader(caplog):
@@ -13,25 +21,28 @@ def test_init_creates_reader(caplog):
 
     adapter = DryrunReaderAdapter()
 
-    assert adapter.counter == 0
+    assert adapter.hold_until is None
     assert adapter.uid is None
     assert "Creating dryrun reader" in caplog.text
 
 
 @pytest.mark.parametrize(
-    "input, expected_uid, expected_counter",
-    [("uri", "uri", 0), ("uri_with_counter 20", "uri_with_counter", 20)],
+    "input, now, expected_uid, expected_hold_until",
+    [("uri", 100.0, "uri", None), ("uri_with_duration 2.5", 100.0, "uri_with_duration", 102.5)],
 )
-def test_read(monkeypatch, input, expected_uid, expected_counter):
-    """Should read the tag uid and counter."""
-    monkeypatch.setattr(builtins, "input", lambda: input)
+def test_read(monkeypatch, input, now, expected_uid, expected_hold_until):
+    """Should read the tag uid and optional hold duration."""
+    fake_stdin = FakeStdin(f"{input}\n")
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: now)
 
     adapter = DryrunReaderAdapter()
 
     result = adapter.read()
 
     assert adapter.uid == expected_uid
-    assert adapter.counter == expected_counter
+    assert adapter.hold_until == expected_hold_until
     assert result == expected_uid
 
 
@@ -40,19 +51,21 @@ def test_read(monkeypatch, input, expected_uid, expected_counter):
     [
         (
             "too_many_args 10 dummy",
-            "Invalid input, should be `tag_uid counter`, received: ['too_many_args', '10', 'dummy']",
+            "Invalid input, should be `tag_uid duration_seconds`, received: ['too_many_args', '10', 'dummy']",
         ),
         (
             "too_many_args   20",
-            "Invalid input, should be `tag_uid counter`, received: ['too_many_args', '', '', '20']",
+            "Invalid input, should be `tag_uid duration_seconds`, received: ['too_many_args', '', '', '20']",
         ),
-        ("negative_integer -2", "Counter parameter should be a positive integer, received: `-2`"),
-        ("not_an_integer dummy", "Counter parameter should be a positive integer, received: `dummy`"),
+        ("negative_duration -2", "Duration parameter should be a non-negative number of seconds, received: `-2`"),
+        ("not_a_number dummy", "Duration parameter should be a non-negative number of seconds, received: `dummy`"),
     ],
 )
 def test_read_invalid_input(monkeypatch, caplog, input, expected_error):
     """Should raise a warning when the input is invalid."""
-    monkeypatch.setattr(builtins, "input", lambda: input)
+    fake_stdin = FakeStdin(f"{input}\n")
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     adapter = DryrunReaderAdapter()
 
@@ -60,29 +73,48 @@ def test_read_invalid_input(monkeypatch, caplog, input, expected_error):
         result = adapter.read()
 
     assert adapter.uid is None
-    assert adapter.counter == 0
+    assert adapter.hold_until is None
     assert result is None
     assert expected_error in caplog.text
 
 
-def test_read_with_counter():
-    """Should read the tag uid and decrement the counter until it reaches 0."""
+def test_read_with_duration(monkeypatch):
+    """Should keep returning the tag until the hold duration expires."""
     adapter = DryrunReaderAdapter()
     adapter.uid = "uri"
-    adapter.counter = 10
+    adapter.hold_until = 102.0
 
     assert adapter.uid == "uri"
-    assert adapter.counter == 10
+    assert adapter.hold_until == 102.0
 
-    for expected_counter in range(adapter.counter - 1, -1, -1):
+    for now in (100.0, 100.5, 101.99):
+        monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: now)
         result = adapter.read()
         assert adapter.uid == "uri"
-        assert adapter.counter == expected_counter
+        assert adapter.hold_until == 102.0
         assert result == "uri"
 
-    with patch("builtins.input", return_value="uri") as mock_input:
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: 102.0)
+    fake_stdin = FakeStdin("uri\n")
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+    with patch.object(fake_stdin, "readline", wraps=fake_stdin.readline) as mock_readline:
         result = adapter.read()
-        mock_input.assert_called_once()
+        mock_readline.assert_called_once()
         assert adapter.uid == "uri"
-        assert adapter.counter == 0
+        assert adapter.hold_until is None
         assert result == "uri"
+
+
+def test_read_returns_none_when_no_input_is_ready(monkeypatch):
+    """Should return None without attempting to consume stdin."""
+    fake_stdin = FakeStdin("uri\n")
+    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([], [], []))
+    monkeypatch.setattr(sys, "stdin", fake_stdin)
+
+    adapter = DryrunReaderAdapter()
+    with patch.object(fake_stdin, "readline", wraps=fake_stdin.readline) as mock_readline:
+        result = adapter.read()
+
+    assert result is None
+    mock_readline.assert_not_called()

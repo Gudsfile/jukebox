@@ -1,14 +1,13 @@
 import logging
-import signal
+import select
+import sys
+import time
 from typing import Union
 
 from jukebox.domain.ports import ReaderPort
+from jukebox.shared.timing import DEFAULT_LOOP_INTERVAL_SECONDS
 
 LOGGER = logging.getLogger("jukebox")
-
-
-class TimeoutExpired(Exception):
-    pass
 
 
 class DryrunReaderAdapter(ReaderPort):
@@ -17,41 +16,37 @@ class DryrunReaderAdapter(ReaderPort):
     def __init__(self):
         LOGGER.info("Creating dryrun reader")
         self.uid = None
-        self.counter = 0
+        self.hold_until = None
 
     def read(self) -> Union[str, None]:
-        def alarm_handler(signum, frame):
-            raise TimeoutExpired
+        if self.uid is not None and self.hold_until is not None and time.monotonic() < self.hold_until:
+            LOGGER.info(f"Reading tag {self.uid}")
+            return self.uid
 
-        signal.signal(signal.SIGALRM, alarm_handler)
-        signal.alarm(1)
+        self.uid = None
+        self.hold_until = None
 
-        try:
-            if self.counter > 0:
-                LOGGER.info(f"Reading tag {self.uid}")
-                self.counter -= 1
-                return self.uid
+        ready, _, _ = select.select([sys.stdin], [], [], DEFAULT_LOOP_INTERVAL_SECONDS)
+        if not ready:
+            return None
 
-            self.uid = None
-            self.counter = 0
+        raw_line = sys.stdin.readline()
+        if raw_line == "":
+            return None
 
-            commands = input().split(" ")
-            if len(commands) == 1:
+        commands = raw_line.rstrip("\n").split(" ")
+        if len(commands) == 1:
+            self.uid = commands[0]
+            return commands[0]
+        if len(commands) == 2:
+            try:
+                duration_seconds = float(commands[1])
+                if duration_seconds < 0:
+                    raise ValueError
                 self.uid = commands[0]
-                return commands[0]
-            if len(commands) == 2:
-                try:
-                    counter = int(commands[1])
-                    if counter < 0:
-                        raise ValueError
-                    self.uid = commands[0]
-                    self.counter = counter
-                except ValueError:
-                    LOGGER.warning(f"Counter parameter should be a positive integer, received: `{commands[1]}`")
-                return self.uid
-            LOGGER.warning(f"Invalid input, should be `tag_uid counter`, received: {commands}")
-            return None
-        except TimeoutExpired:
-            return None
-        finally:
-            signal.alarm(0)
+                self.hold_until = time.monotonic() + duration_seconds
+            except ValueError:
+                LOGGER.warning(f"Duration parameter should be a non-negative number of seconds, received: `{commands[1]}`")
+            return self.uid
+        LOGGER.warning(f"Invalid input, should be `tag_uid duration_seconds`, received: {commands}")
+        return None

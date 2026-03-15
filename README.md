@@ -124,7 +124,7 @@ Optional Parameters
 | --- | --- |
 | `--help` | Show help message. |
 | `--library` | Path to the library file, default: `~/.jukebox/library.json`. |
-| `--pause-delay SECONDS` | Grace period (in seconds) before pausing when the NFC tag is removed. This prevents accidental pauses if the tag briefly loses contact. Default: 1 second. |
+| `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.25` are supported, with a minimum of `0.25` seconds based on the NFC read timeout, main loop interval, and scheduling slack. This prevents accidental pauses if the tag briefly loses contact. Default: 1 second. |
 | `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
 | `--verbose` | Enable verbose logging. |
 | `--version` | Show version. |
@@ -134,10 +134,10 @@ Optional Parameters
 **Dry run** (`dryrun`)
 Read a text entry.
 Allows you to simulate reading an NFC tag by writting the tag id in the console.
-Expected syntax: `tag_id` or `tag_id counter`.
+Expected syntax: `tag_id` or `tag_id duration_seconds`.
 - tag_id: the full identifier of the tag, in the format required by the system
-- counter: an integer used to simulate the internal counter of the tag. Increasing the counter simulates the tag remaining in place and being read repeatedly by the system.
-Complete example: `your:tag:uid 10`
+- duration_seconds: a non-negative number of seconds used to simulate how long the tag remains in place. Fractional values are allowed.
+Complete example: `your:tag:uid 2.5`
 
 **NFC** (`nfc`)
 Read an NFC tag and get its UID.
