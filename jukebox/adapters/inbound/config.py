@@ -97,7 +97,7 @@ def parse_config() -> JukeboxConfig:
         type=float,
         help=(
             "grace period in seconds before pausing when tag is removed "
-            f"(minimum: {MIN_PAUSE_DELAY_SECONDS:g}s based on reader timeout and loop interval)"
+            f"(minimum: {MIN_PAUSE_DELAY_SECONDS:g}s to avoid pausing on brief missed reads)"
         ),
     )
 
