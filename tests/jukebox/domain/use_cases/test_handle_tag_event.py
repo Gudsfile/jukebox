@@ -94,6 +94,7 @@ def test_handle_resume_action(handle_tag_event, mock_player):
         current_tag="test-tag",
         previous_tag="test-tag",
         awaiting_seconds=10.0,
+        is_paused=True,
     )
     tag_event = TagEvent(tag_id="test-tag", timestamp=time.time())
 
@@ -167,6 +168,7 @@ def test_handle_stop_action(handle_tag_event, mock_player):
         current_tag="test-tag",
         previous_tag="test-tag",
         awaiting_seconds=100.0,
+        is_paused=True,
     )
     tag_event = TagEvent(tag_id=None, timestamp=time.time())
 
@@ -221,6 +223,7 @@ def test_handle_idle_action(handle_tag_event, mock_player):
     """Should increment awaiting_seconds when action is IDLE."""
     session = PlaybackSession(
         awaiting_seconds=10.0,
+        is_paused=True,
         last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.25)

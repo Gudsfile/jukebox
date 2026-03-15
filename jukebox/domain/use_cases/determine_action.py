@@ -20,7 +20,7 @@ class DetermineAction:
 
         is_detecting_tag = current_tag is not None
         is_same_tag_as_previous = current_tag == previous_tag
-        is_paused = session.is_paused or awaiting_seconds > 0
+        is_paused = session.is_paused
         is_acceptable_pause_duration = awaiting_seconds < self.max_pause_duration
         is_within_grace_period = tag_removed_seconds < self.pause_delay
 
