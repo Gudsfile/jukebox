@@ -5,6 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from jukebox.adapters.inbound.config import (
+    MIN_PAUSE_DELAY_SECONDS,
     DryrunPlayerConfig,
     DryrunReaderConfig,
     JukeboxConfig,
@@ -42,12 +43,20 @@ class TestConfigModels:
     def test_playback_config_defaults(self):
         config = PlaybackConfig()
         assert config.pause_duration == 900
-        assert config.pause_delay == 1
+        assert config.pause_delay == 1.0
 
     def test_playback_config_custom_values(self):
-        config = PlaybackConfig(pause_duration=300, pause_delay=2)
+        config = PlaybackConfig(pause_duration=300, pause_delay=0.25)
         assert config.pause_duration == 300
-        assert config.pause_delay == 2
+        assert config.pause_delay == 0.25
+
+    def test_playback_config_rejects_delay_below_runtime_resolution(self):
+        with pytest.raises(ValidationError):
+            PlaybackConfig(pause_delay=0.2)
+
+    def test_playback_config_accepts_runtime_safe_minimum(self):
+        config = PlaybackConfig(pause_delay=MIN_PAUSE_DELAY_SECONDS)
+        assert config.pause_delay == MIN_PAUSE_DELAY_SECONDS
 
     def test_jukebox_config_with_dryrun(self):
         config = JukeboxConfig(
@@ -89,7 +98,7 @@ class TestParseConfig:
         assert isinstance(config.reader, DryrunReaderConfig)
         assert config.verbose is False
         assert config.playback.pause_duration == 900
-        assert config.playback.pause_delay == 1
+        assert config.playback.pause_delay == 1.0
 
     @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.50"])
     def test_parse_config_sonos_with_cli_host(self):
@@ -160,11 +169,16 @@ class TestParseConfig:
         config = parse_config()
         assert config.verbose is True
 
-    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-duration", "300", "--pause-delay", "2"])
+    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-duration", "300", "--pause-delay", "0.25"])
     def test_parse_config_custom_playback_params(self):
         config = parse_config()
         assert config.playback.pause_duration == 300
-        assert config.playback.pause_delay == 2
+        assert config.playback.pause_delay == 0.25
+
+    @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--pause-delay", "0.2"])
+    def test_parse_config_rejects_pause_delay_below_runtime_resolution(self):
+        with pytest.raises(SystemExit):
+            parse_config()
 
     @patch("sys.argv", ["jukebox", "dryrun", "nfc"])
     def test_parse_config_mixed_player_reader(self):

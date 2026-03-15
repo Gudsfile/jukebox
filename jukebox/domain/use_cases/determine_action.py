@@ -8,7 +8,7 @@ LOGGER = logging.getLogger("jukebox")
 class DetermineAction:
     """Determines what action to take based on tag event and current session state."""
 
-    def __init__(self, pause_delay: int, max_pause_duration: int):
+    def __init__(self, pause_delay: float, max_pause_duration: int):
         self.pause_delay = pause_delay
         self.max_pause_duration = max_pause_duration
 
@@ -20,7 +20,7 @@ class DetermineAction:
 
         is_detecting_tag = current_tag is not None
         is_same_tag_as_previous = current_tag == previous_tag
-        is_paused = awaiting_seconds > 0
+        is_paused = session.is_paused or awaiting_seconds > 0
         is_acceptable_pause_duration = awaiting_seconds < self.max_pause_duration
         is_within_grace_period = tag_removed_seconds < self.pause_delay
 
