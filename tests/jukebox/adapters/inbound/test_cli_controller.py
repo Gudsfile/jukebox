@@ -1,15 +1,18 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import create_autospec, patch
 
 import pytest
 
 from jukebox.adapters.inbound.cli_controller import CLIController
 from jukebox.domain.entities import PlaybackSession
+from jukebox.domain.ports import ReaderPort
+from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
 
 def test_run_sleeps_only_for_remaining_loop_interval():
-    reader = MagicMock()
+    reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
-    handle_tag_event = MagicMock(return_value=PlaybackSession())
+    handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
+    handle_tag_event.execute.return_value = PlaybackSession()
     controller = CLIController(reader=reader, handle_tag_event=handle_tag_event, loop_interval_seconds=0.1)
 
     with (
@@ -24,9 +27,10 @@ def test_run_sleeps_only_for_remaining_loop_interval():
 
 
 def test_run_skips_sleep_when_reader_already_used_the_interval():
-    reader = MagicMock()
+    reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
-    handle_tag_event = MagicMock(return_value=PlaybackSession())
+    handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
+    handle_tag_event.execute.return_value = PlaybackSession()
     controller = CLIController(reader=reader, handle_tag_event=handle_tag_event, loop_interval_seconds=0.1)
 
     with (
