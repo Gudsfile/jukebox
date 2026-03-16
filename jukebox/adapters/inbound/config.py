@@ -18,7 +18,7 @@ from jukebox.shared.config_utils import (
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
 DEFAULT_PAUSE_DURATION = 900
-DEFAULT_PAUSE_DELAY = 1.0
+DEFAULT_PAUSE_DELAY = 0.25
 
 LOGGER = logging.getLogger("jukebox")
 
