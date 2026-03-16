@@ -124,7 +124,7 @@ Optional Parameters
 | --- | --- |
 | `--help` | Show help message. |
 | `--library` | Path to the library file, default: `~/.jukebox/library.json`. |
-| `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.2` are supported, with a minimum of `0.2` seconds to avoid pausing on brief missed reads. Default: 1 second. |
+| `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.2` are supported, with a minimum of `0.2` seconds to avoid pausing on brief missed reads. Default: 0.25 seconds. |
 | `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
 | `--verbose` | Enable verbose logging. |
 | `--version` | Show version. |

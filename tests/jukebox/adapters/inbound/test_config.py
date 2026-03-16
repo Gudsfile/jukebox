@@ -43,7 +43,7 @@ class TestConfigModels:
     def test_playback_config_defaults(self):
         config = PlaybackConfig()
         assert config.pause_duration == 900
-        assert config.pause_delay == 1.0
+        assert config.pause_delay == 0.25
 
     def test_playback_config_custom_values(self):
         config = PlaybackConfig(pause_duration=300, pause_delay=0.2)
@@ -98,7 +98,7 @@ class TestParseConfig:
         assert isinstance(config.reader, DryrunReaderConfig)
         assert config.verbose is False
         assert config.playback.pause_duration == 900
-        assert config.playback.pause_delay == 1.0
+        assert config.playback.pause_delay == 0.25
 
     @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.50"])
     def test_parse_config_sonos_with_cli_host(self):
