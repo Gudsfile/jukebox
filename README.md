@@ -103,6 +103,13 @@ uv tool install gukebox[api]
 uv tool install gukebox[ui]
 ```
 
+When running from this repository with `uv`, include the extra on the command as well:
+
+```shell
+uv run --extra api discstore api
+uv run --extra ui discstore ui
+```
+
 ### Manage the library manually
 
 Complete your `~/.jukebox/library.json` file with each tag id and the expected media URI.
@@ -252,6 +259,13 @@ uv run jukebox PLAYER_TO_USE READER_TO_USE
 Start the discstore `uv` and use `--help` to show help message
 ```shell
 uv run discstore --help
+```
+
+For the server-backed commands, include the matching extra:
+
+```shell
+uv run --extra api discstore api
+uv run --extra ui discstore ui
 ```
 
 Other commands are available:
