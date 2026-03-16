@@ -107,6 +107,36 @@ def test_main_starts_interactive_cli(app_mocks):
 
 
 @pytest.mark.parametrize(
+    ("command", "extra_name"),
+    [
+        (ApiCommand(type="api", port=1234), "api"),
+        (UiCommand(type="ui", port=1234), "ui"),
+    ],
+)
+def test_main_reports_missing_optional_server_dependencies(mocker, app_mocks, command, extra_name):
+    config = DiscStoreConfig(library="fake_library_path", verbose=True, command=command)
+    app_mocks.parse_config.return_value = config
+    mocker.patch("discstore.app.import_module", side_effect=ModuleNotFoundError("No module named 'uvicorn'"))
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert_app_mocks_calls(
+        app_mocks,
+        {
+            "parse_config": (),
+            "set_logger": (
+                "discstore",
+                True,
+            ),
+        },
+    )
+    assert f"`discstore {extra_name}` requires the optional `{extra_name}` dependencies." in str(err.value)
+    assert f"uv sync --extra {extra_name}" in str(err.value)
+    assert f"uv run --extra {extra_name} discstore {extra_name}" in str(err.value)
+
+
+@pytest.mark.parametrize(
     "cli_command",
     [
         CliAddCommand(type="add", tag="dummy_tag", uri="dummy_uri"),

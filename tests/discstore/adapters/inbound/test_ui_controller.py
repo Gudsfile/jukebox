@@ -19,6 +19,6 @@ def test_dependencies_import_failure(mocker):
     with pytest.raises(ModuleNotFoundError) as err:
         import discstore.adapters.inbound.ui_controller  # noqa: F401
 
-    assert "The `ui_controller` module requires FastUI dependency. Install it with: pip install gukebox[ui]." in str(
-        err.value
-    )
+    assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)
+    assert "uv sync --extra ui" in str(err.value)
+    assert "uv run --extra ui discstore ui" in str(err.value)
