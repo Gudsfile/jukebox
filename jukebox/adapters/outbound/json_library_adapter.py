@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import tempfile
+from contextlib import suppress
 from typing import Optional
 
 from pydantic import ValidationError
@@ -52,10 +53,8 @@ class JsonLibraryAdapter(LibraryRepository):
             finally:
                 os.close(directory_fd)
         except Exception:
-            try:
+            with suppress(FileNotFoundError):
                 os.unlink(temp_path)
-            except FileNotFoundError:
-                pass
             raise
 
     def _get_file_state(self) -> Optional[tuple[int, int]]:
