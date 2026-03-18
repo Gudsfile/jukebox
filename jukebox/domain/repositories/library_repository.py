@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.domain.entities import Disc
 
 
 class LibraryRepository(ABC):
@@ -18,19 +18,9 @@ class LibraryRepository(ABC):
         pass
 
     @abstractmethod
-    def edit_disc(
-        self,
-        tag_id: str,
-        uri: Optional[str] = None,
-        metadata: Optional[DiscMetadata] = None,
-        option: Optional[DiscOption] = None,
-    ) -> None:
+    def update_disc(self, tag_id: str, disc: Disc) -> None:
         pass
 
     @abstractmethod
     def remove_disc(self, tag_id: str) -> None:
-        pass
-
-    @abstractmethod
-    def search_discs(self, query: str) -> dict[str, Disc]:
         pass
