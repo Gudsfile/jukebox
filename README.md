@@ -43,42 +43,32 @@ The `ui` extension is only available for Python versions 3.10 and above.
 
 ## Install
 
-> [!WARNING]
-> These instructions assume you're using the **system Python** that comes with your OS.
-> If you've installed a different Python version (via pyenv, uv, etc.), `lgpio` wheels
-> may not be available for Python 3.13+. Stick with the system Python for the simplest NFC setup.
-
-### Raspberry Pi 3/4 (Bookworm, Python 3.11)
-
 Install the package from [PyPI](https://pypi.org/project/gukebox/).
 
 > [!WARNING]
 > The package name is `gukebox` with `g` instead of a `j` (due to a name already taken).
 
-To invoke the tool without installing it you could use `uvx`:
-
-```shell
-uvx --from gukebox[nfc] jukebox
-```
-
-Or install it into an isolated environment with `uv tool install` or `pipx`.
-
 > [!NOTE]
 > The `nfc` extra is optional but required for NFC reading, [check compatibility](#readers).
 
-### Raspberry Pi 5 (Trixie, Python 3.13)
+### Recommended installation
 
-On Raspberry Pi OS Trixie, the system Python is 3.13. Prebuilt wheels for `lgpio` are not available on PyPI for Python 3.13, so you must use the system-installed `lgpio` package.
+Use `pip` in a virtual environment.
 
-1. Ensure the system GPIO binding is installed (it is included by default on Pi OS Trixie):
+1. If your Python version is **3.13 or newer** and you want NFC support, install the system GPIO binding:
 ```shell
 sudo apt update
 sudo apt install python3-lgpio
 ```
 
-2. Create a virtual environment that can access system packages:
+2. Create a virtual environment:
 ```shell
+# Python < 3.13
+python3 -m venv jukebox
+
+# Python >= 3.13 for NFC: use the system Python and include system packages
 python3 -m venv --system-site-packages jukebox
+
 source jukebox/bin/activate
 ```
 
@@ -87,12 +77,18 @@ source jukebox/bin/activate
 pip install "gukebox[nfc]"
 ```
 
-> [!NOTE]
-> `uv tool install` / `uvx` cannot be used in this setup because isolated environments cannot access system-installed Python packages. You can use `pipx` with the `--system-site-packages` option instead.
+> [!IMPORTANT]
+> For NFC on Python 3.13+, use the **system Python** that comes with your OS.
+> A separately installed Python 3.13+ from `uv`, `pyenv`, Homebrew, or similar may not be able
+> to import the system `lgpio` package, even when using `--system-site-packages`.
+> If you already upgraded to a non-system Python 3.13+, use the system Python instead or use
+> Python 3.12 or lower.
 
-### GitHub Releases
+### Alternative installations
 
-All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
+- `pipx` can be used with `--system-site-packages`.
+- `uvx` / `uv tool install` are not recommended for NFC on Python 3.13+ because they may select a non-system interpreter. If needed, the `--python 3.11` flag can be used as a workaround.
+- All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
 
 ### Developer setup
 
@@ -123,7 +119,7 @@ Other commands are available, use `--help` to see them.
 To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
 
 ```shell
-# Python 3.8+ required
+# Python 3.9+ required
 uv tool install gukebox[api]
 
 # Python 3.10+ required, ui includes the api extra
