@@ -13,4 +13,5 @@ def test_list_discs_returns_all_discs():
 
     result = use_case.execute()
 
+    assert repo.list_calls == 1
     assert result == discs

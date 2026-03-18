@@ -13,6 +13,7 @@ def test_get_existing_disc():
     get_disc = GetDisc(repo)
     result = get_disc.execute("tag:123")
 
+    assert repo.get_calls == ["tag:123"]
     assert result.uri == "uri:1"
     assert result.metadata.artist == "artist"
     assert result.metadata.album == "album"
@@ -24,3 +25,5 @@ def test_get_nonexistent_disc_raises_error():
     get_disc = GetDisc(repo)
     with pytest.raises(ValueError, match="Tag not found"):
         get_disc.execute("nonexistent")
+
+    assert repo.get_calls == ["nonexistent"]

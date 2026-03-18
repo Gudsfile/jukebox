@@ -17,8 +17,8 @@ def test_edit_only_uri():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:123", uri="uri:new")
 
-    library = repo.load()
-    updated_disc = library.discs["tag:123"]
+    assert repo.edit_calls == [("tag:123", "uri:new", None, None)]
+    updated_disc = repo.library.discs["tag:123"]
     assert updated_disc.uri == "uri:new"
     assert updated_disc.metadata.artist == "Artist"
     assert updated_disc.metadata.album == "Album"
@@ -37,8 +37,8 @@ def test_edit_only_track_name():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:456", metadata=DiscMetadata(track="New Track"))
 
-    library = repo.load()
-    updated_disc = library.discs["tag:456"]
+    assert repo.edit_calls == [("tag:456", None, DiscMetadata(track="New Track"), None)]
+    updated_disc = repo.library.discs["tag:456"]
     assert updated_disc.uri == "uri:123"
     assert updated_disc.metadata.artist == "Artist"
     assert updated_disc.metadata.album == "Album"
@@ -52,8 +52,8 @@ def test_edit_only_artist():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:789", metadata=DiscMetadata(artist="New Artist"))
 
-    library = repo.load()
-    updated_disc = library.discs["tag:789"]
+    assert repo.edit_calls == [("tag:789", None, DiscMetadata(artist="New Artist"), None)]
+    updated_disc = repo.library.discs["tag:789"]
     assert updated_disc.metadata.artist == "New Artist"
     assert updated_disc.metadata.album == "Album"
     assert updated_disc.metadata.track is None
@@ -70,8 +70,8 @@ def test_edit_multiple_metadata_fields():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:abc", metadata=DiscMetadata(artist="New Artist", track="New Track"))
 
-    library = repo.load()
-    updated_disc = library.discs["tag:abc"]
+    assert repo.edit_calls == [("tag:abc", None, DiscMetadata(artist="New Artist", track="New Track"), None)]
+    updated_disc = repo.library.discs["tag:abc"]
     assert updated_disc.metadata.artist == "New Artist"
     assert updated_disc.metadata.track == "New Track"
 
@@ -83,8 +83,8 @@ def test_edit_uri_and_metadata():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:xyz", uri="uri:new", metadata=DiscMetadata(artist="New Artist", album="New Album"))
 
-    library = repo.load()
-    updated_disc = library.discs["tag:xyz"]
+    assert repo.edit_calls == [("tag:xyz", "uri:new", DiscMetadata(artist="New Artist", album="New Album"), None)]
+    updated_disc = repo.library.discs["tag:xyz"]
     assert updated_disc.uri == "uri:new"
     assert updated_disc.metadata.artist == "New Artist"
     assert updated_disc.metadata.album == "New Album"
@@ -97,8 +97,8 @@ def test_edit_options():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:opt", option=DiscOption(shuffle=True))
 
-    library = repo.load()
-    updated_disc = library.discs["tag:opt"]
+    assert repo.edit_calls == [("tag:opt", None, None, DiscOption(shuffle=True))]
+    updated_disc = repo.library.discs["tag:opt"]
     assert updated_disc.uri == "uri:123"
     assert updated_disc.metadata.playlist == "My Playlist"
     assert updated_disc.option.shuffle is True
@@ -111,7 +111,7 @@ def test_edit_nonexistent_tag_raises_error():
     with pytest.raises(ValueError, match="Tag does not exist: tag_id='nonexistent'"):
         edit_disc.execute(tag_id="nonexistent", uri="uri:123")
 
-    assert repo.saved_library is None
+    assert repo.edit_calls == [("nonexistent", "uri:123", None, None)]
 
 
 def test_edit_with_no_changes():
@@ -121,7 +121,7 @@ def test_edit_with_no_changes():
     edit_disc = EditDisc(repo)
     edit_disc.execute(tag_id="tag:noop", uri=None, metadata=None, option=None)
 
-    library = repo.load()
-    updated_disc = library.discs["tag:noop"]
+    assert repo.edit_calls == [("tag:noop", None, None, None)]
+    updated_disc = repo.library.discs["tag:noop"]
     assert updated_disc.uri == "uri:123"
     assert updated_disc.metadata.artist == "Artist"
