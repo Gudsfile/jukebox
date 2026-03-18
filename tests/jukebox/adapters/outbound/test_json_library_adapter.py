@@ -86,7 +86,10 @@ def test_external_file_changes_invalidate_cache(tmp_path, mocker):
     adapter = JsonLibraryAdapter(str(filepath))
     load_spy = mocker.spy(adapter, "_load_from_disk")
 
-    assert adapter.get_disc("test-tag").uri == "before.mp3"
+    initial_disc = adapter.get_disc("test-tag")
+
+    assert initial_disc is not None
+    assert initial_disc.uri == "before.mp3"
 
     write_library(
         filepath,
