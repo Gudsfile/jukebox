@@ -29,7 +29,7 @@ class CLIController:
     def run(self):
         """Run the main event loop."""
         session = PlaybackSession()
-        self.current_disc_repository.clear()
+        self._clear_current_disc_state()
 
         try:
             while True:
@@ -41,4 +41,10 @@ class CLIController:
                 if remaining_sleep > 0:
                     sleep(remaining_sleep)
         finally:
+            self._clear_current_disc_state()
+
+    def _clear_current_disc_state(self) -> None:
+        try:
             self.current_disc_repository.clear()
+        except Exception as err:
+            LOGGER.warning(f"Failed to clear current disc state during controller lifecycle cleanup: error={err}")

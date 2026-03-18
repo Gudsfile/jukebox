@@ -30,7 +30,7 @@ class HandleTagEvent:
         elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
         self._advance_session_clock(tag_event, session, elapsed_seconds)
         disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
-        self._sync_current_disc(tag_event, session, disc is not None)
+        self._sync_current_disc_best_effort(tag_event, session, disc is not None)
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
@@ -108,6 +108,17 @@ class HandleTagEvent:
         if session.last_event_timestamp is None:
             return 0.0
         return max(0.0, tag_event.timestamp - session.last_event_timestamp)
+
+    def _sync_current_disc_best_effort(
+        self, tag_event: TagEvent, session: PlaybackSession, known_in_library: bool
+    ) -> None:
+        try:
+            self._sync_current_disc(tag_event, session, known_in_library)
+        except Exception as err:
+            LOGGER.warning(
+                "Failed to sync current disc state; continuing tag handling: "
+                f"tag_id={tag_event.tag_id!r}, error={err}"
+            )
 
     def _sync_current_disc(self, tag_event: TagEvent, session: PlaybackSession, known_in_library: bool) -> None:
         if tag_event.tag_id is not None:

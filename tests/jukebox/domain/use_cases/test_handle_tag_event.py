@@ -162,6 +162,40 @@ def test_unknown_tag_promotes_to_known_and_starts_playback_on_next_loop(
     assert session.current_tag == "promote-tag"
 
 
+def test_current_disc_save_failure_does_not_block_playback(
+    handle_tag_event, mock_current_disc_repository, mock_player
+):
+    mock_current_disc_repository.save.side_effect = OSError("disk full")
+    session = PlaybackSession()
+
+    new_session = handle_tag_event.execute(TagEvent(tag_id="known-tag", timestamp=100.0), session)
+
+    mock_player.play.assert_called_once_with("uri:123", False)
+    assert new_session.current_tag == "known-tag"
+    assert new_session.previous_tag == "known-tag"
+
+
+def test_current_disc_clear_failure_does_not_block_pause(
+    handle_tag_event, mock_current_disc_repository, mock_player
+):
+    handle_tag_event.determine_action.pause_delay = 0.25
+    mock_current_disc_repository.clear_if_matches.side_effect = OSError("permission denied")
+    session = PlaybackSession(
+        current_tag="known-tag",
+        previous_tag="known-tag",
+        physical_tag="known-tag",
+        physical_tag_known_in_library=True,
+        physical_tag_removed_seconds=0.99,
+        tag_removed_seconds=0.24,
+        last_event_timestamp=100.0,
+    )
+
+    new_session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.02), session)
+
+    mock_player.pause.assert_called_once()
+    assert new_session.is_paused is True
+
+
 def test_handle_play_action_with_shuffle(handle_tag_event, mock_player, mock_library):
     """Should play with shuffle when disc has shuffle option."""
     mock_library.get_disc.return_value = Disc(
