@@ -2,6 +2,7 @@ from importlib import import_module
 
 from discstore.adapters.inbound.config import ApiCommand, InteractiveCliCommand, UiCommand, parse_config
 from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
+from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.shared.logger import set_logger
 
 
@@ -12,9 +13,11 @@ def _load_uvicorn(command_name: str, extra_name: str):
         if err.name not in (None, "uvicorn"):
             raise
         raise SystemExit(
-            f"`discstore {command_name}` requires the optional `{extra_name}` dependencies. "
-            f"Run `uv sync --extra {extra_name}` to install them in the project environment, "
-            f"or run `uv run --extra {extra_name} discstore {command_name}`."
+            optional_extra_dependency_message(
+                subject=f"`discstore {command_name}`",
+                extra_name=extra_name,
+                source_command=f"discstore {command_name}",
+            )
         ) from err
 
 

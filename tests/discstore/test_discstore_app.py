@@ -132,6 +132,7 @@ def test_main_reports_missing_optional_server_dependencies(mocker, app_mocks, co
         },
     )
     assert f"`discstore {extra_name}` requires the optional `{extra_name}` dependencies." in str(err.value)
+    assert f"pip install 'gukebox[{extra_name}]'" in str(err.value)
     assert f"uv sync --extra {extra_name}" in str(err.value)
     assert f"uv run --extra {extra_name} discstore {extra_name}" in str(err.value)
 
