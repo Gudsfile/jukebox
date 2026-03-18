@@ -1,3 +1,4 @@
+import logging
 import time
 from time import sleep
 
@@ -5,6 +6,8 @@ from jukebox.domain.entities import PlaybackSession, TagEvent
 from jukebox.domain.ports import ReaderPort
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.shared.timing import DEFAULT_LOOP_INTERVAL_SECONDS
+
+LOGGER = logging.getLogger("jukebox")
 
 
 class CLIController:
@@ -23,6 +26,7 @@ class CLIController:
     def run(self):
         """Run the main event loop."""
         session = PlaybackSession()
+
         while True:
             loop_started = time.monotonic()
             tag_id = self.reader.read()
