@@ -138,6 +138,34 @@ def test_add_disc_persists_and_updates_cache(tmp_path, mocker):
     assert load_spy.call_count == 1
 
 
+def test_failed_write_during_add_disc_keeps_existing_library_intact(tmp_path, mocker):
+    filepath = tmp_path / "library.json"
+    write_library(filepath, Library(discs={"existing-tag": Disc(uri="before.mp3", metadata=DiscMetadata())}))
+    adapter = JsonLibraryAdapter(str(filepath))
+    original_contents = filepath.read_text(encoding="utf-8")
+
+    def fail_after_partial_dump(_data, file_obj, **_kwargs):
+        file_obj.write('{"broken":')
+        file_obj.flush()
+        raise OSError("mid-write failure")
+
+    mocker.patch.object(json, "dump", side_effect=fail_after_partial_dump)
+
+    with pytest.raises(OSError, match="mid-write failure"):
+        adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata(artist="Artist")))
+
+    assert filepath.read_text(encoding="utf-8") == original_contents
+    assert read_library(filepath) == {
+        "discs": {
+            "existing-tag": {
+                "uri": "before.mp3",
+                "metadata": {"artist": None, "album": None, "track": None, "playlist": None},
+                "option": {"shuffle": False, "is_test": False},
+            }
+        }
+    }
+
+
 def test_edit_disc_persists_and_updates_cache(tmp_path, mocker):
     filepath = tmp_path / "library.json"
     write_library(

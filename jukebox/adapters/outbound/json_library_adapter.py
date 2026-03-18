@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import tempfile
 from typing import Optional
 
 from pydantic import ValidationError
@@ -34,8 +35,28 @@ class JsonLibraryAdapter(LibraryRepository):
             return Library()
 
     def _write_library(self, library: Library) -> None:
-        with open(self.filepath, "w", encoding="utf-8") as f:
-            json.dump(library.model_dump(), f, indent=2, ensure_ascii=False)
+        directory = os.path.dirname(self.filepath) or "."
+        temp_fd, temp_path = tempfile.mkstemp(dir=directory, prefix=".library-", suffix=".json")
+
+        try:
+            with os.fdopen(temp_fd, "w", encoding="utf-8") as file_obj:
+                json.dump(library.model_dump(), file_obj, indent=2, ensure_ascii=False)
+                file_obj.flush()
+                os.fsync(file_obj.fileno())
+
+            os.replace(temp_path, self.filepath)
+
+            directory_fd = os.open(directory, os.O_RDONLY)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
+        except Exception:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
+            raise
 
     def _get_file_state(self) -> Optional[tuple[int, int]]:
         try:
