@@ -9,12 +9,12 @@ from typing import Annotated, List, Optional
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 try:
-    from fastapi import HTTPException  # type: ignore[unresolved-import]
-    from fastapi.responses import HTMLResponse  # type: ignore[unresolved-import]
-    from fastui import AnyComponent, FastUI, prebuilt_html  # type: ignore[unresolved-import]
-    from fastui import components as c  # type: ignore[unresolved-import]
-    from fastui.events import GoToEvent, PageEvent  # type: ignore[unresolved-import]
-    from fastui.forms import fastui_form  # type: ignore[unresolved-import]
+    from fastapi import HTTPException
+    from fastapi.responses import HTMLResponse
+    from fastui import AnyComponent, FastUI, prebuilt_html
+    from fastui import components as c
+    from fastui.events import GoToEvent, PageEvent
+    from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(optional_extra_dependency_message("The `ui_controller` module", "ui", "discstore ui")) from e
 from pydantic import BaseModel, Field
@@ -93,10 +93,10 @@ class UIController(APIController):
                         c.Table(
                             data=discs_list,
                             no_data_message="No disc found",
-                        ),  # type: ignore
+                        ),
                     ]
                 ),
-            ]  # type: ignore
+            ]
 
         @self.app.post("/modal-add-or-edit-disc", response_model=FastUI, response_model_exclude_none=True)
         async def modal_add_or_edit_disc(disc: Annotated[DiscForm, fastui_form(DiscForm)]) -> list[AnyComponent]:
