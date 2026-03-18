@@ -8,13 +8,9 @@ def main():
     config = parse_config()
     set_logger("jukebox", config.verbose)
 
-    reader, handle_tag_event, current_disc_repository = build_jukebox(config)
+    reader, handle_tag_event = build_jukebox(config)
 
-    controller = CLIController(
-        reader=reader,
-        handle_tag_event=handle_tag_event,
-        current_disc_repository=current_disc_repository,
-    )
+    controller = CLIController(reader=reader, handle_tag_event=handle_tag_event)
     controller.run()
 
 

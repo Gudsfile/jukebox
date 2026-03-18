@@ -59,4 +59,4 @@ def build_jukebox(config: JukeboxConfig):
         determine_action=determine_action,
     )
 
-    return reader, handle_tag_event, current_disc_repository
+    return reader, handle_tag_event

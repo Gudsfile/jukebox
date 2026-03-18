@@ -47,6 +47,7 @@ class JsonCurrentDiscAdapter(CurrentDiscRepository):
                     os.fsync(temp_file.fileno())
 
                 os.replace(temp_path, self.filepath)
+                self._fsync_directory()
             finally:
                 if temp_path is not None and os.path.exists(temp_path):
                     os.unlink(temp_path)
@@ -77,11 +78,19 @@ class JsonCurrentDiscAdapter(CurrentDiscRepository):
     def _clear_unlocked(self) -> None:
         try:
             os.unlink(self.filepath)
+            self._fsync_directory()
         except FileNotFoundError:
             return
 
     def _write_json(self, temp_file, current_disc: CurrentDisc) -> None:
         json.dump(current_disc.model_dump(), temp_file, indent=2, ensure_ascii=False)
+
+    def _fsync_directory(self) -> None:
+        directory_fd = os.open(os.path.dirname(self.filepath), os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
     @contextmanager
     def _exclusive_lock(self) -> Iterator[None]:

@@ -1,14 +1,10 @@
-import logging
 import time
 from time import sleep
 
 from jukebox.domain.entities import PlaybackSession, TagEvent
 from jukebox.domain.ports import ReaderPort
-from jukebox.domain.repositories import CurrentDiscRepository
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.shared.timing import DEFAULT_LOOP_INTERVAL_SECONDS
-
-LOGGER = logging.getLogger("jukebox")
 
 
 class CLIController:
@@ -18,33 +14,20 @@ class CLIController:
         self,
         reader: ReaderPort,
         handle_tag_event: HandleTagEvent,
-        current_disc_repository: CurrentDiscRepository,
         loop_interval_seconds: float = DEFAULT_LOOP_INTERVAL_SECONDS,
     ):
         self.reader = reader
         self.handle_tag_event = handle_tag_event
-        self.current_disc_repository = current_disc_repository
         self.loop_interval_seconds = loop_interval_seconds
 
     def run(self):
         """Run the main event loop."""
         session = PlaybackSession()
-        self._clear_current_disc_state()
-
-        try:
-            while True:
-                loop_started = time.monotonic()
-                tag_id = self.reader.read()
-                tag_event = TagEvent(tag_id=tag_id, timestamp=time.monotonic())
-                session = self.handle_tag_event.execute(tag_event, session)
-                remaining_sleep = self.loop_interval_seconds - (time.monotonic() - loop_started)
-                if remaining_sleep > 0:
-                    sleep(remaining_sleep)
-        finally:
-            self._clear_current_disc_state()
-
-    def _clear_current_disc_state(self) -> None:
-        try:
-            self.current_disc_repository.clear()
-        except Exception as err:
-            LOGGER.warning(f"Failed to clear current disc state during controller lifecycle cleanup: error={err}")
+        while True:
+            loop_started = time.monotonic()
+            tag_id = self.reader.read()
+            tag_event = TagEvent(tag_id=tag_id, timestamp=time.monotonic())
+            session = self.handle_tag_event.execute(tag_event, session)
+            remaining_sleep = self.loop_interval_seconds - (time.monotonic() - loop_started)
+            if remaining_sleep > 0:
+                sleep(remaining_sleep)

@@ -38,7 +38,7 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=50, pause_delay=3),
         )
 
-        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
+        reader, handle_tag_event = build_jukebox(config)
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
@@ -51,7 +51,6 @@ class TestBuildJukebox:
         # Should return reader and use case
         assert reader == mock_nfc_instance
         assert handle_tag_event is not None
-        assert current_disc_repository == mock_current_disc.return_value
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
@@ -67,7 +66,7 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=100, pause_delay=5),
         )
 
-        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
+        reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_disc.assert_called_once_with("/test/library.json")
@@ -76,7 +75,6 @@ class TestBuildJukebox:
 
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
-        assert current_disc_repository == mock_current_disc.return_value
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
@@ -94,9 +92,8 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=200, pause_delay=0.2),
         )
 
-        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
+        reader, handle_tag_event = build_jukebox(config)
 
         # Verify DetermineAction was created with correct parameters
         assert handle_tag_event.determine_action.pause_delay == 0.2
         assert handle_tag_event.determine_action.max_pause_duration == 200
-        assert current_disc_repository == mock_current_disc.return_value
