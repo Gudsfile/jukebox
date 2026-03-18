@@ -61,7 +61,7 @@ uvx --from gukebox[nfc] jukebox
 Or install it into an isolated environment with `uv tool install` or `pipx`.
 
 > [!NOTE]
-> The `nfc` extra is optional but required for NFC reading, [check compatibility](#available-players-and-readers).
+> The `nfc` extra is optional but required for NFC reading, [check compatibility](#readers).
 
 ### GitHub Releases
 
@@ -69,7 +69,7 @@ All releases can be downloaded and installed from the [GitHub releases page](htt
 
 ### Developer setup
 
-For development read the [Developer setup](##developer-setup) section.
+For development read the [Developer setup](#developer-setup) section.
 
 tl;dr:
 ```shell
@@ -79,7 +79,7 @@ uv sync
 
 ## First steps
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
 
 Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
 
@@ -234,7 +234,7 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 
