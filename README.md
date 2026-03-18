@@ -87,7 +87,8 @@ pip install "gukebox[nfc]"
 ### Alternative installations
 
 - `pipx` can be used with `--system-site-packages`.
-- `uvx` / `uv tool install` are not recommended for NFC on Python 3.13+ because they may select a non-system interpreter. If needed, the `--python 3.11` flag can be used as a workaround.
+- `uvx` / `uv tool install` are not recommended for NFC on Python 3.13+ because they may select a non-system interpreter.
+- For non-system Python 3.13+, you can still install via pip/uv/poetry/etc. but you must build the `lgpio` package from source and it may require other system packages.
 - All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
 
 ### Developer setup
