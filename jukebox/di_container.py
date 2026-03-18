@@ -5,6 +5,7 @@ from jukebox.adapters.inbound.config import (
     NfcReaderConfig,
     SonosPlayerConfig,
 )
+from jukebox.adapters.outbound.json_current_disc_adapter import JsonCurrentDiscAdapter
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.players.dryrun_player_adapter import DryrunPlayerAdapter
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
@@ -27,6 +28,7 @@ def build_jukebox(config: JukeboxConfig):
     """
     # Outbound adapters
     library = JsonLibraryAdapter(config.library)
+    current_disc_repository = JsonCurrentDiscAdapter(config.library)
 
     if isinstance(config.player, SonosPlayerConfig):
         player = SonosPlayerAdapter(host=config.player.host)
@@ -53,7 +55,8 @@ def build_jukebox(config: JukeboxConfig):
     handle_tag_event = HandleTagEvent(
         player=player,
         library=library,
+        current_disc_repository=current_disc_repository,
         determine_action=determine_action,
     )
 
-    return reader, handle_tag_event
+    return reader, handle_tag_event, current_disc_repository

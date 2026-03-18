@@ -32,6 +32,16 @@ def get_deprecated_env_with_warning(
     return os.environ.get(new_var, deprecated_value or default)
 
 
+def get_current_disc_path(library_path: str) -> str:
+    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
+    return os.path.join(library_dir, "current-disc.json")
+
+
+def get_current_disc_lock_path(library_path: str) -> str:
+    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
+    return os.path.join(library_dir, "current-disc.lock")
+
+
 def add_library_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-l",

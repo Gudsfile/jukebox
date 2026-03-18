@@ -1,3 +1,4 @@
+from .current_disc import CurrentDisc
 from .disc import Disc, DiscMetadata, DiscOption
 from .library import Library
 from .playback_action import PlaybackAction
@@ -8,6 +9,7 @@ __all__ = [
     "PlaybackAction",
     "PlaybackSession",
     "TagEvent",
+    "CurrentDisc",
     "Library",
     "Disc",
     "DiscMetadata",

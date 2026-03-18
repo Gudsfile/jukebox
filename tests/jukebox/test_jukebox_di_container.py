@@ -15,8 +15,9 @@ class TestBuildJukebox:
     """Tests for build_jukebox function."""
 
     @patch("jukebox.di_container.SonosPlayerAdapter")
+    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_player, mocker):
+    def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_current_disc, mock_player, mocker):
         """Should build jukebox with Sonos player and NFC reader."""
         mock_nfc_instance = MagicMock()
         mock_nfc_controller_class = MagicMock(return_value=mock_nfc_instance)
@@ -37,10 +38,11 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=50, pause_delay=3),
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
+        mock_current_disc.assert_called_once_with("/test/library.json")
 
         # Should create player and reader
         mock_player.assert_called_once_with(host="192.168.1.100")
@@ -49,11 +51,13 @@ class TestBuildJukebox:
         # Should return reader and use case
         assert reader == mock_nfc_instance
         assert handle_tag_event is not None
+        assert current_disc_repository == mock_current_disc.return_value
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
+    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_with_dryrun(self, mock_library, mock_reader, mock_player):
+    def test_build_jukebox_with_dryrun(self, mock_library, mock_current_disc, mock_reader, mock_player):
         """Should build jukebox with dryrun player and reader."""
         config = JukeboxConfig(
             library="/test/library.json",
@@ -63,19 +67,24 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=100, pause_delay=5),
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
+        mock_current_disc.assert_called_once_with("/test/library.json")
         mock_player.assert_called_once()
         mock_reader.assert_called_once()
 
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
+        assert current_disc_repository == mock_current_disc.return_value
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
+    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_passes_correct_parameters_to_determine_action(self, mock_library, mock_reader, mock_player):
+    def test_build_jukebox_passes_correct_parameters_to_determine_action(
+        self, mock_library, mock_current_disc, mock_reader, mock_player
+    ):
         """Should pass pause_delay and max_pause_duration to DetermineAction."""
         config = JukeboxConfig(
             library="/test/library.json",
@@ -85,8 +94,9 @@ class TestBuildJukebox:
             playback=PlaybackConfig(pause_duration=200, pause_delay=0.2),
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, current_disc_repository = build_jukebox(config)
 
         # Verify DetermineAction was created with correct parameters
         assert handle_tag_event.determine_action.pause_delay == 0.2
         assert handle_tag_event.determine_action.max_pause_duration == 200
+        assert current_disc_repository == mock_current_disc.return_value
