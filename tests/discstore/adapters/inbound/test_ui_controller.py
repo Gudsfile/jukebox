@@ -14,11 +14,13 @@ def test_module_import_failure():
 
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="FastUI requires Python 3.10+")
 def test_dependencies_import_failure(mocker):
+    sys.modules.pop("discstore.adapters.inbound.ui_controller", None)
     mocker.patch.dict("sys.modules", {"fastui": None})
 
     with pytest.raises(ModuleNotFoundError) as err:
         import discstore.adapters.inbound.ui_controller  # noqa: F401
 
     assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)
+    assert "pip install 'gukebox[ui]'" in str(err.value)
     assert "uv sync --extra ui" in str(err.value)
     assert "uv run --extra ui discstore ui" in str(err.value)
