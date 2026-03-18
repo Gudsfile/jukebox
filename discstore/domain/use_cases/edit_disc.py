@@ -19,21 +19,21 @@ class EditDisc:
         if current_disc is None:
             raise ValueError(f"Tag does not exist: tag_id='{tag_id}'")
 
-        updated_uri = current_disc.uri if uri is None else uri
+        new_uri = uri if uri is not None else current_disc.uri
 
-        updated_metadata = current_disc.metadata.model_copy(deep=True)
+        new_metadata = current_disc.metadata
         if metadata is not None:
-            metadata_data = current_disc.metadata.model_dump()
-            metadata_data.update(metadata.model_dump(exclude_unset=True, exclude_none=True))
-            updated_metadata = DiscMetadata(**metadata_data)
+            current_data = current_disc.metadata.model_dump()
+            new_data = metadata.model_dump(exclude_unset=True, exclude_none=True)
+            current_data.update(new_data)
+            new_metadata = DiscMetadata(**current_data)
 
-        updated_option = current_disc.option.model_copy(deep=True)
+        new_option = current_disc.option
         if option is not None:
-            option_data = current_disc.option.model_dump()
-            option_data.update(option.model_dump(exclude_unset=True, exclude_none=True))
-            updated_option = DiscOption(**option_data)
+            current_opt_data = current_disc.option.model_dump()
+            new_opt_data = option.model_dump(exclude_unset=True, exclude_none=True)
+            current_opt_data.update(new_opt_data)
+            new_option = DiscOption(**current_opt_data)
 
-        self.repository.update_disc(
-            tag_id,
-            Disc(uri=updated_uri, metadata=updated_metadata, option=updated_option),
-        )
+        updated_disc = Disc(uri=new_uri, metadata=new_metadata, option=new_option)
+        self.repository.update_disc(tag_id, updated_disc)
