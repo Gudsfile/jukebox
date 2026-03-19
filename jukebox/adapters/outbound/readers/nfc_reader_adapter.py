@@ -4,10 +4,12 @@ import logging
 import os
 from typing import Union
 
+from jukebox.shared.dependency_messages import optional_extra_dependency_message
+
 try:
     from pn532 import PN532_SPI
 except ModuleNotFoundError as err:
-    raise ModuleNotFoundError("The `nfc reader` requires `pip install gukebox[nfc]`.") from err
+    raise ModuleNotFoundError(optional_extra_dependency_message("The `nfc` reader", "nfc", "jukebox ...")) from err
 
 from jukebox.domain.ports import ReaderPort
 from jukebox.shared.timing import DEFAULT_NFC_READ_TIMEOUT_SECONDS

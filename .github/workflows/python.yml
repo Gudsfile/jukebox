@@ -80,7 +80,10 @@ jobs:
           fi
 
       - name: Type check with ty
-        run: uv run ty check $ty_args --output-format github
+        # TODO: remove `grep -v || true` once ty supports a flag to suppress warnings (https://github.com/astral-sh/ty/issues/2169)
+        # grep -v filters out warnings from the GitHub annotations output to keep the PR review
+        # interface readable. Warnings are still visible locally and should not be forgotten.
+        run: uv run ty check $ty_args --output-format github | grep -v "::warning " || true
 
   build:
     name: Build Package

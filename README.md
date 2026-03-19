@@ -41,35 +41,59 @@ Python 3.8 is supported by Jukebox up to version 0.5.4.
 
 The `ui` extension is only available for Python versions 3.10 and above.
 
-Raspberry Pi 5 on Python >= 3.13 is currently not supported (https://github.com/Gudsfile/jukebox/pull/86).
-
 ## Install
-
-### PyPI
 
 Install the package from [PyPI](https://pypi.org/project/gukebox/).
 
 > [!WARNING]
 > The package name is `gukebox` with `g` instead of a `j` (due to a name already taken).
 
-To invoke the tool without installing it you could use `uvx`:
+> [!NOTE]
+> The `nfc` extra is optional but required for NFC reading, [check compatibility](#readers).
 
+### Recommended installation
+
+Use `pip` in a virtual environment.
+
+1. If your Python version is **3.13 or newer** and you want NFC support, install the system GPIO binding:
 ```shell
-uvx --from gukebox[nfc] jukebox
+sudo apt update
+sudo apt install python3-lgpio
 ```
 
-Or install it into an isolated environment with `uv tool install` or `pipx`.
+2. Create a virtual environment:
+```shell
+# Python < 3.13
+python3 -m venv jukebox
 
-> [!NOTE]
-> The `nfc` extra is optional but required for NFC reading, [check compatibility](#available-players-and-readers).
+# Python >= 3.13 for NFC: use the system Python and include system packages
+python3 -m venv --system-site-packages jukebox
 
-### GitHub Releases
+source jukebox/bin/activate
+```
 
-All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
+3. Install `gukebox` into the virtual environment:
+```shell
+pip install "gukebox[nfc]"
+```
+
+> [!IMPORTANT]
+> For NFC on Python 3.13+, use the **system Python** that comes with your OS.
+> A separately installed Python 3.13+ from `uv`, `pyenv`, Homebrew, or similar may not be able
+> to import the system `lgpio` package, even when using `--system-site-packages`.
+> If you already upgraded to a non-system Python 3.13+, use the system Python instead or use
+> Python 3.12 or lower.
+
+### Alternative installations
+
+- `pipx` can be used with `--system-site-packages`.
+- `uvx` / `uv tool install` are not recommended for NFC on Python 3.13+ because they may select a non-system interpreter.
+- For non-system Python 3.13+, you can still install via pip/uv/poetry/etc. but you must build the `lgpio` package from source and it may require other system packages.
+- All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
 
 ### Developer setup
 
-For development read the [Developer setup](##developer-setup) section.
+For development read the [Developer setup](#developer-setup) section.
 
 tl;dr:
 ```shell
@@ -79,7 +103,7 @@ uv sync
 
 ## First steps
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
 
 Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
 
@@ -96,11 +120,18 @@ Other commands are available, use `--help` to see them.
 To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
 
 ```shell
-# Python 3.8+ required
+# Python 3.9+ required
 uv tool install gukebox[api]
 
 # Python 3.10+ required, ui includes the api extra
 uv tool install gukebox[ui]
+```
+
+When running from this repository with `uv`, include the extra on the command as well:
+
+```shell
+uv run --extra api discstore api
+uv run --extra ui discstore ui
 ```
 
 ### Manage the library manually
@@ -234,7 +265,7 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#available-players-and-readers)).
+Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 
@@ -252,6 +283,13 @@ uv run jukebox PLAYER_TO_USE READER_TO_USE
 Start the discstore `uv` and use `--help` to show help message
 ```shell
 uv run discstore --help
+```
+
+For the server-backed commands, include the matching extra:
+
+```shell
+uv run --extra api discstore api
+uv run --extra ui discstore ui
 ```
 
 Other commands are available:

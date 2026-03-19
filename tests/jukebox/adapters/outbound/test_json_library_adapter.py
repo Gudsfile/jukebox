@@ -166,7 +166,7 @@ def test_failed_write_during_add_disc_keeps_existing_library_intact(tmp_path, mo
     }
 
 
-def test_edit_disc_persists_and_updates_cache(tmp_path, mocker):
+def test_update_disc_persists_and_updates_cache(tmp_path, mocker):
     filepath = tmp_path / "library.json"
     write_library(
         filepath,
@@ -183,11 +183,13 @@ def test_edit_disc_persists_and_updates_cache(tmp_path, mocker):
     adapter = JsonLibraryAdapter(str(filepath))
     load_spy = mocker.spy(adapter, "_load_from_disk")
 
-    adapter.edit_disc(
+    adapter.update_disc(
         "test-tag",
-        uri="after.mp3",
-        metadata=DiscMetadata(track="Updated Track"),
-        option=DiscOption(shuffle=True),
+        Disc(
+            uri="after.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Updated Track"),
+            option=DiscOption(shuffle=True),
+        ),
     )
 
     updated_disc = adapter.get_disc("test-tag")
@@ -214,24 +216,6 @@ def test_remove_disc_persists_and_updates_cache(tmp_path, mocker):
     assert load_spy.call_count == 1
 
 
-def test_search_discs_matches_tag_and_metadata(tmp_path):
-    filepath = tmp_path / "library.json"
-    write_library(
-        filepath,
-        Library(
-            discs={
-                "tag:pink:floyd": Disc(uri="uri1", metadata=DiscMetadata(artist="Pink Floyd")),
-                "tag:other": Disc(uri="uri2", metadata=DiscMetadata(album="Not Pink")),
-            }
-        ),
-    )
-    adapter = JsonLibraryAdapter(str(filepath))
-
-    results = adapter.search_discs("pink")
-
-    assert set(results) == {"tag:pink:floyd", "tag:other"}
-
-
 def test_add_disc_raises_for_duplicate_tag(tmp_path):
     filepath = tmp_path / "library.json"
     write_library(filepath, Library(discs={"test-tag": Disc(uri="test.mp3", metadata=DiscMetadata())}))
@@ -241,11 +225,11 @@ def test_add_disc_raises_for_duplicate_tag(tmp_path):
         adapter.add_disc("test-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
 
 
-def test_edit_disc_raises_for_missing_tag(tmp_path):
+def test_update_disc_raises_for_missing_tag(tmp_path):
     adapter = JsonLibraryAdapter(str(tmp_path / "library.json"))
 
     with pytest.raises(ValueError, match="Tag does not exist: tag_id='missing-tag'"):
-        adapter.edit_disc("missing-tag", uri="new.mp3")
+        adapter.update_disc("missing-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
 
 
 def test_remove_disc_raises_for_missing_tag(tmp_path):
@@ -270,7 +254,7 @@ def test_failed_write_during_add_disc_does_not_leak_phantom_state(tmp_path, mock
     assert adapter.list_discs() == {}
 
 
-def test_failed_write_during_edit_disc_does_not_leak_partial_state(tmp_path, mocker):
+def test_failed_write_during_update_disc_does_not_leak_partial_state(tmp_path, mocker):
     filepath = tmp_path / "library.json"
     write_library(filepath, Library(discs={"test-tag": Disc(uri="before.mp3", metadata=DiscMetadata(artist="Artist"))}))
     adapter = JsonLibraryAdapter(str(filepath))
@@ -279,7 +263,10 @@ def test_failed_write_during_edit_disc_does_not_leak_partial_state(tmp_path, moc
     mocker.patch.object(adapter, "_write_library", side_effect=OSError("boom"))
 
     with pytest.raises(OSError, match="boom"):
-        adapter.edit_disc("test-tag", uri="after.mp3", metadata=DiscMetadata(track="Updated Track"))
+        adapter.update_disc(
+            "test-tag",
+            Disc(uri="after.mp3", metadata=DiscMetadata(artist="Artist", track="Updated Track")),
+        )
 
     assert adapter.get_disc("test-tag") == original_disc
 
