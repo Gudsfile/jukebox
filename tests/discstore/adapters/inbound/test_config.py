@@ -7,6 +7,7 @@ from discstore.adapters.inbound.config import (
     ApiCommand,
     CliAddCommand,
     CliEditCommand,
+    CliGetCommand,
     CliListCommand,
     CliRemoveCommand,
     InteractiveCliCommand,
@@ -37,6 +38,7 @@ def test_parse_add_command():
     assert isinstance(config.command, CliAddCommand)
     assert config.command.type == "add"
     assert config.command.tag == "my-tag"
+    assert config.command.current_tag_id is False
     assert config.command.uri == "/path/to/media.mp3"
     assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
@@ -59,6 +61,7 @@ def test_parse_remove_command():
     assert isinstance(config.command, CliRemoveCommand)
     assert config.command.type == "remove"
     assert config.command.tag == "tag-to-delete"
+    assert config.command.current_tag_id is False
 
 
 @patch(
@@ -84,10 +87,39 @@ def test_parse_edit_command():
     assert isinstance(config.command, CliEditCommand)
     assert config.command.type == "edit"
     assert config.command.tag == "my-tag"
+    assert config.command.current_tag_id is False
     assert config.command.uri == "/path/to/media.mp3"
     assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
     assert config.command.album == "Code Hits"
+
+
+@patch("sys.argv", ["prog_name", "add", "--current-tag-id", "/path/to/media.mp3"])
+def test_parse_add_command_with_current_tag_id():
+    config = parse_config()
+
+    assert isinstance(config.command, CliAddCommand)
+    assert config.command.tag is None
+    assert config.command.current_tag_id is True
+    assert config.command.uri == "/path/to/media.mp3"
+
+
+@patch("sys.argv", ["prog_name", "get", "--current-tag-id"])
+def test_parse_get_command_with_current_tag_id():
+    config = parse_config()
+
+    assert isinstance(config.command, CliGetCommand)
+    assert config.command.type == "get"
+    assert config.command.tag is None
+    assert config.command.current_tag_id is True
+
+
+@patch("sys.argv", ["prog_name", "remove", "tag-to-delete", "--current-tag-id"])
+def test_tag_source_validation_error_exits():
+    with pytest.raises(SystemExit) as e:
+        parse_config()
+
+    assert e.value.code == 1
 
 
 @patch("sys.argv", ["prog_name", "api", "--port", "9999"])
@@ -149,4 +181,4 @@ def test_validation_error_exits():
         parse_config()
 
     assert e.type is SystemExit
-    assert e.value.code == 2
+    assert e.value.code == 1

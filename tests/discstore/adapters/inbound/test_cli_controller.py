@@ -1,0 +1,93 @@
+from unittest.mock import MagicMock
+
+from discstore.adapters.inbound.cli_controller import CLIController
+from discstore.adapters.inbound.config import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
+from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+
+
+def build_controller():
+    return CLIController(
+        add_disc=MagicMock(),
+        list_discs=MagicMock(),
+        remove_disc=MagicMock(),
+        edit_disc=MagicMock(),
+        get_disc=MagicMock(),
+        search_discs=MagicMock(),
+        resolve_tag_id=MagicMock(),
+        clear_current_disc_if_matches=MagicMock(),
+    )
+
+
+def test_add_disc_flow_resolves_current_tag_and_clears_current_disc():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    command = CliAddCommand(type="add", current_tag_id=True, uri="/music/song.mp3", track="Song", artist="Artist")
+
+    controller.add_disc_flow(command)
+
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.add_disc.execute.assert_called_once_with(
+        "tag-current",
+        Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(track="Song", artist="Artist", album=None),
+            option=DiscOption(),
+        ),
+    )
+    controller.clear_current_disc_if_matches.execute.assert_called_once_with("tag-current")
+
+
+def test_edit_disc_flow_resolves_current_tag():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    command = CliEditCommand(type="edit", current_tag_id=True, uri="/music/updated.mp3", track="Updated")
+
+    controller.edit_disc_flow(command)
+
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.edit_disc.execute.assert_called_once_with(
+        tag_id="tag-current",
+        uri="/music/updated.mp3",
+        metadata=DiscMetadata(track="Updated"),
+        option=None,
+    )
+    controller.clear_current_disc_if_matches.execute.assert_not_called()
+
+
+def test_remove_disc_flow_resolves_current_tag_without_clearing():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    command = CliRemoveCommand(type="remove", current_tag_id=True)
+
+    controller.remove_disc_flow(command)
+
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.remove_disc.execute.assert_called_once_with("tag-current")
+    controller.clear_current_disc_if_matches.execute.assert_not_called()
+
+
+def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    controller.get_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist"),
+        option=DiscOption(shuffle=True),
+    )
+    command = CliGetCommand(type="get", current_tag_id=True)
+
+    controller.get_disc_flow(command)
+
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.get_disc.execute.assert_called_once_with("tag-current")
+    controller.clear_current_disc_if_matches.execute.assert_not_called()
+    assert capsys.readouterr().out.splitlines() == [
+        "",
+        "📀 Disc: tag-current",
+        "  URI      : /music/song.mp3",
+        "  Artist   : Artist",
+        "  Album    : /",
+        "  Track    : /",
+        "  Playlist : /",
+        "  Shuffle  : True",
+    ]

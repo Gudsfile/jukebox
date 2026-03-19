@@ -1,9 +1,12 @@
 import logging
+from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import CurrentDisc, Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
+from discstore.domain.use_cases.clear_current_disc_if_matches import ClearCurrentDiscIfMatches
 from discstore.domain.use_cases.edit_disc import EditDisc
+from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 
@@ -11,14 +14,24 @@ LOGGER = logging.getLogger("discstore")
 
 
 class InteractiveCLIController:
-    available_commands = "\n* " + "\n* ".join(["add", "remove", "list", "edit", "exit", "help"])
+    available_commands = "\n* " + "\n* ".join(["add", "remove", "list", "edit", "current", "exit", "help"])
     help_message = f"\nAvailable commands: {available_commands}"
 
-    def __init__(self, add_disc: AddDisc, list_discs: ListDiscs, remove_disc: RemoveDisc, edit_disc: EditDisc):
+    def __init__(
+        self,
+        add_disc: AddDisc,
+        list_discs: ListDiscs,
+        remove_disc: RemoveDisc,
+        edit_disc: EditDisc,
+        get_current_disc: GetCurrentDisc,
+        clear_current_disc_if_matches: ClearCurrentDiscIfMatches,
+    ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
+        self.get_current_disc = get_current_disc
+        self.clear_current_disc_if_matches = clear_current_disc_if_matches
 
     def run(self) -> None:
         print(self.help_message)
@@ -36,6 +49,8 @@ class InteractiveCLIController:
                 self.list_discs_flow()
             elif command == "edit":
                 self.edit_disc_flow()
+            elif command == "current":
+                self.current_disc_flow()
             elif command == "exit":
                 print("See you soon!")
                 exit(0)
@@ -46,17 +61,19 @@ class InteractiveCLIController:
                 print(self.help_message)
         except Exception as err:
             print(f"Error: {err}")
-            LOGGER.error("Error during handling command", err)
+            LOGGER.error("Error during handling command: %s", err)
 
     def add_disc_flow(self) -> None:
         print("\n-- Add a disc --")
-        tag = input("discstore> add tag> ").strip()
+        current_disc = self.get_current_disc.execute()
+        tag = self._prompt_for_tag(current_disc, action="add")
         uri = input("discstore> add uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
+        self._clear_current_disc_after_add(tag)
         print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
@@ -80,10 +97,41 @@ class InteractiveCLIController:
 
     def edit_disc_flow(self) -> None:
         print("\n-- Edit a disc --")
-        tag = input("discstore> edit tag> ").strip()
+        current_disc = self.get_current_disc.execute()
+        tag = self._prompt_for_tag(current_disc, action="edit")
         uri = input("discstore> edit uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
 
         self.edit_disc.execute(tag, uri, metadata, option)
         print("✅ Disc successfully edited")
+
+    def current_disc_flow(self) -> None:
+        print("\n-- Current disc --")
+        current_disc = self.get_current_disc.execute()
+        if current_disc is None:
+            print("No current disc is available")
+            return
+
+        print(f"Tag ID           : {current_disc.tag_id}")
+        print(f"Known in library : {'yes' if current_disc.known_in_library else 'no'}")
+
+    def _prompt_for_tag(self, current_disc: Optional[CurrentDisc], action: str) -> str:
+        default_tag = current_disc.tag_id if current_disc is not None else ""
+        prompt = f"discstore> {action} tag"
+        if default_tag:
+            prompt += f" [{default_tag}]"
+        prompt += "> "
+
+        entered_tag = input(prompt).strip()
+        tag = entered_tag or default_tag
+        if not tag:
+            raise ValueError("A tag ID is required.")
+
+        return tag
+
+    def _clear_current_disc_after_add(self, tag_id: str) -> None:
+        try:
+            self.clear_current_disc_if_matches.execute(tag_id)
+        except Exception as err:
+            LOGGER.warning(f"Disc added but failed to clear current disc state for tag_id='{tag_id}': {err}")
