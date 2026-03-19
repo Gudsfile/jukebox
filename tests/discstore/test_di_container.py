@@ -155,12 +155,16 @@ def test_build_ui_app_wiring(mocker, mocks):
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
+    mocks.get_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.update_current_disc_library_status_class.assert_called_once_with(mocks.current_disc_repo_instance)
     mock_ui_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
+        mocks.get_disc_instance,
         mocks.get_current_disc_instance,
+        mocks.update_current_disc_library_status_instance,
     )
     assert result is mock_ui_instance

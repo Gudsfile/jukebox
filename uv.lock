@@ -261,14 +261,14 @@ wheels = [
 
 [[package]]
 name = "fastui"
-version = "0.8.0"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic", extra = ["email"], marker = "python_full_version >= '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/8f/4e/f37c5dd7ba26eee02f82e5269025f5fb642291903017988f6476024e8e37/fastui-0.8.0.tar.gz", hash = "sha256:3d8aa940b454043ff05d5747698e6b88ae2673e36752091d4c1f0816f685fa46", size = 29628, upload-time = "2025-09-03T08:44:36.944Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c4/27/e52de3e3a3dd16cda6fac11d2b5b0ed8a54e14386a303bc8f757275df121/fastui-0.9.0.tar.gz", hash = "sha256:490ae906adea604f6fbb6270a8d1836611371dd304a1c556cad2785474a287f9", size = 29625, upload-time = "2025-10-28T08:55:17.305Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e6/63/88abdc9bf6b0b4929c74f3f53fb9724abf5646246fede9b03e72b9fc1279/fastui-0.8.0-py3-none-any.whl", hash = "sha256:c29e819de7eecd6bcc088e42228c1d7fbb3150f6753315ee2edeeed21231295d", size = 29353, upload-time = "2025-09-03T08:44:34.728Z" },
+    { url = "https://files.pythonhosted.org/packages/9f/ab/1a181f6650a5d80cb5475096751be3cdf7e85a724c2503f082fa691aa7ba/fastui-0.9.0-py3-none-any.whl", hash = "sha256:82f226e32a377ca93c8cc2de861d3c7766f6d0f746d05822999a7dd768c55b13", size = 29354, upload-time = "2025-10-28T08:55:16.037Z" },
 ]
 
 [[package]]
@@ -340,7 +340,7 @@ dev = [
 requires-dist = [
     { name = "fastapi", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.135.1" },
     { name = "fastapi", marker = "python_full_version < '3.10' and extra == 'api'", specifier = "==0.128.7" },
-    { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.8.0" },
+    { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.9.0" },
     { name = "filelock", marker = "python_full_version < '3.10'", specifier = "==3.16.1" },
     { name = "filelock", marker = "python_full_version >= '3.10'", specifier = ">=3.25.2,<4" },
     { name = "gukebox", extras = ["api"], marker = "extra == 'ui'" },

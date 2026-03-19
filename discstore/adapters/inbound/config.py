@@ -199,7 +199,8 @@ def parse_config() -> DiscStoreConfig:
     api_parser.add_argument("--port", type=int, default=8000, help="port")
 
     # UI commands
-    _ = subparsers.add_parser("ui", help="Start an UI server")
+    ui_parser = subparsers.add_parser("ui", help="Start an UI server")
+    ui_parser.add_argument("--port", type=int, default=8000, help="port")
 
     # Interactive commands
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")
@@ -213,12 +214,19 @@ def parse_config() -> DiscStoreConfig:
     command_name = args_dict.pop("command")
 
     try:
-        if command_name == "add" and args_dict.get("use_current_tag") and is_ambiguous_add_from_current(
-            get_command_args(command_name)
+        if (
+            command_name == "add"
+            and args_dict.get("use_current_tag")
+            and is_ambiguous_add_from_current(get_command_args(command_name))
         ):
             raise ValueError("Ambiguous add invocation: place --from-current before the URI and do not pass a tag.")
 
-        if command_name == "add" and args_dict.get("use_current_tag") and args_dict.get("uri") is None and args_dict.get("tag"):
+        if (
+            command_name == "add"
+            and args_dict.get("use_current_tag")
+            and args_dict.get("uri") is None
+            and args_dict.get("tag")
+        ):
             args_dict["uri"] = args_dict["tag"]
             args_dict["tag"] = None
 

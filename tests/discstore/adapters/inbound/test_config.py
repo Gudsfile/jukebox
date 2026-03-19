@@ -11,6 +11,7 @@ from discstore.adapters.inbound.config import (
     CliListCommand,
     CliRemoveCommand,
     InteractiveCliCommand,
+    UiCommand,
     parse_config,
 )
 from jukebox.shared.config_utils import DEFAULT_LIBRARY_PATH
@@ -136,6 +137,15 @@ def test_parse_api_command_with_port():
 
     assert isinstance(config.command, ApiCommand)
     assert config.command.type == "api"
+    assert config.command.port == 9999
+
+
+@patch("sys.argv", ["prog_name", "ui", "--port", "9999"])
+def test_parse_ui_command_with_port():
+    config = parse_config()
+
+    assert isinstance(config.command, UiCommand)
+    assert config.command.type == "ui"
     assert config.command.port == 9999
 
 

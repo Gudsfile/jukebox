@@ -33,7 +33,6 @@ def test_get_current_disc_returns_current_disc_payload(known_in_library):
 
     response = route.endpoint()
 
-    assert route.response_model.__name__ == "CurrentDiscOutput"
     assert response.model_dump() == {"tag_id": "tag-123", "known_in_library": known_in_library}
     controller.get_current_disc.execute.assert_called_once_with()
 

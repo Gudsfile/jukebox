@@ -70,6 +70,8 @@ def build_ui_app(library_path: str):
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
+        GetDisc(repository),
         GetCurrentDisc(current_disc_repository),
+        UpdateCurrentDiscLibraryStatus(current_disc_repository),
     )
     return ui_controller
