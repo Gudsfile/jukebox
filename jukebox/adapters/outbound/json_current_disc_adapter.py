@@ -3,9 +3,9 @@ import logging
 import os
 import tempfile
 from contextlib import contextmanager
-from fcntl import LOCK_EX, LOCK_UN, flock
 from typing import Iterator, Optional
 
+from filelock import FileLock
 from pydantic import ValidationError
 
 from jukebox.domain.entities import CurrentDisc
@@ -109,9 +109,5 @@ class JsonCurrentDiscAdapter(CurrentDiscRepository):
         directory = os.path.dirname(self.lock_filepath)
         os.makedirs(directory, exist_ok=True)
 
-        with open(self.lock_filepath, "a+", encoding="utf-8") as lock_file:
-            flock(lock_file.fileno(), LOCK_EX)
-            try:
-                yield
-            finally:
-                flock(lock_file.fileno(), LOCK_UN)
+        with FileLock(self.lock_filepath):
+            yield
