@@ -1,5 +1,4 @@
 from .add_disc import AddDisc
-from .clear_current_disc_if_matches import ClearCurrentDiscIfMatches
 from .edit_disc import EditDisc
 from .get_disc import GetDisc
 from .get_current_disc import GetCurrentDisc
@@ -10,7 +9,6 @@ from .search_discs import SearchDiscs
 
 __all__ = [
     "AddDisc",
-    "ClearCurrentDiscIfMatches",
     "EditDisc",
     "GetDisc",
     "GetCurrentDisc",

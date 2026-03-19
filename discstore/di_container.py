@@ -4,7 +4,6 @@ from discstore.adapters.inbound.interactive_cli_controller import (
 )
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from discstore.domain.use_cases.add_disc import AddDisc
-from discstore.domain.use_cases.clear_current_disc_if_matches import ClearCurrentDiscIfMatches
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
@@ -27,7 +26,6 @@ def build_cli_controller(library_path: str):
         GetDisc(repository),
         SearchDiscs(repository),
         ResolveTagId(get_current_disc),
-        ClearCurrentDiscIfMatches(current_disc_repository),
     )
 
 
@@ -40,7 +38,6 @@ def build_interactive_cli_controller(library_path: str):
         RemoveDisc(repository),
         EditDisc(repository),
         GetCurrentDisc(current_disc_repository),
-        ClearCurrentDiscIfMatches(current_disc_repository),
     )
 
 

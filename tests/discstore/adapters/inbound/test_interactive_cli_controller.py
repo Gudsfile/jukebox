@@ -11,7 +11,6 @@ def build_controller():
         remove_disc=MagicMock(),
         edit_disc=MagicMock(),
         get_current_disc=MagicMock(),
-        clear_current_disc_if_matches=MagicMock(),
     )
 
 
@@ -30,7 +29,7 @@ def test_handle_current_command_displays_current_disc(capsys):
     ]
 
 
-def test_add_disc_flow_uses_current_tag_as_default_and_clears_on_success():
+def test_add_disc_flow_uses_current_tag_as_default_without_clearing_current_disc():
     controller = build_controller()
     controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
 
@@ -41,7 +40,6 @@ def test_add_disc_flow_uses_current_tag_as_default_and_clears_on_success():
         "tag-123",
         Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption()),
     )
-    controller.clear_current_disc_if_matches.execute.assert_called_once_with("tag-123")
 
 
 def test_edit_disc_flow_uses_current_tag_as_default():

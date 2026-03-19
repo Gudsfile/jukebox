@@ -4,7 +4,6 @@ from typing import Optional
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.domain.entities import CurrentDisc, Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
-from discstore.domain.use_cases.clear_current_disc_if_matches import ClearCurrentDiscIfMatches
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
@@ -24,14 +23,12 @@ class InteractiveCLIController:
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
         get_current_disc: GetCurrentDisc,
-        clear_current_disc_if_matches: ClearCurrentDiscIfMatches,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
         self.get_current_disc = get_current_disc
-        self.clear_current_disc_if_matches = clear_current_disc_if_matches
 
     def run(self) -> None:
         print(self.help_message)
@@ -73,7 +70,6 @@ class InteractiveCLIController:
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        self._clear_current_disc_after_add(tag)
         print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
@@ -129,9 +125,3 @@ class InteractiveCLIController:
             raise ValueError("A tag ID is required.")
 
         return tag
-
-    def _clear_current_disc_after_add(self, tag_id: str) -> None:
-        try:
-            self.clear_current_disc_if_matches.execute(tag_id)
-        except Exception as err:
-            LOGGER.warning(f"Disc added but failed to clear current disc state for tag_id='{tag_id}': {err}")

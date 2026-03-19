@@ -16,11 +16,10 @@ def build_controller():
         get_disc=MagicMock(),
         search_discs=MagicMock(),
         resolve_tag_id=MagicMock(),
-        clear_current_disc_if_matches=MagicMock(),
     )
 
 
-def test_add_disc_flow_resolves_current_tag_and_clears_current_disc():
+def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
     command = CliAddCommand(type="add", current_tag_id=True, uri="/music/song.mp3", track="Song", artist="Artist")
@@ -36,7 +35,6 @@ def test_add_disc_flow_resolves_current_tag_and_clears_current_disc():
             option=DiscOption(),
         ),
     )
-    controller.clear_current_disc_if_matches.execute.assert_called_once_with("tag-current")
 
 
 def test_edit_disc_flow_resolves_current_tag():
@@ -53,7 +51,6 @@ def test_edit_disc_flow_resolves_current_tag():
         metadata=DiscMetadata(track="Updated"),
         option=None,
     )
-    controller.clear_current_disc_if_matches.execute.assert_not_called()
 
 
 def test_remove_disc_flow_resolves_current_tag_without_clearing():
@@ -65,7 +62,6 @@ def test_remove_disc_flow_resolves_current_tag_without_clearing():
 
     controller.resolve_tag_id.execute.assert_called_once_with(None, True)
     controller.remove_disc.execute.assert_called_once_with("tag-current")
-    controller.clear_current_disc_if_matches.execute.assert_not_called()
 
 
 def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
@@ -82,7 +78,6 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
 
     controller.resolve_tag_id.execute.assert_called_once_with(None, True)
     controller.get_disc.execute.assert_called_once_with("tag-current")
-    controller.clear_current_disc_if_matches.execute.assert_not_called()
     assert capsys.readouterr().out.splitlines() == [
         "",
         "📀 Disc: tag-current",

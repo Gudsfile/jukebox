@@ -12,7 +12,6 @@ from discstore.adapters.inbound.config import (
 )
 from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
-from discstore.domain.use_cases.clear_current_disc_if_matches import ClearCurrentDiscIfMatches
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
@@ -33,7 +32,6 @@ class CLIController:
         get_disc: GetDisc,
         search_discs: SearchDiscs,
         resolve_tag_id: ResolveTagId,
-        clear_current_disc_if_matches: ClearCurrentDiscIfMatches,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -42,7 +40,6 @@ class CLIController:
         self.get_disc = get_disc
         self.search_discs = search_discs
         self.resolve_tag_id = resolve_tag_id
-        self.clear_current_disc_if_matches = clear_current_disc_if_matches
 
     def run(
         self,
@@ -72,7 +69,6 @@ class CLIController:
 
         disc = Disc(uri=command.uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        self._clear_current_disc_after_add(tag)
         LOGGER.info("✅ Disc successfully added")
 
     def list_discs_flow(self, command: CliListCommand) -> None:
@@ -127,9 +123,3 @@ class CLIController:
             return
         LOGGER.info(f"Found {len(results)} disc(s) matching '{command.query}':")
         display_library_table(results)
-
-    def _clear_current_disc_after_add(self, tag_id: str) -> None:
-        try:
-            self.clear_current_disc_if_matches.execute(tag_id)
-        except Exception as err:
-            LOGGER.warning(f"Disc added but failed to clear current disc state for tag_id='{tag_id}': {err}")
