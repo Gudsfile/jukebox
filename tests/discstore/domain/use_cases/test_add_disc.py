@@ -16,12 +16,12 @@ def test_add_disc_adds_disc(repo):
     new_disc = Disc(uri="/new.mp3", metadata=DiscMetadata())
     use_case.execute("non-existing-tag", new_disc)
 
-    assert repo.saved_library is not None
-    assert len(repo.saved_library.discs) == 2
-    assert "existing-tag" in repo.saved_library.discs
-    assert repo.saved_library.discs["existing-tag"] != new_disc
-    assert "non-existing-tag" in repo.saved_library.discs
-    assert repo.saved_library.discs["non-existing-tag"] == new_disc
+    assert repo.add_calls == [("non-existing-tag", new_disc)]
+    assert len(repo.library.discs) == 2
+    assert "existing-tag" in repo.library.discs
+    assert repo.library.discs["existing-tag"] != new_disc
+    assert "non-existing-tag" in repo.library.discs
+    assert repo.library.discs["non-existing-tag"] == new_disc
 
 
 def test_add_disc_fails_if_tag_exists(repo):
@@ -32,4 +32,5 @@ def test_add_disc_fails_if_tag_exists(repo):
         use_case.execute("existing-tag", new_disc)
 
     assert "Already existing tag: tag_id='existing-tag'" in str(exc.value)
-    assert repo.saved_library is None
+    assert repo.add_calls == [("existing-tag", new_disc)]
+    assert list(repo.library.discs) == ["existing-tag"]

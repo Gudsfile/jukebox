@@ -9,4 +9,4 @@ class ListDiscs:
         self.repository = repository
 
     def execute(self) -> Dict[str, Disc]:
-        return self.repository.load().discs
+        return self.repository.list_discs()

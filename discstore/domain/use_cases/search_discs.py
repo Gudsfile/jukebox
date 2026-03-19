@@ -9,11 +9,10 @@ class SearchDiscs:
         self.repository = repository
 
     def execute(self, query: str) -> Dict[str, Disc]:
-        library = self.repository.load()
         query_lower = query.lower()
-
         results = {}
-        for tag_id, disc in library.discs.items():
+
+        for tag_id, disc in self.repository.list_discs().items():
             if query_lower in tag_id.lower():
                 results[tag_id] = disc
                 continue

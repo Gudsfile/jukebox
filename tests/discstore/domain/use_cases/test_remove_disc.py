@@ -15,8 +15,8 @@ def test_remove_disc_removes_disc(repo):
 
     use_case.execute("existing-tag")
 
-    assert repo.saved_library is not None
-    assert repo.saved_library.discs == {}
+    assert repo.remove_calls == ["existing-tag"]
+    assert repo.library.discs == {}
 
 
 def test_remove_disc_fails_if_tag_does_not_exists(repo):
@@ -26,3 +26,4 @@ def test_remove_disc_fails_if_tag_does_not_exists(repo):
         use_case.execute("non-existing-tag")
 
     assert "Tag does not exist: tag_id='non-existing-tag'" in str(exc.value)
+    assert repo.remove_calls == ["non-existing-tag"]

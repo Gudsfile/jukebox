@@ -18,6 +18,7 @@ def test_search_by_artist():
 
     results = use_case.execute("Pink")
 
+    assert repo.list_calls == 1
     assert len(results) == 2
     assert "tag:1" in results
     assert "tag:3" in results
@@ -36,6 +37,7 @@ def test_search_by_album():
 
     results = use_case.execute("Dark")
 
+    assert repo.list_calls == 1
     assert len(results) == 1
     assert "tag:1" in results
 
@@ -53,6 +55,7 @@ def test_search_by_track():
 
     results = use_case.execute("money")
 
+    assert repo.list_calls == 1
     assert len(results) == 1
     assert "tag:1" in results
 
@@ -70,6 +73,7 @@ def test_search_by_tag_id():
 
     results = use_case.execute("pink")
 
+    assert repo.list_calls == 1
     assert len(results) == 1
     assert "tag:pink:floyd" in results
 
@@ -86,6 +90,7 @@ def test_search_case_insensitive():
 
     results = use_case.execute("pink floyd")
 
+    assert repo.list_calls == 1
     assert len(results) == 1
 
 
@@ -101,6 +106,7 @@ def test_search_no_results():
 
     results = use_case.execute("nonexistent")
 
+    assert repo.list_calls == 1
     assert len(results) == 0
 
 
@@ -127,4 +133,5 @@ def test_search_multiple_fields():
 
     results = use_case.execute("Test")
 
+    assert repo.list_calls == 1
     assert len(results) == 3

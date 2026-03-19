@@ -7,9 +7,8 @@ class GetDisc:
         self.repository = repository
 
     def execute(self, tag_id: str) -> Disc:
-        library = self.repository.load()
-
-        if tag_id not in library.discs:
+        disc = self.repository.get_disc(tag_id)
+        if disc is None:
             raise ValueError(f"Tag not found: tag_id='{tag_id}'")
 
-        return library.discs[tag_id]
+        return disc
