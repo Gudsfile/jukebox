@@ -16,10 +16,11 @@ def build_controller():
         get_disc=MagicMock(),
         search_discs=MagicMock(),
         resolve_tag_id=MagicMock(),
+        mark_current_disc_known=MagicMock(),
     )
 
 
-def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
+def test_add_disc_flow_marks_current_disc_known_after_using_current_tag():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
     command = CliAddCommand(type="add", use_current_tag=True, uri="/music/song.mp3", track="Song", artist="Artist")
@@ -35,6 +36,17 @@ def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
             option=DiscOption(),
         ),
     )
+    controller.mark_current_disc_known.execute.assert_called_once_with("tag-current")
+
+
+def test_add_disc_flow_does_not_mark_current_disc_known_for_explicit_tag():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-explicit"
+    command = CliAddCommand(type="add", tag="tag-explicit", uri="/music/song.mp3")
+
+    controller.add_disc_flow(command)
+
+    controller.mark_current_disc_known.execute.assert_not_called()
 
 
 def test_edit_disc_flow_resolves_current_tag():

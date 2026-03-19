@@ -15,6 +15,7 @@ from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
+from discstore.domain.use_cases.mark_current_disc_known import MarkCurrentDiscKnown
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
@@ -32,6 +33,7 @@ class CLIController:
         get_disc: GetDisc,
         search_discs: SearchDiscs,
         resolve_tag_id: ResolveTagId,
+        mark_current_disc_known: MarkCurrentDiscKnown,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -40,6 +42,7 @@ class CLIController:
         self.get_disc = get_disc
         self.search_discs = search_discs
         self.resolve_tag_id = resolve_tag_id
+        self.mark_current_disc_known = mark_current_disc_known
 
     def run(
         self,
@@ -69,6 +72,8 @@ class CLIController:
 
         disc = Disc(uri=command.uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
+        if command.use_current_tag:
+            self.mark_current_disc_known.execute(tag)
         LOGGER.info("✅ Disc successfully added")
 
     def list_discs_flow(self, command: CliListCommand) -> None:
