@@ -6,54 +6,38 @@ from discstore.domain.use_cases.update_current_disc_library_status import Update
 
 def test_update_current_disc_library_status_promotes_matching_unknown_disc():
     repository = MagicMock()
-    repository.get.return_value = CurrentDisc(tag_id="tag-123", known_in_library=False)
 
     use_case = UpdateCurrentDiscLibraryStatus(repository)
 
     use_case.execute("tag-123", True)
 
-    repository.save.assert_called_once_with(CurrentDisc(tag_id="tag-123", known_in_library=True))
+    repository.save_if_matches.assert_called_once_with(
+        expected_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=False),
+        new_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=True),
+    )
 
 
 def test_update_current_disc_library_status_demotes_matching_known_disc():
     repository = MagicMock()
-    repository.get.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
 
     use_case = UpdateCurrentDiscLibraryStatus(repository)
 
     use_case.execute("tag-123", False)
 
-    repository.save.assert_called_once_with(CurrentDisc(tag_id="tag-123", known_in_library=False))
+    repository.save_if_matches.assert_called_once_with(
+        expected_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=True),
+        new_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=False),
+    )
 
 
-def test_update_current_disc_library_status_ignores_non_matching_current_disc():
+def test_update_current_disc_library_status_always_uses_compare_and_set():
     repository = MagicMock()
-    repository.get.return_value = CurrentDisc(tag_id="tag-999", known_in_library=True)
 
     use_case = UpdateCurrentDiscLibraryStatus(repository)
 
     use_case.execute("tag-123", False)
 
-    repository.save.assert_not_called()
-
-
-def test_update_current_disc_library_status_ignores_missing_current_disc():
-    repository = MagicMock()
-    repository.get.return_value = None
-
-    use_case = UpdateCurrentDiscLibraryStatus(repository)
-
-    use_case.execute("tag-123", True)
-
-    repository.save.assert_not_called()
-
-
-def test_update_current_disc_library_status_ignores_same_status():
-    repository = MagicMock()
-    repository.get.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
-
-    use_case = UpdateCurrentDiscLibraryStatus(repository)
-
-    use_case.execute("tag-123", True)
-
-    repository.save.assert_not_called()
+    repository.save_if_matches.assert_called_once_with(
+        expected_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=True),
+        new_current_disc=CurrentDisc(tag_id="tag-123", known_in_library=False),
+    )

@@ -7,8 +7,7 @@ class UpdateCurrentDiscLibraryStatus:
         self.repository = repository
 
     def execute(self, tag_id: str, known_in_library: bool) -> None:
-        current_disc = self.repository.get()
-        if current_disc is None or current_disc.tag_id != tag_id or current_disc.known_in_library == known_in_library:
-            return
-
-        self.repository.save(CurrentDisc(tag_id=tag_id, known_in_library=known_in_library))
+        self.repository.save_if_matches(
+            expected_current_disc=CurrentDisc(tag_id=tag_id, known_in_library=not known_in_library),
+            new_current_disc=CurrentDisc(tag_id=tag_id, known_in_library=known_in_library),
+        )

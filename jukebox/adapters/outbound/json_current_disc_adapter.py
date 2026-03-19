@@ -27,30 +27,17 @@ class JsonCurrentDiscAdapter(CurrentDiscRepository):
             return self._read_current_disc()
 
     def save(self, current_disc: CurrentDisc) -> None:
-        directory = os.path.dirname(self.filepath)
-        os.makedirs(directory, exist_ok=True)
-
-        temp_path = None
         with self._exclusive_lock():
-            try:
-                with tempfile.NamedTemporaryFile(
-                    mode="w",
-                    encoding="utf-8",
-                    dir=directory,
-                    delete=False,
-                    prefix="current-disc-",
-                    suffix=".tmp",
-                ) as temp_file:
-                    temp_path = temp_file.name
-                    self._write_json(temp_file, current_disc)
-                    temp_file.flush()
-                    os.fsync(temp_file.fileno())
+            self._save_unlocked(current_disc)
 
-                os.replace(temp_path, self.filepath)
-                self._fsync_directory()
-            finally:
-                if temp_path is not None and os.path.exists(temp_path):
-                    os.unlink(temp_path)
+    def save_if_matches(self, expected_current_disc: CurrentDisc, new_current_disc: CurrentDisc) -> bool:
+        with self._exclusive_lock():
+            current_disc = self._read_current_disc()
+            if current_disc != expected_current_disc:
+                return False
+
+            self._save_unlocked(new_current_disc)
+            return True
 
     def clear(self) -> None:
         with self._exclusive_lock():
@@ -64,6 +51,31 @@ class JsonCurrentDiscAdapter(CurrentDiscRepository):
 
             self._clear_unlocked()
             return True
+
+    def _save_unlocked(self, current_disc: CurrentDisc) -> None:
+        directory = os.path.dirname(self.filepath)
+        os.makedirs(directory, exist_ok=True)
+
+        temp_path = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w",
+                encoding="utf-8",
+                dir=directory,
+                delete=False,
+                prefix="current-disc-",
+                suffix=".tmp",
+            ) as temp_file:
+                temp_path = temp_file.name
+                self._write_json(temp_file, current_disc)
+                temp_file.flush()
+                os.fsync(temp_file.fileno())
+
+            os.replace(temp_path, self.filepath)
+            self._fsync_directory()
+        finally:
+            if temp_path is not None and os.path.exists(temp_path):
+                os.unlink(temp_path)
 
     def _read_current_disc(self) -> Optional[CurrentDisc]:
         try:

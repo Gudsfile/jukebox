@@ -50,6 +50,33 @@ def test_stale_clear_for_tag_a_does_not_remove_newer_tag_b(tmp_path):
     assert adapter.get() == CurrentDisc(tag_id="tag-b", known_in_library=True)
 
 
+def test_save_if_matches_updates_matching_state(tmp_path):
+    adapter = build_adapter(tmp_path)
+    adapter.save(CurrentDisc(tag_id="tag-a", known_in_library=False))
+
+    updated = adapter.save_if_matches(
+        expected_current_disc=CurrentDisc(tag_id="tag-a", known_in_library=False),
+        new_current_disc=CurrentDisc(tag_id="tag-a", known_in_library=True),
+    )
+
+    assert updated is True
+    assert adapter.get() == CurrentDisc(tag_id="tag-a", known_in_library=True)
+
+
+def test_save_if_matches_rejects_stale_state_without_overwriting_newer_disc(tmp_path):
+    adapter = build_adapter(tmp_path)
+    adapter.save(CurrentDisc(tag_id="tag-a", known_in_library=False))
+    adapter.save(CurrentDisc(tag_id="tag-b", known_in_library=True))
+
+    updated = adapter.save_if_matches(
+        expected_current_disc=CurrentDisc(tag_id="tag-a", known_in_library=False),
+        new_current_disc=CurrentDisc(tag_id="tag-a", known_in_library=True),
+    )
+
+    assert updated is False
+    assert adapter.get() == CurrentDisc(tag_id="tag-b", known_in_library=True)
+
+
 def test_no_partial_json_observed_during_writes(tmp_path, monkeypatch):
     adapter = build_adapter(tmp_path)
     old_state = CurrentDisc(tag_id="tag-old", known_in_library=False)

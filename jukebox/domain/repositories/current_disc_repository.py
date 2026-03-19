@@ -14,6 +14,10 @@ class CurrentDiscRepository(ABC):
         pass
 
     @abstractmethod
+    def save_if_matches(self, expected_current_disc: CurrentDisc, new_current_disc: CurrentDisc) -> bool:
+        pass
+
+    @abstractmethod
     def clear(self) -> None:
         pass
 
