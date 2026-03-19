@@ -6,6 +6,8 @@ if sys.version_info < (3, 10):
 import uuid
 from typing import Annotated, List, Optional
 
+from jukebox.shared.dependency_messages import optional_extra_dependency_message
+
 try:
     from fastapi import HTTPException
     from fastapi.responses import HTMLResponse
@@ -14,9 +16,7 @@ try:
     from fastui.events import GoToEvent, PageEvent
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        "The `ui_controller` module requires FastUI dependency. Install it with: pip install gukebox[ui]."
-    ) from e
+    raise ModuleNotFoundError(optional_extra_dependency_message("The `ui_controller` module", "ui", "discstore ui")) from e
 from pydantic import BaseModel, Field
 
 from discstore.adapters.inbound.api_controller import APIController
