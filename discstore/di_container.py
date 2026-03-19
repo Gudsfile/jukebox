@@ -5,8 +5,8 @@ from discstore.adapters.inbound.interactive_cli_controller import (
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from discstore.domain.use_cases.resolve_tag_id import ResolveTagId

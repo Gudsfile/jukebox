@@ -8,14 +8,14 @@ def main():
     set_logger("discstore", config.verbose)
 
     if isinstance(config.command, ApiCommand):
-        import uvicorn  # type: ignore[unresolved-import]
+        import uvicorn
 
         api = build_api_app(config.library)
         uvicorn.run(api.app, host="0.0.0.0", port=config.command.port)
         return
 
     if isinstance(config.command, UiCommand):
-        import uvicorn  # type: ignore[unresolved-import]
+        import uvicorn
 
         ui = build_ui_app(config.library)
         uvicorn.run(ui.app, host="0.0.0.0", port=config.command.port)

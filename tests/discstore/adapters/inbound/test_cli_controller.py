@@ -26,7 +26,7 @@ def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
 
     controller.add_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, require_known=False)
     controller.add_disc.execute.assert_called_once_with(
         "tag-current",
         Disc(
@@ -44,7 +44,7 @@ def test_edit_disc_flow_resolves_current_tag():
 
     controller.edit_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, require_known=True)
     controller.edit_disc.execute.assert_called_once_with(
         tag_id="tag-current",
         uri="/music/updated.mp3",
@@ -60,7 +60,7 @@ def test_remove_disc_flow_resolves_current_tag_without_clearing():
 
     controller.remove_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, require_known=True)
     controller.remove_disc.execute.assert_called_once_with("tag-current")
 
 
@@ -76,7 +76,7 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
 
     controller.get_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, require_known=True)
     controller.get_disc.execute.assert_called_once_with("tag-current")
     assert capsys.readouterr().out.splitlines() == [
         "",
@@ -115,6 +115,15 @@ def test_get_disc_flow_logs_error_when_tag_is_missing(caplog, capsys):
     controller.get_disc.execute.assert_called_once_with("missing-tag")
     assert "Tag not found: tag_id='missing-tag'" in caplog.text
     assert capsys.readouterr().out == ""
+
+
+def test_add_disc_flow_propagates_invalid_current_disc_state():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.side_effect = ValueError("Current disc is already in the library.")
+    command = CliAddCommand(type="add", current_tag_id=True, uri="/music/song.mp3")
+
+    with pytest.raises(ValueError, match="Current disc is already in the library."):
+        controller.add_disc_flow(command)
 
 
 def test_run_propagates_command_errors():

@@ -1,7 +1,7 @@
 from typing import Dict
 
 try:
-    from fastapi import FastAPI, HTTPException  # type: ignore[unresolved-import]
+    from fastapi import FastAPI, HTTPException
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
         "The `api_controller` module requires FastAPI dependencies. Install them with: pip install gukebox[api]."

@@ -1,13 +1,8 @@
 import argparse
 import logging
 import os
+from importlib.metadata import PackageNotFoundError, version
 from typing import Callable, Optional
-
-try:
-    from importlib.metadata import PackageNotFoundError, version  # type: ignore[unresolved-import]
-except ImportError:
-    from importlib_metadata import PackageNotFoundError, version  # type: ignore[unresolved-import]
-
 
 DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
 LOGGER = logging.getLogger("jukebox")

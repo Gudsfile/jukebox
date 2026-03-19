@@ -113,7 +113,12 @@ class InteractiveCLIController:
         print(f"Known in library : {'yes' if current_disc.known_in_library else 'no'}")
 
     def _prompt_for_tag(self, current_disc: Optional[CurrentDisc], action: str) -> str:
-        default_tag = current_disc.tag_id if current_disc is not None else ""
+        default_tag = ""
+        if current_disc is not None and (
+            (action == "add" and not current_disc.known_in_library)
+            or (action == "edit" and current_disc.known_in_library)
+        ):
+            default_tag = current_disc.tag_id
         prompt = f"discstore> {action} tag"
         if default_tag:
             prompt += f" [{default_tag}]"

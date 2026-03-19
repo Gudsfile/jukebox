@@ -31,7 +31,7 @@ def test_handle_current_command_displays_current_disc(capsys):
 
 def test_add_disc_flow_uses_current_tag_as_default_without_clearing_current_disc():
     controller = build_controller()
-    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
+    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=False)
 
     with patch("builtins.input", side_effect=["", "/music/song.mp3"]), patch("builtins.print"):
         controller.add_disc_flow()
@@ -55,6 +55,32 @@ def test_edit_disc_flow_uses_current_tag_as_default():
         DiscMetadata(),
         DiscOption(),
     )
+
+
+def test_add_disc_flow_does_not_default_to_known_library_tag():
+    controller = build_controller()
+    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
+
+    with patch("builtins.input", side_effect=["other-tag", "/music/song.mp3"]), patch("builtins.print"):
+        controller.add_disc_flow()
+
+    controller.add_disc.execute.assert_called_once_with(
+        "other-tag",
+        Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption()),
+    )
+
+
+def test_edit_disc_flow_requires_explicit_tag_when_current_disc_is_unknown():
+    controller = build_controller()
+    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-456", known_in_library=False)
+
+    with patch("builtins.input", side_effect=[""]), patch("builtins.print"):
+        try:
+            controller.edit_disc_flow()
+        except ValueError as err:
+            assert str(err) == "A tag ID is required."
+        else:
+            raise AssertionError("Expected ValueError")
 
 
 def test_add_disc_flow_requires_a_tag_when_no_current_disc_exists():
