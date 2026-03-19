@@ -116,8 +116,8 @@ class CLIController:
             print(f"  Track    : {disc.metadata.track or '/'}")
             print(f"  Playlist : {disc.metadata.playlist or '/'}")
             print(f"  Shuffle  : {disc.option.shuffle}")
-        except ValueError as err:
-            LOGGER.error(str(err))
+        except ValueError as e:
+            LOGGER.error(str(e))
 
     def search_discs_flow(self, command: CliSearchCommand) -> None:
         results = self.search_discs.execute(command.query)
