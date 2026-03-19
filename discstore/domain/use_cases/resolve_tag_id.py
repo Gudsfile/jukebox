@@ -10,7 +10,7 @@ class ResolveTagId:
     def execute(self, tag_id: Optional[str], use_current_tag: bool, require_known: bool) -> str:
         has_explicit_tag_id = bool(tag_id)
         if has_explicit_tag_id == use_current_tag:
-            raise ValueError("Exactly one tag source must be provided: explicit tag or --current-tag-id.")
+            raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")
 
         if has_explicit_tag_id:
             return tag_id  # type: ignore[return-value]

@@ -94,8 +94,8 @@ def test_parse_edit_command():
     assert config.command.album == "Code Hits"
 
 
-@patch("sys.argv", ["prog_name", "add", "--current-tag-id", "/path/to/media.mp3"])
-def test_parse_add_command_with_current_tag_id():
+@patch("sys.argv", ["prog_name", "add", "--from-current", "/path/to/media.mp3"])
+def test_parse_add_command_with_from_current():
     config = parse_config()
 
     assert isinstance(config.command, CliAddCommand)
@@ -104,8 +104,8 @@ def test_parse_add_command_with_current_tag_id():
     assert config.command.uri == "/path/to/media.mp3"
 
 
-@patch("sys.argv", ["prog_name", "get", "--current-tag-id"])
-def test_parse_get_command_with_current_tag_id():
+@patch("sys.argv", ["prog_name", "get", "--from-current"])
+def test_parse_get_command_with_from_current():
     config = parse_config()
 
     assert isinstance(config.command, CliGetCommand)
@@ -114,8 +114,16 @@ def test_parse_get_command_with_current_tag_id():
     assert config.command.use_current_tag is True
 
 
-@patch("sys.argv", ["prog_name", "remove", "tag-to-delete", "--current-tag-id"])
+@patch("sys.argv", ["prog_name", "remove", "tag-to-delete", "--from-current"])
 def test_tag_source_validation_error_exits():
+    with pytest.raises(SystemExit) as e:
+        parse_config()
+
+    assert e.value.code == 1
+
+
+@patch("sys.argv", ["prog_name", "add", "tag-to-add", "--from-current"])
+def test_ambiguous_add_from_current_exits():
     with pytest.raises(SystemExit) as e:
         parse_config()
 
