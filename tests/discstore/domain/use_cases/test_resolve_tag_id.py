@@ -26,19 +26,19 @@ def test_resolve_tag_id_uses_current_disc_when_requested():
 
 
 @pytest.mark.parametrize(
-    ("tag_id", "current_tag_id", "message"),
+    ("tag_id", "use_current_tag", "message"),
     [
         ("tag-123", True, "Exactly one tag source must be provided"),
         (None, False, "Exactly one tag source must be provided"),
     ],
 )
-def test_resolve_tag_id_rejects_invalid_tag_source_combinations(tag_id, current_tag_id, message):
+def test_resolve_tag_id_rejects_invalid_tag_source_combinations(tag_id, use_current_tag, message):
     get_current_disc = MagicMock()
 
     use_case = ResolveTagId(get_current_disc)
 
     with pytest.raises(ValueError, match=message):
-        use_case.execute(tag_id, current_tag_id, require_known=True)
+        use_case.execute(tag_id, use_current_tag, require_known=True)
 
 
 def test_resolve_tag_id_fails_when_current_disc_is_missing():

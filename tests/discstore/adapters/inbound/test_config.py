@@ -38,7 +38,7 @@ def test_parse_add_command():
     assert isinstance(config.command, CliAddCommand)
     assert config.command.type == "add"
     assert config.command.tag == "my-tag"
-    assert config.command.current_tag_id is False
+    assert config.command.use_current_tag is False
     assert config.command.uri == "/path/to/media.mp3"
     assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
@@ -61,7 +61,7 @@ def test_parse_remove_command():
     assert isinstance(config.command, CliRemoveCommand)
     assert config.command.type == "remove"
     assert config.command.tag == "tag-to-delete"
-    assert config.command.current_tag_id is False
+    assert config.command.use_current_tag is False
 
 
 @patch(
@@ -87,7 +87,7 @@ def test_parse_edit_command():
     assert isinstance(config.command, CliEditCommand)
     assert config.command.type == "edit"
     assert config.command.tag == "my-tag"
-    assert config.command.current_tag_id is False
+    assert config.command.use_current_tag is False
     assert config.command.uri == "/path/to/media.mp3"
     assert config.command.track == "My Song"
     assert config.command.artist == "The Testers"
@@ -100,7 +100,7 @@ def test_parse_add_command_with_current_tag_id():
 
     assert isinstance(config.command, CliAddCommand)
     assert config.command.tag is None
-    assert config.command.current_tag_id is True
+    assert config.command.use_current_tag is True
     assert config.command.uri == "/path/to/media.mp3"
 
 
@@ -111,7 +111,7 @@ def test_parse_get_command_with_current_tag_id():
     assert isinstance(config.command, CliGetCommand)
     assert config.command.type == "get"
     assert config.command.tag is None
-    assert config.command.current_tag_id is True
+    assert config.command.use_current_tag is True
 
 
 @patch("sys.argv", ["prog_name", "remove", "tag-to-delete", "--current-tag-id"])

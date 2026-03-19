@@ -18,12 +18,12 @@ LOGGER = logging.getLogger("discstore")
 
 class CliTagSourceCommand(BaseModel):
     tag: Optional[str] = None
-    current_tag_id: bool = False
+    use_current_tag: bool = False
 
     @model_validator(mode="after")
     def validate_tag_source(self):
         has_explicit_tag = bool(self.tag)
-        if has_explicit_tag == self.current_tag_id:
+        if has_explicit_tag == self.use_current_tag:
             raise ValueError("Exactly one tag source must be provided: explicit tag or --current-tag-id.")
         return self
 
@@ -101,6 +101,7 @@ class DiscStoreConfig(BaseModel):
 def add_current_tag_id_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--current-tag-id",
+        dest="use_current_tag",
         action="store_true",
         help="Resolve the tag ID from shared current-disc.json state",
     )
@@ -171,7 +172,7 @@ def parse_config() -> DiscStoreConfig:
     args_dict.pop("library")
     command_name = args_dict.pop("command")
 
-    if command_name == "add" and args_dict.get("current_tag_id") and args_dict.get("uri") is None and args_dict.get("tag"):
+    if command_name == "add" and args_dict.get("use_current_tag") and args_dict.get("uri") is None and args_dict.get("tag"):
         args_dict["uri"] = args_dict["tag"]
         args_dict["tag"] = None
 

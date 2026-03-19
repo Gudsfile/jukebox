@@ -22,7 +22,7 @@ def build_controller():
 def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
-    command = CliAddCommand(type="add", current_tag_id=True, uri="/music/song.mp3", track="Song", artist="Artist")
+    command = CliAddCommand(type="add", use_current_tag=True, uri="/music/song.mp3", track="Song", artist="Artist")
 
     controller.add_disc_flow(command)
 
@@ -40,7 +40,7 @@ def test_add_disc_flow_resolves_current_tag_without_clearing_current_disc():
 def test_edit_disc_flow_resolves_current_tag():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
-    command = CliEditCommand(type="edit", current_tag_id=True, uri="/music/updated.mp3", track="Updated")
+    command = CliEditCommand(type="edit", use_current_tag=True, uri="/music/updated.mp3", track="Updated")
 
     controller.edit_disc_flow(command)
 
@@ -56,7 +56,7 @@ def test_edit_disc_flow_resolves_current_tag():
 def test_remove_disc_flow_resolves_current_tag_without_clearing():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
-    command = CliRemoveCommand(type="remove", current_tag_id=True)
+    command = CliRemoveCommand(type="remove", use_current_tag=True)
 
     controller.remove_disc_flow(command)
 
@@ -72,7 +72,7 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
         metadata=DiscMetadata(artist="Artist"),
         option=DiscOption(shuffle=True),
     )
-    command = CliGetCommand(type="get", current_tag_id=True)
+    command = CliGetCommand(type="get", use_current_tag=True)
 
     controller.get_disc_flow(command)
 
@@ -93,7 +93,7 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
 def test_get_disc_flow_logs_error_when_current_disc_is_missing(caplog, capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.side_effect = ValueError("No current disc is available.")
-    command = CliGetCommand(type="get", current_tag_id=True)
+    command = CliGetCommand(type="get", use_current_tag=True)
 
     with caplog.at_level("ERROR", logger="discstore"):
         controller.get_disc_flow(command)
@@ -120,7 +120,7 @@ def test_get_disc_flow_logs_error_when_tag_is_missing(caplog, capsys):
 def test_add_disc_flow_propagates_invalid_current_disc_state():
     controller = build_controller()
     controller.resolve_tag_id.execute.side_effect = ValueError("Current disc is already in the library.")
-    command = CliAddCommand(type="add", current_tag_id=True, uri="/music/song.mp3")
+    command = CliAddCommand(type="add", use_current_tag=True, uri="/music/song.mp3")
 
     with pytest.raises(ValueError, match="Current disc is already in the library."):
         controller.add_disc_flow(command)
