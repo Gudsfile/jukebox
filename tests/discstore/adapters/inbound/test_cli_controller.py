@@ -16,7 +16,7 @@ def build_controller():
         get_disc=MagicMock(),
         search_discs=MagicMock(),
         resolve_tag_id=MagicMock(),
-        mark_current_disc_known=MagicMock(),
+        update_current_disc_library_status=MagicMock(),
     )
 
 
@@ -36,17 +36,29 @@ def test_add_disc_flow_marks_current_disc_known_after_using_current_tag():
             option=DiscOption(),
         ),
     )
-    controller.mark_current_disc_known.execute.assert_called_once_with("tag-current")
+    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-current", True)
 
 
-def test_add_disc_flow_does_not_mark_current_disc_known_for_explicit_tag():
+def test_add_disc_flow_updates_current_disc_status_for_explicit_tag():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-explicit"
     command = CliAddCommand(type="add", tag="tag-explicit", uri="/music/song.mp3")
 
     controller.add_disc_flow(command)
 
-    controller.mark_current_disc_known.execute.assert_not_called()
+    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-explicit", True)
+
+
+def test_add_disc_flow_does_not_update_current_disc_status_when_add_fails():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-explicit"
+    controller.add_disc.execute.side_effect = ValueError("Already existing tag")
+    command = CliAddCommand(type="add", tag="tag-explicit", uri="/music/song.mp3")
+
+    with pytest.raises(ValueError, match="Already existing tag"):
+        controller.add_disc_flow(command)
+
+    controller.update_current_disc_library_status.execute.assert_not_called()
 
 
 def test_edit_disc_flow_resolves_current_tag():
@@ -74,6 +86,19 @@ def test_remove_disc_flow_resolves_current_tag_without_clearing():
 
     controller.resolve_tag_id.execute.assert_called_once_with(None, True, require_known=True)
     controller.remove_disc.execute.assert_called_once_with("tag-current")
+    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-current", False)
+
+
+def test_remove_disc_flow_does_not_update_current_disc_when_remove_fails():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")
+    command = CliRemoveCommand(type="remove", use_current_tag=True)
+
+    with pytest.raises(ValueError, match="Tag does not exist"):
+        controller.remove_disc_flow(command)
+
+    controller.update_current_disc_library_status.execute.assert_not_called()
 
 
 def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):

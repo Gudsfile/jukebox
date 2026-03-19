@@ -21,7 +21,9 @@ def mocks(mocker):
         edit_disc_class: MagicMock = mocker.patch("discstore.di_container.EditDisc")
         get_disc_class: MagicMock = mocker.patch("discstore.di_container.GetDisc")
         get_current_disc_class: MagicMock = mocker.patch("discstore.di_container.GetCurrentDisc")
-        mark_current_disc_known_class: MagicMock = mocker.patch("discstore.di_container.MarkCurrentDiscKnown")
+        update_current_disc_library_status_class: MagicMock = mocker.patch(
+            "discstore.di_container.UpdateCurrentDiscLibraryStatus"
+        )
         resolve_tag_id_class: MagicMock = mocker.patch("discstore.di_container.ResolveTagId")
         search_discs_class: MagicMock = mocker.patch("discstore.di_container.SearchDiscs")
         repo_instance: MagicMock = MagicMock()
@@ -32,7 +34,7 @@ def mocks(mocker):
         edit_disc_instance: MagicMock = MagicMock()
         get_disc_instance: MagicMock = MagicMock()
         get_current_disc_instance: MagicMock = MagicMock()
-        mark_current_disc_known_instance: MagicMock = MagicMock()
+        update_current_disc_library_status_instance: MagicMock = MagicMock()
         resolve_tag_id_instance: MagicMock = MagicMock()
         search_discs_instance: MagicMock = MagicMock()
 
@@ -46,7 +48,7 @@ def mocks(mocker):
     mocks.edit_disc_class.return_value = mocks.edit_disc_instance
     mocks.get_disc_class.return_value = mocks.get_disc_instance
     mocks.get_current_disc_class.return_value = mocks.get_current_disc_instance
-    mocks.mark_current_disc_known_class.return_value = mocks.mark_current_disc_known_instance
+    mocks.update_current_disc_library_status_class.return_value = mocks.update_current_disc_library_status_instance
     mocks.resolve_tag_id_class.return_value = mocks.resolve_tag_id_instance
     mocks.search_discs_class.return_value = mocks.search_discs_instance
 
@@ -70,7 +72,7 @@ def test_build_cli_controller_wiring(mocker, mocks):
     mocks.get_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.search_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
-    mocks.mark_current_disc_known_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.update_current_disc_library_status_class.assert_called_once_with(mocks.current_disc_repo_instance)
     mocks.resolve_tag_id_class.assert_called_once_with(mocks.get_current_disc_instance)
     mock_cli_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
@@ -80,7 +82,7 @@ def test_build_cli_controller_wiring(mocker, mocks):
         mocks.get_disc_instance,
         mocks.search_discs_instance,
         mocks.resolve_tag_id_instance,
-        mocks.mark_current_disc_known_instance,
+        mocks.update_current_disc_library_status_instance,
     )
     assert result is mock_cli_controller_instance
 
@@ -100,14 +102,14 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
-    mocks.mark_current_disc_known_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.update_current_disc_library_status_class.assert_called_once_with(mocks.current_disc_repo_instance)
     mock_interactive_cli_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
         mocks.get_current_disc_instance,
-        mocks.mark_current_disc_known_instance,
+        mocks.update_current_disc_library_status_instance,
     )
     assert result is mock_interactive_cli_instance
 

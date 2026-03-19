@@ -3,10 +3,10 @@ from .edit_disc import EditDisc
 from .get_current_disc import GetCurrentDisc
 from .get_disc import GetDisc
 from .list_discs import ListDiscs
-from .mark_current_disc_known import MarkCurrentDiscKnown
 from .remove_disc import RemoveDisc
 from .resolve_tag_id import ResolveTagId
 from .search_discs import SearchDiscs
+from .update_current_disc_library_status import UpdateCurrentDiscLibraryStatus
 
 __all__ = [
     "AddDisc",
@@ -14,8 +14,8 @@ __all__ = [
     "GetDisc",
     "GetCurrentDisc",
     "ListDiscs",
-    "MarkCurrentDiscKnown",
     "RemoveDisc",
     "ResolveTagId",
     "SearchDiscs",
+    "UpdateCurrentDiscLibraryStatus",
 ]
