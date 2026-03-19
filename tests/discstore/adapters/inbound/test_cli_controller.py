@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from discstore.adapters.inbound.cli_controller import CLIController
 from discstore.adapters.inbound.config import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
 from discstore.domain.entities import Disc, DiscMetadata, DiscOption
@@ -91,3 +93,12 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
         "  Playlist : /",
         "  Shuffle  : True",
     ]
+
+
+def test_run_propagates_command_errors():
+    controller = build_controller()
+    controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")
+    command = CliRemoveCommand(type="remove", tag="missing-tag")
+
+    with pytest.raises(ValueError, match="Tag does not exist"):
+        controller.run(command)

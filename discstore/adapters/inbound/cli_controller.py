@@ -50,23 +50,20 @@ class CLIController:
             CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand, CliGetCommand, CliSearchCommand
         ],
     ) -> None:
-        try:
-            if isinstance(command, CliAddCommand):
-                self.add_disc_flow(command)
-            elif isinstance(command, CliListCommand):
-                self.list_discs_flow(command)
-            elif isinstance(command, CliRemoveCommand):
-                self.remove_disc_flow(command)
-            elif isinstance(command, CliEditCommand):
-                self.edit_disc_flow(command)
-            elif isinstance(command, CliGetCommand):
-                self.get_disc_flow(command)
-            elif isinstance(command, CliSearchCommand):
-                self.search_discs_flow(command)
-            else:
-                LOGGER.error(f"Command not implemented yet: command='{command}'")
-        except ValueError as err:
-            LOGGER.error(str(err))
+        if isinstance(command, CliAddCommand):
+            self.add_disc_flow(command)
+        elif isinstance(command, CliListCommand):
+            self.list_discs_flow(command)
+        elif isinstance(command, CliRemoveCommand):
+            self.remove_disc_flow(command)
+        elif isinstance(command, CliEditCommand):
+            self.edit_disc_flow(command)
+        elif isinstance(command, CliGetCommand):
+            self.get_disc_flow(command)
+        elif isinstance(command, CliSearchCommand):
+            self.search_discs_flow(command)
+        else:
+            LOGGER.error(f"Command not implemented yet: command='{command}'")
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.current_tag_id)
