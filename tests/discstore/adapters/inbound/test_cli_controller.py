@@ -90,6 +90,33 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
     ]
 
 
+def test_get_disc_flow_logs_error_when_current_disc_is_missing(caplog, capsys):
+    controller = build_controller()
+    controller.resolve_tag_id.execute.side_effect = ValueError("No current disc is available.")
+    command = CliGetCommand(type="get", current_tag_id=True)
+
+    with caplog.at_level("ERROR", logger="discstore"):
+        controller.get_disc_flow(command)
+
+    controller.get_disc.execute.assert_not_called()
+    assert "No current disc is available." in caplog.text
+    assert capsys.readouterr().out == ""
+
+
+def test_get_disc_flow_logs_error_when_tag_is_missing(caplog, capsys):
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "missing-tag"
+    controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing-tag'")
+    command = CliGetCommand(type="get", tag="missing-tag")
+
+    with caplog.at_level("ERROR", logger="discstore"):
+        controller.get_disc_flow(command)
+
+    controller.get_disc.execute.assert_called_once_with("missing-tag")
+    assert "Tag not found: tag_id='missing-tag'" in caplog.text
+    assert capsys.readouterr().out == ""
+
+
 def test_run_propagates_command_errors():
     controller = build_controller()
     controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")

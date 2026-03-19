@@ -106,15 +106,18 @@ class CLIController:
         LOGGER.info("✅ Disc successfully edited")
 
     def get_disc_flow(self, command: CliGetCommand) -> None:
-        tag = self.resolve_tag_id.execute(command.tag, command.current_tag_id)
-        disc = self.get_disc.execute(tag)
-        print(f"\n📀 Disc: {tag}")
-        print(f"  URI      : {disc.uri}")
-        print(f"  Artist   : {disc.metadata.artist or '/'}")
-        print(f"  Album    : {disc.metadata.album or '/'}")
-        print(f"  Track    : {disc.metadata.track or '/'}")
-        print(f"  Playlist : {disc.metadata.playlist or '/'}")
-        print(f"  Shuffle  : {disc.option.shuffle}")
+        try:
+            tag = self.resolve_tag_id.execute(command.tag, command.current_tag_id)
+            disc = self.get_disc.execute(tag)
+            print(f"\n📀 Disc: {tag}")
+            print(f"  URI      : {disc.uri}")
+            print(f"  Artist   : {disc.metadata.artist or '/'}")
+            print(f"  Album    : {disc.metadata.album or '/'}")
+            print(f"  Track    : {disc.metadata.track or '/'}")
+            print(f"  Playlist : {disc.metadata.playlist or '/'}")
+            print(f"  Shuffle  : {disc.option.shuffle}")
+        except ValueError as err:
+            LOGGER.error(str(err))
 
     def search_discs_flow(self, command: CliSearchCommand) -> None:
         results = self.search_discs.execute(command.query)
