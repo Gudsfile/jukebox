@@ -5,7 +5,7 @@ from discstore.adapters.inbound.interactive_cli_controller import (
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
@@ -17,7 +17,7 @@ from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAda
 def build_cli_controller(library_path: str):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(library_path)
-    get_current_disc = GetCurrentDisc(current_tag_repository, repository)
+    get_current_tag_status = GetCurrentTagStatus(current_tag_repository, repository)
     return CLIController(
         AddDisc(repository),
         ListDiscs(repository),
@@ -25,7 +25,7 @@ def build_cli_controller(library_path: str):
         EditDisc(repository),
         GetDisc(repository),
         SearchDiscs(repository),
-        ResolveTagId(get_current_disc),
+        ResolveTagId(get_current_tag_status),
     )
 
 
@@ -37,7 +37,7 @@ def build_interactive_cli_controller(library_path: str):
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
-        GetCurrentDisc(current_tag_repository, repository),
+        GetCurrentTagStatus(current_tag_repository, repository),
     )
 
 

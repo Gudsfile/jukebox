@@ -1,6 +1,6 @@
 from .add_disc import AddDisc
 from .edit_disc import EditDisc
-from .get_current_disc import GetCurrentDisc
+from .get_current_tag_status import GetCurrentTagStatus
 from .get_disc import GetDisc
 from .list_discs import ListDiscs
 from .remove_disc import RemoveDisc
@@ -11,7 +11,7 @@ __all__ = [
     "AddDisc",
     "EditDisc",
     "GetDisc",
-    "GetCurrentDisc",
+    "GetCurrentTagStatus",
     "ListDiscs",
     "RemoveDisc",
     "ResolveTagId",
