@@ -185,9 +185,11 @@ def test_current_tag_banner_for_known_disc_is_informational_only():
 
     components = controller._build_current_tag_banner_components(CurrentTagStatus(tag_id="tag-123", known_in_library=True))
     all_components = list(walk_components(components))
+    button = next(component for component in all_components if component.type == "Button")
 
     assert any(component.type == "Heading" and component.text == "Known disc on reader" for component in all_components)
-    assert all(component.type != "Button" for component in all_components)
+    assert button.text == "Edit this disc"
+    assert button.on_click.url == "/discs/tag-123/edit"
 
 
 @pytest.mark.skipif(

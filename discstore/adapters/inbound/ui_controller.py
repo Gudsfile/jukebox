@@ -221,10 +221,19 @@ class UIController(APIController):
         if current_tag_status.known_in_library:
             return [
                 c.Div(
-                    class_name="alert alert-info mb-3",
+                    class_name="alert alert-info mb-3 d-flex flex-column flex-md-row gap-3 justify-content-between align-items-md-center",
                     components=[
-                        c.Heading(text="Known disc on reader", level=4),
-                        c.Paragraph(text=f'Tag "{current_tag_status.tag_id}" is already in the library.'),
+                        c.Div(
+                            class_name="mb-0",
+                            components=[
+                                c.Heading(text="Known disc on reader", level=4),
+                                c.Paragraph(text=f'Tag "{current_tag_status.tag_id}" is already in the library.'),
+                            ],
+                        ),
+                        c.Button(
+                            text="Edit this disc",
+                            on_click=GoToEvent(url=f"/discs/{current_tag_status.tag_id}/edit"),
+                        ),
                     ],
                 )
             ]
