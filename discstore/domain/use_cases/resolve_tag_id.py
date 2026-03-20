@@ -13,6 +13,7 @@ class ResolveTagId:
             raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")
 
         if has_explicit_tag_id:
+            assert tag_id is not None
             return tag_id
 
         current_tag_status = self.get_current_tag_status.execute()
