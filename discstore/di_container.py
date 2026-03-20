@@ -3,6 +3,7 @@ from discstore.adapters.inbound.interactive_cli_controller import (
     InteractiveCLIController,
 )
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
+from discstore.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
@@ -11,7 +12,6 @@ from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
-from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 
 
 def build_cli_controller(library_path: str):
