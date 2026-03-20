@@ -42,7 +42,7 @@ class TestBuildJukebox:
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_tag.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/current-tag.txt")
 
         # Should create player and reader
         mock_player.assert_called_once_with(host="192.168.1.100")
@@ -69,7 +69,7 @@ class TestBuildJukebox:
         reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_tag.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/current-tag.txt")
         mock_player.assert_called_once()
         mock_reader.assert_called_once()
 
