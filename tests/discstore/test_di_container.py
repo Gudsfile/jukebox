@@ -14,41 +14,36 @@ from discstore.di_container import (
 def mocks(mocker):
     class Mocks:
         repo_class: MagicMock = mocker.patch("discstore.di_container.JsonLibraryAdapter")
-        current_disc_repo_class: MagicMock = mocker.patch("discstore.di_container.JsonCurrentDiscAdapter")
+        current_tag_repo_class: MagicMock = mocker.patch("discstore.di_container.TextCurrentTagAdapter")
         add_disc_class: MagicMock = mocker.patch("discstore.di_container.AddDisc")
         list_discs_class: MagicMock = mocker.patch("discstore.di_container.ListDiscs")
         remove_disc_class: MagicMock = mocker.patch("discstore.di_container.RemoveDisc")
         edit_disc_class: MagicMock = mocker.patch("discstore.di_container.EditDisc")
         get_disc_class: MagicMock = mocker.patch("discstore.di_container.GetDisc")
         get_current_disc_class: MagicMock = mocker.patch("discstore.di_container.GetCurrentDisc")
-        update_current_disc_library_status_class: MagicMock = mocker.patch(
-            "discstore.di_container.UpdateCurrentDiscLibraryStatus"
-        )
         resolve_tag_id_class: MagicMock = mocker.patch("discstore.di_container.ResolveTagId")
         search_discs_class: MagicMock = mocker.patch("discstore.di_container.SearchDiscs")
         repo_instance: MagicMock = MagicMock()
-        current_disc_repo_instance: MagicMock = MagicMock()
+        current_tag_repo_instance: MagicMock = MagicMock()
         add_disc_instance: MagicMock = MagicMock()
         list_discs_instance: MagicMock = MagicMock()
         remove_disc_instance: MagicMock = MagicMock()
         edit_disc_instance: MagicMock = MagicMock()
         get_disc_instance: MagicMock = MagicMock()
         get_current_disc_instance: MagicMock = MagicMock()
-        update_current_disc_library_status_instance: MagicMock = MagicMock()
         resolve_tag_id_instance: MagicMock = MagicMock()
         search_discs_instance: MagicMock = MagicMock()
 
     mocks = Mocks()
 
     mocks.repo_class.return_value = mocks.repo_instance
-    mocks.current_disc_repo_class.return_value = mocks.current_disc_repo_instance
+    mocks.current_tag_repo_class.return_value = mocks.current_tag_repo_instance
     mocks.add_disc_class.return_value = mocks.add_disc_instance
     mocks.list_discs_class.return_value = mocks.list_discs_instance
     mocks.remove_disc_class.return_value = mocks.remove_disc_instance
     mocks.edit_disc_class.return_value = mocks.edit_disc_instance
     mocks.get_disc_class.return_value = mocks.get_disc_instance
     mocks.get_current_disc_class.return_value = mocks.get_current_disc_instance
-    mocks.update_current_disc_library_status_class.return_value = mocks.update_current_disc_library_status_instance
     mocks.resolve_tag_id_class.return_value = mocks.resolve_tag_id_instance
     mocks.search_discs_class.return_value = mocks.search_discs_instance
 
@@ -64,15 +59,14 @@ def test_build_cli_controller_wiring(mocker, mocks):
     result = build_cli_controller("fake_library_path")
 
     mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_disc_repo_class.assert_called_once_with("fake_library_path")
+    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.get_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.search_discs_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
-    mocks.update_current_disc_library_status_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.get_current_disc_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mocks.resolve_tag_id_class.assert_called_once_with(mocks.get_current_disc_instance)
     mock_cli_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
@@ -82,7 +76,6 @@ def test_build_cli_controller_wiring(mocker, mocks):
         mocks.get_disc_instance,
         mocks.search_discs_instance,
         mocks.resolve_tag_id_instance,
-        mocks.update_current_disc_library_status_instance,
     )
     assert result is mock_cli_controller_instance
 
@@ -96,20 +89,18 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
     result = build_interactive_cli_controller("fake_library_path")
 
     mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_disc_repo_class.assert_called_once_with("fake_library_path")
+    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
-    mocks.update_current_disc_library_status_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.get_current_disc_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mock_interactive_cli_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
         mocks.get_current_disc_instance,
-        mocks.update_current_disc_library_status_instance,
     )
     assert result is mock_interactive_cli_instance
 

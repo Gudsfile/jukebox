@@ -8,7 +8,6 @@ from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
-from discstore.domain.use_cases.update_current_disc_library_status import UpdateCurrentDiscLibraryStatus
 
 LOGGER = logging.getLogger("discstore")
 
@@ -24,14 +23,12 @@ class InteractiveCLIController:
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
         get_current_disc: GetCurrentDisc,
-        update_current_disc_library_status: UpdateCurrentDiscLibraryStatus,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
         self.get_current_disc = get_current_disc
-        self.update_current_disc_library_status = update_current_disc_library_status
 
     def run(self) -> None:
         print(self.help_message)
@@ -73,8 +70,6 @@ class InteractiveCLIController:
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        if current_disc is not None and not current_disc.known_in_library and tag == current_disc.tag_id:
-            self.update_current_disc_library_status.execute(tag, True)
         print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
@@ -94,7 +89,6 @@ class InteractiveCLIController:
         print("\n-- Remove a disc --")
         tag = input("discstore> remove tag> ").strip()
         self.remove_disc.execute(tag)
-        self.update_current_disc_library_status.execute(tag, False)
         print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:

@@ -11,7 +11,6 @@ def build_controller():
         remove_disc=MagicMock(),
         edit_disc=MagicMock(),
         get_current_disc=MagicMock(),
-        update_current_disc_library_status=MagicMock(),
     )
 
 
@@ -30,7 +29,7 @@ def test_handle_current_command_displays_current_disc(capsys):
     ]
 
 
-def test_add_disc_flow_marks_current_disc_known_when_using_current_tag_default():
+def test_add_disc_flow_uses_current_tag_default_for_unknown_disc():
     controller = build_controller()
     controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=False)
 
@@ -41,7 +40,6 @@ def test_add_disc_flow_marks_current_disc_known_when_using_current_tag_default()
         "tag-123",
         Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption()),
     )
-    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-123", True)
 
 
 def test_edit_disc_flow_uses_current_tag_as_default():
@@ -70,20 +68,18 @@ def test_add_disc_flow_does_not_default_to_known_library_tag():
         "other-tag",
         Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption()),
     )
-    controller.update_current_disc_library_status.execute.assert_not_called()
 
 
-def test_remove_disc_flow_marks_current_disc_unknown_after_success():
+def test_remove_disc_flow_removes_requested_tag():
     controller = build_controller()
 
     with patch("builtins.input", side_effect=["tag-123"]), patch("builtins.print"):
         controller.remove_disc_flow()
 
     controller.remove_disc.execute.assert_called_once_with("tag-123")
-    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-123", False)
 
 
-def test_remove_disc_flow_does_not_update_current_disc_when_remove_fails():
+def test_remove_disc_flow_propagates_remove_failures():
     controller = build_controller()
     controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")
 
@@ -94,8 +90,6 @@ def test_remove_disc_flow_does_not_update_current_disc_when_remove_fails():
             assert str(err) == "Tag does not exist"
         else:
             raise AssertionError("Expected ValueError")
-
-    controller.update_current_disc_library_status.execute.assert_not_called()
 
 
 def test_edit_disc_flow_requires_explicit_tag_when_current_disc_is_unknown():

@@ -17,12 +17,12 @@ class ResolveTagId:
 
         current_disc = self.get_current_disc.execute()
         if current_disc is None:
-            raise ValueError("No current disc is available.")
+            raise ValueError("No current tag is available.")
 
         if require_known and not current_disc.known_in_library:
-            raise ValueError("Current disc is not in the library.")
+            raise ValueError("Current tag is not in the library.")
 
         if not require_known and current_disc.known_in_library:
-            raise ValueError("Current disc is already in the library.")
+            raise ValueError("Current tag is already in the library.")
 
         return current_disc.tag_id

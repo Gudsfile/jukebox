@@ -104,7 +104,7 @@ def add_from_current_arg(parser: argparse.ArgumentParser) -> None:
         "--from-current",
         dest="use_current_tag",
         action="store_true",
-        help="Resolve the tag ID from shared current-disc.json state",
+        help="Resolve the tag ID from shared current-tag.txt state",
     )
 
 

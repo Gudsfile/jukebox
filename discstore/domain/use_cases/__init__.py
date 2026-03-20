@@ -6,7 +6,6 @@ from .list_discs import ListDiscs
 from .remove_disc import RemoveDisc
 from .resolve_tag_id import ResolveTagId
 from .search_discs import SearchDiscs
-from .update_current_disc_library_status import UpdateCurrentDiscLibraryStatus
 
 __all__ = [
     "AddDisc",
@@ -17,5 +16,4 @@ __all__ = [
     "RemoveDisc",
     "ResolveTagId",
     "SearchDiscs",
-    "UpdateCurrentDiscLibraryStatus",
 ]

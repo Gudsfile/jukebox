@@ -47,7 +47,7 @@ def test_resolve_tag_id_fails_when_current_disc_is_missing():
 
     use_case = ResolveTagId(get_current_disc)
 
-    with pytest.raises(ValueError, match="No current disc is available"):
+    with pytest.raises(ValueError, match="No current tag is available"):
         use_case.execute(None, True, require_known=True)
 
 
@@ -57,7 +57,7 @@ def test_resolve_tag_id_rejects_add_when_current_disc_is_already_known():
 
     use_case = ResolveTagId(get_current_disc)
 
-    with pytest.raises(ValueError, match="Current disc is already in the library."):
+    with pytest.raises(ValueError, match="Current tag is already in the library."):
         use_case.execute(None, True, require_known=False)
 
 
@@ -67,5 +67,5 @@ def test_resolve_tag_id_rejects_get_when_current_disc_is_unknown():
 
     use_case = ResolveTagId(get_current_disc)
 
-    with pytest.raises(ValueError, match="Current disc is not in the library."):
+    with pytest.raises(ValueError, match="Current tag is not in the library."):
         use_case.execute(None, True, require_known=True)
