@@ -24,12 +24,12 @@ def test_dependencies_import_failure(mocker):
 
 @pytest.mark.skipif(importlib.util.find_spec("fastapi") is None, reason="FastAPI dependencies are not installed")
 @pytest.mark.parametrize("known_in_library", [True, False])
-def test_get_current_disc_returns_current_disc_payload(known_in_library):
+def test_get_current_tag_returns_current_tag_payload(known_in_library):
     controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(
         tag_id="tag-123", known_in_library=known_in_library
     )
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-disc")
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag")
 
     response = route.endpoint()
 
@@ -39,10 +39,10 @@ def test_get_current_disc_returns_current_disc_payload(known_in_library):
 
 
 @pytest.mark.skipif(importlib.util.find_spec("fastapi") is None, reason="FastAPI dependencies are not installed")
-def test_get_current_disc_returns_no_content_when_absent():
+def test_get_current_tag_returns_no_content_when_absent():
     controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
     controller.get_current_tag_status.execute.return_value = None
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-disc")
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag")
 
     response = route.endpoint()
 

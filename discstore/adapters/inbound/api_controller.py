@@ -55,11 +55,11 @@ class APIController:
             return self.list_discs.execute()
 
         @self.app.get(
-            "/api/v1/current-disc",
+            "/api/v1/current-tag",
             response_model=CurrentTagStatusOutput,
-            responses={204: {"description": "No current disc"}},
+            responses={204: {"description": "No current tag"}},
         )
-        def get_current_disc():
+        def get_current_tag():
             current_tag_status = self.get_current_tag_status.execute()
             if current_tag_status is None:
                 return Response(status_code=204)
