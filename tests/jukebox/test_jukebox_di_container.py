@@ -8,7 +8,13 @@ from jukebox.adapters.inbound.config import (
     PlaybackConfig,
     SonosPlayerConfig,
 )
-from jukebox.di_container import build_jukebox
+from jukebox.di_container import _get_current_tag_path, build_jukebox
+
+
+def test_get_current_tag_path_derives_path_beside_library(tmp_path):
+    library_path = tmp_path / "nested" / "library.json"
+
+    assert _get_current_tag_path(str(library_path)) == str(tmp_path / "nested" / "current-tag.txt")
 
 
 class TestBuildJukebox:
@@ -42,7 +48,7 @@ class TestBuildJukebox:
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_tag.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/current-tag.txt")
 
         # Should create player and reader
         mock_player.assert_called_once_with(host="192.168.1.100")
@@ -69,7 +75,7 @@ class TestBuildJukebox:
         reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_tag.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/current-tag.txt")
         mock_player.assert_called_once()
         mock_reader.assert_called_once()
 

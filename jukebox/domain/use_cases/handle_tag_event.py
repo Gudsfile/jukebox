@@ -29,7 +29,6 @@ class HandleTagEvent:
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
         elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
         self._advance_session_clock(tag_event, session, elapsed_seconds)
-        disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
         self._sync_current_tag_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
@@ -51,6 +50,7 @@ class HandleTagEvent:
         elif action == PlaybackAction.PLAY:
             LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
 
+            disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
                 session.previous_tag = tag_event.tag_id
@@ -114,8 +114,7 @@ class HandleTagEvent:
             self._sync_current_tag(tag_event, session)
         except Exception as err:
             LOGGER.warning(
-                "Failed to sync current tag state; continuing tag handling: "
-                f"tag_id={tag_event.tag_id!r}, error={err}"
+                f"Failed to sync current tag state; continuing tag handling: tag_id={tag_event.tag_id!r}, error={err}"
             )
 
     def _sync_current_tag(self, tag_event: TagEvent, session: PlaybackSession) -> None:
