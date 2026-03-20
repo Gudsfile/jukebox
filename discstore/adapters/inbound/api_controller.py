@@ -3,7 +3,7 @@ from typing import Dict
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 try:
-    from fastapi import FastAPI, HTTPException  # type: ignore[unresolved-import]
+    from fastapi import FastAPI, HTTPException
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")) from e
 

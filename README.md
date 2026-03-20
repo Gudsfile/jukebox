@@ -112,7 +112,11 @@ Initialize the library file with `discstore` or manually create it at `~/.jukebo
 To associate an URI with an NFC tag:
 
 ```shell
-discstore add tag_id uri
+discstore add tag_id --uri /path/to/media.mp3
+```
+or to pull the `tag_id` currently on the reader:
+```shell
+discstore add --from-current --uri /path/to/media.mp3
 ```
 
 Other commands are available, use `--help` to see them.

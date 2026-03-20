@@ -1,5 +1,3 @@
-import os
-
 from jukebox.adapters.inbound.config import (
     DryrunPlayerConfig,
     DryrunReaderConfig,
@@ -14,11 +12,7 @@ from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReader
 from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
-
-
-def _get_current_tag_path(library_path: str) -> str:
-    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
-    return os.path.join(library_dir, "current-tag.txt")
+from jukebox.shared.config_utils import get_current_tag_path
 
 
 def build_jukebox(config: JukeboxConfig):
@@ -35,7 +29,7 @@ def build_jukebox(config: JukeboxConfig):
     """
     # Outbound adapters
     library = JsonLibraryAdapter(config.library)
-    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(config.library))
+    current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library))
 
     if isinstance(config.player, SonosPlayerConfig):
         player = SonosPlayerAdapter(host=config.player.host)

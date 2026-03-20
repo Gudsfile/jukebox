@@ -9,6 +9,13 @@ from jukebox.adapters.inbound.config import (
     SonosPlayerConfig,
 )
 from jukebox.di_container import build_jukebox
+from jukebox.shared.config_utils import get_current_tag_path
+
+
+def test_get_current_tag_path_derives_path_beside_library(tmp_path):
+    library_path = tmp_path / "nested" / "library.json"
+
+    assert get_current_tag_path(str(library_path)) == str(tmp_path / "nested" / "current-tag.txt")
 
 
 class TestBuildJukebox:

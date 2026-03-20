@@ -16,6 +16,7 @@ from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
+from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
 
 LOGGER = logging.getLogger("discstore")
@@ -30,6 +31,7 @@ class CLIController:
         edit_disc: EditDisc,
         get_disc: GetDisc,
         search_discs: SearchDiscs,
+        resolve_tag_id: ResolveTagId,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -37,6 +39,7 @@ class CLIController:
         self.edit_disc = edit_disc
         self.get_disc = get_disc
         self.search_discs = search_discs
+        self.resolve_tag_id = resolve_tag_id
 
     def run(
         self,
@@ -60,12 +63,11 @@ class CLIController:
             LOGGER.error(f"Command not implemented yet: command='{command}'")
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
-        tag = command.tag
-        uri = command.uri
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
         option = DiscOption()
-        metadata = DiscMetadata(**command.model_dump())
+        metadata = DiscMetadata(track=command.track, artist=command.artist, album=command.album)
 
-        disc = Disc(uri=uri, metadata=metadata, option=option)
+        disc = Disc(uri=command.uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
         LOGGER.info("✅ Disc successfully added")
 
@@ -80,7 +82,8 @@ class CLIController:
         LOGGER.error(f"Displaying mode not implemented yet: mode='{command.mode}'")
 
     def remove_disc_flow(self, command: CliRemoveCommand) -> None:
-        self.remove_disc.execute(command.tag)
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+        self.remove_disc.execute(tag)
         LOGGER.info("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self, command: CliEditCommand) -> None:
@@ -95,7 +98,7 @@ class CLIController:
         metadata = DiscMetadata(**metadata_fields) if metadata_fields else None
 
         self.edit_disc.execute(
-            tag_id=command.tag,
+            tag_id=self.resolve_tag_id.execute(command.tag, command.use_current_tag),
             uri=command.uri,
             metadata=metadata,
             option=None,
@@ -104,8 +107,9 @@ class CLIController:
 
     def get_disc_flow(self, command: CliGetCommand) -> None:
         try:
-            disc = self.get_disc.execute(command.tag)
-            print(f"\n📀 Disc: {command.tag}")
+            tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+            disc = self.get_disc.execute(tag)
+            print(f"\n📀 Disc: {tag}")
             print(f"  URI      : {disc.uri}")
             print(f"  Artist   : {disc.metadata.artist or '/'}")
             print(f"  Album    : {disc.metadata.album or '/'}")
