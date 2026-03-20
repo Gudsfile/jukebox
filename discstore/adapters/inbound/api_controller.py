@@ -5,7 +5,9 @@ from jukebox.shared.dependency_messages import optional_extra_dependency_message
 try:
     from fastapi import FastAPI, HTTPException, Response
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")) from e
+    raise ModuleNotFoundError(
+        optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")
+    ) from e
 
 from discstore.domain.entities import CurrentTagStatus, Disc
 from discstore.domain.use_cases.add_disc import AddDisc
