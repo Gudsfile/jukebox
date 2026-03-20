@@ -1,3 +1,5 @@
+import os
+
 from jukebox.adapters.inbound.config import (
     DryrunPlayerConfig,
     DryrunReaderConfig,
@@ -9,8 +11,14 @@ from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.players.dryrun_player_adapter import DryrunPlayerAdapter
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
 from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReaderAdapter
+from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
+
+
+def _get_current_tag_path(library_path: str) -> str:
+    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
+    return os.path.join(library_dir, "current-tag.txt")
 
 
 def build_jukebox(config: JukeboxConfig):
@@ -27,6 +35,7 @@ def build_jukebox(config: JukeboxConfig):
     """
     # Outbound adapters
     library = JsonLibraryAdapter(config.library)
+    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(config.library))
 
     if isinstance(config.player, SonosPlayerConfig):
         player = SonosPlayerAdapter(host=config.player.host)
@@ -53,6 +62,7 @@ def build_jukebox(config: JukeboxConfig):
     handle_tag_event = HandleTagEvent(
         player=player,
         library=library,
+        current_tag_repository=current_tag_repository,
         determine_action=determine_action,
     )
 

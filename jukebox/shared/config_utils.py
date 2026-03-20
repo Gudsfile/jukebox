@@ -30,8 +30,6 @@ def get_deprecated_env_with_warning(
     if deprecated_value:
         logger_warning(f"The {deprecated_var} environment variable is deprecated, use {new_var} instead.")
     return os.environ.get(new_var, deprecated_value or default)
-
-
 def add_library_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-l",
