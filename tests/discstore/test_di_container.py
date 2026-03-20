@@ -2,13 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from discstore.di_container import (
-    _get_current_tag_path,
-    build_api_app,
-    build_cli_controller,
-    build_interactive_cli_controller,
-    build_ui_app,
-)
+from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
+from jukebox.shared.config_utils import get_current_tag_path
 
 
 @pytest.fixture
@@ -54,7 +49,7 @@ def mocks(mocker):
 def test_get_current_tag_path_derives_path_beside_library(tmp_path):
     library_path = tmp_path / "nested" / "library.json"
 
-    assert _get_current_tag_path(str(library_path)) == str(tmp_path / "nested" / "current-tag.txt")
+    assert get_current_tag_path(str(library_path)) == str(tmp_path / "nested" / "current-tag.txt")
 
 
 def test_build_cli_controller_wiring(mocker, mocks):
