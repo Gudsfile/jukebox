@@ -4,8 +4,6 @@ import os
 from importlib.metadata import PackageNotFoundError, version
 from typing import Callable, Optional
 
-from shared_storage.current_tag_paths import get_current_tag_path
-
 DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
 LOGGER = logging.getLogger("jukebox")
 
@@ -27,6 +25,13 @@ def get_deprecated_env_with_warning(
     if deprecated_value:
         logger_warning(f"The {deprecated_var} environment variable is deprecated, use {new_var} instead.")
     return os.environ.get(new_var, deprecated_value or default)
+
+
+def get_current_tag_path(library_path: str) -> str:
+    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
+    return os.path.join(library_dir, "current-tag.txt")
+
+
 def add_library_arg(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "-l",

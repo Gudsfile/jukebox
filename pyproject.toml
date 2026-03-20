@@ -79,7 +79,7 @@ requires = ["uv_build>=0.8.7,<0.11.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = ["jukebox", "discstore", "shared_storage", "pn532"]
+module-name = ["jukebox", "discstore", "pn532"]
 module-root = ""
 
 [project.scripts]

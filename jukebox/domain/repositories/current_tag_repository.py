@@ -1,3 +1,16 @@
-from shared_storage.current_tag_repository import CurrentTagRepository
+from abc import ABC, abstractmethod
+from typing import Optional
 
-__all__ = ["CurrentTagRepository"]
+
+class CurrentTagRepository(ABC):
+    @abstractmethod
+    def get(self) -> Optional[str]:
+        pass
+
+    @abstractmethod
+    def set(self, tag_id: str) -> None:
+        pass
+
+    @abstractmethod
+    def clear(self) -> None:
+        pass

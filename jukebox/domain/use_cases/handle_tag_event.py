@@ -1,9 +1,8 @@
 import logging
 
-from shared_storage.current_tag_repository import CurrentTagRepository
 from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
 from jukebox.domain.ports import PlayerPort
-from jukebox.domain.repositories import LibraryRepository
+from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
 from jukebox.domain.use_cases.determine_action import DetermineAction
 
 LOGGER = logging.getLogger("jukebox")

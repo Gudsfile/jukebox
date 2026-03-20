@@ -1,7 +1,7 @@
 from typing import Optional
 
 from discstore.domain.entities import CurrentTagStatus
-from discstore.domain.repositories import CurrentTagRepository, LibraryRepository
+from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
 
 
 class GetCurrentTagStatus:

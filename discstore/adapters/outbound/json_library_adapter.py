@@ -1,3 +1,3 @@
-from shared_storage.json_library_adapter import JsonLibraryAdapter
+from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 
 __all__ = ["JsonLibraryAdapter"]
