@@ -1,4 +1,4 @@
-from .current_disc_repository import CurrentDiscRepository
+from .current_tag_repository import CurrentTagRepository
 from .library_repository import LibraryRepository
 
-__all__ = ["LibraryRepository", "CurrentDiscRepository"]
+__all__ = ["LibraryRepository", "CurrentTagRepository"]
