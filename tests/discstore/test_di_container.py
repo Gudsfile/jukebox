@@ -115,18 +115,18 @@ def test_build_api_app_wiring(mocker, mocks):
     result = build_api_app("fake_library_path")
 
     mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_disc_repo_class.assert_called_once_with("fake_library_path")
+    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.get_current_tag_status_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mock_api_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
-        mocks.get_current_disc_instance,
+        mocks.get_current_tag_status_instance,
     )
     assert result is mock_api_instance
 
@@ -141,17 +141,17 @@ def test_build_ui_app_wiring(mocker, mocks):
     result = build_ui_app("fake_library_path")
 
     mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_disc_repo_class.assert_called_once_with("fake_library_path")
+    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_disc_class.assert_called_once_with(mocks.current_disc_repo_instance)
+    mocks.get_current_tag_status_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mock_ui_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
-        mocks.get_current_disc_instance,
+        mocks.get_current_tag_status_instance,
     )
     assert result is mock_ui_instance

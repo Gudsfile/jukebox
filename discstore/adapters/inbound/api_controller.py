@@ -7,10 +7,10 @@ try:
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")) from e
 
-from discstore.domain.entities import CurrentDisc, Disc
+from discstore.domain.entities import CurrentTagStatus, Disc
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 
@@ -23,7 +23,7 @@ class DiscOutput(Disc):
     pass
 
 
-class CurrentDiscOutput(CurrentDisc):
+class CurrentTagStatusOutput(CurrentTagStatus):
     pass
 
 
@@ -34,13 +34,13 @@ class APIController:
         list_discs: ListDiscs,
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
-        get_current_disc: GetCurrentDisc,
+        get_current_tag_status: GetCurrentTagStatus,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
-        self.get_current_disc = get_current_disc
+        self.get_current_tag_status = get_current_tag_status
         self.app = FastAPI(
             title="DiscStore API",
             description="API for managing Jukebox disc library",
@@ -56,15 +56,15 @@ class APIController:
 
         @self.app.get(
             "/api/v1/current-disc",
-            response_model=CurrentDiscOutput,
+            response_model=CurrentTagStatusOutput,
             responses={204: {"description": "No current disc"}},
         )
         def get_current_disc():
-            current_disc = self.get_current_disc.execute()
-            if current_disc is None:
+            current_tag_status = self.get_current_tag_status.execute()
+            if current_tag_status is None:
                 return Response(status_code=204)
 
-            return CurrentDiscOutput(**current_disc.model_dump())
+            return CurrentTagStatusOutput(**current_tag_status.model_dump())
 
         @self.app.post("/api/v1/disc", status_code=201)
         def add_or_edit_disc(tag_id: str, disc: DiscInput):
