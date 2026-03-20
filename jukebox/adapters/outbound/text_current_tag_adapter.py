@@ -4,7 +4,6 @@ import tempfile
 from typing import Optional
 
 from jukebox.domain.repositories import CurrentTagRepository
-from jukebox.shared.config_utils import get_current_tag_path
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -16,8 +15,8 @@ class TextCurrentTagAdapter(CurrentTagRepository):
     single expected writer, so no cross-process lock file is maintained.
     """
 
-    def __init__(self, library_path: str):
-        self.filepath = get_current_tag_path(library_path)
+    def __init__(self, filepath: str):
+        self.filepath = filepath
 
     def get(self) -> Optional[str]:
         return self._read_current_tag()

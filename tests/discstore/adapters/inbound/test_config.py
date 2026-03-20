@@ -23,6 +23,7 @@ from jukebox.shared.config_utils import DEFAULT_LIBRARY_PATH
         "prog_name",
         "add",
         "my-tag",
+        "--uri",
         "/path/to/media.mp3",
         "--track",
         "My Song",
@@ -65,6 +66,16 @@ def test_parse_remove_command():
     assert config.command.use_current_tag is False
 
 
+@patch("sys.argv", ["prog_name", "remove", "--from-current"])
+def test_parse_remove_command_with_from_current():
+    config = parse_config()
+
+    assert isinstance(config.command, CliRemoveCommand)
+    assert config.command.type == "remove"
+    assert config.command.tag is None
+    assert config.command.use_current_tag is True
+
+
 @patch(
     "sys.argv",
     [
@@ -95,7 +106,18 @@ def test_parse_edit_command():
     assert config.command.album == "Code Hits"
 
 
-@patch("sys.argv", ["prog_name", "add", "--from-current", "/path/to/media.mp3"])
+@patch("sys.argv", ["prog_name", "edit", "--from-current", "--artist", "The Testers"])
+def test_parse_edit_command_with_from_current():
+    config = parse_config()
+
+    assert isinstance(config.command, CliEditCommand)
+    assert config.command.type == "edit"
+    assert config.command.tag is None
+    assert config.command.use_current_tag is True
+    assert config.command.artist == "The Testers"
+
+
+@patch("sys.argv", ["prog_name", "add", "--from-current", "--uri", "/path/to/media.mp3"])
 def test_parse_add_command_with_from_current():
     config = parse_config()
 
@@ -103,6 +125,16 @@ def test_parse_add_command_with_from_current():
     assert config.command.tag is None
     assert config.command.use_current_tag is True
     assert config.command.uri == "/path/to/media.mp3"
+
+
+@patch("sys.argv", ["prog_name", "get", "tag-to-fetch"])
+def test_parse_get_command():
+    config = parse_config()
+
+    assert isinstance(config.command, CliGetCommand)
+    assert config.command.type == "get"
+    assert config.command.tag == "tag-to-fetch"
+    assert config.command.use_current_tag is False
 
 
 @patch("sys.argv", ["prog_name", "get", "--from-current"])
@@ -123,8 +155,8 @@ def test_tag_source_validation_error_exits():
     assert e.value.code == 1
 
 
-@patch("sys.argv", ["prog_name", "add", "tag-to-add", "--from-current"])
-def test_ambiguous_add_from_current_exits():
+@patch("sys.argv", ["prog_name", "add", "tag-to-add", "--from-current", "--uri", "/path/to/media.mp3"])
+def test_conflicting_add_tag_sources_exit():
     with pytest.raises(SystemExit) as e:
         parse_config()
 
@@ -194,9 +226,9 @@ def test_default_library_path():
 
 
 @patch("sys.argv", ["prog_name", "add", "a-tag-without-a-uri"])
-def test_validation_error_exits():
+def test_add_without_required_uri_exits():
     with pytest.raises(SystemExit) as e:
         parse_config()
 
     assert e.type is SystemExit
-    assert e.value.code == 1
+    assert e.value.code == 2

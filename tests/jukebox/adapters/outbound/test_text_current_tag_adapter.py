@@ -7,7 +7,7 @@ from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAda
 
 
 def build_adapter(tmp_path: Path) -> TextCurrentTagAdapter:
-    return TextCurrentTagAdapter(str(tmp_path / "library.json"))
+    return TextCurrentTagAdapter(str(tmp_path / "current-tag.txt"))
 
 
 def test_save_is_atomic_when_replace_fails(tmp_path, monkeypatch):
