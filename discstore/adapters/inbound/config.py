@@ -213,19 +213,26 @@ def parse_config() -> DiscStoreConfig:
     command_name = args_dict.pop("command")
 
     try:
-        if command_name == "add" and args_dict.get("use_current_tag") and is_ambiguous_add_from_current(
-            get_command_args(command_name)
+        if (
+            command_name == "add"
+            and args_dict.get("use_current_tag")
+            and is_ambiguous_add_from_current(get_command_args(command_name))
         ):
             raise ValueError("Ambiguous add invocation: place --from-current before the URI and do not pass a tag.")
 
-        if command_name == "add" and args_dict.get("use_current_tag") and args_dict.get("uri") is None and args_dict.get("tag"):
+        if (
+            command_name == "add"
+            and args_dict.get("use_current_tag")
+            and args_dict.get("uri") is None
+            and args_dict.get("tag")
+        ):
             args_dict["uri"] = args_dict["tag"]
             args_dict["tag"] = None
 
         command_config = {"type": command_name, **args_dict}
 
         # Build and validate final config
-        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)  # type: ignore[invalid-argument-type]
+        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)
     except (ValidationError, ValueError) as err:
         LOGGER.error("Config error: %s", err)
         exit(1)
