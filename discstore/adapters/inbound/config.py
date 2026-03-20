@@ -232,7 +232,9 @@ def parse_config() -> DiscStoreConfig:
         command_config = {"type": command_name, **args_dict}
 
         # Build and validate final config
-        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)
+        config = DiscStoreConfig.model_validate(
+            {"library": args.library, "verbose": args.verbose, "command": command_config}
+        )
     except (ValidationError, ValueError) as err:
         LOGGER.error("Config error: %s", err)
         exit(1)
