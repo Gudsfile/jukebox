@@ -23,7 +23,7 @@ from discstore.adapters.inbound.api_controller import APIController
 from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 
@@ -49,9 +49,9 @@ class UIController(APIController):
         list_discs: ListDiscs,
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
-        get_current_disc: GetCurrentDisc,
+        get_current_tag_status: GetCurrentTagStatus,
     ):
-        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_disc)
+        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status)
         self.register_routes()
 
     def register_routes(self):

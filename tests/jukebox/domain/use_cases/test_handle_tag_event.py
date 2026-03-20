@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from jukebox.domain.entities import CurrentDisc, Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
@@ -34,19 +34,17 @@ def determine_action():
 
 
 @pytest.fixture
-def mock_current_disc_repository():
-    repository = MagicMock()
-    repository.clear_if_matches.return_value = True
-    return repository
+def mock_current_tag_repository():
+    return MagicMock()
 
 
 @pytest.fixture
-def handle_tag_event(mock_player, mock_library, mock_current_disc_repository, determine_action):
+def handle_tag_event(mock_player, mock_library, mock_current_tag_repository, determine_action):
     """Create a HandleTagEvent instance."""
     return HandleTagEvent(
         player=mock_player,
         library=mock_library,
-        current_disc_repository=mock_current_disc_repository,
+        current_tag_repository=mock_current_tag_repository,
         determine_action=determine_action,
     )
 
@@ -68,83 +66,73 @@ def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mo
     assert new_session.tag_removed_seconds == 0
 
 
-def test_known_tag_writes_current_disc_with_known_in_library_true(
-    handle_tag_event, mock_current_disc_repository, mock_library
-):
+def test_known_tag_writes_current_tag(handle_tag_event, mock_current_tag_repository, mock_library):
     session = PlaybackSession()
 
     handle_tag_event.execute(TagEvent(tag_id="known-tag", timestamp=100.0), session)
 
     mock_library.get_disc.assert_called_once_with("known-tag")
-    mock_current_disc_repository.save.assert_called_once_with(
-        CurrentDisc(tag_id="known-tag", known_in_library=True)
-    )
+    mock_current_tag_repository.set.assert_called_once_with("known-tag")
 
 
-def test_unknown_tag_writes_current_disc_with_known_in_library_false(
-    handle_tag_event, mock_current_disc_repository, mock_library
-):
+def test_unknown_tag_writes_current_tag(handle_tag_event, mock_current_tag_repository, mock_library):
     mock_library.get_disc.return_value = None
     session = PlaybackSession()
 
     handle_tag_event.execute(TagEvent(tag_id="unknown-tag", timestamp=100.0), session)
 
-    mock_current_disc_repository.save.assert_called_once_with(
-        CurrentDisc(tag_id="unknown-tag", known_in_library=False)
-    )
+    mock_current_tag_repository.set.assert_called_once_with("unknown-tag")
 
 
-def test_same_tag_does_not_rewrite_current_disc_unnecessarily(
-    handle_tag_event, mock_current_disc_repository
+def test_same_tag_does_not_rewrite_current_tag_unnecessarily(
+    handle_tag_event, mock_current_tag_repository
 ):
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="same-tag", timestamp=100.0), session)
     session = handle_tag_event.execute(TagEvent(tag_id="same-tag", timestamp=100.2), session)
 
-    assert mock_current_disc_repository.save.call_count == 1
+    assert mock_current_tag_repository.set.call_count == 1
     assert session.physical_tag == "same-tag"
-    assert session.physical_tag_known_in_library is True
 
 
-def test_different_tag_replaces_current_disc_state(
-    handle_tag_event, mock_current_disc_repository
+def test_different_tag_replaces_current_tag_state(
+    handle_tag_event, mock_current_tag_repository
 ):
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-a", timestamp=100.0), session)
     session = handle_tag_event.execute(TagEvent(tag_id="tag-b", timestamp=100.2), session)
 
-    assert mock_current_disc_repository.save.call_args_list == [
-        call(CurrentDisc(tag_id="tag-a", known_in_library=True)),
-        call(CurrentDisc(tag_id="tag-b", known_in_library=True)),
+    assert mock_current_tag_repository.set.call_args_list == [
+        call("tag-a"),
+        call("tag-b"),
     ]
     assert session.physical_tag == "tag-b"
 
 
-def test_current_disc_survives_brief_missed_reads_and_clears_after_absence_grace(
-    handle_tag_event, mock_current_disc_repository
+def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
+    handle_tag_event, mock_current_tag_repository
 ):
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.0), session)
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.4), session)
 
-    mock_current_disc_repository.clear_if_matches.assert_not_called()
+    mock_current_tag_repository.clear.assert_not_called()
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.8), session)
-    assert mock_current_disc_repository.save.call_count == 1
+    assert mock_current_tag_repository.set.call_count == 1
     assert session.physical_tag_removed_seconds == 0.0
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=101.9), session)
 
-    mock_current_disc_repository.clear_if_matches.assert_called_once_with("tag-1")
+    mock_current_tag_repository.clear.assert_called_once_with()
     assert session.physical_tag is None
-    assert session.physical_tag_known_in_library is None
 
 
-def test_unknown_tag_promotes_to_known_and_starts_playback_on_next_loop(
-    handle_tag_event, mock_current_disc_repository, mock_library, mock_player
+def test_unknown_tag_promotes_to_known_without_rewriting_current_tag(
+    handle_tag_event, mock_current_tag_repository, mock_library, mock_player
 ):
     promoted_disc = Disc(uri="uri:promoted", metadata=DiscMetadata(), option=DiscOption(shuffle=True))
     mock_library.get_disc.side_effect = [None, promoted_disc]
@@ -153,19 +141,16 @@ def test_unknown_tag_promotes_to_known_and_starts_playback_on_next_loop(
     session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.0), session)
     session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.2), session)
 
-    assert mock_current_disc_repository.save.call_args_list == [
-        call(CurrentDisc(tag_id="promote-tag", known_in_library=False)),
-        call(CurrentDisc(tag_id="promote-tag", known_in_library=True)),
-    ]
+    mock_current_tag_repository.set.assert_called_once_with("promote-tag")
     mock_player.play.assert_called_once_with("uri:promoted", True)
     assert session.previous_tag == "promote-tag"
     assert session.current_tag == "promote-tag"
 
 
-def test_current_disc_save_failure_does_not_block_playback(
-    handle_tag_event, mock_current_disc_repository, mock_player
+def test_current_tag_set_failure_does_not_block_playback(
+    handle_tag_event, mock_current_tag_repository, mock_player
 ):
-    mock_current_disc_repository.save.side_effect = OSError("disk full")
+    mock_current_tag_repository.set.side_effect = OSError("disk full")
     session = PlaybackSession()
 
     new_session = handle_tag_event.execute(TagEvent(tag_id="known-tag", timestamp=100.0), session)
@@ -175,16 +160,15 @@ def test_current_disc_save_failure_does_not_block_playback(
     assert new_session.previous_tag == "known-tag"
 
 
-def test_current_disc_clear_failure_does_not_block_pause(
-    handle_tag_event, mock_current_disc_repository, mock_player
+def test_current_tag_clear_failure_does_not_block_pause(
+    handle_tag_event, mock_current_tag_repository, mock_player
 ):
     handle_tag_event.determine_action.pause_delay = 0.25
-    mock_current_disc_repository.clear_if_matches.side_effect = OSError("permission denied")
+    mock_current_tag_repository.clear.side_effect = OSError("permission denied")
     session = PlaybackSession(
         current_tag="known-tag",
         previous_tag="known-tag",
         physical_tag="known-tag",
-        physical_tag_known_in_library=True,
         physical_tag_removed_seconds=0.99,
         tag_removed_seconds=0.24,
         last_event_timestamp=100.0,
