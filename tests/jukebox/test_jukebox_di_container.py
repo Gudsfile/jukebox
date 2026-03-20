@@ -15,9 +15,9 @@ class TestBuildJukebox:
     """Tests for build_jukebox function."""
 
     @patch("jukebox.di_container.SonosPlayerAdapter")
-    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
+    @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_current_disc, mock_player, mocker):
+    def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_current_tag, mock_player, mocker):
         """Should build jukebox with Sonos player and NFC reader."""
         mock_nfc_instance = MagicMock()
         mock_nfc_controller_class = MagicMock(return_value=mock_nfc_instance)
@@ -42,7 +42,7 @@ class TestBuildJukebox:
 
         # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_disc.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/library.json")
 
         # Should create player and reader
         mock_player.assert_called_once_with(host="192.168.1.100")
@@ -54,9 +54,9 @@ class TestBuildJukebox:
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
-    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
+    @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_with_dryrun(self, mock_library, mock_current_disc, mock_reader, mock_player):
+    def test_build_jukebox_with_dryrun(self, mock_library, mock_current_tag, mock_reader, mock_player):
         """Should build jukebox with dryrun player and reader."""
         config = JukeboxConfig(
             library="/test/library.json",
@@ -69,7 +69,7 @@ class TestBuildJukebox:
         reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
-        mock_current_disc.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/library.json")
         mock_player.assert_called_once()
         mock_reader.assert_called_once()
 
@@ -78,10 +78,10 @@ class TestBuildJukebox:
 
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
-    @patch("jukebox.di_container.JsonCurrentDiscAdapter")
+    @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
     def test_build_jukebox_passes_correct_parameters_to_determine_action(
-        self, mock_library, mock_current_disc, mock_reader, mock_player
+        self, mock_library, mock_current_tag, mock_reader, mock_player
     ):
         """Should pass pause_delay and max_pause_duration to DetermineAction."""
         config = JukeboxConfig(
