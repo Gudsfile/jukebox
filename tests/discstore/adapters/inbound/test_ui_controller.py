@@ -309,7 +309,8 @@ async def test_current_tag_banner_event_stream_emits_serialized_updates():
     request.is_disconnected = AsyncMock(side_effect=[False])
 
     stream = controller._current_tag_banner_event_stream(request, poll_interval_seconds=0)
-    first_chunk = await anext(stream)
+    # Avoid the Python 3.10+ `anext` builtin because this repo still supports Python 3.9.
+    first_chunk = await stream.__anext__()
 
     assert first_chunk.decode("utf-8").startswith("data: [")
     assert "Unknown disc on reader" in first_chunk.decode("utf-8")
