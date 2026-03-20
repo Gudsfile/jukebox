@@ -11,7 +11,7 @@ from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
-from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
+from shared_storage.text_current_tag_adapter import TextCurrentTagAdapter
 
 
 def build_cli_controller(library_path: str):

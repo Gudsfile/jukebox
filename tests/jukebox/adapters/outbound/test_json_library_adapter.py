@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
+from shared_storage.json_library_adapter import JsonLibraryAdapter
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
 
 

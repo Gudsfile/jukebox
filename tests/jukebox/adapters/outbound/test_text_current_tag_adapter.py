@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
+from shared_storage.text_current_tag_adapter import TextCurrentTagAdapter
 
 
 def build_adapter(tmp_path: Path) -> TextCurrentTagAdapter:
@@ -18,7 +18,7 @@ def test_save_is_atomic_when_replace_fails(tmp_path, monkeypatch):
     def raise_replace_error(_source, _target):
         raise OSError("replace failed")
 
-    monkeypatch.setattr("jukebox.adapters.outbound.text_current_tag_adapter.os.replace", raise_replace_error)
+    monkeypatch.setattr("shared_storage.text_current_tag_adapter.os.replace", raise_replace_error)
 
     with pytest.raises(OSError, match="replace failed"):
         adapter.set("tag-b")

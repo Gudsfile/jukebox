@@ -1,3 +1,5 @@
+from shared_storage.json_library_adapter import JsonLibraryAdapter
+from shared_storage.text_current_tag_adapter import TextCurrentTagAdapter
 from jukebox.adapters.inbound.config import (
     DryrunPlayerConfig,
     DryrunReaderConfig,
@@ -5,11 +7,9 @@ from jukebox.adapters.inbound.config import (
     NfcReaderConfig,
     SonosPlayerConfig,
 )
-from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.players.dryrun_player_adapter import DryrunPlayerAdapter
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
 from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReaderAdapter
-from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
