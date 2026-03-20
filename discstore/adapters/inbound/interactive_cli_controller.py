@@ -2,13 +2,12 @@ import logging
 from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.domain.entities import CurrentDisc, Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
-from discstore.domain.use_cases.update_current_disc_library_status import UpdateCurrentDiscLibraryStatus
 
 LOGGER = logging.getLogger("discstore")
 
@@ -23,15 +22,13 @@ class InteractiveCLIController:
         list_discs: ListDiscs,
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
-        get_current_disc: GetCurrentDisc,
-        update_current_disc_library_status: UpdateCurrentDiscLibraryStatus,
+        get_current_tag_status: GetCurrentTagStatus,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
-        self.get_current_disc = get_current_disc
-        self.update_current_disc_library_status = update_current_disc_library_status
+        self.get_current_tag_status = get_current_tag_status
 
     def run(self) -> None:
         print(self.help_message)
@@ -50,7 +47,7 @@ class InteractiveCLIController:
             elif command == "edit":
                 self.edit_disc_flow()
             elif command == "current":
-                self.current_disc_flow()
+                self.current_tag_flow()
             elif command == "exit":
                 print("See you soon!")
                 exit(0)
@@ -65,16 +62,14 @@ class InteractiveCLIController:
 
     def add_disc_flow(self) -> None:
         print("\n-- Add a disc --")
-        current_disc = self.get_current_disc.execute()
-        tag = self._prompt_for_tag(current_disc, action="add")
+        current_tag_status = self.get_current_tag_status.execute()
+        tag = self._prompt_for_tag(current_tag_status, action="add")
         uri = input("discstore> add uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
 
         disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        if current_disc is not None and not current_disc.known_in_library and tag == current_disc.tag_id:
-            self.update_current_disc_library_status.execute(tag, True)
         print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
@@ -94,13 +89,12 @@ class InteractiveCLIController:
         print("\n-- Remove a disc --")
         tag = input("discstore> remove tag> ").strip()
         self.remove_disc.execute(tag)
-        self.update_current_disc_library_status.execute(tag, False)
         print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:
         print("\n-- Edit a disc --")
-        current_disc = self.get_current_disc.execute()
-        tag = self._prompt_for_tag(current_disc, action="edit")
+        current_tag_status = self.get_current_tag_status.execute()
+        tag = self._prompt_for_tag(current_tag_status, action="edit")
         uri = input("discstore> edit uri> ").strip()
         option = DiscOption()
         metadata = DiscMetadata()
@@ -108,23 +102,23 @@ class InteractiveCLIController:
         self.edit_disc.execute(tag, uri, metadata, option)
         print("✅ Disc successfully edited")
 
-    def current_disc_flow(self) -> None:
-        print("\n-- Current disc --")
-        current_disc = self.get_current_disc.execute()
-        if current_disc is None:
-            print("No current disc is available")
+    def current_tag_flow(self) -> None:
+        print("\n-- Current tag --")
+        current_tag_status = self.get_current_tag_status.execute()
+        if current_tag_status is None:
+            print("No current tag is available")
             return
 
-        print(f"Tag ID           : {current_disc.tag_id}")
-        print(f"Known in library : {'yes' if current_disc.known_in_library else 'no'}")
+        print(f"Tag ID           : {current_tag_status.tag_id}")
+        print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
 
-    def _prompt_for_tag(self, current_disc: Optional[CurrentDisc], action: str) -> str:
+    def _prompt_for_tag(self, current_tag_status: Optional[CurrentTagStatus], action: str) -> str:
         default_tag = ""
-        if current_disc is not None and (
-            (action == "add" and not current_disc.known_in_library)
-            or (action == "edit" and current_disc.known_in_library)
+        if current_tag_status is not None and (
+            (action == "add" and not current_tag_status.known_in_library)
+            or (action == "edit" and current_tag_status.known_in_library)
         ):
-            default_tag = current_disc.tag_id
+            default_tag = current_tag_status.tag_id
         prompt = f"discstore> {action} tag"
         if default_tag:
             prompt += f" [{default_tag}]"

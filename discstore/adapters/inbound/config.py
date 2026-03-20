@@ -104,7 +104,7 @@ def add_from_current_arg(parser: argparse.ArgumentParser) -> None:
         "--from-current",
         dest="use_current_tag",
         action="store_true",
-        help="Resolve the tag ID from shared current-disc.json state",
+        help="Resolve the tag ID from shared current-tag.txt state",
     )
 
 
@@ -233,7 +233,9 @@ def parse_config() -> DiscStoreConfig:
         command_config = {"type": command_name, **args_dict}
 
         # Build and validate final config
-        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command_config)  # type: ignore[invalid-argument-type]
+        config = DiscStoreConfig.model_validate(
+            {"library": args.library, "verbose": args.verbose, "command": command_config}
+        )
     except (ValidationError, ValueError) as err:
         LOGGER.error("Config error: %s", err)
         exit(1)

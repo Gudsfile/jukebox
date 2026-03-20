@@ -37,8 +37,7 @@ def build_controller():
         remove_disc=MagicMock(),
         edit_disc=MagicMock(),
         get_disc=MagicMock(),
-        get_current_disc=MagicMock(),
-        update_current_disc_library_status=MagicMock(),
+        get_current_tag_status=MagicMock(),
     )
 
 
@@ -79,13 +78,13 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
 
     assert ("/{path:path}", ("GET",)) in route_index
     assert ("/api/ui/", ("GET",)) in route_index
-    assert ("/api/ui/current-disc-banner/events", ("GET",)) in route_index
+    assert ("/api/ui/current-tag-banner/events", ("GET",)) in route_index
     assert ("/api/ui/discs/new", ("GET",)) in route_index
     assert ("/api/ui/discs", ("POST",)) in route_index
     assert ("/api/ui/discs/{tag_id}/edit", ("GET",)) in route_index
     assert ("/api/ui/discs/{tag_id}", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
-    assert ("/api/v1/current-disc", ("GET",)) in route_index
+    assert ("/api/v1/current-tag", ("GET",)) in route_index
     assert ("/api/v1/disc", ("POST",)) in route_index
     assert ("/api/v1/disc", ("DELETE",)) in route_index
 
@@ -93,7 +92,9 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     page = route.endpoint()[0]
     all_components = list(walk_components(page.components))
     server_load = next(component for component in all_components if component.type == "ServerLoad")
-    add_button = next(component for component in all_components if component.type == "Button" and component.text == "➕ Add a new disc")
+    add_button = next(
+        component for component in all_components if component.type == "Button" and component.text == "➕ Add a new disc"
+    )
     edit_button = next(
         component
         for component in all_components
@@ -101,7 +102,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     )
     assert any(component.type == "Paragraph" and component.text == "URI / Path" for component in all_components)
 
-    assert server_load.path == "/current-disc-banner/events"
+    assert server_load.path == "/current-tag-banner/events"
     assert server_load.sse is True
     assert add_button.on_click.type == "go-to"
     assert add_button.on_click.url == "/discs/new"
@@ -158,14 +159,12 @@ def test_disc_library_components_render_empty_and_editable_states():
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
-def test_current_disc_banner_for_unknown_disc_offers_add_cta():
-    from discstore.domain.entities import CurrentDisc
+def test_current_tag_banner_for_unknown_disc_offers_add_cta():
+    from discstore.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
-    components = controller._build_current_disc_banner_components(
-        CurrentDisc(tag_id="tag-123", known_in_library=False)
-    )
+    components = controller._build_current_tag_banner_components(CurrentTagStatus(tag_id="tag-123", known_in_library=False))
     all_components = list(walk_components(components))
     heading = next(component for component in all_components if component.type == "Heading")
     button = next(component for component in all_components if component.type == "Button")
@@ -179,12 +178,12 @@ def test_current_disc_banner_for_unknown_disc_offers_add_cta():
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
-def test_current_disc_banner_for_known_disc_is_informational_only():
-    from discstore.domain.entities import CurrentDisc
+def test_current_tag_banner_for_known_disc_is_informational_only():
+    from discstore.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
-    components = controller._build_current_disc_banner_components(CurrentDisc(tag_id="tag-123", known_in_library=True))
+    components = controller._build_current_tag_banner_components(CurrentTagStatus(tag_id="tag-123", known_in_library=True))
     all_components = list(walk_components(components))
 
     assert any(component.type == "Heading" and component.text == "Known disc on reader" for component in all_components)
@@ -211,10 +210,10 @@ def test_new_disc_form_components_render_blank_add_form():
     reason="FastUI dependencies are not installed",
 )
 def test_new_disc_form_components_can_prefill_current_tag():
-    from discstore.domain.entities import CurrentDisc
+    from discstore.domain.entities import CurrentTagStatus
 
     controller = build_controller()
-    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=False)
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=False)
 
     components = controller._build_new_disc_form_components(prefill_current=True)
     form = components[0]
@@ -257,21 +256,21 @@ def test_edit_disc_form_components_prefill_existing_disc():
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
-def test_disc_form_helpers_return_errors_for_invalid_current_disc_state_or_missing_edit_target():
-    from discstore.domain.entities import CurrentDisc
+def test_disc_form_helpers_return_errors_for_invalid_current_tag_state_or_missing_edit_target():
+    from discstore.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
-    controller.get_current_disc.execute.return_value = None
-    no_disc_components = controller._build_new_disc_form_components(prefill_current=True)
-    controller.get_current_disc.execute.return_value = CurrentDisc(tag_id="tag-123", known_in_library=True)
-    known_disc_components = controller._build_new_disc_form_components(prefill_current=True)
+    controller.get_current_tag_status.execute.return_value = None
+    no_tag_components = controller._build_new_disc_form_components(prefill_current=True)
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
+    known_tag_components = controller._build_new_disc_form_components(prefill_current=True)
     missing_tag_components = controller._build_edit_disc_form_components("")
     controller.get_disc.execute.side_effect = ValueError("Missing disc")
     missing_disc_components = controller._build_edit_disc_form_components("tag-123")
 
-    assert no_disc_components[0].type == "Error"
-    assert known_disc_components[0].type == "Error"
+    assert no_tag_components[0].type == "Error"
+    assert known_tag_components[0].type == "Error"
     assert missing_tag_components[0].type == "Error"
     assert missing_disc_components[0].type == "Error"
 
@@ -299,15 +298,15 @@ def test_form_page_components_include_back_link_and_form():
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
-async def test_current_disc_banner_event_stream_emits_serialized_updates():
-    from discstore.domain.entities import CurrentDisc
+async def test_current_tag_banner_event_stream_emits_serialized_updates():
+    from discstore.domain.entities import CurrentTagStatus
 
     controller = build_controller()
-    controller.get_current_disc.execute.side_effect = [CurrentDisc(tag_id="tag-123", known_in_library=False)]
+    controller.get_current_tag_status.execute.side_effect = [CurrentTagStatus(tag_id="tag-123", known_in_library=False)]
     request = MagicMock()
     request.is_disconnected = AsyncMock(side_effect=[False])
 
-    stream = controller._current_disc_banner_event_stream(request, poll_interval_seconds=0)
+    stream = controller._current_tag_banner_event_stream(request, poll_interval_seconds=0)
     first_chunk = await anext(stream)
 
     assert first_chunk.decode("utf-8").startswith("data: [")
@@ -319,7 +318,7 @@ async def test_current_disc_banner_event_stream_emits_serialized_updates():
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
-async def test_create_disc_marks_matching_current_disc_known_after_success():
+async def test_create_disc_returns_success_toast():
     from discstore.adapters.inbound.ui_controller import DiscForm
     from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
@@ -338,7 +337,6 @@ async def test_create_disc_marks_matching_current_disc_known_after_success():
             option=DiscOption(shuffle=True),
         ),
     )
-    controller.update_current_disc_library_status.execute.assert_called_once_with("tag-123", True)
     assert [component.type for component in response] == ["FireEvent"]
     assert response[0].event.type == "go-to"
     assert "toast=toast-add-disc-success" in response[0].event.url
@@ -349,7 +347,7 @@ async def test_create_disc_marks_matching_current_disc_known_after_success():
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
-async def test_create_disc_returns_conflict_without_updating_current_disc_when_add_fails():
+async def test_create_disc_returns_conflict_when_add_fails():
     from fastapi import HTTPException
 
     from discstore.adapters.inbound.ui_controller import DiscForm
@@ -370,7 +368,6 @@ async def test_create_disc_returns_conflict_without_updating_current_disc_when_a
             }
         ]
     }
-    controller.update_current_disc_library_status.execute.assert_not_called()
 
 
 @pytest.mark.skipif(
@@ -378,7 +375,7 @@ async def test_create_disc_returns_conflict_without_updating_current_disc_when_a
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
-async def test_update_disc_uses_edit_path_without_clearing_current_disc():
+async def test_update_disc_uses_edit_path():
     from discstore.adapters.inbound.ui_controller import DiscForm
     from discstore.domain.entities import DiscMetadata, DiscOption
 
@@ -400,7 +397,6 @@ async def test_update_disc_uses_edit_path_without_clearing_current_disc():
         metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
         option=DiscOption(shuffle=True),
     )
-    controller.update_current_disc_library_status.execute.assert_not_called()
     assert [component.type for component in response] == ["FireEvent"]
     assert "toast=toast-edit-disc-success" in response[0].event.url
 

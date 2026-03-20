@@ -23,14 +23,13 @@ except ModuleNotFoundError as e:
 from pydantic import BaseModel, Field
 
 from discstore.adapters.inbound.api_controller import APIController
-from discstore.domain.entities import CurrentDisc, Disc, DiscMetadata, DiscOption
+from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_disc import GetCurrentDisc
+from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
-from discstore.domain.use_cases.update_current_disc_library_status import UpdateCurrentDiscLibraryStatus
 
 
 class DiscTable(DiscMetadata, DiscOption):
@@ -55,12 +54,10 @@ class UIController(APIController):
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
         get_disc: GetDisc,
-        get_current_disc: GetCurrentDisc,
-        update_current_disc_library_status: UpdateCurrentDiscLibraryStatus,
+        get_current_tag_status: GetCurrentTagStatus,
     ):
         self.get_disc = get_disc
-        self.update_current_disc_library_status = update_current_disc_library_status
-        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_disc)
+        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status)
 
     def register_routes(self):
         super().register_routes()
@@ -69,10 +66,10 @@ class UIController(APIController):
         def list_discs(toast: Optional[str] = None) -> List[AnyComponent]:
             return self._build_index_page_components(toast=toast)
 
-        @self.app.get("/api/ui/current-disc-banner/events")
-        async def get_current_disc_banner_events(request: Request) -> StreamingResponse:
+        @self.app.get("/api/ui/current-tag-banner/events")
+        async def get_current_tag_banner_events(request: Request) -> StreamingResponse:
             return StreamingResponse(
-                self._current_disc_banner_event_stream(request),
+                self._current_tag_banner_event_stream(request),
                 media_type="text/event-stream",
                 headers={
                     "Cache-Control": "no-cache",
@@ -99,7 +96,6 @@ class UIController(APIController):
 
             try:
                 self.add_disc.execute(disc.tag, Disc(uri=disc.uri, metadata=metadata, option=option))
-                self.update_current_disc_library_status.execute(disc.tag, True)
             except ValueError as err:
                 raise self._field_validation_error("tag", str(err))
             except HTTPException:
@@ -172,7 +168,7 @@ class UIController(APIController):
             c.Heading(text="DiscStore for Jukebox", level=1),
             c.Paragraph(text=f"📀 {len(discs)} disc(s) in library"),
             c.ServerLoad(
-                path="/current-disc-banner/events",
+                path="/current-tag-banner/events",
                 sse=True,
                 sse_retry=2000,
             ),
@@ -218,17 +214,17 @@ class UIController(APIController):
             )
         ]
 
-    def _build_current_disc_banner_components(self, current_disc: Optional[CurrentDisc]) -> List[AnyComponent]:
-        if current_disc is None:
+    def _build_current_tag_banner_components(self, current_tag_status: Optional[CurrentTagStatus]) -> List[AnyComponent]:
+        if current_tag_status is None:
             return []
 
-        if current_disc.known_in_library:
+        if current_tag_status.known_in_library:
             return [
                 c.Div(
                     class_name="alert alert-info mb-3",
                     components=[
                         c.Heading(text="Known disc on reader", level=4),
-                        c.Paragraph(text=f'Tag "{current_disc.tag_id}" is already in the library.'),
+                        c.Paragraph(text=f'Tag "{current_tag_status.tag_id}" is already in the library.'),
                     ],
                 )
             ]
@@ -241,7 +237,7 @@ class UIController(APIController):
                         class_name="mb-0",
                         components=[
                             c.Heading(text="Unknown disc on reader", level=4),
-                            c.Paragraph(text=f'Tag "{current_disc.tag_id}" is ready to be added to the library.'),
+                            c.Paragraph(text=f'Tag "{current_tag_status.tag_id}" is ready to be added to the library.'),
                         ],
                     ),
                     c.Button(text="Add this disc", on_click=GoToEvent(url="/discs/new?prefill=current")),
@@ -347,22 +343,22 @@ class UIController(APIController):
         initial = None
 
         if prefill_current:
-            current_disc = self.get_current_disc.execute()
-            if current_disc is None:
+            current_tag_status = self.get_current_tag_status.execute()
+            if current_tag_status is None:
                 return [
                     c.Error(
-                        title="No current disc available",
+                        title="No current tag available",
                         description="There is no tag on the reader right now, so the form cannot be prefilled.",
                     )
                 ]
-            if current_disc.known_in_library:
+            if current_tag_status.known_in_library:
                 return [
                     c.Error(
-                        title="Current disc already known",
-                        description=f'Tag "{current_disc.tag_id}" is already in the library.',
+                        title="Current tag already known",
+                        description=f'Tag "{current_tag_status.tag_id}" is already in the library.',
                     )
                 ]
-            initial = {"tag": current_disc.tag_id, "shuffle": False}
+            initial = {"tag": current_tag_status.tag_id, "shuffle": False}
 
         return [
             c.ModelForm(
@@ -407,7 +403,7 @@ class UIController(APIController):
             )
         ]
 
-    async def _current_disc_banner_event_stream(
+    async def _current_tag_banner_event_stream(
         self,
         request: Request,
         poll_interval_seconds: float = 0.5,
@@ -415,8 +411,8 @@ class UIController(APIController):
         previous_payload: Optional[str] = None
 
         while True:
-            payload = self._serialize_current_disc_components(
-                self._build_current_disc_banner_components(self.get_current_disc.execute())
+            payload = self._serialize_current_tag_components(
+                self._build_current_tag_banner_components(self.get_current_tag_status.execute())
             )
             if payload != previous_payload:
                 previous_payload = payload
@@ -427,7 +423,7 @@ class UIController(APIController):
 
             await asyncio.sleep(poll_interval_seconds)
 
-    def _serialize_current_disc_components(self, components: List[AnyComponent]) -> str:
+    def _serialize_current_tag_components(self, components: List[AnyComponent]) -> str:
         return json.dumps([component.model_dump(by_alias=True, exclude_none=True) for component in components])
 
     def _field_validation_error(self, field_name: str, message: str) -> HTTPException:
