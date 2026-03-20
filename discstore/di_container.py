@@ -50,7 +50,7 @@ def build_interactive_cli_controller(library_path: str):
 
 def build_api_app(library_path: str):
     repository = JsonLibraryAdapter(library_path)
-    current_tag_repository = TextCurrentTagAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(library_path))
     from discstore.adapters.inbound.api_controller import APIController
 
     api_controller = APIController(
@@ -65,7 +65,7 @@ def build_api_app(library_path: str):
 
 def build_ui_app(library_path: str):
     repository = JsonLibraryAdapter(library_path)
-    current_tag_repository = TextCurrentTagAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(library_path))
     from discstore.adapters.inbound.ui_controller import UIController
 
     ui_controller = UIController(

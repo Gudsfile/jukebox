@@ -119,10 +119,10 @@ def test_build_api_app_wiring(mocker, mocks):
         "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
     )
 
-    result = build_api_app("fake_library_path")
+    result = build_api_app("/test/library.json")
 
-    mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
+    mocks.repo_class.assert_called_once_with("/test/library.json")
+    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
@@ -145,10 +145,10 @@ def test_build_ui_app_wiring(mocker, mocks):
         "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
     )
 
-    result = build_ui_app("fake_library_path")
+    result = build_ui_app("/test/library.json")
 
-    mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
+    mocks.repo_class.assert_called_once_with("/test/library.json")
+    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
