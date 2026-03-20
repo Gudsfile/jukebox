@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from discstore.di_container import (
+    _get_current_tag_path,
     build_api_app,
     build_cli_controller,
     build_interactive_cli_controller,
@@ -50,16 +51,22 @@ def mocks(mocker):
     return mocks
 
 
+def test_get_current_tag_path_derives_path_beside_library(tmp_path):
+    library_path = tmp_path / "nested" / "library.json"
+
+    assert _get_current_tag_path(str(library_path)) == str(tmp_path / "nested" / "current-tag.txt")
+
+
 def test_build_cli_controller_wiring(mocker, mocks):
     mock_cli_controller_instance = MagicMock()
     mock_cli_controller_class = mocker.patch(
         "discstore.di_container.CLIController", return_value=mock_cli_controller_instance
     )
 
-    result = build_cli_controller("fake_library_path")
+    result = build_cli_controller("/test/library.json")
 
-    mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
+    mocks.repo_class.assert_called_once_with("/test/library.json")
+    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
@@ -86,10 +93,10 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
         "discstore.di_container.InteractiveCLIController", return_value=mock_interactive_cli_instance
     )
 
-    result = build_interactive_cli_controller("fake_library_path")
+    result = build_interactive_cli_controller("/test/library.json")
 
-    mocks.repo_class.assert_called_once_with("fake_library_path")
-    mocks.current_tag_repo_class.assert_called_once_with("fake_library_path")
+    mocks.repo_class.assert_called_once_with("/test/library.json")
+    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
     mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
     mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
     mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)

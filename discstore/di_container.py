@@ -1,3 +1,5 @@
+import os
+
 from discstore.adapters.inbound.cli_controller import CLIController
 from discstore.adapters.inbound.interactive_cli_controller import (
     InteractiveCLIController,
@@ -14,9 +16,14 @@ from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
 
 
+def _get_current_tag_path(library_path: str) -> str:
+    library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
+    return os.path.join(library_dir, "current-tag.txt")
+
+
 def build_cli_controller(library_path: str):
     repository = JsonLibraryAdapter(library_path)
-    current_tag_repository = TextCurrentTagAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(library_path))
     get_current_tag_status = GetCurrentTagStatus(current_tag_repository, repository)
     return CLIController(
         AddDisc(repository),
@@ -31,7 +38,7 @@ def build_cli_controller(library_path: str):
 
 def build_interactive_cli_controller(library_path: str):
     repository = JsonLibraryAdapter(library_path)
-    current_tag_repository = TextCurrentTagAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(_get_current_tag_path(library_path))
     return InteractiveCLIController(
         AddDisc(repository),
         ListDiscs(repository),
