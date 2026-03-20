@@ -1,12 +1,12 @@
 import logging
 
-from jukebox.domain.entities import CurrentDisc, PlaybackAction, PlaybackSession, TagEvent
+from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
 from jukebox.domain.ports import PlayerPort
-from jukebox.domain.repositories import CurrentDiscRepository, LibraryRepository
+from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
 from jukebox.domain.use_cases.determine_action import DetermineAction
 
 LOGGER = logging.getLogger("jukebox")
-CURRENT_DISC_ABSENCE_GRACE_SECONDS = 1.0
+CURRENT_TAG_ABSENCE_GRACE_SECONDS = 1.0
 
 
 class HandleTagEvent:
@@ -16,21 +16,21 @@ class HandleTagEvent:
         self,
         player: PlayerPort,
         library: LibraryRepository,
-        current_disc_repository: CurrentDiscRepository,
+        current_tag_repository: CurrentTagRepository,
         determine_action: DetermineAction,
-        current_disc_absence_grace_seconds: float = CURRENT_DISC_ABSENCE_GRACE_SECONDS,
+        current_tag_absence_grace_seconds: float = CURRENT_TAG_ABSENCE_GRACE_SECONDS,
     ):
         self.player = player
         self.library = library
-        self.current_disc_repository = current_disc_repository
+        self.current_tag_repository = current_tag_repository
         self.determine_action = determine_action
-        self.current_disc_absence_grace_seconds = current_disc_absence_grace_seconds
+        self.current_tag_absence_grace_seconds = current_tag_absence_grace_seconds
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
         elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
         self._advance_session_clock(tag_event, session, elapsed_seconds)
         disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
-        self._sync_current_disc_best_effort(tag_event, session, disc is not None)
+        self._sync_current_tag_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
@@ -109,41 +109,32 @@ class HandleTagEvent:
             return 0.0
         return max(0.0, tag_event.timestamp - session.last_event_timestamp)
 
-    def _sync_current_disc_best_effort(
-        self, tag_event: TagEvent, session: PlaybackSession, known_in_library: bool
-    ) -> None:
+    def _sync_current_tag_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
         try:
-            self._sync_current_disc(tag_event, session, known_in_library)
+            self._sync_current_tag(tag_event, session)
         except Exception as err:
             LOGGER.warning(
-                "Failed to sync current disc state; continuing tag handling: "
+                "Failed to sync current tag state; continuing tag handling: "
                 f"tag_id={tag_event.tag_id!r}, error={err}"
             )
 
-    def _sync_current_disc(self, tag_event: TagEvent, session: PlaybackSession, known_in_library: bool) -> None:
+    def _sync_current_tag(self, tag_event: TagEvent, session: PlaybackSession) -> None:
         if tag_event.tag_id is not None:
-            if (
-                session.physical_tag == tag_event.tag_id
-                and session.physical_tag_known_in_library == known_in_library
-            ):
+            if session.physical_tag == tag_event.tag_id:
                 session.physical_tag_removed_seconds = 0.0
                 return
 
-            self.current_disc_repository.save(
-                CurrentDisc(tag_id=tag_event.tag_id, known_in_library=known_in_library)
-            )
+            self.current_tag_repository.set(tag_event.tag_id)
             session.physical_tag = tag_event.tag_id
-            session.physical_tag_known_in_library = known_in_library
             session.physical_tag_removed_seconds = 0.0
             return
 
         if session.physical_tag is None:
             return
 
-        if session.physical_tag_removed_seconds < self.current_disc_absence_grace_seconds:
+        if session.physical_tag_removed_seconds < self.current_tag_absence_grace_seconds:
             return
 
-        self.current_disc_repository.clear_if_matches(session.physical_tag)
+        self.current_tag_repository.clear()
         session.physical_tag = None
-        session.physical_tag_known_in_library = None
         session.physical_tag_removed_seconds = 0.0
