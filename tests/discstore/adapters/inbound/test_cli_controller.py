@@ -118,7 +118,7 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
     ]
 
 
-def test_get_disc_flow_logs_error_when_current_disc_is_missing(caplog, capsys):
+def test_get_disc_flow_logs_error_when_current_tag_is_missing(caplog, capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.side_effect = ValueError("No current tag is available.")
     command = CliGetCommand(type="get", use_current_tag=True)
