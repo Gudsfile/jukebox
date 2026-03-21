@@ -1,9 +1,22 @@
 name: release
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - stable
+          - alpha
+          - beta
+          - rc
+          - post
+          - dev
 
 permissions:
   contents: write
@@ -13,12 +26,45 @@ env:
   UV_PROJECT_ENVIRONMENT: $pythonLocation
 
 jobs:
-  build:
-    name: Build Package
+  bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Bump version
+        run: uv version --bump ${{ github.event.inputs.bump }}
+
+      - name: Get new version
+        id: version
+        run: echo "version=$(uv version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Commit and push tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "🔖 v${{ steps.version.outputs.version }}"
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin ${{ github.ref_name }} --follow-tags
+
+  build-and-publish:
+    name: Build & Publish to PyPI
+    needs: bump
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: "v${{ needs.bump.outputs.version }}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -33,7 +79,7 @@ jobs:
       - name: Build package
         run: uv build
 
-      - name: Publish package on PyPI
+      - name: Publish to PyPI
         run: uv publish
 
       - name: Upload package artifact
@@ -42,13 +88,15 @@ jobs:
           name: built-package
           path: dist/
 
-  release:
-    name: Create Release
-    needs: build
+  github-release:
+    name: Create GitHub Release
+    needs: [bump, build-and-publish]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: "v${{ needs.bump.outputs.version }}"
 
       - name: Download built package
         uses: actions/download-artifact@v8
@@ -59,9 +107,9 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "${{ github.ref_name }}" --title "Release ${{ github.ref_name }}" --notes "New version ${{ github.ref_name }} 🚀" --draft
+        run: gh release create "v${{ needs.bump.outputs.version }}" --title "Release v${{ needs.bump.outputs.version }}" --notes "New version v${{ needs.bump.outputs.version }} 🚀" --draft
 
       - name: Add binaries to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload ${{ github.ref_name }} dist/*
+        run: gh release upload v${{ needs.bump.outputs.version }} dist/*
