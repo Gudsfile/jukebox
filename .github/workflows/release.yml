@@ -17,6 +17,11 @@ on:
           - rc
           - post
           - dev
+      dryrun:
+        description: "Enable dry run mode (no PyPI deployment)"
+        required: false
+        default: "false"
+        type: boolean
 
 permissions:
   contents: write
@@ -92,7 +97,12 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
+        if: ${{ github.event.inputs.dryrun != 'true' }}
         run: uv publish
+
+      - name: Publish to PyPI (dry run)
+        if: ${{ github.event.inputs.dryrun == 'true' }}
+        run: uv publish --dry-run
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
