@@ -34,7 +34,7 @@ class HandleTagEvent:
 
         LOGGER.debug(
             f"{action.value} \t\t {tag_event.tag_id} | {session.playing_tag} | "
-            f"{session.awaiting_seconds} | {session.tag_removed_seconds}"
+            f"{session.pause_duration_seconds} | {session.tag_removed_seconds}"
         )
 
         if action == PlaybackAction.CONTINUE:
@@ -43,7 +43,7 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.RESUME:
             self.player.resume()
-            session.awaiting_seconds = 0
+            session.pause_duration_seconds = 0
             session.tag_removed_seconds = 0
             session.is_paused = False
 
@@ -55,7 +55,7 @@ class HandleTagEvent:
                 LOGGER.info(f"Found corresponding disc: {disc}")
                 session.playing_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
-                session.awaiting_seconds = 0
+                session.pause_duration_seconds = 0
                 session.tag_removed_seconds = 0
                 session.is_paused = False
             else:
@@ -67,14 +67,14 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.PAUSE:
             self.player.pause()
-            session.awaiting_seconds = 0.0
+            session.pause_duration_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = True
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
             session.playing_tag = None
-            session.awaiting_seconds = 0.0
+            session.pause_duration_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = False
 
@@ -96,7 +96,7 @@ class HandleTagEvent:
             session.physical_tag_removed_seconds += elapsed_seconds
 
         if session.is_paused:
-            session.awaiting_seconds += elapsed_seconds
+            session.pause_duration_seconds += elapsed_seconds
             return
 
         if session.playing_tag is not None:

@@ -8,7 +8,7 @@ class PlaybackSession(BaseModel):
 
     playing_tag: Optional[str] = None
     physical_tag: Optional[str] = None
-    awaiting_seconds: float = 0.0
+    pause_duration_seconds: float = 0.0
     tag_removed_seconds: float = 0.0
     physical_tag_removed_seconds: float = 0.0
     is_paused: bool = False
