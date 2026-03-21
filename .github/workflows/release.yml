@@ -107,9 +107,9 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "v${{ needs.bump.outputs.version }}" --title "Release v${{ needs.bump.outputs.version }}" --notes "New version v${{ needs.bump.outputs.version }} 🚀" --draft
-
-      - name: Add binaries to release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload v${{ needs.bump.outputs.version }} dist/*
+        run: |
+          gh release create "v${{ needs.bump.outputs.version }}" \
+            --title "v${{ needs.bump.outputs.version }}" \
+            --generate-notes \
+            --draft \
+            dist/*
