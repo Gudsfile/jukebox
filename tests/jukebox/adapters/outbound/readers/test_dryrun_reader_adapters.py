@@ -33,7 +33,9 @@ def test_init_creates_reader(caplog):
 def test_read(monkeypatch, input, now, expected_uid, expected_hold_until):
     """Should read the tag uid and optional hold duration."""
     fake_stdin = FakeStdin(f"{input}\n")
-    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(
+        "jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], [])
+    )
     monkeypatch.setattr(sys, "stdin", fake_stdin)
     monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: now)
 
@@ -64,7 +66,9 @@ def test_read(monkeypatch, input, now, expected_uid, expected_hold_until):
 def test_read_invalid_input(monkeypatch, caplog, input, expected_error):
     """Should raise a warning when the input is invalid."""
     fake_stdin = FakeStdin(f"{input}\n")
-    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(
+        "jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], [])
+    )
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     adapter = DryrunReaderAdapter()
@@ -96,7 +100,9 @@ def test_read_with_duration(monkeypatch):
 
     monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: 102.0)
     fake_stdin = FakeStdin("uri\n")
-    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], []))
+    monkeypatch.setattr(
+        "jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([fake_stdin], [], [])
+    )
     monkeypatch.setattr(sys, "stdin", fake_stdin)
     with patch.object(fake_stdin, "readline", wraps=fake_stdin.readline) as mock_readline:
         result = adapter.read()
@@ -109,7 +115,9 @@ def test_read_with_duration(monkeypatch):
 def test_read_returns_none_when_no_input_is_ready(monkeypatch):
     """Should return None without attempting to consume stdin."""
     fake_stdin = FakeStdin("uri\n")
-    monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([], [], []))
+    monkeypatch.setattr(
+        "jukebox.adapters.outbound.readers.dryrun_reader_adapter.select.select", lambda *args: ([], [], [])
+    )
     monkeypatch.setattr(sys, "stdin", fake_stdin)
 
     adapter = DryrunReaderAdapter()
