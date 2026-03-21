@@ -57,7 +57,6 @@ class HandleTagEvent:
                 self.player.play(disc.uri, disc.option.shuffle)
                 session.awaiting_seconds = 0
                 session.tag_removed_seconds = 0
-                session.current_tag = tag_event.tag_id
                 session.is_paused = False
             else:
                 LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
@@ -75,7 +74,6 @@ class HandleTagEvent:
         elif action == PlaybackAction.STOP:
             self.player.stop()
             session.previous_tag = None
-            session.current_tag = None
             session.awaiting_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = False
