@@ -1,27 +1,9 @@
 name: release
 
 on:
-  workflow_dispatch:
-    inputs:
-      bump:
-        description: "Version bump type"
-        required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-          - stable
-          - alpha
-          - beta
-          - rc
-          - post
-          - dev
-      dryrun:
-        description: "Enable dry run mode (no PyPI deployment)"
-        required: false
-        default: "false"
-        type: boolean
+  pull_request:
+    types: [closed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -31,57 +13,16 @@ env:
   UV_PROJECT_ENVIRONMENT: $pythonLocation
 
 jobs:
-  bump:
-    name: Bump Version
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-
-      - name: Bump version
-        run: uv version --bump ${{ github.event.inputs.bump }}
-
-      - name: Get new version
-        id: version
-        run: echo "version=$(uv version | awk '{print $2}')" >> $GITHUB_OUTPUT
-
-      - uses: actions/create-github-app-token@v3
-        id: app-token
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.PRIVATE_KEY }}
-
-      - name: Get GitHub App User ID
-        id: get-user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-
-      - name: Commit and push tag
-        run: |
-          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-          git config user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
-          git add pyproject.toml uv.lock
-          git commit -m "🔖 v${{ steps.version.outputs.version }}"
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin ${{ github.ref_name }} --follow-tags
-
   build-and-publish:
     name: Build & Publish to PyPI
-    needs: bump
     runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.merged == true
+      && startsWith(github.head_ref, 'auto-bump/')
+      && contains(github.event.pull_request.labels.*.name, 'auto-release')
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: "v${{ needs.bump.outputs.version }}"
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -97,12 +38,7 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
-        if: ${{ github.event.inputs.dryrun != 'true' }}
         run: uv publish
-
-      - name: Publish to PyPI (dry run)
-        if: ${{ github.event.inputs.dryrun == 'true' }}
-        run: uv publish --dry-run
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
@@ -112,13 +48,11 @@ jobs:
 
   github-release:
     name: Create GitHub Release
-    needs: [bump, build-and-publish]
+    needs: build-and-publish
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
-        with:
-          ref: "v${{ needs.bump.outputs.version }}"
 
       - name: Download built package
         uses: actions/download-artifact@v8
@@ -126,12 +60,21 @@ jobs:
           name: built-package
           path: dist/
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Get version
+        id: version
+        run: echo "version=$(uv version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ needs.bump.outputs.version }}" \
-            --title "v${{ needs.bump.outputs.version }}" \
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
             --generate-notes \
             --draft \
             dist/*

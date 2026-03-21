@@ -1,0 +1,65 @@
+name: bump-version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump type"
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - stable
+          - alpha
+          - beta
+          - rc
+          - post
+          - dev
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UV_PROJECT_ENVIRONMENT: $pythonLocation
+
+jobs:
+  bump:
+    name: Bump Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Bump version
+        run: uv version --bump ${{ github.event.inputs.bump }}
+
+      - name: Get new version
+        id: version
+        run: echo "version=$(uv version | awk '{print $2}')" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "🔖 v${{ steps.version.outputs.version }}"
+          git push origin HEAD:auto-bump/v${{ steps.version.outputs.version }}
+          gh pr create \
+            --title "🔖 v${{ steps.version.outputs.version }}" \
+            --body "Automated version bump to v${{ steps.version.outputs.version }}\n\nThis PR was created by the bump-version workflow." \
+            --label auto-release
