@@ -33,7 +33,7 @@ class HandleTagEvent:
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
-            f"{action.value} \t\t {tag_event.tag_id} | {session.previous_tag} | "
+            f"{action.value} \t\t {tag_event.tag_id} | {session.playing_tag} | "
             f"{session.awaiting_seconds} | {session.tag_removed_seconds}"
         )
 
@@ -53,7 +53,7 @@ class HandleTagEvent:
             disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
-                session.previous_tag = tag_event.tag_id
+                session.playing_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
                 session.awaiting_seconds = 0
                 session.tag_removed_seconds = 0
@@ -73,7 +73,7 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
-            session.previous_tag = None
+            session.playing_tag = None
             session.awaiting_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = False
@@ -99,7 +99,7 @@ class HandleTagEvent:
             session.awaiting_seconds += elapsed_seconds
             return
 
-        if session.previous_tag is not None:
+        if session.playing_tag is not None:
             session.tag_removed_seconds += elapsed_seconds
 
     def _get_elapsed_seconds(self, tag_event: TagEvent, session: PlaybackSession) -> float:
