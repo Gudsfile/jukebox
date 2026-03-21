@@ -4,13 +4,17 @@ from pydantic import BaseModel
 
 
 class PlaybackSession(BaseModel):
-    """Tracks the current playback state."""
+    """Tracks the current logical playback and physical reader states."""
 
-    current_tag: Optional[str] = None
-    previous_tag: Optional[str] = None
-    physical_tag: Optional[str] = None
-    awaiting_seconds: float = 0.0
-    tag_removed_seconds: float = 0.0
-    physical_tag_removed_seconds: float = 0.0
+    # Logical playback state
+    playing_tag: Optional[str] = None
     is_paused: bool = False
+    pause_duration_seconds: float = 0.0
+    tag_removed_seconds: float = 0.0
+
+    # Physical reader state
+    physical_tag: Optional[str] = None
+    physical_tag_removed_seconds: float = 0.0
+
+    # Timestamp
     last_event_timestamp: Optional[float] = None

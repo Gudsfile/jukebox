@@ -33,8 +33,8 @@ class HandleTagEvent:
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
-            f"{action.value} \t\t {tag_event.tag_id} | {session.previous_tag} | "
-            f"{session.awaiting_seconds} | {session.tag_removed_seconds}"
+            f"{action.value} \t\t {tag_event.tag_id} | {session.playing_tag} | "
+            f"{session.pause_duration_seconds} | {session.tag_removed_seconds}"
         )
 
         if action == PlaybackAction.CONTINUE:
@@ -43,7 +43,7 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.RESUME:
             self.player.resume()
-            session.awaiting_seconds = 0
+            session.pause_duration_seconds = 0
             session.tag_removed_seconds = 0
             session.is_paused = False
 
@@ -53,11 +53,10 @@ class HandleTagEvent:
             disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
             if disc is not None:
                 LOGGER.info(f"Found corresponding disc: {disc}")
-                session.previous_tag = tag_event.tag_id
+                session.playing_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
-                session.awaiting_seconds = 0
+                session.pause_duration_seconds = 0
                 session.tag_removed_seconds = 0
-                session.current_tag = tag_event.tag_id
                 session.is_paused = False
             else:
                 LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
@@ -68,15 +67,14 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.PAUSE:
             self.player.pause()
-            session.awaiting_seconds = 0.0
+            session.pause_duration_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = True
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
-            session.previous_tag = None
-            session.current_tag = None
-            session.awaiting_seconds = 0.0
+            session.playing_tag = None
+            session.pause_duration_seconds = 0.0
             session.tag_removed_seconds = 0
             session.is_paused = False
 
@@ -98,10 +96,10 @@ class HandleTagEvent:
             session.physical_tag_removed_seconds += elapsed_seconds
 
         if session.is_paused:
-            session.awaiting_seconds += elapsed_seconds
+            session.pause_duration_seconds += elapsed_seconds
             return
 
-        if session.previous_tag is not None:
+        if session.playing_tag is not None:
             session.tag_removed_seconds += elapsed_seconds
 
     def _get_elapsed_seconds(self, tag_event: TagEvent, session: PlaybackSession) -> float:
