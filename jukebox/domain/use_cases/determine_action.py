@@ -14,12 +14,12 @@ class DetermineAction:
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackAction:
         current_tag = tag_event.tag_id
-        previous_tag = session.previous_tag
+        playing_tag = session.playing_tag
         awaiting_seconds = session.awaiting_seconds
         tag_removed_seconds = session.tag_removed_seconds
 
         is_detecting_tag = current_tag is not None
-        is_same_tag_as_previous = current_tag == previous_tag
+        is_same_tag_as_previous = current_tag == playing_tag
         is_paused = session.is_paused
         is_acceptable_pause_duration = awaiting_seconds < self.max_pause_duration
         is_within_grace_period = tag_removed_seconds < self.pause_delay
