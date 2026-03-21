@@ -67,6 +67,7 @@ def build_ui_app(library_path: str):
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
+        GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
     )
     return ui_controller

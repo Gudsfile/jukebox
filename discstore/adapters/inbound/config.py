@@ -159,7 +159,8 @@ def parse_config() -> DiscStoreConfig:
     api_parser.add_argument("--port", type=int, default=8000, help="port")
 
     # UI commands
-    _ = subparsers.add_parser("ui", help="Start an UI server")
+    ui_parser = subparsers.add_parser("ui", help="Start an UI server")
+    ui_parser.add_argument("--port", type=int, default=8000, help="port")
 
     # Interactive commands
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")
