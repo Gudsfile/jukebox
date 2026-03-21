@@ -69,6 +69,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
         metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
         option=DiscOption(shuffle=True),
     )
+    controller.remove_disc.execute.return_value = None
 
     route_index = {
         (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
@@ -83,6 +84,8 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/discs", ("POST",)) in route_index
     assert ("/api/ui/discs/{tag_id}/edit", ("GET",)) in route_index
     assert ("/api/ui/discs/{tag_id}", ("POST",)) in route_index
+    assert ("/api/ui/discs/{tag_id}/delete", ("GET",)) in route_index
+    assert ("/api/ui/discs/{tag_id}/delete", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
     assert ("/api/v1/disc", ("POST",)) in route_index
@@ -116,6 +119,35 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     edit_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/edit")
     edit_page = edit_route.endpoint("tag-123")[0]
     assert edit_page.components[0].text == "Edit disc tag-123"
+    delete_button = next(
+        component
+        for component in edit_page.components
+        if component.type == "Button" and component.text == "🗑️ Delete this disc"
+    )
+    assert delete_button.on_click.type == "go-to"
+    assert delete_button.on_click.url == "/discs/tag-123/delete"
+
+    delete_route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "GET" in getattr(route, "methods", [])
+    )
+    delete_page = delete_route.endpoint("tag-123")[0]
+    assert delete_page.components[0].text == "Delete disc tag-123"
+    assert delete_page.components[1].text == 'Are you sure you want to delete the disc with tag "tag-123"?'
+    all_delete_page_components = list(walk_components(delete_page.components))
+    confirm_deletion_form = next(
+        component
+        for component in all_delete_page_components
+        if component.type == "Form"
+    )
+    cancel_deletion_button = next(
+        component
+        for component in all_delete_page_components
+        if component.type == "Button" and component.text == "Cancel"
+    )
+    assert confirm_deletion_form.submit_url == "/api/ui/discs/tag-123/delete"
+    assert cancel_deletion_button.on_click.type == "back"
 
     html_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/{path:path}")
     html_response = html_route.endpoint("discs/new")
@@ -465,3 +497,62 @@ async def test_update_disc_returns_field_error_when_edit_target_is_missing():
             }
         ]
     }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_delete_disc_endpoint_calls_remove_use_case():
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "POST" in getattr(route, "methods", [])
+    )
+
+    response = await route.endpoint("tag-123")
+
+    controller.remove_disc.execute.assert_called_once_with("tag-123")
+    assert [component.type for component in response] == ["FireEvent"]
+    assert response[0].event.type == "go-to"
+    assert "toast=toast-remove-disc-success" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_delete_disc_returns_404_when_disc_not_found():
+    from fastapi import HTTPException
+
+    controller = build_controller()
+    controller.remove_disc.execute.side_effect = ValueError("Disc not found: tag_id='tag-456'")
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "POST" in getattr(route, "methods", [])
+    )
+
+    with pytest.raises(HTTPException) as err:
+        await route.endpoint("tag-456")
+
+    assert err.value.status_code == 404
+    assert "Disc not found" in err.value.detail
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_index_page_shows_remove_toast():
+    controller = build_controller()
+    components = controller._build_index_page_components(toast="toast-remove-disc-success")
+    all_components = list(walk_components(components))
+
+    remove_toast = next(
+        component for component in all_components if component.type == "Toast" and "removed" in str(component.body)
+    )
+    assert remove_toast.open_trigger.name == "toast-remove-disc-success"
