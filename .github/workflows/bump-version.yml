@@ -11,12 +11,6 @@ on:
           - patch
           - minor
           - major
-          - stable
-          - alpha
-          - beta
-          - rc
-          - post
-          - dev
 
 permissions:
   contents: write
@@ -53,13 +47,16 @@ jobs:
         run: echo "version=$(uv version | awk '{print $2}')" >> $GITHUB_OUTPUT
 
       - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
           git add pyproject.toml uv.lock
           git commit -m "🔖 v${{ steps.version.outputs.version }}"
           git push origin HEAD:auto-bump/v${{ steps.version.outputs.version }}
           gh pr create \
+            --head auto-bump/v${{ steps.version.outputs.version }} \
             --title "🔖 v${{ steps.version.outputs.version }}" \
             --body "Automated version bump to v${{ steps.version.outputs.version }}\n\nThis PR was created by the bump-version workflow." \
             --label auto-release
