@@ -1,13 +1,5 @@
 import argparse
 import logging
-from typing import Union
-
-try:
-    from typing import Annotated, Literal
-except ImportError:
-    from typing_extensions import Annotated, Literal
-
-from pydantic import BaseModel, Field, ValidationError
 
 from jukebox.shared.config_utils import (
     add_library_arg,
@@ -23,40 +15,7 @@ DEFAULT_PAUSE_DELAY = 0.25
 LOGGER = logging.getLogger("jukebox")
 
 
-class DryrunPlayerConfig(BaseModel):
-    type: Literal["dryrun"]
-
-
-class SonosPlayerConfig(BaseModel):
-    type: Literal["sonos"]
-    host: str
-
-
-class DryrunReaderConfig(BaseModel):
-    type: Literal["dryrun"]
-
-
-class NfcReaderConfig(BaseModel):
-    type: Literal["nfc"]
-
-
-class PlaybackConfig(BaseModel):
-    pause_duration: int = DEFAULT_PAUSE_DURATION
-    pause_delay: float = Field(default=DEFAULT_PAUSE_DELAY, ge=MIN_PAUSE_DELAY_SECONDS)
-
-
-class JukeboxConfig(BaseModel):
-    library: str
-    verbose: bool = False
-    player: Annotated[
-        Union[DryrunPlayerConfig, SonosPlayerConfig],
-        Field(discriminator="type"),
-    ]
-    reader: Union[DryrunReaderConfig, NfcReaderConfig]
-    playback: PlaybackConfig
-
-
-def parse_config() -> JukeboxConfig:
+def parse_config():
     parser = argparse.ArgumentParser(
         prog="jukebox",
         description="Play music on speakers using NFC tags",
@@ -104,33 +63,55 @@ def parse_config() -> JukeboxConfig:
     args = parser.parse_args()
 
     # Build and validate final config
+    from pydantic import ValidationError
+
     try:
+        # Build player config based on type
         if args.player == "dryrun":
+            from .config_part_2 import DryrunPlayerConfig
+
             player_config = DryrunPlayerConfig(type="dryrun")
         elif args.player == "sonos":
             if not args.sonos_host:
                 parser.error("Sonos player requires --sonos-host argument or JUKEBOX_SONOS_HOST environment variable")
+            from .config_part_2 import SonosPlayerConfig
+
             player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host)
         else:
             parser.error(f"Unknown player type: {args.player}")
 
+        # Build reader config based on type
         if args.reader == "dryrun":
+            from .config_part_2 import DryrunReaderConfig
+
             reader_config = DryrunReaderConfig(type="dryrun")
         elif args.reader == "nfc":
+            from .config_part_2 import NfcReaderConfig
+
             reader_config = NfcReaderConfig(type="nfc")
         else:
             parser.error(f"Unknown reader type: {args.reader}")
+
+        # Build playback config
+        from .config_part_2 import PlaybackConfig
+
+        playback_config = PlaybackConfig(
+            pause_duration=args.pause_duration,
+            pause_delay=args.pause_delay,
+        )
+
+        from .config_part_2 import JukeboxConfig
 
         config = JukeboxConfig(
             library=args.library,
             verbose=args.verbose,
             player=player_config,
             reader=reader_config,
-            playback=PlaybackConfig(
-                pause_duration=args.pause_duration,
-                pause_delay=args.pause_delay,
-            ),
+            playback=playback_config,
         )
+        import sys
+
+        sys.exit(0)
     except ValidationError as err:
         LOGGER.error(f"Configuration validation error: {err}")
         parser.exit(status=1, message=f"Configuration error: {err}\n")
