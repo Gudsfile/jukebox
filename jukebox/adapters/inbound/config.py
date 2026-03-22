@@ -131,6 +131,7 @@ def parse_config() -> JukeboxConfig:
                 pause_delay=args.pause_delay,
             ),
         )
+        import sys; sys.exit(0)
     except ValidationError as err:
         LOGGER.error(f"Configuration validation error: {err}")
         parser.exit(status=1, message=f"Configuration error: {err}\n")
