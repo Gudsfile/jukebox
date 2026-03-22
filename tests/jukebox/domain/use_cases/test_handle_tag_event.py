@@ -115,6 +115,11 @@ def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.4), session)
 
     mock_current_tag_repository.clear.assert_not_called()
+    assert session.physical_tag_removed_seconds == pytest.approx(0.4)
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.6), session)
+    mock_current_tag_repository.clear.assert_not_called()
+    assert session.physical_tag_removed_seconds == pytest.approx(0.6)
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.8), session)
     assert mock_current_tag_repository.set.call_count == 1
