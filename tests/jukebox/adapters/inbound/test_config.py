@@ -178,6 +178,22 @@ class TestParseConfig:
         with pytest.raises(SystemExit):
             parse_config()
 
+    @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.1"})
+    @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-name", "Living Room"])
+    def test_parse_config_cli_name_wins_over_env_host(self):
+        config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
+        assert config.player.name == "Living Room"
+        assert config.player.host is None
+
+    @patch.dict(os.environ, {"JUKEBOX_SONOS_NAME": "Living Room"})
+    @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.1"])
+    def test_parse_config_cli_host_wins_over_env_name(self):
+        config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
+        assert config.player.host == "192.168.1.1"
+        assert config.player.name is None
+
     @patch.dict(os.environ, {"JUKEBOX_LIBRARY_PATH": "/custom/library.json"})
     @patch("sys.argv", ["jukebox", "dryrun", "dryrun"])
     @patch("logging.Logger.warning")

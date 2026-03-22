@@ -14,7 +14,6 @@ from jukebox.shared.config_utils import (
     add_library_arg,
     add_verbose_arg,
     add_version_arg,
-    get_deprecated_env_with_warning,
 )
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
@@ -83,17 +82,12 @@ def parse_config() -> JukeboxConfig:
     # Player-specific arguments
     parser.add_argument(
         "--sonos-host",
-        default=get_deprecated_env_with_warning(
-            "JUKEBOX_SONOS_HOST",
-            "SONOS_HOST",
-            None,
-            LOGGER.warning,
-        ),
+        default=None,
         help="IP address or hostname of Sonos speaker (env: JUKEBOX_SONOS_HOST, if omitted, auto-discovery is used)",
     )
     parser.add_argument(
         "--sonos-name",
-        default=os.environ.get("JUKEBOX_SONOS_NAME"),
+        default=None,
         help="name of the Sonos speaker to use, case-sensitive (env: JUKEBOX_SONOS_NAME, mutually exclusive with --sonos-host)",
     )
 
@@ -116,12 +110,21 @@ def parse_config() -> JukeboxConfig:
 
     args = parser.parse_args()
 
+    # Resolve Sonos speaker selection: CLI flags take precedence over env vars.
+    env_host = os.environ.get("JUKEBOX_SONOS_HOST") or os.environ.get("SONOS_HOST")
+    if os.environ.get("SONOS_HOST") and not os.environ.get("JUKEBOX_SONOS_HOST"):
+        LOGGER.warning("The SONOS_HOST environment variable is deprecated, use JUKEBOX_SONOS_HOST instead.")
+    env_name = os.environ.get("JUKEBOX_SONOS_NAME")
+
+    sonos_host = args.sonos_host or (env_host if not args.sonos_name else None)
+    sonos_name = args.sonos_name or (env_name if not args.sonos_host else None)
+
     # Build and validate final config
     try:
         if args.player == "dryrun":
             player_config = DryrunPlayerConfig(type="dryrun")
         elif args.player == "sonos":
-            player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host, name=args.sonos_name)
+            player_config = SonosPlayerConfig(type="sonos", host=sonos_host, name=sonos_name)
         else:
             parser.error(f"Unknown player type: {args.player}")
 
