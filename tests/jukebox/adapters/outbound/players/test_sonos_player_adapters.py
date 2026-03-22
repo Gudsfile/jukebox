@@ -56,6 +56,35 @@ def test_init_discovery_picks_first_speaker_alphabetically(mock_sharelink, mock_
     assert adapter.speaker is speaker_a
 
 
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_name_selects_matching_speaker(mock_sharelink, mock_soco_module):
+    """Should select the speaker matching the given name."""
+    speaker_a = MagicMock()
+    speaker_a.player_name = "Kitchen"
+    speaker_b = MagicMock()
+    speaker_b.player_name = "Living Room"
+    mock_soco_module.discover.return_value = {speaker_a, speaker_b}
+
+    adapter = SonosPlayerAdapter(name="Living Room")
+
+    assert adapter.speaker is speaker_b
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_name_raises_when_speaker_not_found(mock_sharelink, mock_soco_module):
+    """Should raise RuntimeError when the named speaker is not found."""
+    mock_speaker = MagicMock()
+    mock_speaker.player_name = "Kitchen"
+    mock_soco_module.discover.return_value = {mock_speaker}
+
+    with pytest.raises(RuntimeError, match="No Sonos speaker named 'Bedroom' found on the network"):
+        SonosPlayerAdapter(name="Bedroom")
+
+    mock_sharelink.assert_not_called()
+
+
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_play_calls_underlying_sonos_player(mock_sharelink, mock_soco):

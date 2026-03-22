@@ -52,7 +52,7 @@ class TestBuildJukebox:
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
 
         # Should create player and reader
-        mock_player.assert_called_once_with(host="192.168.1.100")
+        mock_player.assert_called_once_with(host="192.168.1.100", name=None)
         mock_nfc_controller_class.assert_called_once()
 
         # Should return reader and use case
