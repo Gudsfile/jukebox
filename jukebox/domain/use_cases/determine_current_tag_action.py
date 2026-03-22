@@ -12,6 +12,8 @@ class DetermineCurrentTagAction:
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> CurrentTagAction:
         if tag_event.tag_id is not None:
             if session.physical_tag == tag_event.tag_id:
+                if session.physical_tag_removed_seconds > 0:
+                    return CurrentTagAction.RESTORE
                 return CurrentTagAction.KEEP
             return CurrentTagAction.SET
 

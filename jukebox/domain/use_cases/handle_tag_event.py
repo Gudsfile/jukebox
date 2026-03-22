@@ -28,7 +28,7 @@ class HandleTagEvent:
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
         elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
-        self._advance_session_clock(tag_event, session, elapsed_seconds)
+        self._advance_session_clock(session, elapsed_seconds)
         self._apply_current_tag_action_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
@@ -84,12 +84,8 @@ class HandleTagEvent:
         session.last_event_timestamp = tag_event.timestamp
         return session
 
-    def _advance_session_clock(self, tag_event: TagEvent, session: PlaybackSession, elapsed_seconds: float) -> None:
+    def _advance_session_clock(self, session: PlaybackSession, elapsed_seconds: float) -> None:
         if elapsed_seconds <= 0:
-            return
-
-        if tag_event.tag_id is not None:
-            session.physical_tag_removed_seconds = 0.0
             return
 
         if session.physical_tag is not None:
@@ -133,4 +129,7 @@ class HandleTagEvent:
         elif action == CurrentTagAction.CLEAR:
             self.current_tag_repository.clear()
             session.physical_tag = None
+            session.physical_tag_removed_seconds = 0.0
+
+        elif action == CurrentTagAction.RESTORE:
             session.physical_tag_removed_seconds = 0.0
