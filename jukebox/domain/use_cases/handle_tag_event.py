@@ -1,12 +1,12 @@
 import logging
 
-from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
+from jukebox.domain.entities import CurrentTagAction, PlaybackAction, PlaybackSession, TagEvent
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
 from jukebox.domain.use_cases.determine_action import DetermineAction
+from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 
 LOGGER = logging.getLogger("jukebox")
-CURRENT_TAG_ABSENCE_GRACE_SECONDS = 1.0
 
 
 class HandleTagEvent:
@@ -18,18 +18,18 @@ class HandleTagEvent:
         library: LibraryRepository,
         current_tag_repository: CurrentTagRepository,
         determine_action: DetermineAction,
-        current_tag_absence_grace_seconds: float = CURRENT_TAG_ABSENCE_GRACE_SECONDS,
+        determine_current_tag_action: DetermineCurrentTagAction,
     ):
         self.player = player
         self.library = library
         self.current_tag_repository = current_tag_repository
         self.determine_action = determine_action
-        self.current_tag_absence_grace_seconds = current_tag_absence_grace_seconds
+        self.determine_current_tag_action = determine_current_tag_action
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
         elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
         self._advance_session_clock(tag_event, session, elapsed_seconds)
-        self._sync_current_tag_best_effort(tag_event, session)
+        self._apply_current_tag_action_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
@@ -107,31 +107,30 @@ class HandleTagEvent:
             return 0.0
         return max(0.0, tag_event.timestamp - session.last_event_timestamp)
 
-    def _sync_current_tag_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
+    def _apply_current_tag_action_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
         try:
-            self._sync_current_tag(tag_event, session)
+            action = self.determine_current_tag_action.execute(tag_event, session)
+            self._apply_current_tag_action(action, tag_event, session)
         except Exception as err:
             LOGGER.warning(
                 f"Failed to sync current tag state; continuing tag handling: tag_id={tag_event.tag_id!r}, error={err}"
             )
 
-    def _sync_current_tag(self, tag_event: TagEvent, session: PlaybackSession) -> None:
-        if tag_event.tag_id is not None:
-            if session.physical_tag == tag_event.tag_id:
-                session.physical_tag_removed_seconds = 0.0
+    def _apply_current_tag_action(
+        self, action: CurrentTagAction, tag_event: TagEvent, session: PlaybackSession
+    ) -> None:
+        if action == CurrentTagAction.SET:
+            if tag_event.tag_id is None:
+                LOGGER.error(
+                    "`SET` action without tag_id",
+                    extra={"event": tag_event, "session": session},
+                )
                 return
-
             self.current_tag_repository.set(tag_event.tag_id)
             session.physical_tag = tag_event.tag_id
             session.physical_tag_removed_seconds = 0.0
-            return
 
-        if session.physical_tag is None:
-            return
-
-        if session.physical_tag_removed_seconds < self.current_tag_absence_grace_seconds:
-            return
-
-        self.current_tag_repository.clear()
-        session.physical_tag = None
-        session.physical_tag_removed_seconds = 0.0
+        elif action == CurrentTagAction.CLEAR:
+            self.current_tag_repository.clear()
+            session.physical_tag = None
+            session.physical_tag_removed_seconds = 0.0
