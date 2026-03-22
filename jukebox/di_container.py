@@ -32,7 +32,7 @@ def build_jukebox(config: JukeboxConfig):
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library))
 
     if isinstance(config.player, SonosPlayerConfig):
-        player = SonosPlayerAdapter(host=config.player.host)
+        player = SonosPlayerAdapter(host=config.player.host, name=config.player.name)
     elif isinstance(config.player, DryrunPlayerConfig):
         player = DryrunPlayerAdapter()
     else:

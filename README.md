@@ -185,12 +185,13 @@ Displays the events that a real speaker would have performed (`playing …`, `pa
 
 **Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
 Play music through a Sonos speaker.
-Two ways to select the speaker (mutually exclusive):
+Three ways to select the speaker (mutually exclusive):
 
 | Option | CLI flag | Environment variable | Behaviour |
 | --- | --- | --- | --- |
 | By IP | `--sonos-host 192.168.0.x` | `JUKEBOX_SONOS_HOST` | Connect directly, no discovery |
-| Auto | *(omit host)* | *(omit host)* | Discover, pick the first speaker alphabetically |
+| By name | `--sonos-name "Living Room"` | `JUKEBOX_SONOS_NAME` | Discover, then filter by name (case-sensitive) |
+| Auto | *(omit both)* | *(omit both)* | Discover, pick the first speaker alphabetically |
 
 ## The library file
 
@@ -270,8 +271,8 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-If needed, set `JUKEBOX_SONOS_HOST` (IP) to select your Sonos speaker (see [Players](#players)).
-If it is not set, the jukebox will auto-discover a speaker on the network.
+If needed, set `JUKEBOX_SONOS_HOST` (IP) or `JUKEBOX_SONOS_NAME` (speaker name) to select your Sonos speaker (see [Players](#players)).
+If neither is set, the jukebox will auto-discover a speaker on the network.
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 

@@ -32,6 +32,15 @@ class TestConfigModels:
         config = SonosPlayerConfig.model_validate({"type": "sonos"})
         assert config.host is None
 
+    def test_sonos_player_config_with_name(self):
+        config = SonosPlayerConfig(type="sonos", name="Living Room")
+        assert config.name == "Living Room"
+        assert config.host is None
+
+    def test_sonos_player_config_rejects_host_and_name_together(self):
+        with pytest.raises(ValidationError):
+            SonosPlayerConfig(type="sonos", host="192.168.1.1", name="Living Room")
+
     def test_dryrun_reader_config(self):
         config = DryrunReaderConfig(type="dryrun")
         assert config.type == "dryrun"
@@ -106,6 +115,7 @@ class TestParseConfig:
         assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.50"
         assert isinstance(config.reader, NfcReaderConfig)
+        assert config.player.name is None
 
     @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.200"})
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
@@ -115,6 +125,7 @@ class TestParseConfig:
         assert mock_warning.call_count == 0
         assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.200"
+        assert config.player.name is None
 
     @patch.dict(os.environ, {"SONOS_HOST": "192.168.1.200"})
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
@@ -124,6 +135,7 @@ class TestParseConfig:
         assert mock_warning.call_count == 1
         assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.200"
+        assert config.player.name is None
 
     @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.200"})
     @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.99"])
@@ -131,12 +143,40 @@ class TestParseConfig:
         config = parse_config()
         assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host == "192.168.1.99"
+        assert config.player.name is None
 
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
-    def test_parse_config_sonos_without_host_uses_discovery(self):
+    def test_parse_config_sonos_is_allowed_to_use_discovery(self):
         config = parse_config()
         assert isinstance(config.player, SonosPlayerConfig)
         assert config.player.host is None
+        assert config.player.name is None
+
+    @patch.dict(os.environ, {"JUKEBOX_SONOS_NAME": "Living Room"})
+    @patch("sys.argv", ["jukebox", "sonos", "nfc"])
+    def test_parse_config_sonos_with_env_name(self):
+        config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
+        assert config.player.name == "Living Room"
+        assert config.player.host is None
+
+    @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-name", "Living Room"])
+    def test_parse_config_sonos_with_cli_name(self):
+        config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
+        assert config.player.name == "Living Room"
+        assert config.player.host is None
+
+    @patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.1", "--sonos-name", "Living Room"])
+    def test_parse_config_sonos_host_and_name_raises_error(self):
+        with pytest.raises(SystemExit):
+            parse_config()
+
+    @patch.dict(os.environ, {"JUKEBOX_SONOS_HOST": "192.168.1.1", "JUKEBOX_SONOS_NAME": "Living Room"})
+    @patch("sys.argv", ["jukebox", "sonos", "nfc"])
+    def test_parse_config_sonos_host_and_name_env_vars_raises_error(self):
+        with pytest.raises(SystemExit):
+            parse_config()
 
     @patch.dict(os.environ, {"JUKEBOX_LIBRARY_PATH": "/custom/library.json"})
     @patch("sys.argv", ["jukebox", "dryrun", "dryrun"])

@@ -1,5 +1,6 @@
 import argparse
 import logging
+import os
 from typing import Optional, Union
 
 try:
@@ -7,7 +8,7 @@ try:
 except ImportError:
     from typing_extensions import Annotated, Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 from jukebox.shared.config_utils import (
     add_library_arg,
@@ -30,6 +31,13 @@ class DryrunPlayerConfig(BaseModel):
 class SonosPlayerConfig(BaseModel):
     type: Literal["sonos"]
     host: Optional[str] = None
+    name: Optional[str] = None
+
+    @model_validator(mode="after")
+    def host_and_name_are_mutually_exclusive(self) -> "SonosPlayerConfig":
+        if self.host and self.name:
+            raise ValueError("host and name are mutually exclusive")
+        return self
 
 
 class DryrunReaderConfig(BaseModel):
@@ -81,7 +89,12 @@ def parse_config() -> JukeboxConfig:
             None,
             LOGGER.warning,
         ),
-        help="IP address or hostname of Sonos speaker (if omitted, auto-discovery is used)",
+        help="IP address or hostname of Sonos speaker (env: JUKEBOX_SONOS_HOST, if omitted, auto-discovery is used)",
+    )
+    parser.add_argument(
+        "--sonos-name",
+        default=os.environ.get("JUKEBOX_SONOS_NAME"),
+        help="name of the Sonos speaker to use, case-sensitive (env: JUKEBOX_SONOS_NAME, mutually exclusive with --sonos-host)",
     )
 
     # Playback arguments
@@ -108,7 +121,7 @@ def parse_config() -> JukeboxConfig:
         if args.player == "dryrun":
             player_config = DryrunPlayerConfig(type="dryrun")
         elif args.player == "sonos":
-            player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host)
+            player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host, name=args.sonos_name)
         else:
             parser.error(f"Unknown player type: {args.player}")
 
