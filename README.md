@@ -103,8 +103,6 @@ uv sync
 
 ## First steps
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
-
 Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
 
 ### Manage the library with the discstore
@@ -187,9 +185,12 @@ Displays the events that a real speaker would have performed (`playing …`, `pa
 
 **Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
 Play music through a Sonos speaker.
-`JUKEBOX_SONOS_HOST` environment variable must be set with the IP address of your Sonos Zone Player.
-You could set the environment varible with `export JUKEBOX_SONOS_HOST=192.168.0.???` to use this speaker through the `jukebox` command.
-Or set it in a `.env` file to use the `uv run --env-file .env <command to run>` version.
+Two ways to select the speaker (mutually exclusive):
+
+| Option | CLI flag | Environment variable | Behaviour |
+| --- | --- | --- | --- |
+| By IP | `--sonos-host 192.168.0.x` | `JUKEBOX_SONOS_HOST` | Connect directly, no discovery |
+| Auto | *(omit host)* | *(omit host)* | Discover, pick the first speaker alphabetically |
 
 ## The library file
 
@@ -269,7 +270,8 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-Set the `JUKEBOX_SONOS_HOST` environment variable with the IP address of your Sonos Zone Player (see [Available players and readers](#players)).
+If needed, set `JUKEBOX_SONOS_HOST` (IP) to select your Sonos speaker (see [Players](#players)).
+If it is not set, the jukebox will auto-discover a speaker on the network.
 To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 

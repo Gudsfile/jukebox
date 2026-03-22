@@ -28,9 +28,9 @@ class TestConfigModels:
         assert config.type == "sonos"
         assert config.host == "192.168.1.100"
 
-    def test_sonos_player_config_requires_host(self):
-        with pytest.raises(ValidationError):
-            SonosPlayerConfig.model_validate({"type": "sonos"})
+    def test_sonos_player_config_host_defaults_to_none(self):
+        config = SonosPlayerConfig.model_validate({"type": "sonos"})
+        assert config.host is None
 
     def test_dryrun_reader_config(self):
         config = DryrunReaderConfig(type="dryrun")
@@ -133,9 +133,10 @@ class TestParseConfig:
         assert config.player.host == "192.168.1.99"
 
     @patch("sys.argv", ["jukebox", "sonos", "nfc"])
-    def test_parse_config_sonos_missing_host_raises_error(self):
-        with pytest.raises(SystemExit):
-            parse_config()
+    def test_parse_config_sonos_without_host_uses_discovery(self):
+        config = parse_config()
+        assert isinstance(config.player, SonosPlayerConfig)
+        assert config.player.host is None
 
     @patch.dict(os.environ, {"JUKEBOX_LIBRARY_PATH": "/custom/library.json"})
     @patch("sys.argv", ["jukebox", "dryrun", "dryrun"])

@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Union
+from typing import Optional, Union
 
 try:
     from typing import Annotated, Literal
@@ -29,7 +29,7 @@ class DryrunPlayerConfig(BaseModel):
 
 class SonosPlayerConfig(BaseModel):
     type: Literal["sonos"]
-    host: str
+    host: Optional[str] = None
 
 
 class DryrunReaderConfig(BaseModel):
@@ -81,7 +81,7 @@ def parse_config() -> JukeboxConfig:
             None,
             LOGGER.warning,
         ),
-        help="IP address or hostname of Sonos speaker (required for sonos player)",
+        help="IP address or hostname of Sonos speaker (if omitted, auto-discovery is used)",
     )
 
     # Playback arguments
@@ -108,8 +108,6 @@ def parse_config() -> JukeboxConfig:
         if args.player == "dryrun":
             player_config = DryrunPlayerConfig(type="dryrun")
         elif args.player == "sonos":
-            if not args.sonos_host:
-                parser.error("Sonos player requires --sonos-host argument or JUKEBOX_SONOS_HOST environment variable")
             player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host)
         else:
             parser.error(f"Unknown player type: {args.player}")
