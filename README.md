@@ -91,7 +91,7 @@ pip install "gukebox[nfc]"
 - For non-system Python 3.13+, you can still install via pip/uv/poetry/etc. but you must build the `lgpio` package from source and it may require other system packages.
 - All releases can be downloaded and installed from the [GitHub releases page](https://github.com/Gudsfile/jukebox/releases).
 
-### Developer setup
+### Installation for development
 
 For development read the [Developer setup](#developer-setup) section.
 
@@ -304,6 +304,15 @@ Other commands are available:
 | `uv run ruff check` | Check the code. |
 | `uv run ruff check --fix` | Fix the code. |
 | `uv run pytest` | Run the tests. |
+
+### Pre-commit
+
+[prek](https://github.com/j178/prek) is configured; you can [install it](https://github.com/j178/prek?tab=readme-ov-file#installation) to automatically run validations on each commit.
+
+```shell
+uv tool install prek
+prek install
+```
 
 ## Contributing
 
