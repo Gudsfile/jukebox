@@ -1,8 +1,4 @@
-import logging
-
 from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
-
-LOGGER = logging.getLogger("jukebox")
 
 
 class DetermineAction:
