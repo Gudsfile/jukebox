@@ -14,7 +14,7 @@ try:
     from fastapi.responses import HTMLResponse, StreamingResponse
     from fastui import AnyComponent, FastUI, prebuilt_html
     from fastui import components as c
-    from fastui.events import GoToEvent, PageEvent
+    from fastui.events import BackEvent, GoToEvent, PageEvent
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
@@ -147,6 +147,26 @@ class UIController(APIController):
 
             return self._build_success_response("toast-edit-disc-success")
 
+        @self.app.get("/api/ui/discs/{tag_id}/delete", response_model=FastUI, response_model_exclude_none=True)
+        def delete_disc_confirmation(tag_id: str) -> List[AnyComponent]:
+            return self._build_form_page_components(
+                title=f"Delete disc {tag_id}",
+                form_components=self._build_delete_disc_form_components(tag_id),
+            )
+
+        # Fast-UI buttons and forms do not support the DELETE method directly. So we cannot call DELETE on
+        # /api/ui/discs/{tag_id}. Instead, we just use POST on /api/ui/discs/{tag_id}/delete.
+        @self.app.post("/api/ui/discs/{tag_id}/delete", response_model=FastUI, response_model_exclude_none=True)
+        async def delete_disc(tag_id: str) -> list[AnyComponent]:
+            try:
+                self.remove_disc.execute(tag_id)
+            except ValueError as err:
+                raise HTTPException(status_code=404, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+            return self._build_success_response("toast-remove-disc-success")
+
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
             del path
@@ -185,12 +205,18 @@ class UIController(APIController):
                 open_trigger=PageEvent(name="toast-edit-disc-success"),
                 position="bottom-end",
             ),
+            c.Toast(
+                title="Toast",
+                body=[c.Paragraph(text="🗑️ Disc removed")],
+                open_trigger=PageEvent(name="toast-remove-disc-success"),
+                position="bottom-end",
+            ),
             *self._build_disc_library_components(discs_list),
         ]
 
         page_components: list[AnyComponent] = [c.Page(components=components)]
 
-        if toast in {"toast-add-disc-success", "toast-edit-disc-success"}:
+        if toast in {"toast-add-disc-success", "toast-edit-disc-success", "toast-remove-disc-success"}:
             page_components.append(c.FireEvent(event=PageEvent(name=toast)))
 
         return page_components
@@ -214,7 +240,9 @@ class UIController(APIController):
             )
         ]
 
-    def _build_current_tag_banner_components(self, current_tag_status: Optional[CurrentTagStatus]) -> List[AnyComponent]:
+    def _build_current_tag_banner_components(
+        self, current_tag_status: Optional[CurrentTagStatus]
+    ) -> List[AnyComponent]:
         if current_tag_status is None:
             return []
 
@@ -322,7 +350,7 @@ class UIController(APIController):
                         ),
                     ],
                 )
-            ]
+            ],
         )
 
     def _build_disc_header_cell(self, label: str, class_name: str) -> AnyComponent:
@@ -409,7 +437,43 @@ class UIController(APIController):
                     "track": disc.metadata.track,
                     "shuffle": disc.option.shuffle,
                 },
-            )
+            ),
+            c.Button(
+                text="🗑️ Delete this disc",
+                on_click=GoToEvent(url=f"/discs/{tag_id}/delete"),
+                class_name="btn btn-danger mt-3",
+            ),
+        ]
+
+    def _build_delete_disc_form_components(self, tag_id: str) -> List[AnyComponent]:
+        if not tag_id:
+            return [c.Error(title="No disc selected", description="Delete mode requires an existing disc tag ID.")]
+        try:
+            _ = self.get_disc.execute(tag_id)
+        except ValueError as err:
+            return [c.Error(title="Disc not found", description=str(err))]
+
+        return [
+            c.Paragraph(text=f'Are you sure you want to delete the disc with tag "{tag_id}"?'),
+            c.Div(
+                class_name="alert alert-danger",
+                components=[c.Paragraph(text="This action cannot be undone.")],
+            ),
+            c.Div(
+                class_name="d-flex gap-2 mt-3",
+                components=[
+                    c.Form(
+                        form_fields=[],
+                        submit_url=f"/api/ui/discs/{tag_id}/delete",
+                        method="POST",
+                    ),
+                    c.Button(
+                        text="Cancel",
+                        on_click=BackEvent(),
+                        class_name="btn btn-secondary",
+                    ),
+                ],
+            ),
         ]
 
     async def _current_tag_banner_event_stream(
