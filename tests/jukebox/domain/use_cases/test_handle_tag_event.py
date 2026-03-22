@@ -3,8 +3,9 @@ from unittest.mock import MagicMock, call
 
 import pytest
 
-from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
+from jukebox.domain.entities import CurrentTagAction, Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
 from jukebox.domain.use_cases.determine_action import DetermineAction
+from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
 
@@ -34,18 +35,27 @@ def determine_action():
 
 
 @pytest.fixture
+def determine_current_tag_action():
+    """Create a DetermineCurrentTagAction instance."""
+    return DetermineCurrentTagAction()
+
+
+@pytest.fixture
 def mock_current_tag_repository():
     return MagicMock()
 
 
 @pytest.fixture
-def handle_tag_event(mock_player, mock_library, mock_current_tag_repository, determine_action):
+def handle_tag_event(
+    mock_player, mock_library, mock_current_tag_repository, determine_action, determine_current_tag_action
+):
     """Create a HandleTagEvent instance."""
     return HandleTagEvent(
         player=mock_player,
         library=mock_library,
         current_tag_repository=mock_current_tag_repository,
         determine_action=determine_action,
+        determine_current_tag_action=determine_current_tag_action,
     )
 
 
@@ -377,3 +387,28 @@ def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_
 
     mock_player.play.assert_not_called()
     mock_player.resume.assert_not_called()
+
+
+def test_set_action_with_missing_tag_id_logs_error_and_does_nothing(
+    handle_tag_event,
+    mock_current_tag_repository,
+    caplog,
+):
+    """Defensive test: SET with None tag_id should never occur in normal flow."""
+    session = PlaybackSession()
+
+    session.physical_tag = "existing-tag"
+    session.physical_tag_removed_seconds = 1.23
+
+    with caplog.at_level("ERROR", logger="jukebox"):
+        handle_tag_event._apply_current_tag_action(
+            CurrentTagAction.SET,
+            TagEvent(tag_id=None, timestamp=100.0),
+            session,
+        )
+
+    mock_current_tag_repository.set.assert_not_called()
+
+    assert "`SET` action without tag_id" in caplog.text
+    assert session.physical_tag == "existing-tag"
+    assert session.physical_tag_removed_seconds == 1.23
