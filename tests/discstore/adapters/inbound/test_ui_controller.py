@@ -96,7 +96,9 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     all_components = list(walk_components(page.components))
     server_load = next(component for component in all_components if component.type == "ServerLoad")
     add_button = next(
-        component for component in all_components if component.type == "Button" and component.text == "➕ Add a new disc"
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "➕ Add a new disc"
     )
     edit_button = next(
         component
@@ -116,7 +118,9 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     new_page = new_route.endpoint()[0]
     assert new_page.components[0].text == "Add disc"
 
-    edit_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/edit")
+    edit_route = next(
+        route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/edit"
+    )
     edit_page = edit_route.endpoint("tag-123")[0]
     assert edit_page.components[0].text == "Edit disc tag-123"
     delete_button = next(
@@ -136,11 +140,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert delete_page.components[0].text == "Delete disc tag-123"
     assert delete_page.components[1].text == 'Are you sure you want to delete the disc with tag "tag-123"?'
     all_delete_page_components = list(walk_components(delete_page.components))
-    confirm_deletion_form = next(
-        component
-        for component in all_delete_page_components
-        if component.type == "Form"
-    )
+    confirm_deletion_form = next(component for component in all_delete_page_components if component.type == "Form")
     cancel_deletion_button = next(
         component
         for component in all_delete_page_components
@@ -196,7 +196,9 @@ def test_current_tag_banner_for_unknown_disc_offers_add_cta():
 
     controller = build_controller()
 
-    components = controller._build_current_tag_banner_components(CurrentTagStatus(tag_id="tag-123", known_in_library=False))
+    components = controller._build_current_tag_banner_components(
+        CurrentTagStatus(tag_id="tag-123", known_in_library=False)
+    )
     all_components = list(walk_components(components))
     heading = next(component for component in all_components if component.type == "Heading")
     button = next(component for component in all_components if component.type == "Button")
@@ -215,7 +217,9 @@ def test_current_tag_banner_for_known_disc_is_informational_only():
 
     controller = build_controller()
 
-    components = controller._build_current_tag_banner_components(CurrentTagStatus(tag_id="tag-123", known_in_library=True))
+    components = controller._build_current_tag_banner_components(
+        CurrentTagStatus(tag_id="tag-123", known_in_library=True)
+    )
     all_components = list(walk_components(components))
     button = next(component for component in all_components if component.type == "Button")
 

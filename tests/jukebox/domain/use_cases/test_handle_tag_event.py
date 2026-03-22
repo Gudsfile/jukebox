@@ -84,9 +84,7 @@ def test_unknown_tag_writes_current_tag(handle_tag_event, mock_current_tag_repos
     mock_current_tag_repository.set.assert_called_once_with("unknown-tag")
 
 
-def test_same_tag_does_not_rewrite_current_tag_unnecessarily(
-    handle_tag_event, mock_current_tag_repository
-):
+def test_same_tag_does_not_rewrite_current_tag_unnecessarily(handle_tag_event, mock_current_tag_repository):
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="same-tag", timestamp=100.0), session)
@@ -96,9 +94,7 @@ def test_same_tag_does_not_rewrite_current_tag_unnecessarily(
     assert session.physical_tag == "same-tag"
 
 
-def test_different_tag_replaces_current_tag_state(
-    handle_tag_event, mock_current_tag_repository
-):
+def test_different_tag_replaces_current_tag_state(handle_tag_event, mock_current_tag_repository):
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-a", timestamp=100.0), session)
@@ -147,9 +143,7 @@ def test_unknown_tag_promotes_to_known_without_rewriting_current_tag(
     assert session.current_tag == "promote-tag"
 
 
-def test_current_tag_set_failure_does_not_block_playback(
-    handle_tag_event, mock_current_tag_repository, mock_player
-):
+def test_current_tag_set_failure_does_not_block_playback(handle_tag_event, mock_current_tag_repository, mock_player):
     mock_current_tag_repository.set.side_effect = OSError("disk full")
     session = PlaybackSession()
 
@@ -160,9 +154,7 @@ def test_current_tag_set_failure_does_not_block_playback(
     assert new_session.previous_tag == "known-tag"
 
 
-def test_current_tag_clear_failure_does_not_block_pause(
-    handle_tag_event, mock_current_tag_repository, mock_player
-):
+def test_current_tag_clear_failure_does_not_block_pause(handle_tag_event, mock_current_tag_repository, mock_player):
     handle_tag_event.determine_action.pause_delay = 0.25
     mock_current_tag_repository.clear.side_effect = OSError("permission denied")
     session = PlaybackSession(

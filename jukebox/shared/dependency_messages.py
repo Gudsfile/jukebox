@@ -1,6 +1,4 @@
-def optional_extra_dependency_message(
-    subject: str, extra_name: str, source_command: str
-) -> str:
+def optional_extra_dependency_message(subject: str, extra_name: str, source_command: str) -> str:
     return (
         f"{subject} requires the optional `{extra_name}` dependencies.\n\n"
         "If you installed the package, reinstall it with extras enabled using your package manager:\n"

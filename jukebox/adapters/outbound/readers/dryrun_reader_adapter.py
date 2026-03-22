@@ -46,7 +46,9 @@ class DryrunReaderAdapter(ReaderPort):
                 self.uid = commands[0]
                 self.hold_until = time.monotonic() + duration_seconds
             except ValueError:
-                LOGGER.warning(f"Duration parameter should be a non-negative number of seconds, received: `{commands[1]}`")
+                LOGGER.warning(
+                    f"Duration parameter should be a non-negative number of seconds, received: `{commands[1]}`"
+                )
             return self.uid
         LOGGER.warning(f"Invalid input, should be `tag_uid duration_seconds`, received: {commands}")
         return None
