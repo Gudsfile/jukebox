@@ -10,7 +10,7 @@ class PlaybackSession(BaseModel):
     playing_tag: Optional[str] = None
     is_paused: bool = False
     pause_duration_seconds: float = 0.0
-    tag_removed_seconds: float = 0.0
+    playing_tag_removed_at: Optional[float] = None
 
     # Physical reader state
     physical_tag: Optional[str] = None

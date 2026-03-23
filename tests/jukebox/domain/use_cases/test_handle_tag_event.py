@@ -72,7 +72,7 @@ def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mo
 
     assert new_session.playing_tag == "test-tag"
     assert new_session.pause_duration_seconds == 0
-    assert new_session.tag_removed_seconds == 0
+    assert new_session.playing_tag_removed_at is None
 
 
 def test_known_tag_writes_current_tag(handle_tag_event, mock_current_tag_repository, mock_library):
@@ -173,7 +173,7 @@ def test_current_tag_clear_failure_does_not_block_pause(handle_tag_event, mock_c
         playing_tag="known-tag",
         physical_tag="known-tag",
         physical_tag_removed_at=0.99,
-        tag_removed_seconds=0.24,
+        playing_tag_removed_at=0.24,
         last_event_timestamp=100.0,
     )
 
@@ -224,7 +224,7 @@ def test_handle_resume_action(handle_tag_event, mock_player):
 
     mock_player.resume.assert_called_once()
     assert new_session.pause_duration_seconds == 0
-    assert new_session.tag_removed_seconds == 0
+    assert new_session.playing_tag_removed_at is None
 
 
 def test_handle_pause_action(handle_tag_event, mock_player):
@@ -232,7 +232,7 @@ def test_handle_pause_action(handle_tag_event, mock_player):
     session = PlaybackSession(
         playing_tag="test-tag",
         pause_duration_seconds=0.0,
-        tag_removed_seconds=5.0,
+        playing_tag_removed_at=5.0,
         last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.2)
@@ -241,7 +241,7 @@ def test_handle_pause_action(handle_tag_event, mock_player):
 
     mock_player.pause.assert_called_once()
     assert new_session.pause_duration_seconds == 0.0
-    assert new_session.tag_removed_seconds == 0
+    assert new_session.playing_tag_removed_at is None
     assert new_session.is_paused is True
 
 
@@ -253,7 +253,7 @@ def test_handle_pause_then_stop_after_max_pause_duration(handle_tag_event, mock_
     session = PlaybackSession(
         playing_tag="test-tag",
         pause_duration_seconds=0.0,
-        tag_removed_seconds=0.24,
+        playing_tag_removed_at=0.24,
         last_event_timestamp=100.0,
     )
 
@@ -293,7 +293,7 @@ def test_handle_stop_action(handle_tag_event, mock_player):
     mock_player.stop.assert_called_once()
     assert new_session.playing_tag is None
     assert new_session.is_paused is False
-    assert new_session.tag_removed_seconds == 0
+    assert new_session.playing_tag_removed_at is None
 
 
 def test_handle_continue_action(handle_tag_event, mock_player):
@@ -312,15 +312,35 @@ def test_handle_continue_action(handle_tag_event, mock_player):
     mock_player.resume.assert_not_called()
     mock_player.stop.assert_not_called()
 
-    assert new_session.tag_removed_seconds == 0
+    assert new_session.playing_tag_removed_at is None
 
 
 def test_handle_waiting_action(handle_tag_event, mock_player):
-    """Should increment tag_removed_seconds when action is WAITING."""
+    """Should record tag removal timestamp when action is WAITING."""
     session = PlaybackSession(
         playing_tag="test-tag",
         pause_duration_seconds=0.0,
-        tag_removed_seconds=1.0,
+        playing_tag_removed_at=None,
+        last_event_timestamp=100.0,
+    )
+    tag_event = TagEvent(tag_id=None, timestamp=100.25)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.play.assert_not_called()
+    mock_player.pause.assert_not_called()
+    mock_player.resume.assert_not_called()
+    mock_player.stop.assert_not_called()
+
+    assert new_session.playing_tag_removed_at == 100.25
+
+
+def test_handle_waiting_preserves_removal_timestamp_on_subsequent_occurrences(handle_tag_event, mock_player):
+    """Should not overwrite removal timestamp on subsequent grace period events."""
+    session = PlaybackSession(
+        playing_tag="test-tag",
+        pause_duration_seconds=0.0,
+        playing_tag_removed_at=99.25,
         last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.25)
@@ -329,7 +349,7 @@ def test_handle_waiting_action(handle_tag_event, mock_player):
 
     mock_player.pause.assert_not_called()
 
-    assert new_session.tag_removed_seconds == 1.25
+    assert new_session.playing_tag_removed_at == 99.25
 
 
 def test_handle_idle_action(handle_tag_event, mock_player):
@@ -344,22 +364,6 @@ def test_handle_idle_action(handle_tag_event, mock_player):
     new_session = handle_tag_event.execute(tag_event, session)
 
     assert new_session.pause_duration_seconds == 10.25
-
-
-def test_handle_waiting_uses_elapsed_time(handle_tag_event, mock_player):
-    """Should use elapsed timestamps for fractional grace periods."""
-    session = PlaybackSession(
-        playing_tag="test-tag",
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=0.1,
-        last_event_timestamp=50.0,
-    )
-    tag_event = TagEvent(tag_id=None, timestamp=50.15)
-
-    new_session = handle_tag_event.execute(tag_event, session)
-
-    mock_player.pause.assert_not_called()
-    assert new_session.tag_removed_seconds == pytest.approx(0.25)
 
 
 def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_player, mock_library):
