@@ -125,15 +125,15 @@ def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.4), session)
 
     mock_current_tag_repository.clear.assert_not_called()
-    assert session.physical_tag_removed_seconds == pytest.approx(0.4)
+    assert session.physical_tag_removed_at == pytest.approx(100.4)
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.6), session)
     mock_current_tag_repository.clear.assert_not_called()
-    assert session.physical_tag_removed_seconds == pytest.approx(0.6)
+    assert session.physical_tag_removed_at == pytest.approx(100.4)
 
     session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.8), session)
     assert mock_current_tag_repository.set.call_count == 1
-    assert session.physical_tag_removed_seconds == 0.0
+    assert session.physical_tag_removed_at is None
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=101.9), session)
 
@@ -172,7 +172,7 @@ def test_current_tag_clear_failure_does_not_block_pause(handle_tag_event, mock_c
     session = PlaybackSession(
         playing_tag="known-tag",
         physical_tag="known-tag",
-        physical_tag_removed_seconds=0.99,
+        physical_tag_removed_at=0.99,
         tag_removed_seconds=0.24,
         last_event_timestamp=100.0,
     )
@@ -398,7 +398,7 @@ def test_set_action_with_missing_tag_id_logs_error_and_does_nothing(
     session = PlaybackSession()
 
     session.physical_tag = "existing-tag"
-    session.physical_tag_removed_seconds = 1.23
+    session.physical_tag_removed_at = 1.23
 
     with caplog.at_level("ERROR", logger="jukebox"):
         handle_tag_event._apply_current_tag_action(
@@ -411,4 +411,4 @@ def test_set_action_with_missing_tag_id_logs_error_and_does_nothing(
 
     assert "`SET` action without tag_id" in caplog.text
     assert session.physical_tag == "existing-tag"
-    assert session.physical_tag_removed_seconds == 1.23
+    assert session.physical_tag_removed_at == 1.23

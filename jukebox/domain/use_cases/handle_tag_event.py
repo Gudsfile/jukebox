@@ -88,9 +88,6 @@ class HandleTagEvent:
         if elapsed_seconds <= 0:
             return
 
-        if session.physical_tag is not None:
-            session.physical_tag_removed_seconds += elapsed_seconds
-
         if session.is_paused:
             session.pause_duration_seconds += elapsed_seconds
             return
@@ -124,12 +121,18 @@ class HandleTagEvent:
                 return
             self.current_tag_repository.set(tag_event.tag_id)
             session.physical_tag = tag_event.tag_id
-            session.physical_tag_removed_seconds = 0.0
+            session.physical_tag_removed_at = None
 
         elif action == CurrentTagAction.CLEAR:
             self.current_tag_repository.clear()
             session.physical_tag = None
-            session.physical_tag_removed_seconds = 0.0
+            session.physical_tag_removed_at = None
 
         elif action == CurrentTagAction.RESTORE:
-            session.physical_tag_removed_seconds = 0.0
+            session.physical_tag_removed_at = None
+
+        elif action == CurrentTagAction.REMOVE:
+            session.physical_tag_removed_at = tag_event.timestamp
+
+        elif action == CurrentTagAction.KEEP:
+            pass  # No state changed
