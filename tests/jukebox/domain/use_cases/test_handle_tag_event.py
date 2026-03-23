@@ -1,4 +1,3 @@
-import time
 from unittest.mock import MagicMock, call
 
 import pytest
@@ -62,7 +61,7 @@ def handle_tag_event(
 def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mock_library):
     """Should play disc when action is PLAY and disc exists."""
     session = PlaybackSession()
-    tag_event = TagEvent(tag_id="test-tag", timestamp=time.time())
+    tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
@@ -71,7 +70,7 @@ def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mo
     mock_player.play.assert_called_once_with("uri:123", False)
 
     assert new_session.playing_tag == "test-tag"
-    assert new_session.pause_duration_seconds == 0
+    assert new_session.paused_at is None
     assert new_session.playing_tag_removed_at is None
 
 
@@ -192,7 +191,7 @@ def test_handle_play_action_with_shuffle(handle_tag_event, mock_player, mock_lib
     )
 
     session = PlaybackSession()
-    tag_event = TagEvent(tag_id="shuffle-tag", timestamp=time.time())
+    tag_event = TagEvent(tag_id="shuffle-tag", timestamp=100.0)
 
     handle_tag_event.execute(tag_event, session)
 
@@ -204,7 +203,7 @@ def test_handle_play_action_with_nonexistent_disc(handle_tag_event, mock_player,
     mock_library.get_disc.return_value = None
 
     session = PlaybackSession()
-    tag_event = TagEvent(tag_id="unknown-tag", timestamp=time.time())
+    tag_event = TagEvent(tag_id="unknown-tag", timestamp=100.0)
 
     handle_tag_event.execute(tag_event, session)
 
@@ -215,15 +214,15 @@ def test_handle_resume_action(handle_tag_event, mock_player):
     """Should resume player when action is RESUME."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=10.0,
+        paused_at=90.0,
         is_paused=True,
     )
-    tag_event = TagEvent(tag_id="test-tag", timestamp=time.time())
+    tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
     mock_player.resume.assert_called_once()
-    assert new_session.pause_duration_seconds == 0
+    assert new_session.paused_at is None
     assert new_session.playing_tag_removed_at is None
 
 
@@ -231,7 +230,7 @@ def test_handle_pause_action(handle_tag_event, mock_player):
     """Should pause player when action is PAUSE."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=0.0,
+        paused_at=None,
         playing_tag_removed_at=5.0,
         last_event_timestamp=100.0,
     )
@@ -240,41 +239,38 @@ def test_handle_pause_action(handle_tag_event, mock_player):
     new_session = handle_tag_event.execute(tag_event, session)
 
     mock_player.pause.assert_called_once()
-    assert new_session.pause_duration_seconds == 0.0
+    assert new_session.paused_at == 100.2
     assert new_session.playing_tag_removed_at is None
     assert new_session.is_paused is True
 
 
 def test_handle_pause_then_stop_after_max_pause_duration(handle_tag_event, mock_player):
-    """Should accumulate paused time after PAUSE and eventually stop."""
+    """Should set paused_at on PAUSE and eventually stop after max_pause_duration."""
     handle_tag_event.determine_action.pause_delay = 0.25
     handle_tag_event.determine_action.max_pause_duration = 0.5
 
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=0.0,
-        playing_tag_removed_at=0.24,
+        paused_at=None,
+        playing_tag_removed_at=99.76,
         last_event_timestamp=100.0,
     )
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.02), session)
-
-    assert session.pause_duration_seconds == 0.0
+    assert session.paused_at == pytest.approx(100.02)
     assert session.is_paused is True
     mock_player.pause.assert_called_once()
     mock_player.stop.assert_not_called()
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.32), session)
-
-    assert session.pause_duration_seconds == pytest.approx(0.3)
+    assert session.paused_at == pytest.approx(100.02)  # unchanged
     assert session.is_paused is True
     mock_player.pause.assert_called_once()
     mock_player.stop.assert_not_called()
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.62), session)
-
     mock_player.stop.assert_called_once()
-    assert session.pause_duration_seconds == 0.0
+    assert session.paused_at is None
     assert session.playing_tag is None
     assert session.is_paused is False
 
@@ -283,10 +279,10 @@ def test_handle_stop_action(handle_tag_event, mock_player):
     """Should stop player when action is STOP."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=100.0,
+        paused_at=40.0,
         is_paused=True,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
@@ -300,9 +296,9 @@ def test_handle_continue_action(handle_tag_event, mock_player):
     """Should not call player when action is CONTINUE."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=0.0,
+        paused_at=None,
     )
-    tag_event = TagEvent(tag_id="test-tag", timestamp=time.time())
+    tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
 
     new_session = handle_tag_event.execute(tag_event, session)
 
@@ -319,7 +315,7 @@ def test_handle_waiting_action(handle_tag_event, mock_player):
     """Should record tag removal timestamp when action is WAITING."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=0.0,
+        paused_at=None,
         playing_tag_removed_at=None,
         last_event_timestamp=100.0,
     )
@@ -339,7 +335,7 @@ def test_handle_waiting_preserves_removal_timestamp_on_subsequent_occurrences(ha
     """Should not overwrite removal timestamp on subsequent grace period events."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        pause_duration_seconds=0.0,
+        paused_at=None,
         playing_tag_removed_at=99.25,
         last_event_timestamp=100.0,
     )
@@ -352,10 +348,10 @@ def test_handle_waiting_preserves_removal_timestamp_on_subsequent_occurrences(ha
     assert new_session.playing_tag_removed_at == 99.25
 
 
-def test_handle_idle_action(handle_tag_event, mock_player):
-    """Should increment pause_duration_seconds when action is IDLE."""
+def test_handle_idle_action(handle_tag_event):
+    """Should not overwrite paused timestamp when action is IDLE."""
     session = PlaybackSession(
-        pause_duration_seconds=10.0,
+        paused_at=10.0,
         is_paused=True,
         last_event_timestamp=100.0,
     )
@@ -363,7 +359,7 @@ def test_handle_idle_action(handle_tag_event, mock_player):
 
     new_session = handle_tag_event.execute(tag_event, session)
 
-    assert new_session.pause_duration_seconds == 10.25
+    assert new_session.paused_at == 10.0
 
 
 def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_player, mock_library):
@@ -374,12 +370,12 @@ def test_unregistered_tag_while_paused_should_not_resume(handle_tag_event, mock_
     """
     session = PlaybackSession(
         playing_tag="good-tag",
-        pause_duration_seconds=10.0,  # Paused
+        paused_at=10.0,  # Paused
         is_paused=True,
     )
 
     mock_library.get_disc.return_value = None
-    bad_tag_event = TagEvent(tag_id="unknown-tag", timestamp=time.time())
+    bad_tag_event = TagEvent(tag_id="unknown-tag", timestamp=100.0)
 
     session = handle_tag_event.execute(bad_tag_event, session)
 
