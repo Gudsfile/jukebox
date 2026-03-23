@@ -34,7 +34,7 @@ class HandleTagEvent:
 
         LOGGER.debug(
             f"{action.value} \t\t {tag_event.tag_id} | {session.playing_tag} | "
-            f"{session.pause_duration_seconds} | {session.playing_tag_removed_at}"
+            f"{session.paused_at} | {session.playing_tag_removed_at}"
         )
 
         if action == PlaybackAction.CONTINUE:
@@ -43,7 +43,7 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.RESUME:
             self.player.resume()
-            session.pause_duration_seconds = 0
+            session.paused_at = None
             session.playing_tag_removed_at = None
             session.is_paused = False
 
@@ -55,7 +55,7 @@ class HandleTagEvent:
                 LOGGER.info(f"Found corresponding disc: {disc}")
                 session.playing_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
-                session.pause_duration_seconds = 0
+                session.paused_at = None
                 session.playing_tag_removed_at = None
                 session.is_paused = False
             else:
@@ -70,14 +70,14 @@ class HandleTagEvent:
 
         elif action == PlaybackAction.PAUSE:
             self.player.pause()
-            session.pause_duration_seconds = 0.0
+            session.paused_at = tag_event.timestamp
             session.playing_tag_removed_at = None
             session.is_paused = True
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
             session.playing_tag = None
-            session.pause_duration_seconds = 0.0
+            session.paused_at = None
             session.playing_tag_removed_at = None
             session.is_paused = False
 
@@ -89,10 +89,6 @@ class HandleTagEvent:
 
     def _advance_session_clock(self, session: PlaybackSession, elapsed_seconds: float) -> None:
         if elapsed_seconds <= 0:
-            return
-
-        if session.is_paused:
-            session.pause_duration_seconds += elapsed_seconds
             return
 
     def _get_elapsed_seconds(self, tag_event: TagEvent, session: PlaybackSession) -> float:
