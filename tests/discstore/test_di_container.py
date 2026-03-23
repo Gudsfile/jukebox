@@ -113,22 +113,19 @@ def test_build_api_app_wiring(mocker, mocks):
     mocker.patch.dict(
         "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
     )
+    settings_service = MagicMock()
 
-    result = build_api_app("/test/library.json")
+    result = build_api_app("/test/library.json", settings_service)
 
     mocks.repo_class.assert_called_once_with("/test/library.json")
     mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
-    mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
-    mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_tag_status_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mock_api_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,
         mocks.remove_disc_instance,
         mocks.edit_disc_instance,
         mocks.get_current_tag_status_instance,
+        settings_service,
     )
     assert result is mock_api_instance
 
@@ -144,12 +141,6 @@ def test_build_ui_app_wiring(mocker, mocks):
 
     mocks.repo_class.assert_called_once_with("/test/library.json")
     mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
-    mocks.add_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.list_discs_class.assert_called_once_with(mocks.repo_instance)
-    mocks.remove_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.edit_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_disc_class.assert_called_once_with(mocks.repo_instance)
-    mocks.get_current_tag_status_class.assert_called_once_with(mocks.current_tag_repo_instance, mocks.repo_instance)
     mock_ui_controller_class.assert_called_once_with(
         mocks.add_disc_instance,
         mocks.list_discs_instance,

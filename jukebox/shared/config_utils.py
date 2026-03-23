@@ -1,11 +1,7 @@
 import argparse
-import logging
 import os
 from importlib.metadata import PackageNotFoundError, version
 from typing import Callable, Optional
-
-DEFAULT_LIBRARY_PATH = os.path.expanduser("~/.jukebox/library.json")
-LOGGER = logging.getLogger("jukebox")
 
 
 def get_package_version(package_name: str = "gukebox") -> str:
@@ -30,20 +26,6 @@ def get_deprecated_env_with_warning(
 def get_current_tag_path(library_path: str) -> str:
     library_dir = os.path.dirname(os.path.abspath(os.path.expanduser(library_path)))
     return os.path.join(library_dir, "current-tag.txt")
-
-
-def add_library_arg(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument(
-        "-l",
-        "--library",
-        default=get_deprecated_env_with_warning(
-            "JUKEBOX_LIBRARY_PATH",
-            "LIBRARY_PATH",
-            DEFAULT_LIBRARY_PATH,
-            LOGGER.warning,
-        ),
-        help="path to the library JSON file",
-    )
 
 
 def add_verbose_arg(parser: argparse.ArgumentParser) -> None:

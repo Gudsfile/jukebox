@@ -1,138 +1,71 @@
 import argparse
-import logging
-from typing import Union
+from typing import Optional
 
 try:
-    from typing import Annotated, Literal
+    from typing import Literal
 except ImportError:
-    from typing_extensions import Annotated, Literal
+    from typing_extensions import Literal
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel
 
-from jukebox.shared.config_utils import (
-    add_library_arg,
-    add_verbose_arg,
-    add_version_arg,
-    get_deprecated_env_with_warning,
-)
-from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
-
-DEFAULT_PAUSE_DURATION = 900
-DEFAULT_PAUSE_DELAY = 0.25
-
-LOGGER = logging.getLogger("jukebox")
+from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 
-class DryrunPlayerConfig(BaseModel):
-    type: Literal["dryrun"]
-
-
-class SonosPlayerConfig(BaseModel):
-    type: Literal["sonos"]
-    host: str
-
-
-class DryrunReaderConfig(BaseModel):
-    type: Literal["dryrun"]
-
-
-class NfcReaderConfig(BaseModel):
-    type: Literal["nfc"]
-
-
-class PlaybackConfig(BaseModel):
-    pause_duration: int = DEFAULT_PAUSE_DURATION
-    pause_delay: float = Field(default=DEFAULT_PAUSE_DELAY, ge=MIN_PAUSE_DELAY_SECONDS)
-
-
-class JukeboxConfig(BaseModel):
-    library: str
+class JukeboxCliConfig(BaseModel):
+    library: Optional[str] = None
     verbose: bool = False
-    player: Annotated[
-        Union[DryrunPlayerConfig, SonosPlayerConfig],
-        Field(discriminator="type"),
-    ]
-    reader: Union[DryrunReaderConfig, NfcReaderConfig]
-    playback: PlaybackConfig
+    player: Optional[Literal["dryrun", "sonos"]] = None
+    reader: Optional[Literal["dryrun", "nfc"]] = None
+    sonos_host: Optional[str] = None
+    pause_duration_seconds: Optional[int] = None
+    pause_delay_seconds: Optional[float] = None
 
 
-def parse_config() -> JukeboxConfig:
+def parse_config() -> JukeboxCliConfig:
     parser = argparse.ArgumentParser(
         prog="jukebox",
         description="Play music on speakers using NFC tags",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Global arguments
-    add_library_arg(parser)
+    parser.add_argument(
+        "-l",
+        "--library",
+        default=None,
+        help="override the library JSON path for this process",
+    )
     add_verbose_arg(parser)
     add_version_arg(parser)
 
-    # Player and reader types
-    parser.add_argument("player", choices=["dryrun", "sonos"], help="player type to use")
-    parser.add_argument("reader", choices=["dryrun", "nfc"], help="reader type to use")
+    parser.add_argument("player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
+    parser.add_argument("reader", nargs="?", choices=["dryrun", "nfc"], help="override the reader type")
 
-    # Player-specific arguments
     parser.add_argument(
         "--sonos-host",
-        default=get_deprecated_env_with_warning(
-            "JUKEBOX_SONOS_HOST",
-            "SONOS_HOST",
-            None,
-            LOGGER.warning,
-        ),
-        help="IP address or hostname of Sonos speaker (required for sonos player)",
+        default=None,
+        help="override the Sonos host for this process",
     )
-
-    # Playback arguments
     parser.add_argument(
         "--pause-duration",
-        default=DEFAULT_PAUSE_DURATION,
+        default=None,
         type=int,
-        help="maximum duration of a pause in seconds before resetting the queue",
+        help="override the maximum duration of a pause in seconds before resetting the queue",
     )
     parser.add_argument(
         "--pause-delay",
-        default=DEFAULT_PAUSE_DELAY,
+        default=None,
         type=float,
-        help=(
-            "grace period in seconds before pausing when tag is removed "
-            f"(minimum: {MIN_PAUSE_DELAY_SECONDS:g}s to avoid pausing on brief missed reads)"
-        ),
+        help="override the grace period in seconds before pausing when a tag is removed",
     )
 
     args = parser.parse_args()
 
-    # Build and validate final config
-    try:
-        if args.player == "dryrun":
-            player_config = DryrunPlayerConfig(type="dryrun")
-        elif args.player == "sonos":
-            if not args.sonos_host:
-                parser.error("Sonos player requires --sonos-host argument or JUKEBOX_SONOS_HOST environment variable")
-            player_config = SonosPlayerConfig(type="sonos", host=args.sonos_host)
-        else:
-            parser.error(f"Unknown player type: {args.player}")
-
-        if args.reader == "dryrun":
-            reader_config = DryrunReaderConfig(type="dryrun")
-        elif args.reader == "nfc":
-            reader_config = NfcReaderConfig(type="nfc")
-        else:
-            parser.error(f"Unknown reader type: {args.reader}")
-
-        config = JukeboxConfig(
-            library=args.library,
-            verbose=args.verbose,
-            player=player_config,
-            reader=reader_config,
-            playback=PlaybackConfig(
-                pause_duration=args.pause_duration,
-                pause_delay=args.pause_delay,
-            ),
-        )
-    except ValidationError as err:
-        LOGGER.error(f"Configuration validation error: {err}")
-        parser.exit(status=1, message=f"Configuration error: {err}\n")
-
-    return config
+    return JukeboxCliConfig(
+        library=args.library,
+        verbose=args.verbose,
+        player=args.player,
+        reader=args.reader,
+        sonos_host=args.sonos_host,
+        pause_duration_seconds=args.pause_duration,
+        pause_delay_seconds=args.pause_delay,
+    )

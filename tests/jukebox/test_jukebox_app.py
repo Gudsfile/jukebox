@@ -1,0 +1,58 @@
+from unittest.mock import MagicMock
+
+import pytest
+
+from jukebox import app
+from jukebox.adapters.inbound.config import JukeboxCliConfig
+from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
+from jukebox.settings.errors import InvalidSettingsError
+
+
+@pytest.fixture
+def app_mocks(mocker):
+    class Mocks:
+        parse_config = mocker.patch("jukebox.app.parse_config")
+        set_logger = mocker.patch("jukebox.app.set_logger")
+        build_settings_service = mocker.patch("jukebox.app._build_settings_service")
+        build_jukebox = mocker.patch("jukebox.app.build_jukebox")
+        controller_class = mocker.patch("jukebox.app.CLIController")
+
+    return Mocks()
+
+
+def test_main_uses_resolved_runtime_config(app_mocks):
+    runtime_config = ResolvedJukeboxRuntimeConfig(
+        library_path="/resolved/library.json",
+        player_type="dryrun",
+        reader_type="dryrun",
+        pause_duration_seconds=100,
+        pause_delay_seconds=0.25,
+        loop_interval_seconds=0.5,
+        nfc_read_timeout_seconds=0.1,
+        verbose=True,
+    )
+    settings_service = MagicMock()
+    settings_service.resolve_jukebox_runtime.return_value = runtime_config
+    app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.build_jukebox.return_value = (MagicMock(), MagicMock())
+
+    app.main()
+
+    app_mocks.set_logger.assert_called_once_with("jukebox", True)
+    app_mocks.build_settings_service.assert_called_once_with(JukeboxCliConfig(verbose=True))
+    settings_service.resolve_jukebox_runtime.assert_called_once_with(verbose=True)
+    app_mocks.build_jukebox.assert_called_once_with(runtime_config)
+    app_mocks.controller_class.assert_called_once()
+    assert app_mocks.controller_class.call_args.kwargs["loop_interval_seconds"] == 0.5
+    app_mocks.controller_class.return_value.run.assert_called_once_with()
+
+
+def test_main_exits_on_settings_error(app_mocks):
+    app_mocks.parse_config.return_value = JukeboxCliConfig()
+    app_mocks.build_settings_service.side_effect = InvalidSettingsError("broken settings")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert str(err.value) == "broken settings"

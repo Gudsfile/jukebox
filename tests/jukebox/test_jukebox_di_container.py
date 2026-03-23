@@ -1,14 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from jukebox.adapters.inbound.config import (
-    DryrunPlayerConfig,
-    DryrunReaderConfig,
-    JukeboxConfig,
-    NfcReaderConfig,
-    PlaybackConfig,
-    SonosPlayerConfig,
-)
 from jukebox.di_container import build_jukebox
+from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.shared.config_utils import get_current_tag_path
 
 
@@ -19,43 +12,35 @@ def test_get_current_tag_path_derives_path_beside_library(tmp_path):
 
 
 class TestBuildJukebox:
-    """Tests for build_jukebox function."""
-
     @patch("jukebox.di_container.SonosPlayerAdapter")
     @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
     def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_current_tag, mock_player, mocker):
-        """Should build jukebox with Sonos player and NFC reader."""
         mock_nfc_instance = MagicMock()
-        mock_nfc_controller_class = MagicMock(return_value=mock_nfc_instance)
+        mock_nfc_class = MagicMock(return_value=mock_nfc_instance)
         mocker.patch.dict(
             "sys.modules",
-            {
-                "jukebox.adapters.outbound.readers.nfc_reader_adapter": MagicMock(
-                    NfcReaderAdapter=mock_nfc_controller_class
-                )
-            },
+            {"jukebox.adapters.outbound.readers.nfc_reader_adapter": MagicMock(NfcReaderAdapter=mock_nfc_class)},
         )
 
-        config = JukeboxConfig(
-            library="/test/library.json",
+        config = ResolvedJukeboxRuntimeConfig(
+            library_path="/test/library.json",
+            player_type="sonos",
+            sonos_host="192.168.1.100",
+            reader_type="nfc",
+            pause_duration_seconds=50,
+            pause_delay_seconds=3,
+            loop_interval_seconds=0.1,
+            nfc_read_timeout_seconds=0.25,
             verbose=False,
-            player=SonosPlayerConfig(type="sonos", host="192.168.1.100"),
-            reader=NfcReaderConfig(type="nfc"),
-            playback=PlaybackConfig(pause_duration=50, pause_delay=3),
         )
 
         reader, handle_tag_event = build_jukebox(config)
 
-        # Should create library adapter
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
-
-        # Should create player and reader
         mock_player.assert_called_once_with(host="192.168.1.100")
-        mock_nfc_controller_class.assert_called_once()
-
-        # Should return reader and use case
+        mock_nfc_class.assert_called_once_with(read_timeout_seconds=0.25)
         assert reader == mock_nfc_instance
         assert handle_tag_event is not None
 
@@ -64,21 +49,23 @@ class TestBuildJukebox:
     @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
     def test_build_jukebox_with_dryrun(self, mock_library, mock_current_tag, mock_reader, mock_player):
-        """Should build jukebox with dryrun player and reader."""
-        config = JukeboxConfig(
-            library="/test/library.json",
+        config = ResolvedJukeboxRuntimeConfig(
+            library_path="/test/library.json",
+            player_type="dryrun",
+            reader_type="dryrun",
+            pause_duration_seconds=100,
+            pause_delay_seconds=5,
+            loop_interval_seconds=0.1,
+            nfc_read_timeout_seconds=0.1,
             verbose=False,
-            player=DryrunPlayerConfig(type="dryrun"),
-            reader=DryrunReaderConfig(type="dryrun"),
-            playback=PlaybackConfig(pause_duration=100, pause_delay=5),
         )
 
         reader, handle_tag_event = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
-        mock_player.assert_called_once()
-        mock_reader.assert_called_once()
+        mock_player.assert_called_once_with()
+        mock_reader.assert_called_once_with()
 
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
@@ -90,17 +77,19 @@ class TestBuildJukebox:
     def test_build_jukebox_passes_correct_parameters_to_determine_action(
         self, mock_library, mock_current_tag, mock_reader, mock_player
     ):
-        """Should pass pause_delay and max_pause_duration to DetermineAction."""
-        config = JukeboxConfig(
-            library="/test/library.json",
+        config = ResolvedJukeboxRuntimeConfig(
+            library_path="/test/library.json",
+            player_type="dryrun",
+            reader_type="dryrun",
+            pause_duration_seconds=200,
+            pause_delay_seconds=0.2,
+            loop_interval_seconds=0.1,
+            nfc_read_timeout_seconds=0.1,
             verbose=False,
-            player=DryrunPlayerConfig(type="dryrun"),
-            reader=DryrunReaderConfig(type="dryrun"),
-            playback=PlaybackConfig(pause_duration=200, pause_delay=0.2),
         )
 
         reader, handle_tag_event = build_jukebox(config)
 
-        # Verify DetermineAction was created with correct parameters
+        assert reader == mock_reader.return_value
         assert handle_tag_event.determine_action.pause_delay == 0.2
         assert handle_tag_event.determine_action.max_pause_duration == 200

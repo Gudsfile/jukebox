@@ -12,6 +12,7 @@ from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
 from discstore.domain.use_cases.search_discs import SearchDiscs
+from jukebox.settings.service_protocols import ReadOnlySettingsService
 from jukebox.shared.config_utils import get_current_tag_path
 
 
@@ -42,7 +43,7 @@ def build_interactive_cli_controller(library_path: str):
     )
 
 
-def build_api_app(library_path: str):
+def build_api_app(library_path: str, settings_service: ReadOnlySettingsService):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
     from discstore.adapters.inbound.api_controller import APIController
@@ -53,6 +54,7 @@ def build_api_app(library_path: str):
         RemoveDisc(repository),
         EditDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
+        settings_service,
     )
     return api_controller
 
