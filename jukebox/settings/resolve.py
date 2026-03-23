@@ -76,17 +76,24 @@ class SettingsReadService:
 
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
-        return ResolvedJukeboxRuntimeConfig(
-            library_path=_expand_path(effective_settings.paths.library_path),
-            player_type=effective_settings.jukebox.player.type,
-            sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
-            reader_type=effective_settings.jukebox.reader.type,
-            pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
-            pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
-            loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
-            nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
-            verbose=verbose,
-        )
+        try:
+            # Runtime-only invariants belong on the resolved runtime config so
+            # admin/settings inspection can still work with incomplete jukebox settings.
+            return ResolvedJukeboxRuntimeConfig(
+                library_path=_expand_path(effective_settings.paths.library_path),
+                player_type=effective_settings.jukebox.player.type,
+                sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
+                reader_type=effective_settings.jukebox.reader.type,
+                pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
+                pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
+                loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
+                nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
+                verbose=verbose,
+            )
+        except ValidationError as err:
+            raise InvalidSettingsError(
+                _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
+            ) from err
 
     def resolve_admin_runtime(self, verbose: bool = False) -> ResolvedAdminRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
@@ -98,6 +105,8 @@ class SettingsReadService:
         )
 
     def _resolve_effective_settings(self) -> AppSettings:
+        # This layer only validates the merged shared settings shape. It must not
+        # enforce app-specific runtime requirements for callers like discstore.
         persisted_data = self.repository.load_persisted_settings_data()
         defaults_data = AppSettings().model_dump(mode="python")
 
@@ -119,21 +128,15 @@ class SettingsReadService:
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid effective settings after CLI overrides: {err}") from err
 
-        try:
-            _validate_effective_settings(effective_settings)
-        except ValueError as err:
-            if self.cli_overrides:
-                raise InvalidSettingsError(f"Invalid effective settings after CLI overrides: {err}") from err
-            if self.env_overrides:
-                raise InvalidSettingsError(f"Invalid effective settings after environment overrides: {err}") from err
-            raise InvalidSettingsError(f"Invalid effective settings from persisted settings: {err}") from err
-
         return effective_settings
 
 
-def _validate_effective_settings(settings: AppSettings) -> None:
-    if settings.jukebox.player.type == "sonos" and not _resolve_sonos_host(settings.jukebox.player):
-        raise ValueError("jukebox.player.type='sonos' requires a valid active Sonos target after merge.")
+def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
+    if cli_overrides:
+        return f"Invalid effective settings after CLI overrides: {error}"
+    if env_overrides:
+        return f"Invalid effective settings after environment overrides: {error}"
+    return f"Invalid effective settings from persisted settings: {error}"
 
 
 def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:

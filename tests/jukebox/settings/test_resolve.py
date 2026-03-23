@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 
@@ -85,6 +86,36 @@ def test_settings_service_requires_sonos_target_after_merge(tmp_path):
 
     with pytest.raises(InvalidSettingsError):
         service.resolve_jukebox_runtime()
+
+
+def test_settings_service_allows_admin_runtime_resolution_without_sonos_target(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_admin_runtime()
+
+    assert runtime_config.library_path == os.path.abspath(os.path.expanduser("~/.jukebox/library.json"))
+    assert runtime_config.api_port == 8000
+    assert runtime_config.ui_port == 8000
+
+
+def test_settings_service_builds_effective_view_without_sonos_target(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    effective_view = service.get_effective_settings_view()
+
+    assert effective_view["settings"]["jukebox"]["player"]["type"] == "sonos"
+    assert effective_view["settings"]["jukebox"]["player"]["sonos"]["manual_host"] is None
+    assert effective_view["provenance"]["jukebox"]["player"]["type"] == "file"
 
 
 def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):

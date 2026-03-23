@@ -41,3 +41,19 @@ def test_parse_config_allows_partial_type_overrides():
 
     assert config.player == "dryrun"
     assert config.reader is None
+
+
+@patch("sys.argv", ["jukebox", "--reader", "nfc"])
+def test_parse_config_allows_reader_only_override_flag():
+    config = parse_config()
+
+    assert config.player is None
+    assert config.reader == "nfc"
+
+
+@patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--reader", "nfc"])
+def test_parse_config_reader_flag_overrides_positional_reader():
+    config = parse_config()
+
+    assert config.player == "dryrun"
+    assert config.reader == "nfc"

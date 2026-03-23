@@ -37,8 +37,21 @@ def parse_config() -> JukeboxCliConfig:
     add_verbose_arg(parser)
     add_version_arg(parser)
 
-    parser.add_argument("player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
-    parser.add_argument("reader", nargs="?", choices=["dryrun", "nfc"], help="override the reader type")
+    parser.add_argument("positional_player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
+    parser.add_argument("positional_reader", nargs="?", choices=["dryrun", "nfc"], help="override the reader type")
+
+    parser.add_argument(
+        "--player",
+        choices=["dryrun", "sonos"],
+        default=None,
+        help="override the player type without providing both positional type arguments",
+    )
+    parser.add_argument(
+        "--reader",
+        choices=["dryrun", "nfc"],
+        default=None,
+        help="override the reader type without providing both positional type arguments",
+    )
 
     parser.add_argument(
         "--sonos-host",
@@ -63,8 +76,8 @@ def parse_config() -> JukeboxCliConfig:
     return JukeboxCliConfig(
         library=args.library,
         verbose=args.verbose,
-        player=args.player,
-        reader=args.reader,
+        player=args.player or args.positional_player,
+        reader=args.reader or args.positional_reader,
         sonos_host=args.sonos_host,
         pause_duration_seconds=args.pause_duration,
         pause_delay_seconds=args.pause_delay,
