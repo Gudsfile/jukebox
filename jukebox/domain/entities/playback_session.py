@@ -14,7 +14,7 @@ class PlaybackSession(BaseModel):
 
     # Physical reader state
     physical_tag: Optional[str] = None
-    physical_tag_removed_seconds: float = 0.0
+    physical_tag_removed_at: Optional[float] = None
 
     # Timestamp
     last_event_timestamp: Optional[float] = None

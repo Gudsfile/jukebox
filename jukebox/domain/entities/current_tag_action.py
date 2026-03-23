@@ -7,4 +7,5 @@ class CurrentTagAction(str, Enum):
     SET = "set"
     CLEAR = "clear"
     KEEP = "keep"
+    REMOVE = "remove"
     RESTORE = "restore"
