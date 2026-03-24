@@ -8,7 +8,6 @@ class PlaybackSession(BaseModel):
 
     # Logical playback state
     playing_tag: Optional[str] = None
-    is_paused: bool = False
     paused_at: Optional[float] = None
     playing_tag_removed_at: Optional[float] = None
 

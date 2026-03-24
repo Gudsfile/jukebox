@@ -30,7 +30,6 @@ def test_resume_when_same_tag_and_paused(determine_action):
         playing_tag="id-1",
         paused_at=80.0,  # Paused but < max_pause_duration
         playing_tag_removed_at=None,
-        is_paused=True,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
@@ -101,7 +100,6 @@ def test_stop_when_paused_too_long(determine_action):
         playing_tag="id-1",
         paused_at=40.0,  # > max_pause_duration (50)
         playing_tag_removed_at=None,
-        is_paused=True,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
@@ -130,7 +128,6 @@ def test_play_when_same_tag_but_paused_too_long(determine_action):
         playing_tag="id-1",
         paused_at=40.0,  # > max_pause_duration (50)
         playing_tag_removed_at=None,
-        is_paused=True,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 

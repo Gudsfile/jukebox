@@ -19,7 +19,7 @@ class DetermineAction:
 
         is_detecting_tag = current_tag is not None
         is_same_tag_as_previous = current_tag == playing_tag
-        is_paused = session.is_paused
+        is_paused = session.paused_at is not None
         is_acceptable_pause_duration = paused_duration < self.max_pause_duration
         is_within_grace_period = removal_duration < self.pause_delay
 
