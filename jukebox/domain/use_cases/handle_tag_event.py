@@ -67,7 +67,6 @@ class HandleTagEvent:
         elif action == PlaybackAction.PAUSE:
             self.player.pause()
             session.paused_at = tag_event.timestamp
-            session.playing_tag_removed_at = None
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
