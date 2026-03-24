@@ -45,7 +45,6 @@ class HandleTagEvent:
             self.player.resume()
             session.paused_at = None
             session.playing_tag_removed_at = None
-            session.is_paused = False
 
         elif action == PlaybackAction.PLAY:
             LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
@@ -57,7 +56,6 @@ class HandleTagEvent:
                 self.player.play(disc.uri, disc.option.shuffle)
                 session.paused_at = None
                 session.playing_tag_removed_at = None
-                session.is_paused = False
             else:
                 LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
 
@@ -72,14 +70,12 @@ class HandleTagEvent:
             self.player.pause()
             session.paused_at = tag_event.timestamp
             session.playing_tag_removed_at = None
-            session.is_paused = True
 
         elif action == PlaybackAction.STOP:
             self.player.stop()
             session.playing_tag = None
             session.paused_at = None
             session.playing_tag_removed_at = None
-            session.is_paused = False
 
         elif action != PlaybackAction.IDLE:
             LOGGER.info(f"`{action.value}` action is not implemented yet")
