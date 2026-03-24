@@ -75,8 +75,11 @@ class HandleTagEvent:
             session.paused_at = None
             session.playing_tag_removed_at = None
 
-        elif action != PlaybackAction.IDLE:
-            LOGGER.info(f"`{action.value}` action is not implemented yet")
+        elif action == PlaybackAction.IDLE:
+            pass
+
+        else:
+            LOGGER.warning(f"`{action.value}` action is not implemented yet")
 
         session.last_event_timestamp = tag_event.timestamp
         return session
