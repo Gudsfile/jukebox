@@ -80,7 +80,7 @@ def main():
 
     if isinstance(config.command, UiCommand):
         uvicorn = _load_uvicorn("ui", "ui")
-        ui = build_ui_app(runtime_config.library_path)
+        ui = build_ui_app(runtime_config.library_path, settings_service)
         uvicorn.run(ui.app, host="0.0.0.0", port=runtime_config.ui_port)
         return
 

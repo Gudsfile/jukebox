@@ -93,7 +93,7 @@ def test_main_starts_server_commands_with_resolved_runtime(mocker, app_mocks, co
     if expected_builder == "build_api_app":
         expected_calls["build_api_app"] = ("/resolved/library.json", settings_service)
     else:
-        expected_calls["build_ui_app"] = ("/resolved/library.json",)
+        expected_calls["build_ui_app"] = ("/resolved/library.json", settings_service)
 
     assert_app_mocks_calls(app_mocks, expected_calls)
     settings_service.resolve_admin_runtime.assert_called_once_with(verbose=True)

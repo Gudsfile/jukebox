@@ -59,7 +59,7 @@ def build_api_app(library_path: str, settings_service: ReadOnlySettingsService):
     return api_controller
 
 
-def build_ui_app(library_path: str):
+def build_ui_app(library_path: str, settings_service: ReadOnlySettingsService):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
     from discstore.adapters.inbound.ui_controller import UIController
@@ -71,5 +71,6 @@ def build_ui_app(library_path: str):
         EditDisc(repository),
         GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
+        settings_service,
     )
     return ui_controller

@@ -30,6 +30,7 @@ from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatu
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
+from jukebox.settings.service_protocols import ReadOnlySettingsService
 
 
 class DiscTable(DiscMetadata, DiscOption):
@@ -55,9 +56,10 @@ class UIController(APIController):
         edit_disc: EditDisc,
         get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
+        settings_service: ReadOnlySettingsService,
     ):
         self.get_disc = get_disc
-        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status)
+        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status, settings_service)
 
     def register_routes(self):
         super().register_routes()

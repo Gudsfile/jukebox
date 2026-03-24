@@ -136,8 +136,9 @@ def test_build_ui_app_wiring(mocker, mocks):
     mocker.patch.dict(
         "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
     )
+    settings_service = MagicMock()
 
-    result = build_ui_app("/test/library.json")
+    result = build_ui_app("/test/library.json", settings_service)
 
     mocks.repo_class.assert_called_once_with("/test/library.json")
     mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
@@ -148,5 +149,6 @@ def test_build_ui_app_wiring(mocker, mocks):
         mocks.edit_disc_instance,
         mocks.get_disc_instance,
         mocks.get_current_tag_status_instance,
+        settings_service,
     )
     assert result is mock_ui_instance
