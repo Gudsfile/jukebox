@@ -176,3 +176,21 @@ def test_stop_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     adapter.stop()
 
     mock_speaker.clear_queue.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soco_module, caplog):
+    """Should log warning when multiple speakers share the same name."""
+    speaker_a = MagicMock()
+    speaker_a.player_name = "Bedroom"
+    speaker_b = MagicMock()
+    speaker_b.player_name = "Kitchen"
+    speaker_c = MagicMock()
+    speaker_c.player_name = "Kitchen"
+    mock_soco_module.discover.return_value = [speaker_a, speaker_b, speaker_c]
+
+    adapter = SonosPlayerAdapter(name="Kitchen")
+
+    assert adapter.speaker.player_name == "Kitchen"
+    assert "Multiple Sonos speakers with name 'Kitchen' found. Using first match." in caplog.text

@@ -50,9 +50,14 @@ class SonosPlayerAdapter(PlayerPort):
         speakers = sorted(discovered, key=lambda s: s.player_name)
         LOGGER.info(f"Discovered {len(speakers)} Sonos speaker(s): {[s.player_name for s in speakers]}")
         if name:
-            for speaker in speakers:
-                if speaker.player_name == name:
-                    return speaker
+            matching = [s for s in speakers if s.player_name == name]
+            if len(matching) > 1:
+                LOGGER.warning(
+                    f"Multiple Sonos speakers with name '{name}' found. Using first match. "
+                    "Consider using host IP to disambiguate."
+                )
+            if matching:
+                return matching[0]
             raise RuntimeError(f"No Sonos speaker named '{name}' found on the network")
         return speakers[0]
 
