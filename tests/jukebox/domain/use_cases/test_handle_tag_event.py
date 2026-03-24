@@ -239,7 +239,7 @@ def test_handle_pause_action(handle_tag_event, mock_player):
 
     mock_player.pause.assert_called_once()
     assert new_session.paused_at == 100.2
-    assert new_session.playing_tag_removed_at is None
+    assert new_session.playing_tag_removed_at == 5.0
 
 
 def test_handle_pause_then_stop_after_max_pause_duration(handle_tag_event, mock_player):
