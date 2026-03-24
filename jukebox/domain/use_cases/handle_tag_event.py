@@ -27,8 +27,6 @@ class HandleTagEvent:
         self.determine_current_tag_action = determine_current_tag_action
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
-        elapsed_seconds = self._get_elapsed_seconds(tag_event, session)
-        self._advance_session_clock(session, elapsed_seconds)
         self._apply_current_tag_action_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
@@ -82,15 +80,6 @@ class HandleTagEvent:
 
         session.last_event_timestamp = tag_event.timestamp
         return session
-
-    def _advance_session_clock(self, session: PlaybackSession, elapsed_seconds: float) -> None:
-        if elapsed_seconds <= 0:
-            return
-
-    def _get_elapsed_seconds(self, tag_event: TagEvent, session: PlaybackSession) -> float:
-        if session.last_event_timestamp is None:
-            return 0.0
-        return max(0.0, tag_event.timestamp - session.last_event_timestamp)
 
     def _apply_current_tag_action_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
         try:
