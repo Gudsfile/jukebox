@@ -66,6 +66,16 @@ def test_play_when_new_tag(determine_action):
     assert action == PlaybackAction.PLAY
 
 
+def test_waiting_when_tag_just_be_removed(determine_action):
+    """Should wait when tag has just been removed."""
+    session = PlaybackSession(playing_tag="id-1", paused_at=None, playing_tag_removed_at=None)
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
+
+    action = determine_action.execute(tag_event, session)
+
+    assert action == PlaybackAction.WAITING
+
+
 def test_waiting_when_tag_removed_within_grace_period(determine_action):
     """Should wait when tag removed but within grace period."""
     session = PlaybackSession(
