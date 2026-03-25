@@ -25,14 +25,14 @@ def test_continue_when_tag_returns_after_being_removed(determine_action, playing
     assert action == PlaybackAction.CONTINUE
 
 
-def test_idle_when_same_tag_detected_without_removal(determine_action):
-    """Should idle when the same tag is detected without any prior removal."""
+def test_continue_when_same_tag_detected_without_removal(determine_action):
+    """Should continue when the same tag is detected without any prior removal."""
     session = PlaybackSession(playing_tag="id-1", paused_at=None, playing_tag_removed_at=None)
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
-    assert action == PlaybackAction.IDLE
+    assert action == PlaybackAction.CONTINUE
 
 
 def test_resume_when_same_tag_and_paused(determine_action):
@@ -40,7 +40,7 @@ def test_resume_when_same_tag_and_paused(determine_action):
     session = PlaybackSession(
         playing_tag="id-1",
         paused_at=80.0,  # Paused but < max_pause_duration
-        playing_tag_removed_at=None,
+        playing_tag_removed_at=50.0,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
@@ -121,7 +121,7 @@ def test_stop_when_paused_too_long(determine_action):
     session = PlaybackSession(
         playing_tag="id-1",
         paused_at=40.0,  # > max_pause_duration (50)
-        playing_tag_removed_at=None,
+        playing_tag_removed_at=40.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
@@ -135,7 +135,7 @@ def test_idle_when_no_tag_and_no_playing_tag(determine_action):
     session = PlaybackSession(
         playing_tag=None,
         paused_at=10.0,
-        playing_tag_removed_at=None,
+        playing_tag_removed_at=10.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
@@ -149,7 +149,7 @@ def test_play_when_same_tag_but_paused_too_long(determine_action):
     session = PlaybackSession(
         playing_tag="id-1",
         paused_at=40.0,  # > max_pause_duration (50)
-        playing_tag_removed_at=None,
+        playing_tag_removed_at=40.0,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
