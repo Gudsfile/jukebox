@@ -6,6 +6,7 @@ from jukebox import app
 from jukebox.adapters.inbound.config import JukeboxCliConfig
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
+from jukebox.settings.file_settings_repository import FileSettingsRepository
 
 
 @pytest.fixture
@@ -56,3 +57,30 @@ def test_main_exits_on_settings_error(app_mocks):
         app.main()
 
     assert str(err.value) == "broken settings"
+
+
+def test_build_settings_service_maps_sonos_name_override():
+    service = app._build_settings_service(JukeboxCliConfig(player="sonos", sonos_name="Living Room"))
+
+    assert isinstance(service.repository, FileSettingsRepository)
+    assert service.cli_overrides == {
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": None, "manual_name": "Living Room"},
+            }
+        }
+    }
+
+
+def test_build_settings_service_maps_sonos_host_override():
+    service = app._build_settings_service(JukeboxCliConfig(player="sonos", sonos_host="192.168.1.20"))
+
+    assert service.cli_overrides == {
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": "192.168.1.20", "manual_name": None},
+            }
+        }
+    }
