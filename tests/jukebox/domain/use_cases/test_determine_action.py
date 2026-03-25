@@ -10,18 +10,29 @@ def determine_action():
     return DetermineAction(pause_delay=3, max_pause_duration=50)
 
 
-def test_continue_when_same_tag_and_not_paused(determine_action):
-    """Should continue when detecting same tag and not paused."""
+@pytest.mark.parametrize("playing_tag_removed_at", (50.0, 99.5, 100.0, 105.0, 150.0))
+def test_continue_when_tag_returns_after_being_removed(determine_action, playing_tag_removed_at):
+    """Should continue when the tag returns after removal, before any pause."""
     session = PlaybackSession(
         playing_tag="id-1",
         paused_at=None,
-        playing_tag_removed_at=None,
+        playing_tag_removed_at=playing_tag_removed_at,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
     assert action == PlaybackAction.CONTINUE
+
+
+def test_idle_when_same_tag_detected_without_removal(determine_action):
+    """Should idle when the same tag is detected without any prior removal."""
+    session = PlaybackSession(playing_tag="id-1", paused_at=None, playing_tag_removed_at=None)
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
+
+    action = determine_action.execute(tag_event, session)
+
+    assert action == PlaybackAction.IDLE
 
 
 def test_resume_when_same_tag_and_paused(determine_action):
@@ -52,12 +63,13 @@ def test_play_when_different_tag(determine_action):
     assert action == PlaybackAction.PLAY
 
 
-def test_play_when_new_tag(determine_action):
+@pytest.mark.parametrize("dummy_at", (None, 50.0, 99.5, 100.0, 105.0, 150.0))
+def test_play_when_new_tag(determine_action, dummy_at):
     """Should play when detecting a tag for the first time."""
     session = PlaybackSession(
         playing_tag=None,
-        paused_at=None,
-        playing_tag_removed_at=None,
+        paused_at=dummy_at,
+        playing_tag_removed_at=dummy_at,
     )
     tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
