@@ -1,5 +1,7 @@
 from typing import Dict
 
+from pydantic import BaseModel
+
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 try:
@@ -15,7 +17,8 @@ from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
-from jukebox.settings.service_protocols import ReadOnlySettingsService
+from jukebox.settings.errors import SettingsError
+from jukebox.settings.service_protocols import SettingsService
 
 
 class DiscInput(Disc):
@@ -30,6 +33,10 @@ class CurrentTagStatusOutput(CurrentTagStatus):
     pass
 
 
+class SettingsResetInput(BaseModel):
+    path: str
+
+
 class APIController:
     def __init__(
         self,
@@ -38,7 +45,7 @@ class APIController:
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
         get_current_tag_status: GetCurrentTagStatus,
-        settings_service: ReadOnlySettingsService,
+        settings_service: SettingsService,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -82,6 +89,24 @@ class APIController:
         def get_effective_settings():
             try:
                 return self.settings_service.get_effective_settings_view()
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @self.app.patch("/api/v1/settings")
+        def patch_settings(patch: Dict[str, object]):
+            try:
+                return self.settings_service.patch_persisted_settings(patch)
+            except SettingsError as err:
+                raise HTTPException(status_code=400, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @self.app.post("/api/v1/settings/reset")
+        def reset_settings(payload: SettingsResetInput):
+            try:
+                return self.settings_service.reset_persisted_value(payload.path)
+            except SettingsError as err:
+                raise HTTPException(status_code=400, detail=str(err))
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 

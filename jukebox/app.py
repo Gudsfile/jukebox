@@ -5,13 +5,13 @@ from jukebox.adapters.inbound.config import JukeboxCliConfig, parse_config
 from jukebox.di_container import build_jukebox
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
-from jukebox.settings.resolve import SettingsReadService, build_environment_settings_overrides
+from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
 from jukebox.shared.logger import set_logger
 
 LOGGER = logging.getLogger("jukebox")
 
 
-def _build_settings_service(config: JukeboxCliConfig) -> SettingsReadService:
+def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
     cli_overrides = {}
 
     if config.library is not None:
@@ -38,7 +38,7 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsReadService:
             config.pause_delay_seconds
         )
 
-    return SettingsReadService(
+    return SettingsService(
         repository=FileSettingsRepository(),
         env_overrides=build_environment_settings_overrides(LOGGER.warning),
         cli_overrides=cli_overrides,
