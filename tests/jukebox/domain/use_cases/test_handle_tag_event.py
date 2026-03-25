@@ -290,7 +290,7 @@ def test_handle_continue_action(handle_tag_event, mock_player):
     """Should not call player when action is CONTINUE."""
     session = PlaybackSession(
         playing_tag="test-tag",
-        paused_at=None,
+        playing_tag_removed_at=95.0,
     )
     tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
 
@@ -404,3 +404,25 @@ def test_set_action_with_missing_tag_id_logs_error_and_does_nothing(
     assert "`SET` action without tag_id" in caplog.text
     assert session.physical_tag == "existing-tag"
     assert session.physical_tag_removed_at == 1.23
+
+
+def test_same_tag_detection_resets_logical_removal_grace_period(handle_tag_event, mock_player):
+    """Should restart the logical grace period after the same tag is seen again."""
+    session = PlaybackSession(
+        playing_tag="test-tag",
+        paused_at=None,
+        playing_tag_removed_at=None,
+        last_event_timestamp=99.75,
+    )
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
+    assert session.playing_tag_removed_at == 100.0
+
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.5), session)
+    assert session.playing_tag_removed_at is None
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=103.2), session)
+
+    mock_player.pause.assert_not_called()
+    assert session.paused_at is None
+    assert session.playing_tag_removed_at == 103.2
