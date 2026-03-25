@@ -186,6 +186,48 @@ def test_settings_service_patch_updates_library_path_and_derived_current_tag_pat
     assert result["restart_required_paths"] == ["admin.ui.port", "paths.library_path"]
 
 
+def test_settings_service_set_to_default_is_noop_and_does_not_create_file(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.set_persisted_value("admin.api.port", "8000")
+
+    assert not settings_path.exists()
+    assert result["persisted"] == {"schema_version": 1}
+    assert result["updated_paths"] == []
+    assert result["restart_required"] is False
+    assert result["restart_required_paths"] == []
+    assert result["message"] == "No persisted settings changed."
+
+
+def test_settings_service_reset_non_persisted_value_is_noop_and_does_not_create_file(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("admin.api.port")
+
+    assert not settings_path.exists()
+    assert result["persisted"] == {"schema_version": 1}
+    assert result["updated_paths"] == []
+    assert result["restart_required"] is False
+    assert result["restart_required_paths"] == []
+    assert result["message"] == "No persisted settings changed."
+
+
+def test_settings_service_patch_default_value_is_noop_and_does_not_create_file(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.patch_persisted_settings({"admin": {"api": {"port": 8000}}})
+
+    assert not settings_path.exists()
+    assert result["persisted"] == {"schema_version": 1}
+    assert result["updated_paths"] == []
+    assert result["restart_required"] is False
+    assert result["restart_required_paths"] == []
+    assert result["message"] == "No persisted settings changed."
+
+
 def test_settings_service_set_rejects_unsupported_path_without_writing(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))

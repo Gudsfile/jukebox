@@ -19,6 +19,7 @@ from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.settings.types import JsonObject
 
 
 class DiscInput(Disc):
@@ -93,7 +94,7 @@ class APIController:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
         @self.app.patch("/api/v1/settings")
-        def patch_settings(patch: Dict[str, object]):
+        def patch_settings(patch: JsonObject):
             try:
                 return self.settings_service.patch_persisted_settings(patch)
             except SettingsError as err:

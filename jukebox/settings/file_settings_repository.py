@@ -2,7 +2,7 @@ import json
 import os
 import tempfile
 from contextlib import suppress
-from typing import Union
+from typing import Union, cast
 
 from pydantic import ValidationError
 
@@ -52,12 +52,7 @@ class FileSettingsRepository:
             raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
 
     def save(self, settings: AppSettings) -> None:
-        default_data = AppSettings().model_dump(mode="python")
-        current_data = settings.model_dump(mode="python")
-        sparse_data = _build_sparse_diff(current_data, default_data)
-        sparse_payload = sparse_data if isinstance(sparse_data, dict) else {}
-        sparse_payload["schema_version"] = settings.schema_version
-        self._write_data(sparse_payload)
+        self._write_data(build_sparse_settings_payload(settings))
 
     def _write_data(self, data: JsonObject) -> None:
         directory = os.path.dirname(self.filepath) or "."
@@ -85,12 +80,13 @@ class FileSettingsRepository:
 
 def _build_sparse_diff(current: JsonValue, default: object) -> Union[JsonValue, object]:
     if isinstance(current, dict) and isinstance(default, dict):
+        default_dict = cast(dict[str, object], default)
         diff = {}
         for key, current_value in current.items():
             if key == "schema_version":
                 continue
 
-            default_value = default.get(key, _MISSING)
+            default_value = default_dict.get(key, _MISSING)
             child_diff = _build_sparse_diff(current_value, default_value)
             if child_diff is not _MISSING:
                 diff[key] = child_diff
@@ -104,3 +100,12 @@ def _build_sparse_diff(current: JsonValue, default: object) -> Union[JsonValue, 
         return current
 
     return _MISSING
+
+
+def build_sparse_settings_payload(settings: AppSettings) -> JsonObject:
+    default_data = cast(JsonObject, AppSettings().model_dump(mode="python"))
+    current_data = cast(JsonObject, settings.model_dump(mode="python"))
+    sparse_data = _build_sparse_diff(current_data, default_data)
+    sparse_payload: JsonObject = cast(JsonObject, sparse_data) if isinstance(sparse_data, dict) else {}
+    sparse_payload["schema_version"] = settings.schema_version
+    return sparse_payload

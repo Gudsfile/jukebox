@@ -1,6 +1,6 @@
 import copy
 import os
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, cast
 
 from pydantic import ValidationError
 
@@ -16,6 +16,7 @@ from .change_metadata import (
 from .dict_utils import deep_merge
 from .entities import AppSettings, PlayerSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
 from .errors import InvalidSettingsError
+from .file_settings_repository import build_sparse_settings_payload
 from .repositories import SettingsRepository
 from .types import JsonObject, JsonValue
 
@@ -171,18 +172,38 @@ class SettingsService:
         return effective_settings
 
     def _save_updated_settings(self, updated_data: JsonObject, updated_paths: list[str]) -> JsonObject:
+        persisted_before = self.repository.load_persisted_settings_data()
+
         try:
             settings = AppSettings.model_validate(updated_data)
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
+        persisted_after = build_sparse_settings_payload(settings)
+        actual_updated_paths = sorted(
+            dotted_path
+            for dotted_path in updated_paths
+            if _get_optional_dotted_path(persisted_before, dotted_path)
+            != _get_optional_dotted_path(persisted_after, dotted_path)
+        )
+
+        if not actual_updated_paths:
+            return {
+                "persisted": persisted_before,
+                "effective": self.get_effective_settings_view(),
+                "updated_paths": [],
+                "restart_required": False,
+                "restart_required_paths": [],
+                "message": "No persisted settings changed.",
+            }
+
         self.repository.save(settings)
 
-        restart_required_paths = get_restart_required_paths(updated_paths)
+        restart_required_paths = get_restart_required_paths(actual_updated_paths)
         return {
             "persisted": self.get_persisted_settings_view(),
             "effective": self.get_effective_settings_view(),
-            "updated_paths": sorted(updated_paths),
+            "updated_paths": actual_updated_paths,
             "restart_required": bool(restart_required_paths),
             "restart_required_paths": restart_required_paths,
             "message": (
@@ -227,9 +248,9 @@ def _build_provenance_tree(
         if isinstance(value, dict):
             provenance[key] = _build_provenance_tree(
                 value,
-                file_value if isinstance(file_value, dict) else {},
-                env_value if isinstance(env_value, dict) else {},
-                cli_value if isinstance(cli_value, dict) else {},
+                cast(JsonObject, file_value) if isinstance(file_value, dict) else {},
+                cast(JsonObject, env_value) if isinstance(env_value, dict) else {},
+                cast(JsonObject, cli_value) if isinstance(cli_value, dict) else {},
             )
             continue
 
@@ -293,6 +314,13 @@ def _get_dotted_path(data: JsonObject, dotted_path: str) -> JsonValue:
         current = current[part]
 
     return copy.deepcopy(current)
+
+
+def _get_optional_dotted_path(data: JsonObject, dotted_path: str) -> object:
+    try:
+        return _get_dotted_path(data, dotted_path)
+    except InvalidSettingsError:
+        return _MISSING
 
 
 def _set_dotted_path(data: JsonObject, dotted_path: str, value: JsonValue) -> None:
