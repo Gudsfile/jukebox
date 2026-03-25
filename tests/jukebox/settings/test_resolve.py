@@ -195,7 +195,40 @@ def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):
     assert runtime_config.sonos_name is None
 
 
-def test_settings_service_prefers_selected_group_coordinator_host(tmp_path):
+def test_settings_service_prefers_manual_host_over_selected_group(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_host": "192.168.1.99",
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == "192.168.1.99"
+    assert runtime_config.sonos_name is None
+
+
+def test_settings_service_prefers_manual_name_over_selected_group(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -206,6 +239,38 @@ def test_settings_service_prefers_selected_group_coordinator_host(tmp_path):
                         "type": "sonos",
                         "sonos": {
                             "manual_name": "Living Room",
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Office", "last_known_host": "192.168.1.40"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name == "Living Room"
+
+
+def test_settings_service_prefers_selected_group_coordinator_host_when_no_manual_override(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
@@ -228,7 +293,7 @@ def test_settings_service_prefers_selected_group_coordinator_host(tmp_path):
     assert runtime_config.sonos_name is None
 
 
-def test_settings_service_falls_back_to_any_selected_group_host(tmp_path):
+def test_settings_service_falls_back_to_any_selected_group_host_when_no_manual_override(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -238,7 +303,6 @@ def test_settings_service_falls_back_to_any_selected_group_host(tmp_path):
                     "player": {
                         "type": "sonos",
                         "sonos": {
-                            "manual_name": "Living Room",
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
