@@ -72,6 +72,33 @@ class TestBuildJukebox:
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
 
+    @patch("jukebox.di_container.SonosPlayerAdapter")
+    @patch("jukebox.di_container.DryrunReaderAdapter")
+    @patch("jukebox.di_container.TextCurrentTagAdapter")
+    @patch("jukebox.di_container.JsonLibraryAdapter")
+    def test_build_jukebox_with_sonos_autodiscovery(self, mock_library, mock_current_tag, mock_reader, mock_player):
+        config = ResolvedJukeboxRuntimeConfig(
+            library_path="/test/library.json",
+            player_type="sonos",
+            sonos_host=None,
+            sonos_name=None,
+            reader_type="dryrun",
+            pause_duration_seconds=50,
+            pause_delay_seconds=3,
+            loop_interval_seconds=0.1,
+            nfc_read_timeout_seconds=0.25,
+            verbose=False,
+        )
+
+        reader, handle_tag_event = build_jukebox(config)
+
+        mock_library.assert_called_once_with("/test/library.json")
+        mock_current_tag.assert_called_once_with("/test/current-tag.txt")
+        mock_player.assert_called_once_with(host=None, name=None)
+        mock_reader.assert_called_once_with()
+        assert reader == mock_reader.return_value
+        assert handle_tag_event is not None
+
     @patch("jukebox.di_container.DryrunPlayerAdapter")
     @patch("jukebox.di_container.DryrunReaderAdapter")
     @patch("jukebox.di_container.TextCurrentTagAdapter")

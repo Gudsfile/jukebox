@@ -111,6 +111,26 @@ def test_build_environment_settings_overrides_reads_deprecated_env_vars_with_war
     assert warning.call_count == 2
 
 
+def test_build_environment_settings_overrides_prefers_current_env_vars_over_deprecated():
+    warning = MagicMock()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setenv("JUKEBOX_LIBRARY_PATH", "/current/library.json")
+        monkeypatch.setenv("LIBRARY_PATH", "/deprecated/library.json")
+        monkeypatch.setenv("JUKEBOX_SONOS_HOST", "192.168.1.10")
+        monkeypatch.setenv("SONOS_HOST", "192.168.1.20")
+
+        overrides = build_environment_settings_overrides(warning)
+
+    assert overrides == {
+        "paths": {"library_path": "/current/library.json"},
+        "jukebox": {"player": {"sonos": {"manual_host": "192.168.1.10"}}},
+    }
+    warning.assert_any_call("The LIBRARY_PATH environment variable is deprecated, use JUKEBOX_LIBRARY_PATH instead.")
+    warning.assert_any_call("The SONOS_HOST environment variable is deprecated, use JUKEBOX_SONOS_HOST instead.")
+    assert warning.call_count == 2
+
+
 def test_settings_service_allows_sonos_discovery_without_manual_target(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -172,6 +192,72 @@ def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_name is None
+
+
+def test_settings_service_prefers_selected_group_coordinator_host(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_name": "Living Room",
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == "192.168.1.40"
+    assert runtime_config.sonos_name is None
+
+
+def test_settings_service_falls_back_to_any_selected_group_host(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_name": "Living Room",
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsReadService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == "192.168.1.30"
     assert runtime_config.sonos_name is None
 
 
