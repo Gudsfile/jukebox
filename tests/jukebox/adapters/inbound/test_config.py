@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import pytest
+
 from jukebox.adapters.inbound.config import JukeboxCliConfig, parse_config
 
 
@@ -17,6 +19,17 @@ def test_parse_config_with_player_reader_and_host_overrides():
     assert config.player == "sonos"
     assert config.reader == "nfc"
     assert config.sonos_host == "192.168.1.50"
+    assert config.sonos_name is None
+
+
+@patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-name", "Living Room"])
+def test_parse_config_with_sonos_name_override():
+    config = parse_config()
+
+    assert config.player == "sonos"
+    assert config.reader == "nfc"
+    assert config.sonos_host is None
+    assert config.sonos_name == "Living Room"
 
 
 @patch("sys.argv", ["jukebox", "--pause-duration", "300", "--pause-delay", "0.2"])
@@ -57,3 +70,9 @@ def test_parse_config_reader_flag_overrides_positional_reader():
 
     assert config.player == "dryrun"
     assert config.reader == "nfc"
+
+
+@patch("sys.argv", ["jukebox", "--sonos-host", "192.168.1.1", "--sonos-name", "Living Room"])
+def test_parse_config_rejects_sonos_host_and_name_together():
+    with pytest.raises(SystemExit):
+        parse_config()

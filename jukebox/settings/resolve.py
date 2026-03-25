@@ -36,6 +36,10 @@ def build_environment_settings_overrides(logger_warning: Callable[[str], None]) 
     if sonos_host is not None:
         overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_host"] = sonos_host
 
+    sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
+    if sonos_name is not None:
+        overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_name"] = sonos_name
+
     return overrides
 
 
@@ -83,6 +87,7 @@ class SettingsReadService:
                 library_path=_expand_path(effective_settings.paths.library_path),
                 player_type=effective_settings.jukebox.player.type,
                 sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
+                sonos_name=_resolve_sonos_name(effective_settings.jukebox.player),
                 reader_type=effective_settings.jukebox.reader.type,
                 pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
                 pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
@@ -150,6 +155,13 @@ def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
                 return speaker.last_known_host
 
     return player_settings.sonos.manual_host
+
+
+def _resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
+    if _resolve_sonos_host(player_settings) is not None:
+        return None
+
+    return player_settings.sonos.manual_name
 
 
 def _build_provenance_tree(

@@ -13,15 +13,75 @@ def test_init_with_host(mock_sharelink, mock_soco):
     mock_sharelink.assert_called_once_with(mock_soco.return_value)
 
 
-@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
-def test_init_without_host(mock_sharelink, mock_soco):
-    """Should raise ValueError when host is empty or None."""
-    with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
-        SonosPlayerAdapter(host="")
-    with pytest.raises(ValueError, match="Host must be provided for Sonos player"):
-        SonosPlayerAdapter(host=None)  # ty: ignore[invalid-argument-type]
-    mock_soco.assert_not_called()
+def test_init_without_host_triggers_discovery(mock_sharelink, mock_soco_module):
+    """Should use auto-discovery when no host is provided."""
+    mock_speaker = MagicMock()
+    mock_speaker.player_name = "Living Room"
+    mock_soco_module.discover.return_value = {mock_speaker}
+
+    adapter = SonosPlayerAdapter()
+
+    mock_soco_module.discover.assert_called_once()
+    mock_sharelink.assert_called_once_with(mock_speaker)
+    assert adapter.speaker is mock_speaker
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_without_host_raises_when_no_speakers_found(mock_sharelink, mock_soco_module):
+    """Should raise RuntimeError when discovery finds no speakers."""
+    mock_soco_module.discover.return_value = None
+
+    with pytest.raises(RuntimeError, match="No Sonos speakers found on the network"):
+        SonosPlayerAdapter()
+
+    mock_sharelink.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_discovery_picks_first_speaker_alphabetically(mock_sharelink, mock_soco_module):
+    """Should pick the alphabetically first speaker when multiple are discovered."""
+    speaker_b = MagicMock()
+    speaker_b.player_name = "Kitchen"
+    speaker_a = MagicMock()
+    speaker_a.player_name = "Bedroom"
+
+    mock_soco_module.discover.return_value = {speaker_b, speaker_a}
+
+    adapter = SonosPlayerAdapter()
+
+    assert adapter.speaker is speaker_a
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_name_selects_matching_speaker(mock_sharelink, mock_soco_module):
+    """Should select the speaker matching the given name."""
+    speaker_a = MagicMock()
+    speaker_a.player_name = "Kitchen"
+    speaker_b = MagicMock()
+    speaker_b.player_name = "Living Room"
+    mock_soco_module.discover.return_value = {speaker_a, speaker_b}
+
+    adapter = SonosPlayerAdapter(name="Living Room")
+
+    assert adapter.speaker is speaker_b
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_name_raises_when_speaker_not_found(mock_sharelink, mock_soco_module):
+    """Should raise RuntimeError when the named speaker is not found."""
+    mock_speaker = MagicMock()
+    mock_speaker.player_name = "Kitchen"
+    mock_soco_module.discover.return_value = {mock_speaker}
+
+    with pytest.raises(RuntimeError, match="No Sonos speaker named 'Bedroom' found on the network"):
+        SonosPlayerAdapter(name="Bedroom")
+
     mock_sharelink.assert_not_called()
 
 
@@ -116,3 +176,21 @@ def test_stop_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     adapter.stop()
 
     mock_speaker.clear_queue.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.soco")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soco_module, caplog):
+    """Should log warning when multiple speakers share the same name."""
+    speaker_a = MagicMock()
+    speaker_a.player_name = "Bedroom"
+    speaker_b = MagicMock()
+    speaker_b.player_name = "Kitchen"
+    speaker_c = MagicMock()
+    speaker_c.player_name = "Kitchen"
+    mock_soco_module.discover.return_value = [speaker_a, speaker_b, speaker_c]
+
+    adapter = SonosPlayerAdapter(name="Kitchen")
+
+    assert adapter.speaker.player_name == "Kitchen"
+    assert "Multiple Sonos speakers with name 'Kitchen' found. Using first match." in caplog.text

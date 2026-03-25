@@ -1,5 +1,7 @@
 import logging
+from typing import Optional
 
+import soco
 from soco import SoCo
 from soco.exceptions import SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
@@ -30,14 +32,34 @@ def catch_soco_upnp_exception(func):
 class SonosPlayerAdapter(PlayerPort):
     """Adapter for Sonos player implementing PlayerPort."""
 
-    def __init__(self, host: str):
-        if not host:
-            raise ValueError("Host must be provided for Sonos player")
-        self.speaker = SoCo(host)
+    def __init__(self, host: Optional[str] = None, name: Optional[str] = None):
+        if host:
+            self.speaker = SoCo(host)
+        else:
+            self.speaker = self._discover(name)
         LOGGER.info(
             f"Found `{self.speaker.player_name}` with software version: {self.speaker.get_speaker_info().get('software_version', None)}"
         )
         self.sharelink = ShareLinkPlugin(self.speaker)
+
+    @staticmethod
+    def _discover(name: Optional[str] = None) -> SoCo:
+        discovered = soco.discover()
+        if not discovered:
+            raise RuntimeError("No Sonos speakers found on the network")
+        speakers = sorted(discovered, key=lambda s: s.player_name)
+        LOGGER.info(f"Discovered {len(speakers)} Sonos speaker(s): {[s.player_name for s in speakers]}")
+        if name:
+            matching = [s for s in speakers if s.player_name == name]
+            if len(matching) > 1:
+                LOGGER.warning(
+                    f"Multiple Sonos speakers with name '{name}' found. Using first match. "
+                    "Consider using host IP to disambiguate."
+                )
+            if matching:
+                return matching[0]
+            raise RuntimeError(f"No Sonos speaker named '{name}' found on the network")
+        return speakers[0]
 
     @catch_soco_upnp_exception
     def play(self, uri: str, shuffle: bool = False) -> None:

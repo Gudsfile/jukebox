@@ -17,6 +17,7 @@ class JukeboxCliConfig(BaseModel):
     player: Optional[Literal["dryrun", "sonos"]] = None
     reader: Optional[Literal["dryrun", "nfc"]] = None
     sonos_host: Optional[str] = None
+    sonos_name: Optional[str] = None
     pause_duration_seconds: Optional[int] = None
     pause_delay_seconds: Optional[float] = None
 
@@ -53,11 +54,18 @@ def parse_config() -> JukeboxCliConfig:
         help="override the reader type without providing both positional type arguments",
     )
 
-    parser.add_argument(
+    sonos_target_group = parser.add_mutually_exclusive_group()
+    sonos_target_group.add_argument(
         "--sonos-host",
         default=None,
         help="override the Sonos host for this process",
     )
+    sonos_target_group.add_argument(
+        "--sonos-name",
+        default=None,
+        help="override the Sonos speaker name for this process",
+    )
+
     parser.add_argument(
         "--pause-duration",
         default=None,
@@ -79,6 +87,7 @@ def parse_config() -> JukeboxCliConfig:
         player=args.player or args.positional_player,
         reader=args.reader or args.positional_reader,
         sonos_host=args.sonos_host,
+        sonos_name=args.sonos_name,
         pause_duration_seconds=args.pause_duration,
         pause_delay_seconds=args.pause_delay,
     )
