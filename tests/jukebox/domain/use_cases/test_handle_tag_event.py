@@ -426,3 +426,27 @@ def test_same_tag_detection_resets_logical_removal_grace_period(handle_tag_event
     mock_player.pause.assert_not_called()
     assert session.paused_at is None
     assert session.playing_tag_removed_at == 103.2
+
+
+def test_same_tag_returns_after_pause_resumes_immediately(handle_tag_event, mock_player):
+    session = PlaybackSession(
+        playing_tag="test-tag",
+        physical_tag="test-tag",
+        last_event_timestamp=100.0,
+    )
+
+    # First missed read starts the grace window.
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.1), session)
+    assert session.playing_tag_removed_at == 100.1
+
+    # After the grace period expires, playback pauses.
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=103.2), session)
+    mock_player.pause.assert_called_once()
+    assert session.paused_at == 103.2
+
+    # The first same-tag read should resume immediately.
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=103.3), session)
+
+    mock_player.resume.assert_called_once()
+    assert session.paused_at is None
+    assert session.playing_tag_removed_at is None
