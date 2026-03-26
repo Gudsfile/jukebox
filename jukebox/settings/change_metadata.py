@@ -40,6 +40,30 @@ CHANGE_METADATA = {
         section="admin",
         requires_restart=True,
     ),
+    "jukebox.playback.pause_duration_seconds": SettingChangeMetadata(
+        dotted_path="jukebox.playback.pause_duration_seconds",
+        label="Pause Duration",
+        description="Maximum paused duration before playback resets.",
+        field_type="integer",
+        section="playback",
+        requires_restart=True,
+    ),
+    "jukebox.playback.pause_delay_seconds": SettingChangeMetadata(
+        dotted_path="jukebox.playback.pause_delay_seconds",
+        label="Pause Delay",
+        description="Grace period before pausing after a tag is removed.",
+        field_type="number",
+        section="playback",
+        requires_restart=True,
+    ),
+    "jukebox.runtime.loop_interval_seconds": SettingChangeMetadata(
+        dotted_path="jukebox.runtime.loop_interval_seconds",
+        label="Loop Interval",
+        description="Main jukebox loop pacing interval in seconds.",
+        field_type="number",
+        section="playback",
+        requires_restart=True,
+    ),
 }
 
 

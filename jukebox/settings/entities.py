@@ -170,6 +170,18 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     nfc_read_timeout_seconds: float
     verbose: bool = False
 
+    @model_validator(mode="after")
+    def validate_timing_relationships(self):
+        if self.loop_interval_seconds >= self.pause_delay_seconds:
+            raise ValueError(
+                "jukebox.runtime.loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds"
+            )
+        if self.pause_delay_seconds >= float(self.pause_duration_seconds):
+            raise ValueError(
+                "jukebox.playback.pause_delay_seconds must be lower than jukebox.playback.pause_duration_seconds"
+            )
+        return self
+
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str

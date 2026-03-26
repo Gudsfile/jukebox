@@ -202,9 +202,23 @@ def test_main_prints_settings_show_payload(app_mocks):
             ("admin.api.port", "9000"),
         ),
         (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.playback.pause_duration_seconds",
+                value="600",
+            ),
+            "set_persisted_value",
+            ("jukebox.playback.pause_duration_seconds", "600"),
+        ),
+        (
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
             "reset_persisted_value",
             ("admin.ui.port",),
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
+            "reset_persisted_value",
+            ("jukebox.runtime.loop_interval_seconds",),
         ),
         (SettingsResetCommand(type="settings_reset", dotted_path="admin"), "reset_persisted_value", ("admin",)),
     ],

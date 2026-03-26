@@ -91,18 +91,7 @@ class SettingsService:
         try:
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
-            return ResolvedJukeboxRuntimeConfig(
-                library_path=_expand_path(effective_settings.paths.library_path),
-                player_type=effective_settings.jukebox.player.type,
-                sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
-                sonos_name=_resolve_sonos_name(effective_settings.jukebox.player),
-                reader_type=effective_settings.jukebox.reader.type,
-                pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
-                pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
-                loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
-                nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
-                verbose=verbose,
-            )
+            return _build_jukebox_runtime_config(effective_settings, verbose=verbose)
         except ValidationError as err:
             raise InvalidSettingsError(
                 _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
@@ -191,6 +180,12 @@ class SettingsService:
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
+        if _includes_jukebox_timing_paths(updated_paths):
+            try:
+                _build_jukebox_runtime_config(settings)
+            except ValidationError as err:
+                raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+
         persisted_after = _build_updated_persisted_settings(
             persisted_before,
             cast(JsonObject, settings.model_dump(mode="python")),
@@ -235,6 +230,28 @@ def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_
     if env_overrides:
         return f"Invalid effective settings after environment overrides: {error}"
     return f"Invalid effective settings from persisted settings: {error}"
+
+
+def _build_jukebox_runtime_config(
+    effective_settings: AppSettings,
+    verbose: bool = False,
+) -> ResolvedJukeboxRuntimeConfig:
+    return ResolvedJukeboxRuntimeConfig(
+        library_path=_expand_path(effective_settings.paths.library_path),
+        player_type=effective_settings.jukebox.player.type,
+        sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
+        sonos_name=_resolve_sonos_name(effective_settings.jukebox.player),
+        reader_type=effective_settings.jukebox.reader.type,
+        pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
+        pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
+        loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
+        nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
+        verbose=verbose,
+    )
+
+
+def _includes_jukebox_timing_paths(updated_paths: list[str]) -> bool:
+    return any(path.startswith("jukebox.playback.") or path.startswith("jukebox.runtime.") for path in updated_paths)
 
 
 def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
