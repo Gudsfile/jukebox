@@ -38,6 +38,7 @@ def build_controller():
         edit_disc=MagicMock(),
         get_disc=MagicMock(),
         get_current_tag_status=MagicMock(),
+        settings_service=MagicMock(),
     )
 
 

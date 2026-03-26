@@ -11,7 +11,7 @@ except ImportError:
 
 from pydantic import BaseModel, ValidationError, model_validator
 
-from jukebox.shared.config_utils import add_library_arg, add_verbose_arg, add_version_arg
+from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 LOGGER = logging.getLogger("discstore")
 
@@ -73,16 +73,21 @@ class InteractiveCliCommand(BaseModel):
 
 class ApiCommand(BaseModel):
     type: Literal["api"]
-    port: int = 8000
+    port: Optional[int] = None
 
 
 class UiCommand(BaseModel):
     type: Literal["ui"]
-    port: int = 8000
+    port: Optional[int] = None
+
+
+class SettingsShowCommand(BaseModel):
+    type: Literal["settings_show"]
+    effective: bool = False
 
 
 class DiscStoreConfig(BaseModel):
-    library: str
+    library: Optional[str] = None
     verbose: bool = False
 
     command: Union[
@@ -94,6 +99,7 @@ class DiscStoreConfig(BaseModel):
         CliEditCommand,
         CliGetCommand,
         CliSearchCommand,
+        SettingsShowCommand,
         UiCommand,
     ]
 
@@ -114,8 +120,12 @@ def parse_config() -> DiscStoreConfig:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    # Global arguments
-    add_library_arg(parser)
+    parser.add_argument(
+        "-l",
+        "--library",
+        default=None,
+        help="override the library JSON path for this process",
+    )
     add_verbose_arg(parser)
     add_version_arg(parser)
 
@@ -156,14 +166,23 @@ def parse_config() -> DiscStoreConfig:
 
     # API commands
     api_parser = subparsers.add_parser("api", help="Start an API server")
-    api_parser.add_argument("--port", type=int, default=8000, help="port")
+    api_parser.add_argument("--port", type=int, default=None, help="override the configured API port")
 
     # UI commands
     ui_parser = subparsers.add_parser("ui", help="Start an UI server")
-    ui_parser.add_argument("--port", type=int, default=8000, help="port")
+    ui_parser.add_argument("--port", type=int, default=None, help="override the configured UI port")
 
     # Interactive commands
     _ = subparsers.add_parser("interactive", help="Run interactive CLI")
+
+    settings_parser = subparsers.add_parser("settings", help="Inspect application settings")
+    settings_subparsers = settings_parser.add_subparsers(dest="settings_command", required=True)
+    settings_show_parser = settings_subparsers.add_parser("show", help="Show persisted settings")
+    settings_show_parser.add_argument(
+        "--effective",
+        action="store_true",
+        help="show merged effective settings with provenance",
+    )
 
     args = parser.parse_args()
 
@@ -174,11 +193,19 @@ def parse_config() -> DiscStoreConfig:
     command_name = args_dict.pop("command")
 
     try:
-        command_config = {"type": command_name, **args_dict}
-
         # Build and validate final config
+        if command_name == "settings":
+            args_dict.pop("settings_command")
+            command_config = {"type": "settings_show", **args_dict}
+        else:
+            command_config = {"type": command_name, **args_dict}
+
         config = DiscStoreConfig.model_validate(
-            {"library": args.library, "verbose": args.verbose, "command": command_config}
+            {
+                "library": args.library,
+                "verbose": args.verbose,
+                "command": command_config,
+            }
         )
     except (ValidationError, ValueError) as err:
         LOGGER.error("Config error: %s", err)

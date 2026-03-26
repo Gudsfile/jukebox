@@ -33,7 +33,7 @@ def test_dependencies_import_failure(mocker):
 def test_get_current_tag_returns_current_tag_payload(known_in_library):
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=known_in_library)
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status)
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -51,7 +51,7 @@ def test_get_current_tag_returns_current_tag_payload(known_in_library):
 def test_get_current_tag_returns_no_content_when_absent():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = None
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status)
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -63,3 +63,35 @@ def test_get_current_tag_returns_no_content_when_absent():
     assert response.status_code == 204
     assert response.body == b""
     get_current_tag_status.execute.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_settings_returns_sparse_settings_payload():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings"),
+    )
+
+    response = route.endpoint()
+
+    assert response == {"schema_version": 1}
+    settings_service.get_persisted_settings_view.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_effective_settings_returns_effective_settings_payload():
+    settings_service = MagicMock()
+    settings_service.get_effective_settings_view.return_value = {"settings": {}, "provenance": {}, "derived": {}}
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings/effective"),
+    )
+
+    response = route.endpoint()
+
+    assert response == {"settings": {}, "provenance": {}, "derived": {}}
+    settings_service.get_effective_settings_view.assert_called_once_with()

@@ -1,10 +1,3 @@
-from jukebox.adapters.inbound.config import (
-    DryrunPlayerConfig,
-    DryrunReaderConfig,
-    JukeboxConfig,
-    NfcReaderConfig,
-    SonosPlayerConfig,
-)
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.players.dryrun_player_adapter import DryrunPlayerAdapter
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
@@ -13,45 +6,35 @@ from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAda
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
+from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.shared.config_utils import get_current_tag_path
 
 
-def build_jukebox(config: JukeboxConfig):
-    """Build and wire all dependencies for Jukebox.
+def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
+    """Build and wire all dependencies for Jukebox."""
 
-    Args:
-        config: Validated JukeboxConfig instance containing all configuration
+    library = JsonLibraryAdapter(config.library_path)
+    current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library_path))
 
-    Returns:
-        Tuple of (reader, handle_tag_event_use_case)
-
-    Raises:
-        ValueError: If config contains unknown player or reader type
-    """
-    # Outbound adapters
-    library = JsonLibraryAdapter(config.library)
-    current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library))
-
-    if isinstance(config.player, SonosPlayerConfig):
-        player = SonosPlayerAdapter(host=config.player.host, name=config.player.name)
-    elif isinstance(config.player, DryrunPlayerConfig):
+    if config.player_type == "sonos":
+        player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name)
+    elif config.player_type == "dryrun":
         player = DryrunPlayerAdapter()
     else:
-        raise ValueError(f"Unknown player type: {config.player.type}")
+        raise ValueError(f"Unknown player type: {config.player_type}")
 
-    if isinstance(config.reader, NfcReaderConfig):
+    if config.reader_type == "nfc":
         from jukebox.adapters.outbound.readers.nfc_reader_adapter import NfcReaderAdapter
 
-        reader = NfcReaderAdapter()
-    elif isinstance(config.reader, DryrunReaderConfig):
+        reader = NfcReaderAdapter(read_timeout_seconds=config.nfc_read_timeout_seconds)
+    elif config.reader_type == "dryrun":
         reader = DryrunReaderAdapter()
     else:
-        raise ValueError(f"Unknown reader type: {config.reader.type}")
+        raise ValueError(f"Unknown reader type: {config.reader_type}")
 
-    # Use cases
     determine_action = DetermineAction(
-        pause_delay=config.playback.pause_delay,
-        max_pause_duration=config.playback.pause_duration,
+        pause_delay=config.pause_delay_seconds,
+        max_pause_duration=config.pause_duration_seconds,
     )
     determine_current_tag_action = DetermineCurrentTagAction()
 
