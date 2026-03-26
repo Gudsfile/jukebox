@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from typing import Iterable, Optional, cast
 
 from .types import JsonObject
 
@@ -80,8 +80,7 @@ def build_change_metadata_tree() -> JsonObject:
         parts = dotted_path.split(".")
 
         for part in parts[:-1]:
-            child = cursor.setdefault(part, {})
-            cursor = child
+            cursor = _ensure_object_child(cursor, part)
 
         cursor[parts[-1]] = {
             "label": metadata.label,
@@ -93,3 +92,12 @@ def build_change_metadata_tree() -> JsonObject:
         }
 
     return tree
+
+
+def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
+    child = node.get(key)
+    if not isinstance(child, dict):
+        child = {}
+        node[key] = child
+
+    return cast(JsonObject, child)

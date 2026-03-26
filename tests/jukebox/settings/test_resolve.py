@@ -1,5 +1,6 @@
 import json
 import os
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -7,7 +8,24 @@ import pytest
 from jukebox.settings.errors import InvalidSettingsError, MalformedSettingsFileError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
+from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.shared.config_utils import get_current_tag_path
+
+
+def _lookup_json_value(root: JsonObject, *path: str) -> JsonValue:
+    current: JsonValue = root
+
+    for part in path:
+        assert isinstance(current, dict)
+        current = current[part]
+
+    return current
+
+
+def _lookup_json_object(root: JsonObject, *path: str) -> JsonObject:
+    value = _lookup_json_value(root, *path)
+    assert isinstance(value, dict)
+    return cast(JsonObject, value)
 
 
 def test_repository_returns_schema_version_only_when_file_missing(tmp_path):
@@ -69,14 +87,14 @@ def test_settings_service_builds_effective_view_with_provenance(tmp_path):
 
     effective_view = service.get_effective_settings_view()
 
-    assert effective_view["settings"]["paths"]["library_path"] == "/env/library.json"
-    assert effective_view["settings"]["admin"]["api"]["port"] == 8100
-    assert effective_view["settings"]["admin"]["ui"]["port"] == 8200
-    assert effective_view["provenance"]["paths"]["library_path"] == "env"
-    assert effective_view["provenance"]["admin"]["api"]["port"] == "file"
-    assert effective_view["provenance"]["admin"]["ui"]["port"] == "cli"
-    assert effective_view["provenance"]["jukebox"]["runtime"]["loop_interval_seconds"] == "default"
-    assert effective_view["change_metadata"]["admin"]["api"]["port"]["requires_restart"] is True
+    assert _lookup_json_value(effective_view, "settings", "paths", "library_path") == "/env/library.json"
+    assert _lookup_json_value(effective_view, "settings", "admin", "api", "port") == 8100
+    assert _lookup_json_value(effective_view, "settings", "admin", "ui", "port") == 8200
+    assert _lookup_json_value(effective_view, "provenance", "paths", "library_path") == "env"
+    assert _lookup_json_value(effective_view, "provenance", "admin", "api", "port") == "file"
+    assert _lookup_json_value(effective_view, "provenance", "admin", "ui", "port") == "cli"
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "runtime", "loop_interval_seconds") == "default"
+    assert _lookup_json_value(effective_view, "change_metadata", "admin", "api", "port", "requires_restart") is True
 
 
 def test_settings_service_set_persisted_value_updates_sparse_settings_and_reports_restart(tmp_path):
@@ -93,7 +111,8 @@ def test_settings_service_set_persisted_value_updates_sparse_settings_and_report
         "schema_version": 1,
         "admin": {"api": {"port": 8100}},
     }
-    assert result["effective"]["settings"]["admin"]["api"]["port"] == 8100
+    effective_view = _lookup_json_object(result, "effective")
+    assert _lookup_json_value(effective_view, "settings", "admin", "api", "port") == 8100
     assert result["updated_paths"] == ["admin.api.port"]
     assert result["restart_required"] is True
     assert result["restart_required_paths"] == ["admin.api.port"]
@@ -181,8 +200,11 @@ def test_settings_service_patch_updates_library_path_and_derived_current_tag_pat
         "paths": {"library_path": "~/music/library.json"},
         "admin": {"ui": {"port": 8200}},
     }
-    assert result["effective"]["settings"]["paths"]["library_path"] == "~/music/library.json"
-    assert result["effective"]["derived"]["paths"]["current_tag_path"] == get_current_tag_path("~/music/library.json")
+    effective_view = _lookup_json_object(result, "effective")
+    assert _lookup_json_value(effective_view, "settings", "paths", "library_path") == "~/music/library.json"
+    assert _lookup_json_value(effective_view, "derived", "paths", "current_tag_path") == get_current_tag_path(
+        "~/music/library.json"
+    )
     assert result["updated_paths"] == ["admin.ui.port", "paths.library_path"]
     assert result["restart_required_paths"] == ["admin.ui.port", "paths.library_path"]
 
@@ -350,10 +372,10 @@ def test_settings_service_builds_effective_view_without_sonos_target(tmp_path):
 
     effective_view = service.get_effective_settings_view()
 
-    assert effective_view["settings"]["jukebox"]["player"]["type"] == "sonos"
-    assert effective_view["settings"]["jukebox"]["player"]["sonos"]["manual_host"] is None
-    assert effective_view["settings"]["jukebox"]["player"]["sonos"]["manual_name"] is None
-    assert effective_view["provenance"]["jukebox"]["player"]["type"] == "file"
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "player", "type") == "sonos"
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "player", "sonos", "manual_host") is None
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "player", "sonos", "manual_name") is None
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "player", "type") == "file"
 
 
 def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):
