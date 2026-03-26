@@ -27,7 +27,7 @@ def test_main_uses_resolved_runtime_config(app_mocks):
         player_type="dryrun",
         reader_type="dryrun",
         pause_duration_seconds=100,
-        pause_delay_seconds=0.25,
+        pause_delay_seconds=1.0,
         loop_interval_seconds=0.5,
         nfc_read_timeout_seconds=0.1,
         verbose=True,
