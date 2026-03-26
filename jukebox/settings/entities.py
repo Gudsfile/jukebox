@@ -29,7 +29,14 @@ class SelectedSonosGroupSettings(StrictModel):
 
 class SonosPlayerSettings(StrictModel):
     manual_host: Optional[str] = None
+    manual_name: Optional[str] = None
     selected_group: Optional[SelectedSonosGroupSettings] = None
+
+    @model_validator(mode="after")
+    def validate_manual_target(self):
+        if self.manual_host and self.manual_name:
+            raise ValueError("manual_host and manual_name are mutually exclusive")
+        return self
 
 
 class PlayerSettings(StrictModel):
@@ -97,6 +104,7 @@ class SparseSelectedSonosGroupSettings(StrictModel):
 
 class SparseSonosPlayerSettings(StrictModel):
     manual_host: Optional[str] = None
+    manual_name: Optional[str] = None
     selected_group: Optional[SparseSelectedSonosGroupSettings] = None
 
 
@@ -154,18 +162,13 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     library_path: str
     player_type: Literal["dryrun", "sonos"]
     sonos_host: Optional[str] = None
+    sonos_name: Optional[str] = None
     reader_type: Literal["dryrun", "nfc"]
     pause_duration_seconds: int
     pause_delay_seconds: float
     loop_interval_seconds: float
     nfc_read_timeout_seconds: float
     verbose: bool = False
-
-    @model_validator(mode="after")
-    def validate_active_player_target(self):
-        if self.player_type == "sonos" and not self.sonos_host:
-            raise ValueError("Sonos player requires an active host after settings resolution.")
-        return self
 
 
 class ResolvedAdminRuntimeConfig(StrictModel):

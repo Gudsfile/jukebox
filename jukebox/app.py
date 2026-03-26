@@ -24,9 +24,14 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
         cli_overrides.setdefault("jukebox", {}).setdefault("reader", {})["type"] = config.reader
 
     if config.sonos_host is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_host"] = (
-            config.sonos_host
-        )
+        sonos_overrides = cli_overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
+        sonos_overrides["manual_host"] = config.sonos_host
+        sonos_overrides["manual_name"] = None
+
+    if config.sonos_name is not None:
+        sonos_overrides = cli_overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
+        sonos_overrides["manual_host"] = None
+        sonos_overrides["manual_name"] = config.sonos_name
 
     if config.pause_duration_seconds is not None:
         cli_overrides.setdefault("jukebox", {}).setdefault("playback", {})["pause_duration_seconds"] = (

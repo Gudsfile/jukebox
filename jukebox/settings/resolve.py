@@ -44,6 +44,10 @@ def build_environment_settings_overrides(logger_warning: Callable[[str], None]) 
     if sonos_host is not None:
         overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_host"] = sonos_host
 
+    sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
+    if sonos_name is not None:
+        overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_name"] = sonos_name
+
     return overrides
 
 
@@ -92,6 +96,7 @@ class SettingsService:
                 library_path=_expand_path(effective_settings.paths.library_path),
                 player_type=effective_settings.jukebox.player.type,
                 sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
+                sonos_name=_resolve_sonos_name(effective_settings.jukebox.player),
                 reader_type=effective_settings.jukebox.reader.type,
                 pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
                 pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
@@ -221,6 +226,12 @@ def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_
 
 
 def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
+    if player_settings.sonos.manual_host is not None:
+        return player_settings.sonos.manual_host
+
+    if player_settings.sonos.manual_name is not None:
+        return None
+
     if player_settings.sonos.selected_group is not None:
         for speaker in player_settings.sonos.selected_group.members:
             if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
@@ -230,7 +241,17 @@ def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
             if speaker.last_known_host:
                 return speaker.last_known_host
 
-    return player_settings.sonos.manual_host
+    return None
+
+
+def _resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
+    if player_settings.sonos.manual_name is not None:
+        return player_settings.sonos.manual_name
+
+    if _resolve_sonos_host(player_settings) is not None:
+        return None
+
+    return None
 
 
 def _build_provenance_tree(
