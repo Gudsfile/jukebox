@@ -49,27 +49,36 @@ def test_parse_config_with_library_and_verbose_flags():
 
 
 @patch("sys.argv", ["jukebox", "dryrun"])
-def test_parse_config_allows_partial_type_overrides():
+def test_parse_config_allows_partial_type_overrides(capsys):
     config = parse_config()
 
     assert config.player == "dryrun"
     assert config.reader is None
+    assert (
+        capsys.readouterr().err.strip()
+        == "warning: positional player/reader arguments are deprecated; use --player/--reader instead"
+    )
 
 
 @patch("sys.argv", ["jukebox", "--reader", "nfc"])
-def test_parse_config_allows_reader_only_override_flag():
+def test_parse_config_allows_reader_only_override_flag(capsys):
     config = parse_config()
 
     assert config.player is None
     assert config.reader == "nfc"
+    assert capsys.readouterr().err == ""
 
 
 @patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--reader", "nfc"])
-def test_parse_config_reader_flag_overrides_positional_reader():
+def test_parse_config_reader_flag_overrides_positional_reader(capsys):
     config = parse_config()
 
     assert config.player == "dryrun"
     assert config.reader == "nfc"
+    assert (
+        capsys.readouterr().err.strip()
+        == "warning: positional player/reader arguments are deprecated; use --player/--reader instead"
+    )
 
 
 @patch("sys.argv", ["jukebox", "--sonos-host", "192.168.1.1", "--sonos-name", "Living Room"])
