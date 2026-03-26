@@ -1,10 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Iterable, Optional
 
-from .timing_validation import (
-    validate_loop_interval_lower_than_pause_delay,
-    validate_pause_delay_lower_than_pause_duration,
-)
+from .timing_validation import validate_loop_interval_lower_than_pause_delay
 from .value_providers import SettingsValueProvider
 
 
@@ -27,14 +24,6 @@ VALIDATION_RULES = (
             "jukebox.playback.pause_delay_seconds",
         ),
         validator=validate_loop_interval_lower_than_pause_delay,
-    ),
-    SettingsValidationRule(
-        name="pause_delay_lower_than_pause_duration",
-        depends_on_paths=(
-            "jukebox.playback.pause_delay_seconds",
-            "jukebox.playback.pause_duration_seconds",
-        ),
-        validator=validate_pause_delay_lower_than_pause_duration,
     ),
 )
 

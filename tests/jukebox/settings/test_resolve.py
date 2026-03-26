@@ -656,14 +656,14 @@ def test_settings_service_set_loop_interval_allows_unrelated_pause_duration_viol
     assert result["updated_paths"] == ["jukebox.runtime.loop_interval_seconds"]
 
 
-def test_settings_service_patch_rejects_pause_delay_not_lower_than_pause_duration_without_writing(tmp_path):
+def test_settings_service_patch_allows_pause_delay_greater_than_pause_duration(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
             {
                 "schema_version": 1,
                 "jukebox": {
-                    "playback": {"pause_duration_seconds": 10},
+                    "playback": {"pause_duration_seconds": 5},
                 },
             }
         ),
@@ -671,18 +671,15 @@ def test_settings_service_patch_rejects_pause_delay_not_lower_than_pause_duratio
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    with pytest.raises(
-        InvalidSettingsError,
-        match="pause_delay_seconds must be lower than jukebox.playback.pause_duration_seconds",
-    ):
-        service.patch_persisted_settings({"jukebox": {"playback": {"pause_delay_seconds": 10.0}}})
+    result = service.patch_persisted_settings({"jukebox": {"playback": {"pause_delay_seconds": 10.0}}})
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
         "jukebox": {
-            "playback": {"pause_duration_seconds": 10},
+            "playback": {"pause_duration_seconds": 5, "pause_delay_seconds": 10.0},
         },
     }
+    assert result["updated_paths"] == ["jukebox.playback.pause_delay_seconds"]
 
 
 def test_settings_service_set_pause_duration_allows_unrelated_loop_interval_violation(tmp_path):
@@ -1100,27 +1097,5 @@ def test_settings_service_rejects_loop_interval_not_lower_than_pause_delay_at_ru
     with pytest.raises(
         InvalidSettingsError,
         match="loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds",
-    ):
-        service.resolve_jukebox_runtime()
-
-
-def test_settings_service_rejects_pause_delay_not_lower_than_pause_duration_at_runtime(tmp_path):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "jukebox": {
-                    "playback": {"pause_duration_seconds": 10, "pause_delay_seconds": 10.0},
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
-
-    with pytest.raises(
-        InvalidSettingsError,
-        match="pause_delay_seconds must be lower than jukebox.playback.pause_duration_seconds",
     ):
         service.resolve_jukebox_runtime()
