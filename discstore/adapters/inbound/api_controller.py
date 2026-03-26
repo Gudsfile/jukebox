@@ -1,6 +1,6 @@
-from typing import Dict
+from typing import Any, Dict, cast
 
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
@@ -36,6 +36,10 @@ class CurrentTagStatusOutput(CurrentTagStatus):
 
 class SettingsResetInput(BaseModel):
     path: str
+
+
+class SettingsPatchInput(RootModel[Dict[str, Any]]):
+    pass
 
 
 class APIController:
@@ -94,9 +98,9 @@ class APIController:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
         @self.app.patch("/api/v1/settings")
-        def patch_settings(patch: JsonObject):
+        def patch_settings(patch: SettingsPatchInput):
             try:
-                return self.settings_service.patch_persisted_settings(patch)
+                return self.settings_service.patch_persisted_settings(cast(JsonObject, patch.root))
             except SettingsError as err:
                 raise HTTPException(status_code=400, detail=str(err))
             except Exception as err:

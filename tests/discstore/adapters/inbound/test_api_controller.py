@@ -11,7 +11,7 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import APIController, SettingsResetInput
+    from discstore.adapters.inbound.api_controller import APIController, SettingsPatchInput, SettingsResetInput
     from discstore.domain.entities import CurrentTagStatus
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
@@ -115,7 +115,7 @@ def test_patch_settings_updates_persisted_settings():
         ),
     )
 
-    response = route.endpoint({"admin": {"api": {"port": 9000}}})
+    response = route.endpoint(SettingsPatchInput(root={"admin": {"api": {"port": 9000}}}))
 
     assert response == {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
     settings_service.patch_persisted_settings.assert_called_once_with({"admin": {"api": {"port": 9000}}})
@@ -136,10 +136,19 @@ def test_patch_settings_returns_400_for_invalid_settings_write():
     )
 
     with pytest.raises(HTTPException) as err:
-        route.endpoint({"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}})
+        route.endpoint(SettingsPatchInput(root={"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}))
 
     assert err.value.status_code == 400
     assert err.value.detail == "Unsupported settings path"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_route_generates_openapi_schema():
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+
+    schema = controller.app.openapi()
+
+    assert "/api/v1/settings" in schema["paths"]
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
