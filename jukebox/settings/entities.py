@@ -9,6 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
+from .validation_rules import validate_settings_rules
+from .value_providers import ObjectLeafValueProvider
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -172,14 +175,7 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
 
     @model_validator(mode="after")
     def validate_timing_relationships(self):
-        if self.loop_interval_seconds >= self.pause_delay_seconds:
-            raise ValueError(
-                "jukebox.runtime.loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds"
-            )
-        if self.pause_delay_seconds >= float(self.pause_duration_seconds):
-            raise ValueError(
-                "jukebox.playback.pause_delay_seconds must be lower than jukebox.playback.pause_duration_seconds"
-            )
+        validate_settings_rules(ObjectLeafValueProvider(self))
         return self
 
 

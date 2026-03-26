@@ -13,7 +13,6 @@ class SettingDefinition:
     section: str
     requires_restart: bool = False
     advanced: bool = False
-    affects_profiles: tuple[str, ...] = ()
 
 
 SETTINGS = {
@@ -24,7 +23,6 @@ SETTINGS = {
         field_type="string",
         section="paths",
         requires_restart=True,
-        affects_profiles=("admin_runtime", "jukebox_runtime"),
     ),
     "admin.api.port": SettingDefinition(
         path="admin.api.port",
@@ -33,7 +31,6 @@ SETTINGS = {
         field_type="integer",
         section="admin",
         requires_restart=True,
-        affects_profiles=("admin_runtime",),
     ),
     "admin.ui.port": SettingDefinition(
         path="admin.ui.port",
@@ -42,7 +39,6 @@ SETTINGS = {
         field_type="integer",
         section="admin",
         requires_restart=True,
-        affects_profiles=("admin_runtime",),
     ),
     "jukebox.playback.pause_duration_seconds": SettingDefinition(
         path="jukebox.playback.pause_duration_seconds",
@@ -51,7 +47,6 @@ SETTINGS = {
         field_type="integer",
         section="playback",
         requires_restart=True,
-        affects_profiles=("jukebox_runtime",),
     ),
     "jukebox.playback.pause_delay_seconds": SettingDefinition(
         path="jukebox.playback.pause_delay_seconds",
@@ -60,7 +55,6 @@ SETTINGS = {
         field_type="number",
         section="playback",
         requires_restart=True,
-        affects_profiles=("jukebox_runtime",),
     ),
     "jukebox.runtime.loop_interval_seconds": SettingDefinition(
         path="jukebox.runtime.loop_interval_seconds",
@@ -69,7 +63,6 @@ SETTINGS = {
         field_type="number",
         section="playback",
         requires_restart=True,
-        affects_profiles=("jukebox_runtime",),
     ),
 }
 
@@ -101,17 +94,6 @@ def get_restart_required_paths(dotted_paths: Iterable[str]) -> list[str]:
         for dotted_path in dotted_paths
         if dotted_path in SETTINGS and SETTINGS[dotted_path].requires_restart
     )
-
-
-def get_profiles_affected_by_paths(dotted_paths: Iterable[str]) -> list[str]:
-    profiles = set()
-
-    for dotted_path in dotted_paths:
-        definition = get_setting_definition(dotted_path)
-        if definition is not None:
-            profiles.update(definition.affects_profiles)
-
-    return sorted(profiles)
 
 
 def build_change_metadata_tree() -> JsonObject:

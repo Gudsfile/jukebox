@@ -9,7 +9,6 @@ from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env
 from .definitions import (
     build_change_metadata_tree,
     get_editable_paths_for_prefix,
-    get_profiles_affected_by_paths,
     get_restart_required_paths,
     has_editable_setting_descendants,
     is_editable_setting_path,
@@ -17,7 +16,6 @@ from .definitions import (
 from .dict_utils import deep_merge
 from .entities import AppSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
 from .errors import InvalidSettingsError
-from .profiles import validate_profiles
 from .repositories import SettingsRepository
 from .runtime_builders import (
     build_resolved_admin_runtime_config,
@@ -25,6 +23,8 @@ from .runtime_builders import (
     expand_path,
 )
 from .types import JsonObject, JsonValue
+from .validation_rules import validate_settings_rules
+from .value_providers import NestedMappingValueProvider
 
 _MISSING = object()
 
@@ -182,8 +182,11 @@ class SettingsService:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         try:
-            validate_profiles(settings, get_profiles_affected_by_paths(updated_paths))
-        except ValidationError as err:
+            validate_settings_rules(
+                NestedMappingValueProvider(settings.model_dump(mode="python")),
+                updated_paths,
+            )
+        except ValueError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         persisted_after = _build_updated_persisted_settings(
