@@ -223,7 +223,7 @@ def test_settings_service_reset_removes_section_subtree(tmp_path):
     assert runtime_config.ui_port == 8000
 
 
-def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path):
+def test_settings_service_reset_jukebox_resets_reader_and_timing_settings_but_preserves_player_settings(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -234,7 +234,10 @@ def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path
                         "type": "sonos",
                         "sonos": {"manual_host": "192.168.1.20"},
                     },
-                    "reader": {"type": "nfc"},
+                    "reader": {
+                        "type": "nfc",
+                        "nfc": {"read_timeout_seconds": 0.2},
+                    },
                     "playback": {
                         "pause_duration_seconds": 600,
                         "pause_delay_seconds": 0.3,
@@ -256,7 +259,6 @@ def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path
                 "type": "sonos",
                 "sonos": {"manual_host": "192.168.1.20"},
             },
-            "reader": {"type": "nfc"},
         },
     }
     assert result["persisted"] == {
@@ -266,21 +268,23 @@ def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path
                 "type": "sonos",
                 "sonos": {"manual_host": "192.168.1.20"},
             },
-            "reader": {"type": "nfc"},
         },
     }
     assert result["updated_paths"] == [
         "jukebox.playback.pause_delay_seconds",
         "jukebox.playback.pause_duration_seconds",
+        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.type",
         "jukebox.runtime.loop_interval_seconds",
     ]
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.20"
-    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.reader_type == "dryrun"
     assert runtime_config.pause_duration_seconds == 900
     assert runtime_config.pause_delay_seconds == 0.25
     assert runtime_config.loop_interval_seconds == 0.1
+    assert runtime_config.nfc_read_timeout_seconds == 0.1
 
 
 def test_settings_service_patch_updates_library_path_and_derived_current_tag_path(tmp_path):
@@ -530,6 +534,73 @@ def test_settings_service_patch_updates_playback_timing_settings_and_reports_res
     assert result["message"] == "Settings saved. Changes take effect after restart."
 
 
+def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.patch_persisted_settings(
+        {
+            "jukebox": {
+                "reader": {
+                    "type": "nfc",
+                    "nfc": {"read_timeout_seconds": 0.2},
+                }
+            }
+        }
+    )
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "reader": {
+                "type": "nfc",
+                "nfc": {"read_timeout_seconds": 0.2},
+            }
+        },
+    }
+    effective_view = _lookup_json_object(result, "effective")
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "reader", "type") == "nfc"
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "reader", "nfc", "read_timeout_seconds") == 0.2
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "reader", "type") == "file"
+    assert (
+        _lookup_json_value(
+            effective_view,
+            "provenance",
+            "jukebox",
+            "reader",
+            "nfc",
+            "read_timeout_seconds",
+        )
+        == "file"
+    )
+    assert _lookup_json_value(effective_view, "change_metadata", "jukebox", "reader", "type", "section") == "reader"
+    assert (
+        _lookup_json_value(
+            effective_view,
+            "change_metadata",
+            "jukebox",
+            "reader",
+            "nfc",
+            "read_timeout_seconds",
+            "requires_restart",
+        )
+        is True
+    )
+    assert result["updated_paths"] == [
+        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.type",
+    ]
+    assert result["restart_required_paths"] == [
+        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.type",
+    ]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
+
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.nfc_read_timeout_seconds == 0.2
+
+
 def test_settings_service_reset_removes_only_requested_timing_override(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -583,6 +654,49 @@ def test_settings_service_reset_removes_only_requested_timing_override(tmp_path)
     assert runtime_config.loop_interval_seconds == 0.2
 
 
+def test_settings_service_reset_removes_only_requested_reader_override(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "reader": {
+                        "type": "nfc",
+                        "nfc": {"read_timeout_seconds": 0.2},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("jukebox.reader.nfc.read_timeout_seconds")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "reader": {
+                "type": "nfc",
+            }
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "jukebox": {
+            "reader": {
+                "type": "nfc",
+            }
+        },
+    }
+    assert result["updated_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
+    assert result["restart_required_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.nfc_read_timeout_seconds == 0.1
+
+
 def test_settings_service_set_rejects_invalid_timing_value_without_writing(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -593,6 +707,40 @@ def test_settings_service_set_rejects_invalid_timing_value_without_writing(tmp_p
 
     with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
         service.set_persisted_value("jukebox.playback.pause_delay_seconds", "0.19")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8100}},
+    }
+
+
+def test_settings_service_set_rejects_invalid_reader_type_without_writing(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "admin": {"api": {"port": 8100}}}),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
+        service.set_persisted_value("jukebox.reader.type", "serial")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8100}},
+    }
+
+
+def test_settings_service_set_rejects_invalid_reader_timeout_without_writing(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "admin": {"api": {"port": 8100}}}),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
+        service.set_persisted_value("jukebox.reader.nfc.read_timeout_seconds", "0")
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
@@ -710,7 +858,58 @@ def test_settings_service_set_pause_duration_allows_unrelated_loop_interval_viol
     assert result["updated_paths"] == ["jukebox.playback.pause_duration_seconds"]
 
 
-def test_settings_service_patch_rejects_out_of_phase_path_transactionally(tmp_path):
+def test_settings_service_preserves_inactive_reader_subtree_when_switching_reader_types(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "reader": {
+                        "type": "nfc",
+                        "nfc": {"read_timeout_seconds": 0.2},
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    dryrun_result = service.set_persisted_value("jukebox.reader.type", "dryrun")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "reader": {
+                "nfc": {"read_timeout_seconds": 0.2},
+            }
+        },
+    }
+    assert dryrun_result["updated_paths"] == ["jukebox.reader.type"]
+
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.reader_type == "dryrun"
+    assert runtime_config.nfc_read_timeout_seconds == 0.2
+
+    nfc_result = service.set_persisted_value("jukebox.reader.type", "nfc")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "reader": {
+                "type": "nfc",
+                "nfc": {"read_timeout_seconds": 0.2},
+            }
+        },
+    }
+    assert nfc_result["updated_paths"] == ["jukebox.reader.type"]
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.nfc_read_timeout_seconds == 0.2
+
+
+def test_settings_service_patch_rejects_malformed_inactive_reader_branch_transactionally(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps({"schema_version": 1, "admin": {"api": {"port": 8100}}}),
@@ -719,7 +918,7 @@ def test_settings_service_patch_rejects_out_of_phase_path_transactionally(tmp_pa
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     with pytest.raises(InvalidSettingsError, match="Unsupported settings path for write"):
-        service.patch_persisted_settings({"jukebox": {"reader": {"type": "nfc"}}})
+        service.patch_persisted_settings({"jukebox": {"reader": {"nfc": {"unexpected": "value"}}}})
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
