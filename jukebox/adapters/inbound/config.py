@@ -1,4 +1,5 @@
 import argparse
+import sys
 from typing import Optional
 
 try:
@@ -80,6 +81,12 @@ def parse_config() -> JukeboxCliConfig:
     )
 
     args = parser.parse_args()
+
+    if args.positional_player is not None or args.positional_reader is not None:
+        print(
+            "warning: positional player/reader arguments are deprecated; use --player/--reader instead",
+            file=sys.stderr,
+        )
 
     return JukeboxCliConfig(
         library=args.library,
