@@ -125,7 +125,6 @@ class SettingsService:
         current_data = self.repository.load().model_dump(mode="python")
         defaults_data = AppSettings().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
-
         for editable_path in editable_paths:
             _set_dotted_path(updated_data, editable_path, _get_dotted_path(defaults_data, editable_path))
 

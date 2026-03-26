@@ -190,6 +190,66 @@ def test_settings_service_reset_removes_section_subtree(tmp_path):
     assert runtime_config.ui_port == 8000
 
 
+def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {"manual_host": "192.168.1.20"},
+                    },
+                    "reader": {"type": "nfc"},
+                    "playback": {
+                        "pause_duration_seconds": 600,
+                        "pause_delay_seconds": 0.3,
+                    },
+                    "runtime": {"loop_interval_seconds": 0.2},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("jukebox")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": "192.168.1.20"},
+            },
+            "reader": {"type": "nfc"},
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": "192.168.1.20"},
+            },
+            "reader": {"type": "nfc"},
+        },
+    }
+    assert result["updated_paths"] == [
+        "jukebox.playback.pause_delay_seconds",
+        "jukebox.playback.pause_duration_seconds",
+        "jukebox.runtime.loop_interval_seconds",
+    ]
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.player_type == "sonos"
+    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.pause_duration_seconds == 900
+    assert runtime_config.pause_delay_seconds == 0.25
+    assert runtime_config.loop_interval_seconds == 0.1
+
+
 def test_settings_service_patch_updates_library_path_and_derived_current_tag_path(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
