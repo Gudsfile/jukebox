@@ -1,5 +1,3 @@
-import time
-
 import pytest
 
 from jukebox.domain.entities import PlaybackAction, PlaybackSession, TagEvent
@@ -12,29 +10,39 @@ def determine_action():
     return DetermineAction(pause_delay=3, max_pause_duration=50)
 
 
-def test_continue_when_same_tag_and_not_paused(determine_action):
-    """Should continue when detecting same tag and not paused."""
+@pytest.mark.parametrize("playing_tag_removed_at", (50.0, 99.5, 100.0, 105.0, 150.0))
+def test_continue_when_tag_returns_after_being_removed(determine_action, playing_tag_removed_at):
+    """Should continue when the tag returns after removal, before any pause."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=0.0,
+        paused_at=None,
+        playing_tag_removed_at=playing_tag_removed_at,
     )
-    tag_event = TagEvent(tag_id="id-1", timestamp=time.time())
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
     assert action == PlaybackAction.CONTINUE
 
 
+def test_idle_when_same_tag_detected_without_removal(determine_action):
+    """Should idle when the same tag is detected without any prior removal."""
+    session = PlaybackSession(playing_tag="id-1", paused_at=None, playing_tag_removed_at=None)
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
+
+    action = determine_action.execute(tag_event, session)
+
+    assert action == PlaybackAction.IDLE
+
+
 def test_resume_when_same_tag_and_paused(determine_action):
     """Should resume when detecting same tag and paused with acceptable duration."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=20.0,  # Paused but < max_pause_duration
-        tag_removed_seconds=0.0,
-        is_paused=True,
+        paused_at=80.0,  # Paused but < max_pause_duration
+        playing_tag_removed_at=None,
     )
-    tag_event = TagEvent(tag_id="id-1", timestamp=time.time())
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
@@ -45,38 +53,49 @@ def test_play_when_different_tag(determine_action):
     """Should play when detecting a different tag."""
     session = PlaybackSession(
         playing_tag="id-2",
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=0.0,
+        paused_at=None,
+        playing_tag_removed_at=None,
     )
-    tag_event = TagEvent(tag_id="id-1", timestamp=time.time())
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
     assert action == PlaybackAction.PLAY
 
 
-def test_play_when_new_tag(determine_action):
+@pytest.mark.parametrize("dummy_at", (None, 50.0, 99.5, 100.0, 105.0, 150.0))
+def test_play_when_new_tag(determine_action, dummy_at):
     """Should play when detecting a tag for the first time."""
     session = PlaybackSession(
         playing_tag=None,
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=0.0,
+        paused_at=dummy_at,
+        playing_tag_removed_at=dummy_at,
     )
-    tag_event = TagEvent(tag_id="id-1", timestamp=time.time())
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
     assert action == PlaybackAction.PLAY
+
+
+def test_waiting_when_tag_just_be_removed(determine_action):
+    """Should wait when tag has just been removed."""
+    session = PlaybackSession(playing_tag="id-1", paused_at=None, playing_tag_removed_at=None)
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
+
+    action = determine_action.execute(tag_event, session)
+
+    assert action == PlaybackAction.WAITING
 
 
 def test_waiting_when_tag_removed_within_grace_period(determine_action):
     """Should wait when tag removed but within grace period."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=2.0,  # < pause_delay (3)
+        paused_at=None,
+        playing_tag_removed_at=98.0,  # < pause_delay (3)
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
@@ -87,10 +106,10 @@ def test_pause_when_tag_removed_after_grace_period(determine_action):
     """Should pause when tag removed and grace period expired."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=0.0,
-        tag_removed_seconds=5.0,  # > pause_delay (3)
+        paused_at=None,
+        playing_tag_removed_at=95.0,  # > pause_delay (3)
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
@@ -101,11 +120,10 @@ def test_stop_when_paused_too_long(determine_action):
     """Should stop when paused duration exceeds maximum."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=100.0,  # > max_pause_duration (50)
-        tag_removed_seconds=0.0,
-        is_paused=True,
+        paused_at=40.0,  # > max_pause_duration (50)
+        playing_tag_removed_at=None,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
@@ -116,10 +134,10 @@ def test_idle_when_no_tag_and_no_playing_tag(determine_action):
     """Should idle when no tag detected and no previous tag."""
     session = PlaybackSession(
         playing_tag=None,
-        pause_duration_seconds=10.0,
-        tag_removed_seconds=0.0,
+        paused_at=10.0,
+        playing_tag_removed_at=None,
     )
-    tag_event = TagEvent(tag_id=None, timestamp=time.time())
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
@@ -130,11 +148,10 @@ def test_play_when_same_tag_but_paused_too_long(determine_action):
     """Should play (restart) when same tag but paused duration exceeded maximum."""
     session = PlaybackSession(
         playing_tag="id-1",
-        pause_duration_seconds=100.0,  # > max_pause_duration (50)
-        tag_removed_seconds=0.0,
-        is_paused=True,
+        paused_at=40.0,  # > max_pause_duration (50)
+        playing_tag_removed_at=None,
     )
-    tag_event = TagEvent(tag_id="id-1", timestamp=time.time())
+    tag_event = TagEvent(tag_id="id-1", timestamp=100.0)
 
     action = determine_action.execute(tag_event, session)
 
