@@ -2,9 +2,10 @@ import logging
 
 from discstore.adapters.inbound.config import (
     DiscStoreConfig,
-    InteractiveCliCommand,
     parse_config,
 )
+from discstore.command_handlers import execute_library_command
+from discstore.commands import is_library_command
 from discstore.di_container import build_cli_controller, build_interactive_cli_controller
 from jukebox.admin.command_handlers import execute_admin_command
 from jukebox.admin.commands import is_admin_command
@@ -45,17 +46,20 @@ def main():
             )
             return
 
-        runtime_config = settings_service.resolve_admin_runtime(verbose=config.verbose)
     except SettingsError as err:
         raise SystemExit(str(err)) from err
 
-    if isinstance(config.command, InteractiveCliCommand):
-        interactive_cli = build_interactive_cli_controller(runtime_config.library_path)
-        interactive_cli.run()
+    if is_library_command(config.command):
+        execute_library_command(
+            verbose=config.verbose,
+            command=config.command,
+            settings_service=settings_service,
+            build_cli_controller=build_cli_controller,
+            build_interactive_cli_controller=build_interactive_cli_controller,
+        )
         return
 
-    cli = build_cli_controller(runtime_config.library_path)
-    cli.run(config.command)
+    raise TypeError("Unsupported discstore command")
 
 
 if __name__ == "__main__":

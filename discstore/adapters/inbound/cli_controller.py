@@ -2,7 +2,7 @@ import logging
 from typing import Union
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.adapters.inbound.config import (
+from discstore.commands import (
     CliAddCommand,
     CliEditCommand,
     CliGetCommand,

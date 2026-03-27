@@ -1,75 +1,22 @@
 import argparse
-import copy
 import logging
-from enum import Enum
 from typing import Optional, Union
 
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from pydantic import BaseModel, ValidationError
 
-from pydantic import BaseModel, ValidationError, model_validator
-
+from discstore.commands import (
+    CliAddCommand,
+    CliEditCommand,
+    CliGetCommand,
+    CliListCommand,
+    CliRemoveCommand,
+    CliSearchCommand,
+    InteractiveCliCommand,
+)
 from jukebox.admin.commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
 from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 LOGGER = logging.getLogger("discstore")
-
-
-class CliTagSourceCommand(BaseModel):
-    tag: Optional[str] = None
-    use_current_tag: bool = False
-
-    @model_validator(mode="after")
-    def validate_tag_source(self):
-        has_explicit_tag = bool(self.tag)
-        if has_explicit_tag == self.use_current_tag:
-            raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")
-        return self
-
-
-class CliAddCommand(CliTagSourceCommand):
-    type: Literal["add"]
-    uri: str
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
-
-
-class CliListCommandModes(str, Enum):
-    table = "table"
-    line = "line"
-
-
-class CliListCommand(BaseModel):
-    type: Literal["list"]
-    mode: CliListCommandModes = CliListCommandModes.table
-
-
-class CliRemoveCommand(CliTagSourceCommand):
-    type: Literal["remove"]
-
-
-class CliEditCommand(CliTagSourceCommand):
-    type: Literal["edit"]
-    uri: Optional[str] = None
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
-
-
-class CliGetCommand(CliTagSourceCommand):
-    type: Literal["get"]
-
-
-class CliSearchCommand(BaseModel):
-    type: Literal["search"]
-    query: str
-
-
-class InteractiveCliCommand(BaseModel):
-    type: Literal["interactive"]
 
 
 class DiscStoreConfig(BaseModel):
@@ -99,6 +46,57 @@ def add_from_current_arg(parser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Resolve the tag ID from shared current-tag.txt state",
     )
+
+
+def _build_library_command(command_name: str, args: argparse.Namespace):
+    if command_name == "add":
+        return CliAddCommand(
+            type="add",
+            tag=args.tag,
+            use_current_tag=args.use_current_tag,
+            uri=args.uri,
+            track=args.track,
+            artist=args.artist,
+            album=args.album,
+        )
+    if command_name == "list":
+        return CliListCommand(type="list", mode=args.mode)
+    if command_name == "remove":
+        return CliRemoveCommand(type="remove", tag=args.tag, use_current_tag=args.use_current_tag)
+    if command_name == "edit":
+        return CliEditCommand(
+            type="edit",
+            tag=args.tag,
+            use_current_tag=args.use_current_tag,
+            uri=args.uri,
+            track=args.track,
+            artist=args.artist,
+            album=args.album,
+        )
+    if command_name == "get":
+        return CliGetCommand(type="get", tag=args.tag, use_current_tag=args.use_current_tag)
+    if command_name == "search":
+        return CliSearchCommand(type="search", query=args.query)
+    if command_name == "interactive":
+        return InteractiveCliCommand(type="interactive")
+    raise ValueError(f"Unsupported command: {command_name}")
+
+
+def _build_admin_command(args: argparse.Namespace):
+    if args.command == "api":
+        return ApiCommand(type="api", port=args.port)
+    if args.command == "ui":
+        return UiCommand(type="ui", port=args.port)
+    if args.command != "settings":
+        raise ValueError(f"Unsupported admin command: {args.command}")
+
+    if args.settings_command == "show":
+        return SettingsShowCommand(type="settings_show", effective=args.effective)
+    if args.settings_command == "set":
+        return SettingsSetCommand(type="settings_set", dotted_path=args.dotted_path, value=args.value)
+    if args.settings_command == "reset":
+        return SettingsResetCommand(type="settings_reset", dotted_path=args.dotted_path)
+    raise ValueError(f"Unsupported settings command: {args.settings_command}")
 
 
 def parse_config() -> DiscStoreConfig:
@@ -180,26 +178,13 @@ def parse_config() -> DiscStoreConfig:
     args = parser.parse_args()
 
     # Build command config
-    args_dict = vars(copy.deepcopy(args))
-    args_dict.pop("verbose")
-    args_dict.pop("library")
-    command_name = args_dict.pop("command")
-
     try:
-        # Build and validate final config
-        if command_name == "settings":
-            settings_command = args_dict.pop("settings_command")
-            command_config = {"type": f"settings_{settings_command}", **args_dict}
-        else:
-            command_config = {"type": command_name, **args_dict}
-
-        config = DiscStoreConfig.model_validate(
-            {
-                "library": args.library,
-                "verbose": args.verbose,
-                "command": command_config,
-            }
+        command = (
+            _build_admin_command(args)
+            if args.command in {"api", "ui", "settings"}
+            else _build_library_command(args.command, args)
         )
+        config = DiscStoreConfig(library=args.library, verbose=args.verbose, command=command)
     except (ValidationError, ValueError) as err:
         LOGGER.error("Config error: %s", err)
         exit(1)

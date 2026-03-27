@@ -87,7 +87,7 @@ def test_parse_config_rejects_sonos_host_and_name_together():
         parse_config()
 
 
-@pytest.mark.parametrize("subcommand", ["settings", "api", "ui"])
+@pytest.mark.parametrize("subcommand", ["settings", "api", "ui", "library"])
 def test_parse_config_rejects_admin_subcommands(subcommand):
     with patch("sys.argv", ["jukebox", subcommand]), pytest.raises(SystemExit) as err:
         parse_config()
