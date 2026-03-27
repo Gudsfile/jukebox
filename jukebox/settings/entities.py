@@ -26,6 +26,17 @@ class SelectedSonosGroupSettings(StrictModel):
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
 
+    @model_validator(mode="after")
+    def validate_group_shape(self):
+        if not self.members:
+            raise ValueError("selected_group must include at least one member")
+
+        member_uids = {member.uid for member in self.members}
+        if self.coordinator_uid not in member_uids:
+            raise ValueError("selected_group.coordinator_uid must match a member uid")
+
+        return self
+
 
 class SonosPlayerSettings(StrictModel):
     manual_host: Optional[str] = None
@@ -170,6 +181,11 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     nfc_read_timeout_seconds: float
     verbose: bool = False
 
+    @model_validator(mode="after")
+    def validate_runtime_target(self):
+        if self.player_type == "sonos" and self.sonos_host is None and self.sonos_name is None:
+            raise ValueError("player_type 'sonos' requires a valid active Sonos target")
+        return self
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str
