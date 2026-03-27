@@ -237,6 +237,44 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
     assert resolver.calls == []
 
 
+def test_settings_service_env_host_override_beats_persisted_selected_group_without_clearing_it(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        env_overrides={"jukebox": {"player": {"sonos": {"manual_host": "192.168.1.99"}}}},
+        sonos_group_resolver=resolver,
+    )
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == "192.168.1.99"
+    assert runtime_config.sonos_group is None
+    assert resolver.calls == []
+
+
 def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -275,6 +313,45 @@ def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_p
     runtime_config = service.resolve_jukebox_runtime()
 
     assert runtime_config.sonos_host == "192.168.1.99"
+    assert runtime_config.sonos_group is None
+    assert resolver.calls == []
+
+
+def test_settings_service_cli_name_override_beats_persisted_selected_group_without_clearing_it(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        cli_overrides={"jukebox": {"player": {"sonos": {"manual_name": "Office"}}}},
+        sonos_group_resolver=resolver,
+    )
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name == "Office"
     assert runtime_config.sonos_group is None
     assert resolver.calls == []
 
