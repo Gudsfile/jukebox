@@ -36,12 +36,24 @@ class SoCoSonosGroupResolver:
                 except ValueError:
                     runtime_member = None
 
-            if runtime_member is None and saved_member.last_known_host is not None:
-                try:
-                    resolved_speaker = self._resolve_by_host(SoCo, saved_member.uid, saved_member.last_known_host)
-                    runtime_member = self._build_runtime_speaker(resolved_speaker)
-                except ValueError as err:
-                    member_resolution_errors.append(f"{saved_member.uid} via {saved_member.last_known_host}: {err}")
+            if runtime_member is None:
+                host_candidates = []
+                if resolved_speaker is not None and resolved_speaker.ip_address:
+                    host_candidates.append(resolved_speaker.ip_address)
+                if saved_member.last_known_host is not None and saved_member.last_known_host not in host_candidates:
+                    host_candidates.append(saved_member.last_known_host)
+
+                host_errors = []
+                for host in host_candidates:
+                    try:
+                        resolved_speaker = self._resolve_by_host(SoCo, saved_member.uid, host)
+                        runtime_member = self._build_runtime_speaker(resolved_speaker)
+                        break
+                    except ValueError as err:
+                        host_errors.append(f"{saved_member.uid} via {host}: {err}")
+
+                if runtime_member is None and host_errors:
+                    member_resolution_errors.append("; ".join(host_errors))
                     continue
 
             if runtime_member is None:

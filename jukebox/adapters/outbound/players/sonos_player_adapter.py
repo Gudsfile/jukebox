@@ -97,11 +97,12 @@ class SonosPlayerAdapter(PlayerPort):
                 if self._is_joined_to_coordinator(speaker, coordinator):
                     continue
 
+                rollback_coordinator = self._get_rollback_coordinator_for_join(speaker)
                 LOGGER.info(
                     f"Joining Sonos speaker `{speaker.player_name}` to `{coordinator.player_name}` before playback"
                 )
                 speaker.join(coordinator)
-                applied_operations.append(("join", speaker))
+                applied_operations.append(("join", speaker, rollback_coordinator))
 
             current_group = coordinator.group
             if current_group is not None:
@@ -113,19 +114,22 @@ class SonosPlayerAdapter(PlayerPort):
                         f"Removing Sonos speaker `{current_member.player_name}` from coordinator group before playback"
                     )
                     current_member.unjoin()
-                    applied_operations.append(("unjoin", current_member))
+                    applied_operations.append(("unjoin", current_member, None))
         except Exception:
             self._rollback_group_changes(applied_operations, coordinator)
             raise
 
     def _rollback_group_changes(self, applied_operations, coordinator: SoCo) -> None:
-        for operation, speaker in reversed(applied_operations):
+        for operation, speaker, rollback_target in reversed(applied_operations):
             try:
                 if operation == "join":
                     LOGGER.warning(
                         f"Rolling back Sonos join for `{speaker.player_name}` after startup group enforcement failed"
                     )
-                    speaker.unjoin()
+                    if rollback_target is None:
+                        speaker.unjoin()
+                    else:
+                        speaker.join(rollback_target)
                 else:
                     LOGGER.warning(
                         f"Rolling back Sonos removal for `{speaker.player_name}` after startup group enforcement failed"
@@ -151,6 +155,18 @@ class SonosPlayerAdapter(PlayerPort):
     @staticmethod
     def _is_nonstandalone_group_member(speaker: SoCo) -> bool:
         return getattr(speaker, "is_visible", True) is False
+
+    @staticmethod
+    def _get_rollback_coordinator_for_join(speaker: SoCo) -> Optional[SoCo]:
+        current_group = speaker.group
+        if current_group is None:
+            return None
+
+        current_coordinator = current_group.coordinator
+        if current_coordinator is None or current_coordinator.uid == speaker.uid:
+            return None
+
+        return current_coordinator
 
     @catch_soco_upnp_exception
     def play(self, uri: str, shuffle: bool = False) -> None:

@@ -337,6 +337,54 @@ def test_init_with_group_failure_rolls_back_earlier_joins(mock_sharelink, mock_s
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_group_failure_restores_joined_member_to_original_group(mock_sharelink, mock_soco):
+    coordinator = MagicMock()
+    coordinator.player_name = "Living Room"
+    coordinator.uid = "speaker-3"
+    coordinator.get_speaker_info.return_value = {"software_version": "1.0"}
+    coordinator.group = MagicMock(coordinator=coordinator, members={coordinator})
+
+    old_coordinator = MagicMock()
+    old_coordinator.player_name = "Patio"
+    old_coordinator.uid = "speaker-old"
+
+    kitchen = MagicMock()
+    kitchen.uid = "speaker-1"
+    kitchen.player_name = "Kitchen"
+    kitchen.group = MagicMock(coordinator=old_coordinator)
+
+    bedroom = MagicMock()
+    bedroom.uid = "speaker-2"
+    bedroom.player_name = "Bedroom"
+    bedroom.group = None
+    bedroom.join.side_effect = TimeoutError("join timed out")
+
+    speakers_by_host = {
+        "192.168.1.30": kitchen,
+        "192.168.1.31": bedroom,
+        "192.168.1.40": coordinator,
+    }
+    mock_soco.side_effect = lambda host: speakers_by_host[host]
+
+    group = build_resolved_sonos_group_runtime(
+        coordinator_uid="speaker-3",
+        speakers=[
+            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            ("speaker-2", "Bedroom", "192.168.1.31", "household-1"),
+            ("speaker-3", "Living Room", "192.168.1.40", "household-1"),
+        ],
+    )
+
+    with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
+        SonosPlayerAdapter(group=group)
+
+    assert kitchen.join.call_args_list == [((coordinator,),), ((old_coordinator,),)]
+    kitchen.unjoin.assert_not_called()
+    mock_sharelink.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_with_group_failure_rolls_back_earlier_removals(mock_sharelink, mock_soco):
     coordinator = MagicMock()
     coordinator.player_name = "Living Room"
