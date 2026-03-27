@@ -10,7 +10,7 @@ from jukebox.settings.resolve import SettingsService, build_environment_settings
 from tests.jukebox.settings._helpers import lookup_json_value
 
 
-def test_settings_service_allows_sonos_runtime_without_active_target(tmp_path):
+def test_settings_service_allows_sonos_runtime_without_active_target_for_autodiscovery(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),

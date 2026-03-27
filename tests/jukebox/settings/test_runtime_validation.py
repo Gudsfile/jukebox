@@ -17,7 +17,7 @@ def test_validate_resolved_jukebox_runtime_rules_allows_dryrun_without_sonos_tar
     validate_resolved_jukebox_runtime_rules(runtime_config)
 
 
-def test_validate_resolved_jukebox_runtime_rules_allows_sonos_without_resolved_target():
+def test_validate_resolved_jukebox_runtime_rules_allows_missing_sonos_target_for_autodiscovery():
     runtime_config = SimpleNamespace(
         player_type="sonos",
         sonos_host=None,

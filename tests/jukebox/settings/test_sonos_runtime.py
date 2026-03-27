@@ -1,4 +1,4 @@
-from typing import Any, cast
+from types import ModuleType
 
 import pytest
 
@@ -18,15 +18,36 @@ class FakeSpeaker:
         return hash(self.uid)
 
 
+def build_fake_soco_module(discover, soco_constructor):
+    fake_soco = ModuleType("soco")
+    fake_soco.discover = discover
+    fake_soco.SoCo = soco_constructor
+
+    fake_exceptions = ModuleType("soco.exceptions")
+
+    class FakeSoCoException(Exception):
+        pass
+
+    class FakeSoCoUPnPException(FakeSoCoException):
+        pass
+
+    fake_exceptions.SoCoException = FakeSoCoException
+    fake_exceptions.SoCoUPnPException = FakeSoCoUPnPException
+    return {"soco": fake_soco, "soco.exceptions": fake_exceptions}
+
+
 def test_soco_sonos_group_resolver_resolves_multi_member_group_from_uids(mocker):
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     living_room = FakeSpeaker("speaker-2", "Living Room", "192.168.1.40", "household-1")
     kitchen.all_zones = {kitchen, living_room}
     living_room.all_zones = {kitchen, living_room}
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {kitchen}
-    fake_soco.SoCo = lambda host: {"192.168.1.30": kitchen, "192.168.1.40": living_room}[host]
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {kitchen},
+            soco_constructor=lambda host: {"192.168.1.30": kitchen, "192.168.1.40": living_room}[host],
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -49,10 +70,13 @@ def test_soco_sonos_group_resolver_falls_back_to_last_known_host_for_missing_spe
     kitchen = FakeSpeaker("speaker-2", "Kitchen", "192.168.1.30", "household-1")
     living_room.all_zones = {living_room}
     kitchen.all_zones = {living_room, kitchen}
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {living_room}
-    fake_soco.SoCo = lambda host: {"192.168.1.20": living_room, "192.168.1.30": kitchen}[host]
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {living_room},
+            soco_constructor=lambda host: {"192.168.1.20": living_room, "192.168.1.30": kitchen}[host],
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -76,10 +100,13 @@ def test_soco_sonos_group_resolver_rejects_members_from_different_households(moc
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     living_room = FakeSpeaker("speaker-2", "Living Room", "192.168.1.40", "household-2")
     kitchen.all_zones = {kitchen, living_room}
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {kitchen}
-    fake_soco.SoCo = lambda host: {"192.168.1.30": kitchen, "192.168.1.40": living_room}[host]
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {kitchen},
+            soco_constructor=lambda host: {"192.168.1.30": kitchen, "192.168.1.40": living_room}[host],
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -97,10 +124,13 @@ def test_soco_sonos_group_resolver_rejects_members_from_different_households(moc
 def test_soco_sonos_group_resolver_aggregates_host_fallback_resolution_failures(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
     impostor = FakeSpeaker("speaker-wrong", "Impostor", "192.168.1.30", "household-1")
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {living_room}
-    fake_soco.SoCo = lambda host: {"192.168.1.20": living_room, "192.168.1.30": impostor}[host]
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {living_room},
+            soco_constructor=lambda host: {"192.168.1.20": living_room, "192.168.1.30": impostor}[host],
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -121,10 +151,13 @@ def test_soco_sonos_group_resolver_aggregates_host_fallback_resolution_failures(
 
 def test_soco_sonos_group_resolver_reports_missing_member_without_last_known_host(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {living_room}
-    fake_soco.SoCo = lambda host: living_room
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {living_room},
+            soco_constructor=lambda host: living_room,
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -140,10 +173,13 @@ def test_soco_sonos_group_resolver_reports_missing_member_without_last_known_hos
 
 
 def test_soco_sonos_group_resolver_wraps_discovery_errors(mocker):
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: (_ for _ in ()).throw(OSError("network unavailable"))
-    fake_soco.SoCo = lambda host: None
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: (_ for _ in ()).throw(OSError("network unavailable")),
+            soco_constructor=lambda host: None,
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
@@ -157,14 +193,17 @@ def test_soco_sonos_group_resolver_wraps_discovery_errors(mocker):
 
 def test_soco_sonos_group_resolver_wraps_host_contact_errors(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
-    fake_soco = cast(Any, object())
-    fake_soco.discover = lambda: {living_room}
 
     def raise_timeout(host):
         raise TimeoutError(f"{host} timed out")
 
-    fake_soco.SoCo = raise_timeout
-    mocker.patch.dict("sys.modules", {"soco": fake_soco})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {living_room},
+            soco_constructor=raise_timeout,
+        ),
+    )
 
     resolver = SoCoSonosGroupResolver()
     selected_group = SelectedSonosGroupSettings(
