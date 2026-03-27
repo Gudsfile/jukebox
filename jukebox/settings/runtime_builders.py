@@ -39,6 +39,9 @@ def build_resolved_admin_runtime_config(
 
 
 def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
+    if player_settings.sonos.manual_host is not None:
+        return player_settings.sonos.manual_host
+
     if player_settings.sonos.selected_group is not None:
         for speaker in player_settings.sonos.selected_group.members:
             if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
@@ -48,17 +51,11 @@ def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
             if speaker.last_known_host:
                 return speaker.last_known_host
 
-    if player_settings.sonos.manual_host is not None:
-        return player_settings.sonos.manual_host
-
     return None
 
 
 def resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
-    if player_settings.sonos.selected_group is not None:
-        return None
-
-    if player_settings.sonos.manual_host is not None:
+    if resolve_sonos_host(player_settings) is not None:
         return None
 
     return player_settings.sonos.manual_name

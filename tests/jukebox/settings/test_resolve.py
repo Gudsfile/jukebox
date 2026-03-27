@@ -1212,7 +1212,7 @@ def test_build_environment_settings_overrides_preserves_conflicting_sonos_target
     warning.assert_not_called()
 
 
-def test_settings_service_rejects_sonos_runtime_without_active_target(tmp_path):
+def test_settings_service_allows_sonos_runtime_without_active_target(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),
@@ -1220,8 +1220,11 @@ def test_settings_service_rejects_sonos_runtime_without_active_target(tmp_path):
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    with pytest.raises(InvalidSettingsError, match="valid active Sonos target"):
-        service.resolve_jukebox_runtime()
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.player_type == "sonos"
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name is None
 
 
 def test_settings_service_allows_admin_runtime_resolution_without_sonos_target(tmp_path):
@@ -1273,7 +1276,106 @@ def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):
     assert runtime_config.sonos_name is None
 
 
-def test_settings_service_prefers_selected_group_over_persisted_manual_host(tmp_path):
+def test_settings_service_allows_persisted_manual_name_without_selected_group(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_name": "Living Room",
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name == "Living Room"
+
+
+@pytest.mark.parametrize(
+    ("sonos_settings", "expected_host", "expected_name"),
+    [
+        (
+            {
+                "manual_host": "192.168.1.99",
+                "selected_group": {
+                    "coordinator_uid": "speaker-2",
+                    "members": [
+                        {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                        {"uid": "speaker-2", "name": "Office", "last_known_host": "192.168.1.40"},
+                    ],
+                },
+            },
+            "192.168.1.99",
+            None,
+        ),
+        (
+            {
+                "manual_name": "Living Room",
+                "selected_group": {
+                    "coordinator_uid": "speaker-2",
+                    "members": [
+                        {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                        {"uid": "speaker-2", "name": "Office", "last_known_host": "192.168.1.40"},
+                    ],
+                },
+            },
+            "192.168.1.40",
+            None,
+        ),
+        (
+            {
+                "manual_name": "Living Room",
+                "selected_group": {
+                    "coordinator_uid": "speaker-2",
+                    "members": [
+                        {"uid": "speaker-1", "name": "Kitchen"},
+                        {"uid": "speaker-2", "name": "Office"},
+                    ],
+                },
+            },
+            None,
+            "Living Room",
+        ),
+    ],
+)
+def test_settings_service_resolves_persisted_sonos_target_precedence(
+    tmp_path, sonos_settings, expected_host, expected_name
+):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": sonos_settings,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == expected_host
+    assert runtime_config.sonos_name == expected_name
+
+
+def test_settings_service_prefers_persisted_manual_host_over_selected_group(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -1302,11 +1404,11 @@ def test_settings_service_prefers_selected_group_over_persisted_manual_host(tmp_
 
     runtime_config = service.resolve_jukebox_runtime()
 
-    assert runtime_config.sonos_host == "192.168.1.40"
+    assert runtime_config.sonos_host == "192.168.1.99"
     assert runtime_config.sonos_name is None
 
 
-def test_settings_service_prefers_selected_group_over_persisted_manual_name(tmp_path):
+def test_settings_service_prefers_selected_group_host_over_persisted_manual_name(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -1337,6 +1439,39 @@ def test_settings_service_prefers_selected_group_over_persisted_manual_name(tmp_
 
     assert runtime_config.sonos_host == "192.168.1.40"
     assert runtime_config.sonos_name is None
+
+
+def test_settings_service_falls_back_to_persisted_manual_name_when_selected_group_has_no_host(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_name": "Living Room",
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                ],
+                            },
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name == "Living Room"
 
 
 def test_settings_service_prefers_selected_group_coordinator_host_when_no_manual_override(tmp_path):
@@ -1578,7 +1713,7 @@ def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
         service.resolve_jukebox_runtime()
 
 
-def test_settings_service_rejects_selected_group_without_any_host_for_runtime(tmp_path):
+def test_settings_service_allows_selected_group_without_any_host_for_runtime(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -1601,8 +1736,10 @@ def test_settings_service_rejects_selected_group_without_any_host_for_runtime(tm
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    with pytest.raises(InvalidSettingsError, match="valid active Sonos target"):
-        service.resolve_jukebox_runtime()
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host is None
+    assert runtime_config.sonos_name is None
 
 
 def test_settings_service_rejects_pause_delay_below_minimum_after_cli_overrides(tmp_path):
