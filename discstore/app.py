@@ -46,18 +46,18 @@ def main():
             )
             return
 
+        if is_library_command(config.command):
+            execute_library_command(
+                verbose=config.verbose,
+                command=config.command,
+                settings_service=settings_service,
+                build_cli_controller=build_cli_controller,
+                build_interactive_cli_controller=build_interactive_cli_controller,
+            )
+            return
+
     except SettingsError as err:
         raise SystemExit(str(err)) from err
-
-    if is_library_command(config.command):
-        execute_library_command(
-            verbose=config.verbose,
-            command=config.command,
-            settings_service=settings_service,
-            build_cli_controller=build_cli_controller,
-            build_interactive_cli_controller=build_interactive_cli_controller,
-        )
-        return
 
     raise TypeError("Unsupported discstore command")
 

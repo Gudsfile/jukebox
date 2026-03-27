@@ -156,3 +156,16 @@ def test_main_exits_on_settings_error(app_mocks):
         app.main()
 
     assert str(err.value) == "broken settings"
+
+
+def test_main_exits_on_settings_error_from_library_command(app_mocks):
+    config = DiscStoreConfig(command=CliSearchCommand(type="search", query="dummy"))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = InvalidSettingsError("broken settings")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert str(err.value) == "broken settings"

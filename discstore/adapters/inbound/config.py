@@ -9,6 +9,7 @@ from discstore.commands import (
     CliEditCommand,
     CliGetCommand,
     CliListCommand,
+    CliListCommandModes,
     CliRemoveCommand,
     CliSearchCommand,
     InteractiveCliCommand,
@@ -17,6 +18,25 @@ from jukebox.admin.commands import ApiCommand, SettingsResetCommand, SettingsSet
 from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 LOGGER = logging.getLogger("discstore")
+
+__all__ = [
+    "ApiCommand",
+    "CliAddCommand",
+    "CliEditCommand",
+    "CliGetCommand",
+    "CliListCommand",
+    "CliListCommandModes",
+    "CliRemoveCommand",
+    "CliSearchCommand",
+    "DiscStoreConfig",
+    "InteractiveCliCommand",
+    "SettingsResetCommand",
+    "SettingsSetCommand",
+    "SettingsShowCommand",
+    "UiCommand",
+    "add_from_current_arg",
+    "parse_config",
+]
 
 
 class DiscStoreConfig(BaseModel):
