@@ -9,6 +9,8 @@ requires-python = ">=3.9,<3.14"
 dependencies = [
     "pydantic==2.12.5",
     "soco==0.30.14",
+    "typer==0.23.2; python_version < '3.10'",
+    "typer==0.24.1; python_version >= '3.10'",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -86,3 +88,4 @@ module-root = ""
 gukebox = "jukebox.app:main"
 jukebox = "jukebox.app:main"
 discstore = "discstore.app:main"
+jukebox-admin = "jukebox.admin.app:main"
