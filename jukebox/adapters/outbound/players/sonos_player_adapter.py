@@ -46,6 +46,8 @@ class SonosPlayerAdapter(PlayerPort):
             if group is not None:
                 coordinator_host = host or group.coordinator.host
                 self.speaker = SoCo(coordinator_host)
+                # Apply the saved selection once at startup. Later regrouping in the
+                # Sonos app is intentionally left alone until jukebox restarts.
                 self._enforce_group(group)
             elif host:
                 self.speaker = SoCo(host)

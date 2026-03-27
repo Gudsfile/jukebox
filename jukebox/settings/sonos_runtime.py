@@ -91,7 +91,7 @@ class SoCoSonosGroupResolver:
             raise ValueError(f"Failed to discover Sonos speakers: {err}") from err
 
         if not discovered:
-            raise ValueError("No Sonos speakers found on the network while resolving selected_group")
+            return {}
 
         available_speakers = set(discovered)
         for speaker in list(discovered):

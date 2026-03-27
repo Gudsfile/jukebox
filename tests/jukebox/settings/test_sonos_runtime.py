@@ -96,6 +96,39 @@ def test_soco_sonos_group_resolver_falls_back_to_last_known_host_for_missing_spe
     assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
 
 
+def test_soco_sonos_group_resolver_falls_back_to_last_known_hosts_when_discovery_is_empty(mocker):
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    kitchen = FakeSpeaker("speaker-2", "Kitchen", "192.168.1.30", "household-1")
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: None,
+            soco_constructor=lambda host: {"192.168.1.20": living_room, "192.168.1.30": kitchen}[host],
+        ),
+    )
+
+    resolver = SoCoSonosGroupResolver()
+    selected_group = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(
+                uid="speaker-1",
+                name="Living Room",
+                last_known_host="192.168.1.20",
+            ),
+            SelectedSonosSpeakerSettings(
+                uid="speaker-2",
+                name="Kitchen",
+                last_known_host="192.168.1.30",
+            ),
+        ],
+    )
+
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
+
+
 def test_soco_sonos_group_resolver_rejects_members_from_different_households(mocker):
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     living_room = FakeSpeaker("speaker-2", "Living Room", "192.168.1.40", "household-2")
