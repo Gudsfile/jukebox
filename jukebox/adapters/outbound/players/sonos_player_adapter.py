@@ -90,7 +90,7 @@ class SonosPlayerAdapter(PlayerPort):
         current_group = coordinator.group
         if current_group is not None:
             for current_member in list(current_group.members):
-                if current_member.uid in desired_member_uids:
+                if current_member.uid in desired_member_uids or self._is_nonstandalone_group_member(current_member):
                     continue
 
                 LOGGER.info(
@@ -120,6 +120,10 @@ class SonosPlayerAdapter(PlayerPort):
             return False
 
         return current_coordinator.uid == coordinator.uid
+
+    @staticmethod
+    def _is_nonstandalone_group_member(speaker: SoCo) -> bool:
+        return getattr(speaker, "is_visible", True) is False
 
     @catch_soco_upnp_exception
     def play(self, uri: str, shuffle: bool = False) -> None:

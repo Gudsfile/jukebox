@@ -132,6 +132,62 @@ def test_init_with_resolved_group_enforces_membership_before_playback(mock_share
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_resolved_group_preserves_nonvisible_members(mock_sharelink, mock_soco):
+    coordinator = MagicMock()
+    coordinator.player_name = "Living Room"
+    coordinator.uid = "speaker-2"
+    coordinator.get_speaker_info.return_value = {"software_version": "1.0"}
+
+    invisible_satellite = MagicMock()
+    invisible_satellite.uid = "speaker-satellite"
+    invisible_satellite.player_name = "Living Room Surround"
+    invisible_satellite.is_visible = False
+
+    invisible_stereo_peer = MagicMock()
+    invisible_stereo_peer.uid = "speaker-stereo-peer"
+    invisible_stereo_peer.player_name = "Living Room Right"
+    invisible_stereo_peer.is_visible = False
+
+    extra = MagicMock()
+    extra.uid = "speaker-extra"
+    extra.player_name = "Office"
+    extra.is_visible = True
+
+    current_group = MagicMock()
+    current_group.coordinator = coordinator
+    current_group.members = {coordinator, invisible_satellite, invisible_stereo_peer, extra}
+    coordinator.group = current_group
+
+    kitchen = MagicMock()
+    kitchen.uid = "speaker-1"
+    kitchen.player_name = "Kitchen"
+    kitchen.group = None
+
+    speakers_by_host = {
+        "192.168.1.30": kitchen,
+        "192.168.1.40": coordinator,
+    }
+    mock_soco.side_effect = lambda host: speakers_by_host[host]
+
+    group = build_resolved_sonos_group_runtime(
+        coordinator_uid="speaker-2",
+        speakers=[
+            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+        ],
+    )
+
+    SonosPlayerAdapter(group=group)
+
+    kitchen.join.assert_called_once_with(coordinator)
+    extra.unjoin.assert_called_once_with()
+    invisible_satellite.unjoin.assert_not_called()
+    invisible_stereo_peer.unjoin.assert_not_called()
+    mock_sharelink.assert_called_once_with(coordinator)
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_with_one_member_resolved_group_preserves_single_speaker_behavior(mock_sharelink, mock_soco):
     speaker = MagicMock()
     speaker.player_name = "Living Room"
