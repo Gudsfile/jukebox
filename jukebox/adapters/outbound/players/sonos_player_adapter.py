@@ -53,7 +53,7 @@ class SonosPlayerAdapter(PlayerPort):
                 self.speaker = self._discover(name)
 
             speaker_info = self.speaker.get_speaker_info()
-        except (HTTPError, OSError, RequestException, SoCoException, SoCoUPnPException) as err:
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
             raise InvalidSettingsError(f"Failed to initialize Sonos player: {err}") from err
 
         LOGGER.info(
