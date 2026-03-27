@@ -389,6 +389,58 @@ def test_soco_sonos_group_resolver_falls_back_to_last_known_host_when_discovered
     assert resolved_group.coordinator.name == "Living Room"
 
 
+def test_soco_sonos_group_resolver_falls_back_to_last_known_host_when_discovered_ip_raises_oserror(mocker):
+    class StaleDiscoveredSpeaker:
+        def __init__(self, uid):
+            self._uid = uid
+            self.all_zones = {self}
+
+        @property
+        def uid(self):
+            return self._uid
+
+        @property
+        def player_name(self):
+            raise OSError("stale topology")
+
+        @property
+        def ip_address(self):
+            raise OSError("stale ip")
+
+        @property
+        def household_id(self):
+            return "household-1"
+
+        def __hash__(self):
+            return hash(self._uid)
+
+    discovered_speaker = StaleDiscoveredSpeaker("speaker-1")
+    healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {discovered_speaker},
+            soco_constructor=lambda host: {"192.168.1.20": healthy_speaker}[host],
+        ),
+    )
+
+    resolver = SoCoSonosGroupResolver()
+    selected_group = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(
+                uid="speaker-1",
+                name="Living Room",
+                last_known_host="192.168.1.20",
+            )
+        ],
+    )
+
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert resolved_group.coordinator.name == "Living Room"
+
+
 def test_soco_sonos_group_resolver_retries_stale_discovered_member_via_discovered_ip_without_saved_host(mocker):
     class StaleDiscoveredSpeaker:
         def __init__(self, uid, host):

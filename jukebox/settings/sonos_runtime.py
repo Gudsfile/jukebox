@@ -20,7 +20,10 @@ class SoCoSonosGroupResolver:
         selected_group: SelectedSonosGroupSettings,
     ) -> ResolvedSonosGroupRuntime:
         import soco
+        from requests.exceptions import RequestException
         from soco import SoCo
+        from soco.exceptions import SoCoException, SoCoUPnPException
+        from urllib3.exceptions import HTTPError
 
         available_speakers = self._discover_available_speakers(soco)
         resolved_members = []
@@ -41,7 +44,7 @@ class SoCoSonosGroupResolver:
                 if resolved_speaker is not None:
                     try:
                         discovered_host = resolved_speaker.ip_address
-                    except RuntimeError:
+                    except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException):
                         discovered_host = None
                     if discovered_host:
                         host_candidates.append(discovered_host)
