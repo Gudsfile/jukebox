@@ -6,6 +6,7 @@ import pytest
 from jukebox.admin.command_handlers import execute_admin_command
 from jukebox.admin.commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
+from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 
 def test_execute_admin_command_prints_persisted_settings():
@@ -140,3 +141,48 @@ def test_execute_admin_command_reports_missing_optional_dependencies(mocker, com
         )
 
     assert f"`jukebox-admin {extra_name}` requires the optional `{extra_name}` dependencies." in str(err.value)
+
+
+@pytest.mark.parametrize(
+    ("command", "extra_name", "builder_name"),
+    [
+        (ApiCommand(type="api", port=1234), "api", "build_api_app"),
+        (UiCommand(type="ui", port=1234), "ui", "build_ui_app"),
+    ],
+)
+def test_execute_admin_command_rewrites_controller_dependency_failures(mocker, command, extra_name, builder_name):
+    runtime_config = ResolvedAdminRuntimeConfig(
+        library_path="/resolved/library.json",
+        api_port=8000,
+        ui_port=9000,
+        verbose=False,
+    )
+    settings_service = MagicMock()
+    settings_service.resolve_admin_runtime.return_value = runtime_config
+    mocker.patch.dict("sys.modules", {"uvicorn": MagicMock()})
+    build_api_app = MagicMock()
+    build_ui_app = MagicMock()
+    target_builder = build_api_app if builder_name == "build_api_app" else build_ui_app
+    target_builder.side_effect = ModuleNotFoundError(
+        optional_extra_dependency_message(
+            subject="The legacy controller module",
+            extra_name=extra_name,
+            source_command=f"discstore {extra_name}",
+        )
+    )
+
+    with pytest.raises(SystemExit) as err:
+        execute_admin_command(
+            verbose=False,
+            command=command,
+            settings_service=settings_service,
+            build_api_app=build_api_app,
+            build_ui_app=build_ui_app,
+            source_command="jukebox-admin",
+        )
+
+    assert str(err.value) == optional_extra_dependency_message(
+        subject=f"`jukebox-admin {extra_name}`",
+        extra_name=extra_name,
+        source_command=f"jukebox-admin {extra_name}",
+    )
