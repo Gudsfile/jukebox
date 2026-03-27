@@ -254,6 +254,45 @@ def test_init_with_group_wraps_group_enforcement_errors(mock_sharelink, mock_soc
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_group_join_failure_does_not_remove_existing_members(mock_sharelink, mock_soco):
+    coordinator = MagicMock()
+    coordinator.player_name = "Living Room"
+    coordinator.uid = "speaker-2"
+    coordinator.get_speaker_info.return_value = {"software_version": "1.0"}
+    extra = MagicMock()
+    extra.uid = "speaker-extra"
+    extra.player_name = "Office"
+    coordinator.group = MagicMock(coordinator=coordinator, members={coordinator, extra})
+
+    kitchen = MagicMock()
+    kitchen.uid = "speaker-1"
+    kitchen.player_name = "Kitchen"
+    kitchen.group = None
+    kitchen.join.side_effect = TimeoutError("join timed out")
+
+    speakers_by_host = {
+        "192.168.1.30": kitchen,
+        "192.168.1.40": coordinator,
+    }
+    mock_soco.side_effect = lambda host: speakers_by_host[host]
+
+    group = build_resolved_sonos_group_runtime(
+        coordinator_uid="speaker-2",
+        speakers=[
+            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+        ],
+    )
+
+    with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
+        SonosPlayerAdapter(group=group)
+
+    extra.unjoin.assert_not_called()
+    mock_sharelink.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_play_does_not_reenforce_group_after_startup(mock_sharelink, mock_soco):
     coordinator = MagicMock()
     coordinator.player_name = "Living Room"

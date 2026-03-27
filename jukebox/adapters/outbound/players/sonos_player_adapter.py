@@ -87,17 +87,6 @@ class SonosPlayerAdapter(PlayerPort):
         speakers_by_uid = {member.uid: SoCo(member.host) for member in group.members}
         coordinator = speakers_by_uid[group.coordinator.uid]
 
-        current_group = coordinator.group
-        if current_group is not None:
-            for current_member in list(current_group.members):
-                if current_member.uid in desired_member_uids or self._is_nonstandalone_group_member(current_member):
-                    continue
-
-                LOGGER.info(
-                    f"Removing Sonos speaker `{current_member.player_name}` from coordinator group before playback"
-                )
-                current_member.unjoin()
-
         for member in group.members:
             if member.uid == group.coordinator.uid:
                 continue
@@ -108,6 +97,17 @@ class SonosPlayerAdapter(PlayerPort):
 
             LOGGER.info(f"Joining Sonos speaker `{speaker.player_name}` to `{coordinator.player_name}` before playback")
             speaker.join(coordinator)
+
+        current_group = coordinator.group
+        if current_group is not None:
+            for current_member in list(current_group.members):
+                if current_member.uid in desired_member_uids or self._is_nonstandalone_group_member(current_member):
+                    continue
+
+                LOGGER.info(
+                    f"Removing Sonos speaker `{current_member.player_name}` from coordinator group before playback"
+                )
+                current_member.unjoin()
 
     @staticmethod
     def _is_joined_to_coordinator(speaker: SoCo, coordinator: SoCo) -> bool:
