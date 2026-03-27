@@ -208,8 +208,8 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
                                 ],
                             },
                         },
@@ -250,8 +250,8 @@ def test_settings_service_env_host_override_beats_persisted_selected_group_witho
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
                                 ],
                             },
                         },
@@ -330,8 +330,8 @@ def test_settings_service_cli_name_override_beats_persisted_selected_group_witho
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
+                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
                                 ],
                             },
                         },

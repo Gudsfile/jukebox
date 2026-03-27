@@ -24,7 +24,12 @@ def build_resolved_jukebox_runtime_config(
     return ResolvedJukeboxRuntimeConfig(
         library_path=expand_path(settings.paths.library_path),
         player_type=settings.jukebox.player.type,
-        sonos_host=resolve_sonos_host(settings.jukebox.player, sonos_host=sonos_host, sonos_group=sonos_group),
+        sonos_host=resolve_sonos_host(
+            settings.jukebox.player,
+            sonos_host=sonos_host,
+            sonos_name=sonos_name,
+            sonos_group=sonos_group,
+        ),
         sonos_name=resolve_sonos_name(settings.jukebox.player, sonos_name=sonos_name, sonos_group=sonos_group),
         sonos_group=sonos_group,
         reader_type=settings.jukebox.reader.type,
@@ -51,6 +56,7 @@ def build_resolved_admin_runtime_config(
 def resolve_sonos_host(
     player_settings: PlayerSettings,
     sonos_host: Optional[str] = None,
+    sonos_name: Optional[str] = None,
     sonos_group: Optional[ResolvedSonosGroupRuntime] = None,
 ) -> Optional[str]:
     if sonos_group is not None:
@@ -58,6 +64,9 @@ def resolve_sonos_host(
 
     if sonos_host is not None:
         return sonos_host
+
+    if sonos_name is not None:
+        return None
 
     if player_settings.sonos.manual_host is not None:
         return player_settings.sonos.manual_host
