@@ -17,7 +17,7 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library_path))
 
     if config.player_type == "sonos":
-        player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name)
+        player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name, group=config.sonos_group)
     elif config.player_type == "dryrun":
         player = DryrunPlayerAdapter()
     else:

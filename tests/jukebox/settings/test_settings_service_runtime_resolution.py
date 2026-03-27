@@ -23,6 +23,7 @@ def test_settings_service_allows_sonos_runtime_without_active_target(tmp_path):
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host is None
     assert runtime_config.sonos_name is None
+    assert runtime_config.sonos_group is None
 
 
 def test_settings_service_allows_admin_runtime_resolution_without_sonos_target(tmp_path):
@@ -109,7 +110,7 @@ def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
         service.resolve_jukebox_runtime()
 
 
-def test_settings_service_allows_selected_group_without_any_host_for_runtime(tmp_path):
+def test_settings_service_allows_effective_view_with_selected_group_without_any_host(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -132,10 +133,20 @@ def test_settings_service_allows_selected_group_without_any_host_for_runtime(tmp
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    runtime_config = service.resolve_jukebox_runtime()
+    effective_view = service.get_effective_settings_view()
 
-    assert runtime_config.sonos_host is None
-    assert runtime_config.sonos_name is None
+    assert (
+        lookup_json_value(
+            effective_view,
+            "settings",
+            "jukebox",
+            "player",
+            "sonos",
+            "selected_group",
+            "coordinator_uid",
+        )
+        == "speaker-1"
+    )
 
 
 def test_settings_service_rejects_pause_delay_below_minimum_after_cli_overrides(tmp_path):

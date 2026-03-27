@@ -59,10 +59,9 @@ def main():
     try:
         settings_service = _build_settings_service(config)
         runtime_config = settings_service.resolve_jukebox_runtime(verbose=config.verbose)
+        reader, handle_tag_event = build_jukebox(runtime_config)
     except SettingsError as err:
         raise SystemExit(str(err)) from err
-
-    reader, handle_tag_event = build_jukebox(runtime_config)
 
     controller = CLIController(
         reader=reader,

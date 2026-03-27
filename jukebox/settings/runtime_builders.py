@@ -1,7 +1,13 @@
 import os
 from typing import Optional
 
-from .entities import AppSettings, PlayerSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
+from .entities import (
+    AppSettings,
+    PlayerSettings,
+    ResolvedAdminRuntimeConfig,
+    ResolvedJukeboxRuntimeConfig,
+    ResolvedSonosGroupRuntime,
+)
 
 
 def expand_path(path: str) -> str:
@@ -11,12 +17,16 @@ def expand_path(path: str) -> str:
 def build_resolved_jukebox_runtime_config(
     settings: AppSettings,
     verbose: bool = False,
+    sonos_host: Optional[str] = None,
+    sonos_name: Optional[str] = None,
+    sonos_group: Optional[ResolvedSonosGroupRuntime] = None,
 ) -> ResolvedJukeboxRuntimeConfig:
     return ResolvedJukeboxRuntimeConfig(
         library_path=expand_path(settings.paths.library_path),
         player_type=settings.jukebox.player.type,
-        sonos_host=resolve_sonos_host(settings.jukebox.player),
-        sonos_name=resolve_sonos_name(settings.jukebox.player),
+        sonos_host=resolve_sonos_host(settings.jukebox.player, sonos_host=sonos_host, sonos_group=sonos_group),
+        sonos_name=resolve_sonos_name(settings.jukebox.player, sonos_name=sonos_name, sonos_group=sonos_group),
+        sonos_group=sonos_group,
         reader_type=settings.jukebox.reader.type,
         pause_duration_seconds=settings.jukebox.playback.pause_duration_seconds,
         pause_delay_seconds=settings.jukebox.playback.pause_delay_seconds,
@@ -38,7 +48,17 @@ def build_resolved_admin_runtime_config(
     )
 
 
-def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
+def resolve_sonos_host(
+    player_settings: PlayerSettings,
+    sonos_host: Optional[str] = None,
+    sonos_group: Optional[ResolvedSonosGroupRuntime] = None,
+) -> Optional[str]:
+    if sonos_group is not None:
+        return sonos_group.coordinator.host
+
+    if sonos_host is not None:
+        return sonos_host
+
     if player_settings.sonos.manual_host is not None:
         return player_settings.sonos.manual_host
 
@@ -54,7 +74,17 @@ def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
     return None
 
 
-def resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
+def resolve_sonos_name(
+    player_settings: PlayerSettings,
+    sonos_name: Optional[str] = None,
+    sonos_group: Optional[ResolvedSonosGroupRuntime] = None,
+) -> Optional[str]:
+    if sonos_group is not None:
+        return None
+
+    if sonos_name is not None:
+        return sonos_name
+
     if resolve_sonos_host(player_settings) is not None:
         return None
 

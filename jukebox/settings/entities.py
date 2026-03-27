@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
+from .runtime_validation import validate_resolved_jukebox_runtime_rules
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -169,11 +170,40 @@ class SparseAppSettings(StrictModel):
     admin: Optional[SparseAdminSettings] = None
 
 
+class ResolvedSonosSpeakerRuntime(StrictModel):
+    uid: str
+    name: str
+    host: str
+    household_id: str
+
+
+class ResolvedSonosGroupRuntime(StrictModel):
+    household_id: str
+    coordinator: ResolvedSonosSpeakerRuntime
+    members: list[ResolvedSonosSpeakerRuntime]
+
+    @model_validator(mode="after")
+    def validate_group_shape(self):
+        if not self.members:
+            raise ValueError("resolved Sonos group must include at least one member")
+
+        member_uids = {member.uid for member in self.members}
+        if self.coordinator.uid not in member_uids:
+            raise ValueError("resolved Sonos group coordinator must be present in members")
+
+        household_ids = {member.household_id for member in self.members}
+        if household_ids != {self.household_id}:
+            raise ValueError("resolved Sonos group members must belong to the same household")
+
+        return self
+
+
 class ResolvedJukeboxRuntimeConfig(StrictModel):
     library_path: str
     player_type: Literal["dryrun", "sonos"]
     sonos_host: Optional[str] = None
     sonos_name: Optional[str] = None
+    sonos_group: Optional[ResolvedSonosGroupRuntime] = None
     reader_type: Literal["dryrun", "nfc"]
     pause_duration_seconds: int
     pause_delay_seconds: float
@@ -181,6 +211,10 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     nfc_read_timeout_seconds: float
     verbose: bool = False
 
+    @model_validator(mode="after")
+    def validate_runtime_rules(self):
+        validate_resolved_jukebox_runtime_rules(self)
+        return self
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str
