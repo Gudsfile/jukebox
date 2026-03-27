@@ -38,8 +38,13 @@ class SoCoSonosGroupResolver:
 
             if runtime_member is None:
                 host_candidates = []
-                if resolved_speaker is not None and resolved_speaker.ip_address:
-                    host_candidates.append(resolved_speaker.ip_address)
+                if resolved_speaker is not None:
+                    try:
+                        discovered_host = resolved_speaker.ip_address
+                    except RuntimeError:
+                        discovered_host = None
+                    if discovered_host:
+                        host_candidates.append(discovered_host)
                 if saved_member.last_known_host is not None and saved_member.last_known_host not in host_candidates:
                     host_candidates.append(saved_member.last_known_host)
 
@@ -132,7 +137,7 @@ class SoCoSonosGroupResolver:
         try:
             speaker = SoCo(host)
             resolved_uid = speaker.uid
-        except (HTTPError, OSError, RequestException, SoCoException, SoCoUPnPException) as err:
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
             raise ValueError(f"Failed to contact saved Sonos speaker at {host}: {err}") from err
 
         if resolved_uid != expected_uid:
@@ -155,7 +160,11 @@ class SoCoSonosGroupResolver:
                 household_id=speaker.household_id,
             )
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
-            raise ValueError(f"Failed to inspect discovered Sonos speaker at {speaker.ip_address}: {err}") from err
+            try:
+                speaker_host = speaker.ip_address
+            except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException):
+                speaker_host = "<unknown host>"
+            raise ValueError(f"Failed to inspect discovered Sonos speaker at {speaker_host}: {err}") from err
 
 
 class _SonosSpeakerLike(Protocol):
