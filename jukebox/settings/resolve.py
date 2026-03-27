@@ -48,16 +48,10 @@ def build_environment_settings_overrides(logger_warning: Callable[[str], None]) 
         None,
         logger_warning,
     )
-    if sonos_host is not None:
+    sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
+    if sonos_host is not None or sonos_name is not None:
         sonos_overrides = overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
         sonos_overrides["manual_host"] = sonos_host
-        sonos_overrides["manual_name"] = None
-        sonos_overrides["selected_group"] = None
-
-    sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
-    if sonos_name is not None:
-        sonos_overrides = overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
-        sonos_overrides["manual_host"] = None
         sonos_overrides["manual_name"] = sonos_name
         sonos_overrides["selected_group"] = None
 

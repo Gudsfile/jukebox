@@ -1189,6 +1189,29 @@ def test_build_environment_settings_overrides_prefers_current_env_vars_over_depr
     assert warning.call_count == 2
 
 
+def test_build_environment_settings_overrides_preserves_conflicting_sonos_target_env_vars():
+    warning = MagicMock()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setenv("JUKEBOX_SONOS_HOST", "192.168.1.20")
+        monkeypatch.setenv("JUKEBOX_SONOS_NAME", "Living Room")
+
+        overrides = build_environment_settings_overrides(warning)
+
+    assert overrides == {
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "manual_host": "192.168.1.20",
+                    "manual_name": "Living Room",
+                    "selected_group": None,
+                }
+            }
+        }
+    }
+    warning.assert_not_called()
+
+
 def test_settings_service_rejects_sonos_runtime_without_active_target(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -1532,6 +1555,26 @@ def test_settings_service_rejects_manual_host_and_name_together(tmp_path):
     )
 
     with pytest.raises(InvalidSettingsError):
+        service.resolve_jukebox_runtime()
+
+
+def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),
+        encoding="utf-8",
+    )
+    warning = MagicMock()
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setenv("JUKEBOX_SONOS_HOST", "192.168.1.20")
+        monkeypatch.setenv("JUKEBOX_SONOS_NAME", "Living Room")
+        service = SettingsService(
+            repository=FileSettingsRepository(str(settings_path)),
+            env_overrides=build_environment_settings_overrides(warning),
+        )
+
+    with pytest.raises(InvalidSettingsError, match="manual_host and manual_name are mutually exclusive"):
         service.resolve_jukebox_runtime()
 
 
