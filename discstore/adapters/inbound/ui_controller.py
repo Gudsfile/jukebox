@@ -1,6 +1,8 @@
 import asyncio
 import json
 import sys
+from itertools import groupby
+from urllib.parse import urlencode
 
 if sys.version_info < (3, 10):
     raise RuntimeError("The `ui_controller` module requires Python 3.10+.")
@@ -14,6 +16,7 @@ try:
     from fastapi.responses import HTMLResponse, StreamingResponse
     from fastui import AnyComponent, FastUI, prebuilt_html
     from fastui import components as c
+    from fastui.components.forms import FormFieldInput, FormFieldSelect, FormFieldTextarea
     from fastui.events import BackEvent, GoToEvent, PageEvent
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
@@ -30,7 +33,14 @@ from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatu
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
-from jukebox.settings.service_protocols import ReadOnlySettingsService
+from jukebox.settings.definitions import (
+    EditableSettingDisplay,
+    build_editable_setting_displays,
+    get_setting_definition,
+)
+from jukebox.settings.errors import SettingsError
+from jukebox.settings.service_protocols import SettingsService
+from jukebox.settings.types import JsonObject
 
 
 class DiscTable(DiscMetadata, DiscOption):
@@ -47,6 +57,10 @@ class DiscForm(BaseModel):
     shuffle: bool = Field(False, title="Shuffle")
 
 
+class SettingValueForm(BaseModel):
+    value: str = Field(title="Value")
+
+
 class UIController(APIController):
     def __init__(
         self,
@@ -56,7 +70,7 @@ class UIController(APIController):
         edit_disc: EditDisc,
         get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
-        settings_service: ReadOnlySettingsService,
+        settings_service: SettingsService,
     ):
         self.get_disc = get_disc
         super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status, settings_service)
@@ -169,6 +183,55 @@ class UIController(APIController):
 
             return self._build_success_response("toast-remove-disc-success")
 
+        @self.app.get("/api/ui/settings", response_model=FastUI, response_model_exclude_none=True)
+        def settings_page(toast: Optional[str] = None, toast_message: Optional[str] = None) -> List[AnyComponent]:
+            return self._build_settings_page_components(toast=toast, toast_message=toast_message)
+
+        @self.app.get("/api/ui/settings/{setting_path}/edit", response_model=FastUI, response_model_exclude_none=True)
+        def edit_setting_form(setting_path: str) -> List[AnyComponent]:
+            return self._build_settings_edit_page_components(setting_path)
+
+        @self.app.post("/api/ui/settings/{setting_path}", response_model=FastUI, response_model_exclude_none=True)
+        async def update_setting(
+            setting_path: str,
+            form: Annotated[SettingValueForm, fastui_form(SettingValueForm)],
+        ) -> list[AnyComponent]:
+            definition = get_setting_definition(setting_path)
+            if definition is None:
+                raise HTTPException(status_code=404, detail=f"Unknown setting path: {setting_path}")
+
+            try:
+                result = self.settings_service.patch_persisted_settings(
+                    self._build_settings_patch(setting_path, form.value)
+                )
+            except ValueError as err:
+                raise self._field_validation_error("value", str(err))
+            except SettingsError as err:
+                raise self._field_validation_error("value", str(err))
+            except HTTPException:
+                raise
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+            return self._build_settings_success_response(str(result["message"]))
+
+        @self.app.post("/api/ui/settings/{setting_path}/reset", response_model=FastUI, response_model_exclude_none=True)
+        async def reset_setting(setting_path: str) -> list[AnyComponent]:
+            definition = get_setting_definition(setting_path)
+            if definition is None:
+                raise HTTPException(status_code=404, detail=f"Unknown setting path: {setting_path}")
+
+            try:
+                result = self.settings_service.reset_persisted_value(setting_path)
+            except SettingsError as err:
+                raise self._field_validation_error("path", str(err))
+            except HTTPException:
+                raise
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+            return self._build_settings_success_response(str(result["message"]))
+
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
             del path
@@ -177,6 +240,17 @@ class UIController(APIController):
     def _build_success_response(self, toast_event_name: str) -> list[AnyComponent]:
         return [
             c.FireEvent(event=GoToEvent(url=f"/?toast={toast_event_name}")),
+        ]
+
+    def _build_settings_success_response(self, message: str) -> list[AnyComponent]:
+        query = urlencode(
+            {
+                "toast": "toast-settings-success",
+                "toast_message": message,
+            }
+        )
+        return [
+            c.FireEvent(event=GoToEvent(url=f"/settings?{query}")),
         ]
 
     def _build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
@@ -194,7 +268,13 @@ class UIController(APIController):
                 sse=True,
                 sse_retry=2000,
             ),
-            c.Button(text="➕ Add a new disc", on_click=GoToEvent(url="/discs/new")),
+            c.Div(
+                class_name="d-flex flex-wrap gap-2",
+                components=[
+                    c.Button(text="➕ Add a new disc", on_click=GoToEvent(url="/discs/new")),
+                    c.Button(text="⚙️ Settings", on_click=GoToEvent(url="/settings"), class_name="btn btn-secondary"),
+                ],
+            ),
             c.Toast(
                 title="Toast",
                 body=[c.Paragraph(text="🎉 Disc added")],
@@ -222,6 +302,310 @@ class UIController(APIController):
             page_components.append(c.FireEvent(event=PageEvent(name=toast)))
 
         return page_components
+
+    def _build_settings_page_components(
+        self,
+        toast: Optional[str] = None,
+        toast_message: Optional[str] = None,
+    ) -> List[AnyComponent]:
+        settings = self._get_settings_displays()
+        components: list[AnyComponent] = [
+            c.Heading(text="Settings", level=1),
+            c.Paragraph(text="Manage shared admin and jukebox settings from the same backend used by the CLI and API."),
+            c.Div(
+                class_name="d-flex flex-wrap gap-2 mb-4",
+                components=[
+                    c.Button(text="Back to Library", on_click=GoToEvent(url="/"), class_name="btn btn-secondary"),
+                ],
+            ),
+        ]
+
+        for section, entries_iter in groupby(settings, key=lambda entry: entry.section):
+            entries = list(entries_iter)
+            components.extend(self._build_settings_section_components(section, entries))
+
+        components.append(
+            c.Toast(
+                title="Toast",
+                body=[c.Paragraph(text=toast_message or "Settings saved.")],
+                open_trigger=PageEvent(name="toast-settings-success"),
+                position="bottom-end",
+            )
+        )
+
+        page_components: list[AnyComponent] = [c.Page(components=components)]
+        if toast == "toast-settings-success":
+            page_components.append(c.FireEvent(event=PageEvent(name=toast)))
+
+        return page_components
+
+    def _build_settings_section_components(
+        self,
+        section: str,
+        settings: List[EditableSettingDisplay],
+    ) -> List[AnyComponent]:
+        return [
+            c.Heading(text=section.title(), level=2),
+            c.Div(
+                class_name="border rounded overflow-hidden mb-4",
+                components=[self._build_settings_row(setting, index) for index, setting in enumerate(settings)],
+            ),
+        ]
+
+    def _build_settings_row(self, setting: EditableSettingDisplay, index: int) -> AnyComponent:
+        info_components: list[AnyComponent] = [
+            c.Heading(text=setting.label, level=4),
+            c.Paragraph(text=setting.path, class_name="text-muted small mb-1"),
+            c.Paragraph(text=setting.description, class_name="mb-2"),
+            c.Paragraph(
+                text="Persisted: {}".format(self._format_settings_display_value(setting.path, setting.persisted_value))
+                if setting.is_persisted
+                else "Persisted: Not persisted",
+                class_name="mb-1",
+            ),
+            c.Paragraph(
+                text="Effective: {}".format(self._format_settings_display_value(setting.path, setting.effective_value)),
+                class_name="mb-1",
+            ),
+            c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
+        ]
+
+        if setting.requires_restart:
+            info_components.append(
+                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase mt-2")
+            )
+
+        action_components: list[AnyComponent] = [
+            c.Button(
+                text="Edit",
+                on_click=GoToEvent(url=f"/settings/{setting.path}/edit"),
+                class_name="btn btn-secondary",
+            )
+        ]
+        if setting.is_persisted:
+            action_components.append(self._build_settings_reset_form(setting.path))
+
+        row_class_name = "px-3 py-3"
+        if index > 0:
+            row_class_name += " border-top"
+
+        return c.Div(
+            class_name=row_class_name,
+            components=[
+                c.Div(
+                    class_name="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-start",
+                    components=[
+                        c.Div(class_name="flex-grow-1", components=info_components),
+                        c.Div(class_name="d-flex flex-wrap gap-2", components=action_components),
+                    ],
+                )
+            ],
+        )
+
+    def _build_settings_edit_page_components(self, setting_path: str) -> List[AnyComponent]:
+        setting = self._get_setting_display(setting_path)
+        if setting is None:
+            return [
+                c.Page(
+                    components=[
+                        c.Heading(text="Edit setting", level=1),
+                        c.Error(title="Setting not found", description=f"Unknown setting path: {setting_path}"),
+                        c.Link(components=[c.Text(text="Back to Library")], on_click=GoToEvent(url="/")),
+                    ]
+                )
+            ]
+
+        components: list[AnyComponent] = [
+            c.Heading(text=f"Edit {setting.label}", level=1),
+            c.Paragraph(text=setting.path, class_name="text-muted small mb-1"),
+            c.Paragraph(text=setting.description, class_name="mb-2"),
+            c.Paragraph(
+                text="Current persisted value: {}".format(
+                    self._format_settings_display_value(setting.path, setting.persisted_value)
+                )
+                if setting.is_persisted
+                else "Current persisted value: Not persisted",
+                class_name="mb-1",
+            ),
+            c.Paragraph(
+                text="Current effective value: {}".format(
+                    self._format_settings_display_value(setting.path, setting.effective_value)
+                ),
+                class_name="mb-1",
+            ),
+            c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
+        ]
+
+        if setting.requires_restart:
+            components.append(
+                c.Div(
+                    class_name="alert alert-warning mt-3",
+                    components=[
+                        c.Paragraph(text="Changes to this setting take effect after restart."),
+                    ],
+                )
+            )
+
+        components.append(self._build_settings_edit_form(setting))
+
+        if setting.is_persisted:
+            components.extend(
+                [
+                    c.Heading(text="Reset override", level=3),
+                    c.Paragraph(text="Remove the persisted override and fall back to the effective merged value."),
+                    self._build_settings_reset_form(setting.path),
+                ]
+            )
+
+        components.append(
+            c.Div(
+                class_name="mt-3 d-flex flex-wrap gap-3",
+                components=[
+                    c.Link(components=[c.Text(text="Back to Settings")], on_click=GoToEvent(url="/settings")),
+                    c.Link(components=[c.Text(text="Back to Library")], on_click=GoToEvent(url="/")),
+                ],
+            )
+        )
+
+        return [c.Page(components=components)]
+
+    def _build_settings_edit_form(self, setting: EditableSettingDisplay) -> AnyComponent:
+        initial_value = setting.persisted_value if setting.is_persisted else setting.effective_value
+        field_description = setting.description
+        if setting.requires_restart:
+            field_description = f"{field_description} Takes effect after restart."
+
+        if setting.choices:
+            form_field = FormFieldSelect(
+                name="value",
+                title=setting.label,
+                options=[
+                    {
+                        "value": choice.value,
+                        "label": choice.label,
+                    }
+                    for choice in setting.choices
+                ],
+                initial=None if initial_value is None else str(initial_value),
+                description=field_description,
+                required=True,
+                vanilla=True,
+            )
+        elif setting.field_type == "object":
+            form_field = FormFieldTextarea(
+                name="value",
+                title=setting.label,
+                initial=json.dumps(initial_value, indent=2) if initial_value is not None else "null",
+                description=field_description,
+                required=True,
+                rows=12,
+            )
+        else:
+            form_field = FormFieldInput(
+                name="value",
+                title=setting.label,
+                initial=None if initial_value is None else str(initial_value),
+                description=field_description,
+                required=True,
+                html_type="number" if setting.field_type in {"integer", "number"} else "text",
+            )
+
+        return c.Form(
+            form_fields=[form_field],
+            submit_url=f"/api/ui/settings/{setting.path}",
+            method="POST",
+            footer=[c.Button(text="Save", html_type="submit", class_name="btn btn-primary")],
+        )
+
+    def _build_settings_reset_form(self, setting_path: str) -> AnyComponent:
+        return c.Form(
+            form_fields=[],
+            submit_url=f"/api/ui/settings/{setting_path}/reset",
+            method="POST",
+            display_mode="inline",
+            footer=[c.Button(text="Reset", html_type="submit", class_name="btn btn-outline-danger")],
+        )
+
+    def _get_settings_displays(self) -> List[EditableSettingDisplay]:
+        return build_editable_setting_displays(
+            self.settings_service.get_persisted_settings_view(),
+            self.settings_service.get_effective_settings_view(),
+        )
+
+    def _get_setting_display(self, setting_path: str) -> Optional[EditableSettingDisplay]:
+        return next((setting for setting in self._get_settings_displays() if setting.path == setting_path), None)
+
+    def _build_settings_patch(self, setting_path: str, raw_value: str) -> JsonObject:
+        definition = get_setting_definition(setting_path)
+        if definition is None:
+            raise ValueError(f"Unknown setting path: {setting_path}")
+
+        if definition.choices and raw_value not in {choice.value for choice in definition.choices}:
+            raise ValueError("Choose a valid option.")
+
+        if definition.field_type == "integer":
+            try:
+                value: object = int(raw_value)
+            except ValueError as err:
+                raise ValueError("Enter a valid integer.") from err
+        elif definition.field_type == "number":
+            try:
+                value = float(raw_value)
+            except ValueError as err:
+                raise ValueError("Enter a valid number.") from err
+        elif definition.field_type == "object":
+            try:
+                value = json.loads(raw_value)
+            except json.JSONDecodeError as err:
+                raise ValueError("Enter valid JSON.") from err
+        else:
+            value = raw_value
+
+        return self._build_dotted_patch(setting_path, value)
+
+    def _build_dotted_patch(self, dotted_path: str, value: object) -> JsonObject:
+        patch: JsonObject = {}
+        cursor = patch
+        parts = dotted_path.split(".")
+        for part in parts[:-1]:
+            child: JsonObject = {}
+            cursor[part] = child
+            cursor = child
+        cursor[parts[-1]] = value
+        return patch
+
+    def _format_settings_display_value(self, setting_path: str, value: object) -> str:
+        if value is None:
+            return "null"
+
+        if setting_path == "jukebox.player.sonos.selected_group" and isinstance(value, dict):
+            members = value.get("members")
+            coordinator_uid = value.get("coordinator_uid")
+            if isinstance(members, list) and isinstance(coordinator_uid, str):
+                member_names = []
+                coordinator_name = coordinator_uid
+                for member in members:
+                    if not isinstance(member, dict):
+                        continue
+                    name = member.get("name") or member.get("uid")
+                    if not isinstance(name, str):
+                        continue
+                    member_names.append(name)
+                    if member.get("uid") == coordinator_uid:
+                        coordinator_name = name
+                if member_names:
+                    return "{} (coordinator); members: {}".format(coordinator_name, ", ".join(member_names))
+
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        if isinstance(value, (int, float)):
+            return str(value)
+        if isinstance(value, str):
+            return value
+        try:
+            return json.dumps(value, sort_keys=True, separators=(", ", ": "))
+        except TypeError:
+            return str(value)
 
     def _build_form_page_components(self, title: str, form_components: List[AnyComponent]) -> List[AnyComponent]:
         return [

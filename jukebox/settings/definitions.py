@@ -3,6 +3,14 @@ from typing import Iterable, Optional, cast
 
 from .types import JsonObject
 
+_MISSING = object()
+
+
+@dataclass(frozen=True)
+class SettingChoice:
+    value: str
+    label: str
+
 
 @dataclass(frozen=True)
 class SettingDefinition:
@@ -13,6 +21,23 @@ class SettingDefinition:
     section: str
     requires_restart: bool = False
     advanced: bool = False
+    choices: tuple[SettingChoice, ...] = ()
+
+
+@dataclass(frozen=True)
+class EditableSettingDisplay:
+    path: str
+    label: str
+    description: str
+    field_type: str
+    section: str
+    requires_restart: bool
+    advanced: bool
+    choices: tuple[SettingChoice, ...]
+    persisted_value: object
+    effective_value: object
+    provenance: str
+    is_persisted: bool
 
 
 SETTINGS = {
@@ -71,6 +96,10 @@ SETTINGS = {
         field_type="string",
         section="player",
         requires_restart=True,
+        choices=(
+            SettingChoice(value="dryrun", label="Dry Run"),
+            SettingChoice(value="sonos", label="Sonos"),
+        ),
     ),
     "jukebox.player.sonos.selected_group": SettingDefinition(
         path="jukebox.player.sonos.selected_group",
@@ -87,6 +116,10 @@ SETTINGS = {
         field_type="string",
         section="reader",
         requires_restart=True,
+        choices=(
+            SettingChoice(value="dryrun", label="Dry Run"),
+            SettingChoice(value="nfc", label="NFC"),
+        ),
     ),
     "jukebox.reader.nfc.read_timeout_seconds": SettingDefinition(
         path="jukebox.reader.nfc.read_timeout_seconds",
@@ -128,6 +161,35 @@ def get_restart_required_paths(dotted_paths: Iterable[str]) -> list[str]:
     )
 
 
+def build_editable_setting_displays(
+    persisted_settings: JsonObject,
+    effective_settings_view: JsonObject,
+) -> list[EditableSettingDisplay]:
+    effective_settings = _lookup_object(effective_settings_view, "settings")
+    provenance = _lookup_object(effective_settings_view, "provenance")
+
+    return [
+        EditableSettingDisplay(
+            path=dotted_path,
+            label=definition.label,
+            description=definition.description,
+            field_type=definition.field_type,
+            section=definition.section,
+            requires_restart=definition.requires_restart,
+            advanced=definition.advanced,
+            choices=definition.choices,
+            persisted_value=_normalize_lookup_value(_lookup_optional_dotted_path(persisted_settings, dotted_path)),
+            effective_value=_normalize_lookup_value(_lookup_optional_dotted_path(effective_settings, dotted_path)),
+            provenance=_lookup_provenance_label(provenance, dotted_path),
+            is_persisted=_lookup_optional_dotted_path(persisted_settings, dotted_path) is not _MISSING,
+        )
+        for dotted_path, definition in sorted(
+            SETTINGS.items(),
+            key=lambda item: (item[1].section, item[1].label, item[0]),
+        )
+    ]
+
+
 def build_settings_metadata_tree() -> JsonObject:
     tree: JsonObject = {}
 
@@ -145,6 +207,13 @@ def build_settings_metadata_tree() -> JsonObject:
             "section": definition.section,
             "requires_restart": definition.requires_restart,
             "advanced": definition.advanced,
+            "choices": [
+                {
+                    "value": choice.value,
+                    "label": choice.label,
+                }
+                for choice in definition.choices
+            ],
         }
 
     return tree
@@ -157,3 +226,52 @@ def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
         node[key] = child
 
     return cast(JsonObject, child)
+
+
+def _lookup_object(node: JsonObject, key: str) -> JsonObject:
+    child = node.get(key, {})
+    if isinstance(child, dict):
+        return child
+    return {}
+
+
+def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
+    current: JsonObject = root
+    parts = dotted_path.split(".")
+    for part in parts[:-1]:
+        child = current.get(part, _MISSING)
+        if not isinstance(child, dict):
+            return _MISSING
+        current = child
+    return current.get(parts[-1], _MISSING)
+
+
+def _normalize_lookup_value(value: object) -> object:
+    if value is _MISSING:
+        return None
+    return value
+
+
+def _lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
+    value = _lookup_optional_dotted_path(root, dotted_path)
+    collapsed_label = _collapse_provenance_value(value)
+    if collapsed_label is None:
+        return "unknown"
+    return collapsed_label
+
+
+def _collapse_provenance_value(value: object) -> Optional[str]:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+
+    labels = {
+        label
+        for child_value in value.values()
+        for label in [_collapse_provenance_value(child_value)]
+        if label is not None
+    }
+    if len(labels) == 1:
+        return next(iter(labels))
+    return None

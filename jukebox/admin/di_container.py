@@ -11,7 +11,7 @@ from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides
-from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
+from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.config_utils import get_current_tag_path
 
 from .commands import ApiCommand, UiCommand
@@ -56,7 +56,7 @@ def build_admin_api_app(library_path: str, settings_service: SettingsService):
     )
 
 
-def build_admin_ui_app(library_path: str, settings_service: ReadOnlySettingsService):
+def build_admin_ui_app(library_path: str, settings_service: SettingsService):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
 
