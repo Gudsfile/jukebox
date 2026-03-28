@@ -388,10 +388,28 @@ def _extract_compact_detail(message: str) -> str:
     cleaned_lines = [
         _VALIDATION_SUFFIX_RE.sub("", line) for line in lines if not line.startswith("For further information visit")
     ]
-    for line in reversed(cleaned_lines):
-        if line and not line.endswith("validation error for AppSettings"):
-            return line
-    return cleaned_lines[-1] if cleaned_lines else message
+    detail_lines = [
+        line for line in cleaned_lines if "validation error for " not in line and "validation errors for " not in line
+    ]
+    if not detail_lines:
+        return cleaned_lines[-1] if cleaned_lines else message
+
+    paired_details = []
+    pending_location = None
+    for line in detail_lines:
+        if pending_location is None:
+            pending_location = line
+            continue
+
+        paired_details.append("{}: {}".format(pending_location, line))
+        pending_location = None
+
+    if paired_details:
+        if pending_location is not None:
+            paired_details.append(pending_location)
+        return "; ".join(paired_details)
+
+    return detail_lines[-1]
 
 
 def _extract_quoted_path(message: str) -> Optional[str]:

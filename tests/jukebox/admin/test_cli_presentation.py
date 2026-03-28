@@ -134,6 +134,43 @@ def test_render_cli_error_for_unsupported_schema_version_is_friendly():
     )
 
 
+def test_render_cli_error_for_invalid_settings_file_preserves_failing_path():
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Invalid settings file at '/tmp/settings.json': 1 validation error for SparseAppSettings\n"
+            "admin.api.port\n"
+            "  Input should be a valid integer, unable to parse string as an integer "
+            "[type=int_parsing, input_value='bad', input_type=str]\n"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+        )
+    )
+
+    assert message == (
+        "Persisted settings are invalid at '/tmp/settings.json': "
+        "admin.api.port: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
+def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths():
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Invalid effective settings after environment overrides: 2 validation errors for AppSettings\n"
+            "admin.api.port\n"
+            "  Input should be a valid integer, unable to parse string as an integer "
+            "[type=int_parsing, input_value='bad', input_type=str]\n"
+            "admin.ui.port\n"
+            "  Input should be less than or equal to 65535 [type=less_than_equal, input_value=70000, input_type=int]\n"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+        )
+    )
+
+    assert message == (
+        "Effective settings are invalid: "
+        "admin.api.port: Input should be a valid integer, unable to parse string as an integer; "
+        "admin.ui.port: Input should be less than or equal to 65535"
+    )
+
+
 def test_render_cli_error_for_optional_dependency_exit_is_concise():
     message = render_cli_error(
         SystemExit(
