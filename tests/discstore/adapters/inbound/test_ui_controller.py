@@ -312,6 +312,62 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
+def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
+    controller = build_controller()
+    controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
+    controller.settings_service.get_effective_settings_view.return_value = {
+        "settings": {
+            "paths": {"library_path": "~/.jukebox/library.json"},
+            "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                "runtime": {"loop_interval_seconds": 0.1},
+                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "player": {
+                    "type": "dryrun",
+                    "sonos": {
+                        "selected_group": None,
+                    },
+                },
+            },
+        },
+        "provenance": {
+            "paths": {"library_path": "default"},
+            "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                "runtime": {"loop_interval_seconds": "default"},
+                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "player": {
+                    "type": "default",
+                    "sonos": {
+                        "selected_group": "default",
+                    },
+                },
+            },
+        },
+        "derived": {},
+        "change_metadata": {},
+    }
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/edit"
+    )
+
+    object_page = route.endpoint("jukebox.player.sonos.selected_group")[0]
+    object_form = next(component for component in walk_components(object_page.components) if component.type == "Form")
+    object_field = object_form.form_fields[0]
+
+    assert object_field.type == "FormFieldTextarea"
+    assert object_field.initial == ""
+    assert object_field.placeholder == "Enter a JSON object. Leave blank for no value."
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
 @pytest.mark.anyio
 async def test_update_setting_builds_scalar_patch_and_redirects_with_service_message():
     from discstore.adapters.inbound.ui_controller import SettingValueForm
@@ -371,6 +427,37 @@ async def test_update_setting_builds_object_patch_from_json_text():
         }
     )
     assert response[0].event.url.startswith("/settings?")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_treats_blank_object_text_as_none():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    await route.endpoint("jukebox.player.sonos.selected_group", SettingValueForm(value=""))
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": None,
+                    }
+                }
+            }
+        }
+    )
 
 
 @pytest.mark.skipif(

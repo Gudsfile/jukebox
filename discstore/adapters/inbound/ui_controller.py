@@ -495,10 +495,11 @@ class UIController(APIController):
             form_field = FormFieldTextarea(
                 name="value",
                 title=setting.label,
-                initial=json.dumps(initial_value, indent=2) if initial_value is not None else "null",
+                initial=json.dumps(initial_value, indent=2) if initial_value is not None else "",
                 description=field_description,
-                required=True,
+                required=False,
                 rows=12,
+                placeholder="Enter a JSON object. Leave blank for no value.",
             )
         else:
             form_field = FormFieldInput(
@@ -554,6 +555,9 @@ class UIController(APIController):
             except ValueError as err:
                 raise ValueError("Enter a valid number.") from err
         elif definition.field_type == "object":
+            if raw_value.strip() == "":
+                value = None
+                return self._build_dotted_patch(setting_path, value)
             try:
                 value = json.loads(raw_value)
             except json.JSONDecodeError as err:
