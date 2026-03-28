@@ -418,7 +418,6 @@ class UIController(APIController):
         components: list[AnyComponent] = [
             c.Heading(text=f"Edit {setting.label}", level=1),
             c.Paragraph(text=setting.path, class_name="text-muted small mb-1"),
-            c.Paragraph(text=setting.description, class_name="mb-2"),
             c.Paragraph(
                 text="Current persisted value: {}".format(
                     self._format_settings_display_value(setting.path, setting.persisted_value)
@@ -435,16 +434,6 @@ class UIController(APIController):
             ),
             c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
         ]
-
-        if setting.requires_restart:
-            components.append(
-                c.Div(
-                    class_name="alert alert-warning mt-3",
-                    components=[
-                        c.Paragraph(text="Changes to this setting take effect after restart."),
-                    ],
-                )
-            )
 
         components.append(self._build_settings_edit_form(setting))
 
