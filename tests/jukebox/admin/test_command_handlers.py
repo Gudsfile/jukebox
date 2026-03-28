@@ -9,10 +9,10 @@ from jukebox.settings.entities import ResolvedAdminRuntimeConfig
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 
-def test_execute_admin_command_prints_persisted_settings():
+def test_execute_admin_command_renders_human_readable_persisted_settings():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
-    print_fn = MagicMock()
+    stdout_fn = MagicMock()
 
     execute_admin_command(
         verbose=False,
@@ -21,27 +21,95 @@ def test_execute_admin_command_prints_persisted_settings():
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
         source_command="jukebox-admin",
-        print_fn=print_fn,
+        stdout_fn=stdout_fn,
     )
 
     settings_service.get_persisted_settings_view.assert_called_once_with()
-    print_fn.assert_called_once_with(json.dumps({"schema_version": 1}, indent=2))
+    rendered_output = stdout_fn.call_args.args[0]
+    assert "Persisted Settings" in rendered_output
+    assert "Schema Version: 1" in rendered_output
+    assert "No persisted overrides." in rendered_output
 
 
 @pytest.mark.parametrize(
-    ("command", "service_method", "service_args", "payload"),
+    ("command", "service_method", "service_args", "payload", "expected_snippets"),
     [
         (
             SettingsShowCommand(type="settings_show", effective=True),
             "get_effective_settings_view",
             (),
-            {"settings": {"admin": {"api": {"port": 8000}}}},
+            {
+                "settings": {
+                    "paths": {"library_path": "~/.jukebox/library.json"},
+                    "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+                    "jukebox": {
+                        "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                        "runtime": {"loop_interval_seconds": 0.1},
+                        "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                        "player": {
+                            "type": "sonos",
+                            "sonos": {
+                                "selected_group": {
+                                    "coordinator_uid": "speaker-2",
+                                    "members": [
+                                        {"uid": "speaker-1", "name": "Kitchen"},
+                                        {"uid": "speaker-2", "name": "Living Room"},
+                                    ],
+                                }
+                            },
+                        },
+                    },
+                },
+                "provenance": {
+                    "paths": {"library_path": "default"},
+                    "admin": {"api": {"port": "file"}, "ui": {"port": "default"}},
+                    "jukebox": {
+                        "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                        "runtime": {"loop_interval_seconds": "default"},
+                        "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                        "player": {
+                            "type": "file",
+                            "sonos": {"selected_group": "file"},
+                        },
+                    },
+                },
+                "derived": {
+                    "paths": {
+                        "expanded_library_path": "/Users/test/.jukebox/library.json",
+                        "current_tag_path": "/Users/test/.jukebox/current-tag.txt",
+                    }
+                },
+                "change_metadata": {},
+            },
+            [
+                "Effective Settings",
+                "Paths",
+                "Library Path [paths.library_path]: ~/.jukebox/library.json (source: default; restart required)",
+                "Admin API Port [admin.api.port]: 8000 (source: file; restart required)",
+                "Selected Sonos Group [jukebox.player.sonos.selected_group]: Living Room (coordinator); members: Kitchen, Living Room (source: file; restart required)",
+                "Derived",
+                "derived.paths.current_tag_path: /Users/test/.jukebox/current-tag.txt",
+            ],
         ),
         (
             SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
             "set_persisted_value",
             ("admin.api.port", "9000"),
-            {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}},
+            {
+                "persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}},
+                "effective": {"settings": {"admin": {"api": {"port": 9000}}}},
+                "updated_paths": ["admin.api.port"],
+                "restart_required": True,
+                "restart_required_paths": ["admin.api.port"],
+                "message": "Settings saved. Changes take effect after restart.",
+            },
+            [
+                "Settings saved. Changes take effect after restart.",
+                "Changed Paths",
+                "Admin API Port [admin.api.port]",
+                "Restart Required: yes",
+                "Restart-Required Paths",
+            ],
         ),
         (
             SettingsSetCommand(
@@ -114,7 +182,18 @@ def test_execute_admin_command_prints_persisted_settings():
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
             "reset_persisted_value",
             ("admin.ui.port",),
-            {"persisted": {"schema_version": 1, "admin": {}}},
+            {
+                "persisted": {"schema_version": 1},
+                "effective": {"settings": {"admin": {"ui": {"port": 8000}}}},
+                "updated_paths": [],
+                "restart_required": False,
+                "restart_required_paths": [],
+                "message": "No persisted settings changed.",
+            },
+            [
+                "No persisted settings changed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
@@ -142,10 +221,16 @@ def test_execute_admin_command_prints_persisted_settings():
         ),
     ],
 )
-def test_execute_admin_command_uses_shared_settings_operations(command, service_method, service_args, payload):
+def test_execute_admin_command_renders_human_readable_settings_output(
+    command,
+    service_method,
+    service_args,
+    payload,
+    expected_snippets,
+):
     settings_service = MagicMock()
     getattr(settings_service, service_method).return_value = payload
-    print_fn = MagicMock()
+    stdout_fn = MagicMock()
 
     execute_admin_command(
         verbose=True,
@@ -153,12 +238,105 @@ def test_execute_admin_command_uses_shared_settings_operations(command, service_
         settings_service=settings_service,
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
-        source_command="discstore",
-        print_fn=print_fn,
+        source_command="jukebox-admin",
+        stdout_fn=stdout_fn,
     )
 
     getattr(settings_service, service_method).assert_called_once_with(*service_args)
-    print_fn.assert_called_once_with(json.dumps(payload, indent=2))
+    rendered_output = stdout_fn.call_args.args[0]
+    for expected_snippet in expected_snippets:
+        assert expected_snippet in rendered_output
+
+
+@pytest.mark.parametrize(
+    ("command", "service_method", "service_args", "payload"),
+    [
+        (
+            SettingsShowCommand(type="settings_show", effective=True, json_output=True),
+            "get_effective_settings_view",
+            (),
+            {"settings": {"admin": {"api": {"port": 8000}}}},
+        ),
+        (
+            SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000", json_output=True),
+            "set_persisted_value",
+            ("admin.api.port", "9000"),
+            {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}},
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port", json_output=True),
+            "reset_persisted_value",
+            ("admin.ui.port",),
+            {"persisted": {"schema_version": 1, "admin": {}}},
+        ),
+    ],
+)
+def test_execute_admin_command_preserves_json_payloads_in_json_mode(command, service_method, service_args, payload):
+    settings_service = MagicMock()
+    getattr(settings_service, service_method).return_value = payload
+    stdout_fn = MagicMock()
+
+    execute_admin_command(
+        verbose=True,
+        command=command,
+        settings_service=settings_service,
+        build_api_app=MagicMock(),
+        build_ui_app=MagicMock(),
+        source_command="jukebox-admin",
+        stdout_fn=stdout_fn,
+    )
+
+    getattr(settings_service, service_method).assert_called_once_with(*service_args)
+    stdout_fn.assert_called_once_with(json.dumps(payload, indent=2))
+
+
+def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_stderr():
+    settings_service = MagicMock()
+    settings_service.get_effective_settings_view.return_value = {
+        "settings": {
+            "paths": {"library_path": "~/.jukebox/library.json"},
+            "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                "runtime": {"loop_interval_seconds": 0.1},
+                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "player": {"type": "dryrun", "sonos": {"selected_group": None}},
+            },
+        },
+        "provenance": {
+            "paths": {"library_path": "default"},
+            "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                "runtime": {"loop_interval_seconds": "default"},
+                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "player": {"type": "default", "sonos": {"selected_group": "default"}},
+            },
+        },
+        "derived": {
+            "paths": {"expanded_library_path": "/tmp/library.json", "current_tag_path": "/tmp/current-tag.txt"}
+        },
+        "change_metadata": {},
+    }
+    stdout_fn = MagicMock()
+    stderr_fn = MagicMock()
+    command = SettingsShowCommand(type="settings_show", effective=True, json_output=True)
+
+    execute_admin_command(
+        verbose=False,
+        command=command,
+        settings_service=settings_service,
+        build_api_app=MagicMock(),
+        build_ui_app=MagicMock(),
+        source_command="discstore",
+        stdout_fn=stdout_fn,
+        stderr_fn=stderr_fn,
+    )
+
+    stderr_message = stderr_fn.call_args.args[0]
+    assert "deprecated" in stderr_message
+    assert "`jukebox-admin settings show --effective --json`" in stderr_message
+    stdout_fn.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -178,7 +356,7 @@ def test_execute_admin_command_starts_server_with_resolved_runtime(mocker, comma
     )
     settings_service = MagicMock()
     settings_service.resolve_admin_runtime.return_value = runtime_config
-    fake_app = MagicMock(app=MagicMock(name=f"{builder_name}_app"))
+    fake_app = MagicMock(app=MagicMock(name="server_app"))
     build_api_app = MagicMock(return_value=fake_app)
     build_ui_app = MagicMock(return_value=fake_app)
 

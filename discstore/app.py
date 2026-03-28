@@ -1,4 +1,6 @@
 import logging
+import sys
+import traceback
 
 from discstore.adapters.inbound.config import (
     DiscStoreConfig,
@@ -7,6 +9,7 @@ from discstore.adapters.inbound.config import (
 from discstore.command_handlers import execute_library_command
 from discstore.commands import is_library_command
 from discstore.di_container import build_cli_controller, build_interactive_cli_controller
+from jukebox.admin.cli_presentation import render_cli_error
 from jukebox.admin.command_handlers import execute_admin_command
 from jukebox.admin.commands import is_admin_command
 from jukebox.admin.di_container import (
@@ -56,8 +59,19 @@ def main():
             )
             return
 
+    except SystemExit as err:
+        if isinstance(err.code, str):
+            print(render_cli_error(err, verbose=config.verbose), file=sys.stderr)
+            raise SystemExit(1) from err
+        raise
     except SettingsError as err:
-        raise SystemExit(str(err)) from err
+        print(render_cli_error(err, verbose=config.verbose), file=sys.stderr)
+        raise SystemExit(1) from err
+    except Exception as err:
+        print(render_cli_error(err, verbose=config.verbose), file=sys.stderr)
+        if config.verbose:
+            traceback.print_exception(type(err), err, err.__traceback__, file=sys.stderr)
+        raise SystemExit(1) from err
 
     raise TypeError("Unsupported discstore command")
 

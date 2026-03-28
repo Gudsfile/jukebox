@@ -1,10 +1,11 @@
-import json
+import sys
 from importlib import import_module
 from typing import Callable, Protocol
 
 from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
+from .cli_presentation import build_discstore_settings_deprecation_warning, render_settings_output
 from .commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
 
 
@@ -54,25 +55,32 @@ def execute_admin_command(
     build_api_app: Callable[[str, SettingsService], AppController],
     build_ui_app: Callable[[str, ReadOnlySettingsService], AppController],
     source_command: str,
-    print_fn: Callable[[str], None] = print,
+    stdout_fn: Callable[[str], None] = print,
+    stderr_fn: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
 ) -> None:
+    if source_command == "discstore" and isinstance(
+        command,
+        (SettingsShowCommand, SettingsSetCommand, SettingsResetCommand),
+    ):
+        stderr_fn(build_discstore_settings_deprecation_warning(command))
+
     if isinstance(command, SettingsShowCommand):
         payload = (
             settings_service.get_effective_settings_view()
             if command.effective
             else settings_service.get_persisted_settings_view()
         )
-        print_fn(json.dumps(payload, indent=2))
+        stdout_fn(render_settings_output(command, payload))
         return
 
     if isinstance(command, SettingsSetCommand):
         payload = settings_service.set_persisted_value(command.dotted_path, command.value)
-        print_fn(json.dumps(payload, indent=2))
+        stdout_fn(render_settings_output(command, payload))
         return
 
     if isinstance(command, SettingsResetCommand):
         payload = settings_service.reset_persisted_value(command.dotted_path)
-        print_fn(json.dumps(payload, indent=2))
+        stdout_fn(render_settings_output(command, payload))
         return
 
     runtime_config = settings_service.resolve_admin_runtime(verbose=verbose)
