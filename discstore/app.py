@@ -76,6 +76,9 @@ def main():
     except SettingsError as err:
         print(render_cli_error(err, verbose=config.verbose), file=sys.stderr)
         raise SystemExit(1) from err
+    except OSError as err:
+        print(str(err), file=sys.stderr)
+        raise SystemExit(1) from err
     except Exception as err:
         print(render_cli_error(err, verbose=config.verbose), file=sys.stderr)
         if config.verbose:

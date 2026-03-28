@@ -204,3 +204,18 @@ def test_main_preserves_admin_runtime_errors(app_mocks, capsys):
     assert err.value.code == 1
     captured = capsys.readouterr()
     assert captured.err.strip() == "The `ui_controller` module requires Python 3.10+."
+
+
+def test_main_preserves_os_errors_from_library_commands(app_mocks, capsys):
+    config = DiscStoreConfig(command=CliAddCommand(type="add", tag="dummy_tag", uri="dummy_uri"))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = PermissionError("[Errno 13] Permission denied: '/tmp/library.json'")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "[Errno 13] Permission denied: '/tmp/library.json'"

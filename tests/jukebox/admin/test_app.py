@@ -132,6 +132,18 @@ def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
     assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
 
 
+def test_jukebox_admin_preserves_os_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = PermissionError("[Errno 13] Permission denied: '/tmp/settings.json'")
+
+    result = runner.invoke(app, ["settings", "show"])
+
+    assert result.exit_code == 1
+    assert "[Errno 13] Permission denied: '/tmp/settings.json'" in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
 @pytest.mark.parametrize(
     ("args", "expected_command"),
     [
