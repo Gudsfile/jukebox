@@ -108,6 +108,28 @@ def test_jukebox_admin_renders_friendly_settings_errors(app_mocks):
     assert "Unexpected error. Re-run with `--verbose` for details." in result.output
 
 
+def test_jukebox_admin_preserves_ui_startup_runtime_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = RuntimeError("The `ui_controller` module requires Python 3.10+.")
+
+    result = runner.invoke(app, ["ui"])
+
+    assert result.exit_code == 1
+    assert "The `ui_controller` module requires Python 3.10+." in result.output
+
+
+def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = ValueError("No current tag is available.")
+
+    result = runner.invoke(app, ["library", "get", "--from-current"])
+
+    assert result.exit_code == 1
+    assert "No current tag is available." in result.output
+
+
 @pytest.mark.parametrize(
     ("args", "expected_command"),
     [

@@ -57,14 +57,18 @@ def _run_command(ctx: typer.Context, command: object) -> None:
             command=command,
             logger_warning=LOGGER.warning,
         )
-        execute_admin_command(
-            verbose=state.verbose,
-            command=command,
-            settings_service=settings_service,
-            build_api_app=build_admin_api_app,
-            build_ui_app=build_admin_ui_app,
-            source_command="jukebox-admin",
-        )
+        try:
+            execute_admin_command(
+                verbose=state.verbose,
+                command=command,
+                settings_service=settings_service,
+                build_api_app=build_admin_api_app,
+                build_ui_app=build_admin_ui_app,
+                source_command="jukebox-admin",
+            )
+        except RuntimeError as err:
+            typer.echo(str(err), err=True)
+            raise typer.Exit(code=1)
     except SystemExit as err:
         if isinstance(err.code, str):
             typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
@@ -89,13 +93,17 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
             command=command,
             logger_warning=LOGGER.warning,
         )
-        execute_library_command(
-            verbose=state.verbose,
-            command=command,
-            settings_service=settings_service,
-            build_cli_controller=build_cli_controller,
-            build_interactive_cli_controller=build_interactive_cli_controller,
-        )
+        try:
+            execute_library_command(
+                verbose=state.verbose,
+                command=command,
+                settings_service=settings_service,
+                build_cli_controller=build_cli_controller,
+                build_interactive_cli_controller=build_interactive_cli_controller,
+            )
+        except (ValueError, RuntimeError) as err:
+            typer.echo(str(err), err=True)
+            raise typer.Exit(code=1)
     except SettingsError as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
         raise typer.Exit(code=1)

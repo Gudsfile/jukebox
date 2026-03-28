@@ -87,6 +87,20 @@ def test_build_discstore_settings_deprecation_warning_points_to_equivalent_comma
     assert "`jukebox-admin settings show --effective --json`" in warning
 
 
+def test_build_discstore_settings_deprecation_warning_shell_quotes_settings_values():
+    warning = build_discstore_settings_deprecation_warning(
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.player.sonos.selected_group",
+            value='{"coordinator_uid": "speaker-1"}',
+        )
+    )
+
+    assert (
+        '`jukebox-admin settings set jukebox.player.sonos.selected_group \'{"coordinator_uid": "speaker-1"}\'`'
+    ) in warning
+
+
 def test_render_cli_error_for_unsupported_settings_path_is_actionable():
     message = render_cli_error(InvalidSettingsError("Unsupported settings path for write: 'admin.api.host'"))
 

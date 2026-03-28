@@ -1,5 +1,6 @@
 import json
 import re
+import shlex
 from typing import Dict, Iterable, List, Optional, Tuple
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
@@ -280,21 +281,25 @@ def _build_equivalent_jukebox_admin_command(command: object) -> str:
             args.append("--effective")
         if command.json_output:
             args.append("--json")
-        return "`{}`".format(" ".join(args))
+        return _format_shell_command(args)
 
     if isinstance(command, SettingsSetCommand):
         args = ["jukebox-admin", "settings", "set", command.dotted_path, command.value]
         if command.json_output:
             args.append("--json")
-        return "`{}`".format(" ".join(args))
+        return _format_shell_command(args)
 
     if isinstance(command, SettingsResetCommand):
         args = ["jukebox-admin", "settings", "reset", command.dotted_path]
         if command.json_output:
             args.append("--json")
-        return "`{}`".format(" ".join(args))
+        return _format_shell_command(args)
 
     return "`jukebox-admin settings ...`"
+
+
+def _format_shell_command(args: List[str]) -> str:
+    return "`{}`".format(" ".join(shlex.quote(arg) for arg in args))
 
 
 def _render_cli_error_message(err: BaseException) -> str:

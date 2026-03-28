@@ -39,24 +39,32 @@ def main():
     try:
         settings_service = _build_settings_service(config)
         if is_admin_command(config.command):
-            execute_admin_command(
-                verbose=config.verbose,
-                command=config.command,
-                settings_service=settings_service,
-                build_api_app=build_admin_api_app,
-                build_ui_app=build_admin_ui_app,
-                source_command="discstore",
-            )
+            try:
+                execute_admin_command(
+                    verbose=config.verbose,
+                    command=config.command,
+                    settings_service=settings_service,
+                    build_api_app=build_admin_api_app,
+                    build_ui_app=build_admin_ui_app,
+                    source_command="discstore",
+                )
+            except RuntimeError as err:
+                print(str(err), file=sys.stderr)
+                raise SystemExit(1) from err
             return
 
         if is_library_command(config.command):
-            execute_library_command(
-                verbose=config.verbose,
-                command=config.command,
-                settings_service=settings_service,
-                build_cli_controller=build_cli_controller,
-                build_interactive_cli_controller=build_interactive_cli_controller,
-            )
+            try:
+                execute_library_command(
+                    verbose=config.verbose,
+                    command=config.command,
+                    settings_service=settings_service,
+                    build_cli_controller=build_cli_controller,
+                    build_interactive_cli_controller=build_interactive_cli_controller,
+                )
+            except (ValueError, RuntimeError) as err:
+                print(str(err), file=sys.stderr)
+                raise SystemExit(1) from err
             return
 
     except SystemExit as err:

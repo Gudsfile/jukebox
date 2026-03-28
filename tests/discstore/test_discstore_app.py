@@ -173,3 +173,33 @@ def test_main_exits_on_settings_error_from_library_command(app_mocks, capsys):
     assert err.value.code == 1
     captured = capsys.readouterr()
     assert captured.err.strip() == "broken settings"
+
+
+def test_main_preserves_library_validation_errors(app_mocks, capsys):
+    config = DiscStoreConfig(command=CliGetCommand(type="get", use_current_tag=True))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = ValueError("No current tag is available.")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "No current tag is available."
+
+
+def test_main_preserves_admin_runtime_errors(app_mocks, capsys):
+    config = DiscStoreConfig(command=UiCommand(type="ui"))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = RuntimeError("The `ui_controller` module requires Python 3.10+.")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "The `ui_controller` module requires Python 3.10+."
