@@ -117,6 +117,7 @@ def test_jukebox_admin_preserves_ui_startup_runtime_errors(app_mocks):
 
     assert result.exit_code == 1
     assert "The `ui_controller` module requires Python 3.10+." in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
 
 
 def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
@@ -128,6 +129,7 @@ def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
 
     assert result.exit_code == 1
     assert "No current tag is available." in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
 
 
 @pytest.mark.parametrize(

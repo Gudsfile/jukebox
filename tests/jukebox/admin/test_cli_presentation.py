@@ -63,6 +63,53 @@ def test_render_settings_output_reset_noop_is_concise():
     assert rendered == "No persisted settings changed.\n\nRestart Required: no"
 
 
+def test_render_settings_output_effective_includes_manual_sonos_targets():
+    rendered = render_settings_output(
+        SettingsShowCommand(type="settings_show", effective=True),
+        {
+            "settings": {
+                "paths": {"library_path": "~/.jukebox/library.json"},
+                "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                    "runtime": {"loop_interval_seconds": 0.1},
+                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "manual_host": "192.168.1.20",
+                            "manual_name": "Living Room",
+                            "selected_group": None,
+                        },
+                    },
+                },
+            },
+            "provenance": {
+                "paths": {"library_path": "default"},
+                "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                    "runtime": {"loop_interval_seconds": "default"},
+                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "player": {
+                        "type": "file",
+                        "sonos": {
+                            "manual_host": "env",
+                            "manual_name": "cli",
+                            "selected_group": "default",
+                        },
+                    },
+                },
+            },
+            "derived": {},
+            "change_metadata": {},
+        },
+    )
+
+    assert "jukebox.player.sonos.manual_host: 192.168.1.20 (source: env)" in rendered
+    assert "jukebox.player.sonos.manual_name: Living Room (source: cli)" in rendered
+
+
 def test_render_settings_output_json_mode_preserves_payload_shape():
     command = SettingsSetCommand(
         type="settings_set",

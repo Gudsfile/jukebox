@@ -77,16 +77,19 @@ def _render_effective_settings(payload: JsonObject) -> str:
     settings = _lookup_object(payload, "settings")
     provenance = _lookup_object(payload, "provenance")
     derived = _lookup_object(payload, "derived")
+    grouped_entries = _group_entries_by_section(_collect_leaf_entries(settings))
 
     lines = ["Effective Settings"]
 
     for section in _SECTION_ORDER:
         definitions = [definition for definition in SETTINGS.values() if definition.section == section]
-        if not definitions:
+        section_entries = grouped_entries.get(section, [])
+        if not definitions and not section_entries:
             continue
 
         lines.append("")
         lines.append(_format_section_title(section))
+        rendered_paths = set()
         for definition in definitions:
             value = _lookup_optional_dotted_path(settings, definition.path)
             provenance_label = _lookup_optional_dotted_path(provenance, definition.path)
@@ -97,6 +100,24 @@ def _render_effective_settings(payload: JsonObject) -> str:
                     _format_effective_suffix(
                         provenance_label if isinstance(provenance_label, str) else "unknown",
                         definition.requires_restart,
+                    ),
+                )
+            )
+            rendered_paths.add(definition.path)
+
+        for dotted_path, value in section_entries:
+            if dotted_path in rendered_paths:
+                continue
+
+            definition = get_setting_definition(dotted_path)
+            provenance_label = _lookup_optional_dotted_path(provenance, dotted_path)
+            lines.append(
+                "- {}: {}{}".format(
+                    _format_entry_label(dotted_path),
+                    _format_value(dotted_path, value),
+                    _format_effective_suffix(
+                        provenance_label if isinstance(provenance_label, str) else "unknown",
+                        definition.requires_restart if definition is not None else False,
                     ),
                 )
             )
@@ -165,6 +186,16 @@ def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[st
         dotted_path = "{}.{}".format(prefix, key)
         if isinstance(value, dict):
             for child_entry in _collect_generic_entries(value, dotted_path):
+                yield child_entry
+            continue
+        yield dotted_path, value
+
+
+def _collect_leaf_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
+    for key, value in sorted(node.items()):
+        dotted_path = "{}.{}".format(prefix, key) if prefix else key
+        if isinstance(value, dict):
+            for child_entry in _collect_leaf_entries(value, dotted_path):
                 yield child_entry
             continue
         yield dotted_path, value

@@ -74,6 +74,8 @@ def _run_command(ctx: typer.Context, command: object) -> None:
             typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
             raise typer.Exit(code=1)
         raise
+    except typer.Exit:
+        raise
     except SettingsError as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
         raise typer.Exit(code=1)
@@ -104,6 +106,8 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
         except (ValueError, RuntimeError) as err:
             typer.echo(str(err), err=True)
             raise typer.Exit(code=1)
+    except typer.Exit:
+        raise
     except SettingsError as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
         raise typer.Exit(code=1)
