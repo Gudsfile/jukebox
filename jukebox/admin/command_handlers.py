@@ -1,6 +1,6 @@
 import sys
 from importlib import import_module
-from typing import Callable, Protocol
+from typing import Callable, Optional, Protocol
 
 from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
@@ -55,6 +55,7 @@ def execute_admin_command(
     build_api_app: Callable[[str, SettingsService], AppController],
     build_ui_app: Callable[[str, ReadOnlySettingsService], AppController],
     source_command: str,
+    library: Optional[str] = None,
     stdout_fn: Callable[[str], None] = print,
     stderr_fn: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
 ) -> None:
@@ -62,7 +63,7 @@ def execute_admin_command(
         command,
         (SettingsShowCommand, SettingsSetCommand, SettingsResetCommand),
     ):
-        stderr_fn(build_discstore_settings_deprecation_warning(command))
+        stderr_fn(build_discstore_settings_deprecation_warning(command, library=library))
 
     if isinstance(command, SettingsShowCommand):
         payload = (

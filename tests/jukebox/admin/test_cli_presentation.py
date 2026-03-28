@@ -163,6 +163,60 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
     assert "jukebox.player.sonos.selected_group.members" not in rendered
 
 
+def test_render_settings_output_effective_collapses_nested_selected_group_provenance():
+    rendered = render_settings_output(
+        SettingsShowCommand(type="settings_show", effective=True),
+        {
+            "settings": {
+                "paths": {"library_path": "~/.jukebox/library.json"},
+                "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                    "runtime": {"loop_interval_seconds": 0.1},
+                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                ],
+                            },
+                        },
+                    },
+                },
+            },
+            "provenance": {
+                "paths": {"library_path": "default"},
+                "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                    "runtime": {"loop_interval_seconds": "default"},
+                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "player": {
+                        "type": "default",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "file",
+                                "members": "file",
+                            },
+                        },
+                    },
+                },
+            },
+            "derived": {},
+            "change_metadata": {},
+        },
+    )
+
+    assert (
+        "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
+        "Living Room (coordinator); members: Kitchen, Living Room (source: file; restart required)"
+    ) in rendered
+
+
 def test_render_settings_output_json_mode_preserves_payload_shape():
     command = SettingsSetCommand(
         type="settings_set",
@@ -199,6 +253,15 @@ def test_build_discstore_settings_deprecation_warning_shell_quotes_settings_valu
     assert (
         '`jukebox-admin settings set jukebox.player.sonos.selected_group \'{"coordinator_uid": "speaker-1"}\'`'
     ) in warning
+
+
+def test_build_discstore_settings_deprecation_warning_preserves_library_override():
+    warning = build_discstore_settings_deprecation_warning(
+        SettingsShowCommand(type="settings_show", effective=True),
+        library="/tmp/custom library.json",
+    )
+
+    assert "`jukebox-admin --library '/tmp/custom library.json' settings show --effective`" in warning
 
 
 def test_render_cli_error_for_unsupported_settings_path_is_actionable():

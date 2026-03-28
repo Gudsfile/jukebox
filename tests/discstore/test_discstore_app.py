@@ -93,6 +93,7 @@ def test_main_delegates_admin_commands_to_shared_handler(app_mocks, command):
         build_api_app=app_mocks.build_api_app,
         build_ui_app=app_mocks.build_ui_app,
         source_command="discstore",
+        library="fake_library_path",
     )
     app_mocks.build_interactive.assert_not_called()
     app_mocks.build_cli.assert_not_called()

@@ -37,10 +37,10 @@ def render_settings_output(
     raise TypeError("Unsupported settings command")
 
 
-def build_discstore_settings_deprecation_warning(command: object) -> str:
+def build_discstore_settings_deprecation_warning(command: object, library: Optional[str] = None) -> str:
     return (
         "Warning: `discstore settings ...` is deprecated and will be removed in a future release. "
-        "Use {} instead.".format(_build_equivalent_jukebox_admin_command(command))
+        "Use {} instead.".format(_build_equivalent_jukebox_admin_command(command, library=library))
     )
 
 
@@ -92,13 +92,13 @@ def _render_effective_settings(payload: JsonObject) -> str:
         rendered_paths = set()
         for definition in definitions:
             value = _lookup_optional_dotted_path(settings, definition.path)
-            provenance_label = _lookup_optional_dotted_path(provenance, definition.path)
+            provenance_label = _lookup_provenance_label(provenance, definition.path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(definition.path),
                     _format_value(definition.path, value),
                     _format_effective_suffix(
-                        provenance_label if isinstance(provenance_label, str) else "unknown",
+                        provenance_label,
                         definition.requires_restart,
                     ),
                 )
@@ -110,13 +110,13 @@ def _render_effective_settings(payload: JsonObject) -> str:
                 continue
 
             definition = get_setting_definition(dotted_path)
-            provenance_label = _lookup_optional_dotted_path(provenance, dotted_path)
+            provenance_label = _lookup_provenance_label(provenance, dotted_path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(dotted_path),
                     _format_value(dotted_path, value),
                     _format_effective_suffix(
-                        provenance_label if isinstance(provenance_label, str) else "unknown",
+                        provenance_label,
                         definition.requires_restart if definition is not None else False,
                     ),
                 )
@@ -305,9 +305,44 @@ def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
     return current.get(parts[-1])
 
 
-def _build_equivalent_jukebox_admin_command(command: object) -> str:
+def _lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
+    value = _lookup_optional_dotted_path(root, dotted_path)
+    collapsed_label = _collapse_provenance_value(value)
+    if collapsed_label is None:
+        return "unknown"
+    return collapsed_label
+
+
+def _collapse_provenance_value(value: object) -> Optional[str]:
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+
+    child_labels = []
+    for child_value in value.values():
+        child_label = _collapse_provenance_value(child_value)
+        if child_label is None:
+            continue
+        child_labels.append(child_label)
+
+    if not child_labels:
+        return None
+
+    distinct_labels = set(child_labels)
+    if len(distinct_labels) == 1:
+        return child_labels[0]
+
+    return "mixed"
+
+
+def _build_equivalent_jukebox_admin_command(command: object, library: Optional[str] = None) -> str:
+    args = ["jukebox-admin"]
+    if library is not None:
+        args.extend(["--library", library])
+
     if isinstance(command, SettingsShowCommand):
-        args = ["jukebox-admin", "settings", "show"]
+        args.extend(["settings", "show"])
         if command.effective:
             args.append("--effective")
         if command.json_output:
@@ -315,13 +350,13 @@ def _build_equivalent_jukebox_admin_command(command: object) -> str:
         return _format_shell_command(args)
 
     if isinstance(command, SettingsSetCommand):
-        args = ["jukebox-admin", "settings", "set", command.dotted_path, command.value]
+        args.extend(["settings", "set", command.dotted_path, command.value])
         if command.json_output:
             args.append("--json")
         return _format_shell_command(args)
 
     if isinstance(command, SettingsResetCommand):
-        args = ["jukebox-admin", "settings", "reset", command.dotted_path]
+        args.extend(["settings", "reset", command.dotted_path])
         if command.json_output:
             args.append("--json")
         return _format_shell_command(args)

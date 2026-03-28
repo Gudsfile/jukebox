@@ -47,6 +47,7 @@ def main():
                     build_api_app=build_admin_api_app,
                     build_ui_app=build_admin_ui_app,
                     source_command="discstore",
+                    library=config.library,
                 )
             except RuntimeError as err:
                 print(str(err), file=sys.stderr)

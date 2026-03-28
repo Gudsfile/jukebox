@@ -21,6 +21,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
         source_command="jukebox-admin",
+        library=None,
         stdout_fn=stdout_fn,
     )
 
@@ -239,6 +240,7 @@ def test_execute_admin_command_renders_human_readable_settings_output(
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
         source_command="jukebox-admin",
+        library=None,
         stdout_fn=stdout_fn,
     )
 
@@ -283,6 +285,7 @@ def test_execute_admin_command_preserves_json_payloads_in_json_mode(command, ser
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
         source_command="jukebox-admin",
+        library=None,
         stdout_fn=stdout_fn,
     )
 
@@ -329,13 +332,14 @@ def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_
         build_api_app=MagicMock(),
         build_ui_app=MagicMock(),
         source_command="discstore",
+        library="/tmp/custom library.json",
         stdout_fn=stdout_fn,
         stderr_fn=stderr_fn,
     )
 
     stderr_message = stderr_fn.call_args.args[0]
     assert "deprecated" in stderr_message
-    assert "`jukebox-admin settings show --effective --json`" in stderr_message
+    assert "`jukebox-admin --library '/tmp/custom library.json' settings show --effective --json`" in stderr_message
     stdout_fn.assert_called_once()
 
 
@@ -367,6 +371,7 @@ def test_execute_admin_command_starts_server_with_resolved_runtime(mocker, comma
         build_api_app=build_api_app,
         build_ui_app=build_ui_app,
         source_command="jukebox-admin",
+        library=None,
     )
 
     settings_service.resolve_admin_runtime.assert_called_once_with(verbose=True)
@@ -407,6 +412,7 @@ def test_execute_admin_command_reports_missing_optional_dependencies(mocker, com
             build_api_app=MagicMock(),
             build_ui_app=MagicMock(),
             source_command="jukebox-admin",
+            library=None,
         )
 
     assert f"`jukebox-admin {extra_name}` requires the optional `{extra_name}` dependencies." in str(err.value)
