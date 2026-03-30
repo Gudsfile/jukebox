@@ -181,11 +181,6 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     nfc_read_timeout_seconds: float
     verbose: bool = False
 
-    @model_validator(mode="after")
-    def validate_runtime_target(self):
-        if self.player_type == "sonos" and self.sonos_host is None and self.sonos_name is None:
-            raise ValueError("player_type 'sonos' requires a valid active Sonos target")
-        return self
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str
