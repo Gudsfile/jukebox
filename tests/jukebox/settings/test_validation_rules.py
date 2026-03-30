@@ -93,22 +93,41 @@ def test_validate_settings_rules_without_updated_paths_runs_all_supported_rules(
     ]
 
 
-def test_validation_rule_uses_depends_on_paths_order_for_arguments():
+@pytest.mark.parametrize(
+    "settings, depends_on_paths, expected_args",
+    [
+        (
+            {"settings": {"first_value": "alpha", "second_value": "beta"}},
+            ("settings.first_value", "settings.second_value"),
+            ["alpha", "beta"],
+        ),
+        (
+            {"settings": {"first_value": "alpha", "second_value": "beta"}},
+            ("settings.second_value", "settings.first_value"),
+            ["beta", "alpha"],
+        ),
+        (
+            {"settings": {"second_value": "beta", "first_value": "alpha"}},
+            ("settings.first_value", "settings.second_value"),
+            ["alpha", "beta"],
+        ),
+    ],
+)
+def test_validation_rule_uses_depends_on_paths_order_for_arguments(settings, depends_on_paths, expected_args):
     captured_args = []
 
     def record_args(*args):
         captured_args.extend(args)
 
-    settings = _settings(first_value="alpha", second_value="beta")
     rule = SettingsValidationRule(
         name="record_args",
-        depends_on_paths=("settings.first_value", "settings.second_value"),
+        depends_on_paths=depends_on_paths,
         validator=record_args,
     )
 
     rule.validate(settings)
 
-    assert captured_args == ["alpha", "beta"]
+    assert captured_args == expected_args
 
 
 def test_validate_settings_rules_propagates_validator_errors(monkeypatch):
