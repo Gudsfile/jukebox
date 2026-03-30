@@ -37,10 +37,10 @@ def test_settings_service_builds_effective_view_with_provenance(tmp_path):
     assert lookup_json_value(effective_view, "provenance", "admin", "api", "port") == "file"
     assert lookup_json_value(effective_view, "provenance", "admin", "ui", "port") == "cli"
     assert lookup_json_value(effective_view, "provenance", "jukebox", "runtime", "loop_interval_seconds") == "default"
-    assert lookup_json_value(effective_view, "change_metadata", "admin", "api", "port", "requires_restart") is True
+    assert lookup_json_value(effective_view, "settings_metadata", "admin", "api", "port", "requires_restart") is True
     assert (
         lookup_json_value(
-            effective_view, "change_metadata", "jukebox", "runtime", "loop_interval_seconds", "requires_restart"
+            effective_view, "settings_metadata", "jukebox", "runtime", "loop_interval_seconds", "requires_restart"
         )
         is True
     )
@@ -264,18 +264,24 @@ def test_settings_service_patch_updates_library_path_and_derived_current_tag_pat
     assert result["restart_required_paths"] == ["admin.ui.port", "paths.library_path"]
 
 
-def test_settings_service_set_to_default_is_noop_and_does_not_create_file(tmp_path):
+def test_settings_service_set_to_default_persists_explicit_value(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.set_persisted_value("admin.api.port", "8000")
 
-    assert not settings_path.exists()
-    assert result["persisted"] == {"schema_version": 1}
-    assert result["updated_paths"] == []
-    assert result["restart_required"] is False
-    assert result["restart_required_paths"] == []
-    assert result["message"] == "No persisted settings changed."
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["updated_paths"] == ["admin.api.port"]
+    assert result["restart_required"] is True
+    assert result["restart_required_paths"] == ["admin.api.port"]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
 
 
 def test_settings_service_reset_non_persisted_value_is_noop_and_does_not_create_file(tmp_path):
@@ -292,18 +298,24 @@ def test_settings_service_reset_non_persisted_value_is_noop_and_does_not_create_
     assert result["message"] == "No persisted settings changed."
 
 
-def test_settings_service_patch_default_value_is_noop_and_does_not_create_file(tmp_path):
+def test_settings_service_patch_default_value_persists_explicit_value(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.patch_persisted_settings({"admin": {"api": {"port": 8000}}})
 
-    assert not settings_path.exists()
-    assert result["persisted"] == {"schema_version": 1}
-    assert result["updated_paths"] == []
-    assert result["restart_required"] is False
-    assert result["restart_required_paths"] == []
-    assert result["message"] == "No persisted settings changed."
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["updated_paths"] == ["admin.api.port"]
+    assert result["restart_required"] is True
+    assert result["restart_required_paths"] == ["admin.api.port"]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
 
 
 def test_settings_service_set_rejects_unsupported_path_without_writing(tmp_path):
@@ -407,11 +419,11 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
         )
         == "file"
     )
-    assert lookup_json_value(effective_view, "change_metadata", "jukebox", "reader", "type", "section") == "reader"
+    assert lookup_json_value(effective_view, "settings_metadata", "jukebox", "reader", "type", "section") == "reader"
     assert (
         lookup_json_value(
             effective_view,
-            "change_metadata",
+            "settings_metadata",
             "jukebox",
             "reader",
             "nfc",
@@ -451,7 +463,15 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        "household_id": None,
+                        "members": [
+                            {
+                                "uid": "speaker-1",
+                                "name": "Living Room",
+                                "household_id": None,
+                                "last_known_host": "192.168.1.20",
+                            }
+                        ],
                     }
                 }
             }
@@ -491,7 +511,15 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        "household_id": None,
+                        "members": [
+                            {
+                                "uid": "speaker-1",
+                                "name": "Living Room",
+                                "household_id": None,
+                                "last_known_host": "192.168.1.20",
+                            }
+                        ],
                     }
                 },
             }
@@ -524,11 +552,11 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
         )
         == "file"
     )
-    assert lookup_json_value(effective_view, "change_metadata", "jukebox", "player", "type", "section") == "player"
+    assert lookup_json_value(effective_view, "settings_metadata", "jukebox", "player", "type", "section") == "player"
     assert (
         lookup_json_value(
             effective_view,
-            "change_metadata",
+            "settings_metadata",
             "jukebox",
             "player",
             "sonos",
