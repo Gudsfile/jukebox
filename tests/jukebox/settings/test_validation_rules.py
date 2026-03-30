@@ -22,6 +22,16 @@ def test_get_rules_affected_by_paths_returns_rules_with_matching_dependencies(mo
     assert [rule.name for rule in validation_rules.get_rules_affected_by_paths(["settings.second"])] == ["beta"]
 
 
+def test_get_rules_affected_by_paths_does_not_match_paths_with_same_leaf(monkeypatch):
+    monkeypatch.setattr(
+        validation_rules,
+        "VALIDATION_RULES",
+        (SettingsValidationRule("alpha", ("settings.existent.value",), lambda *_: None),),
+    )
+
+    assert validation_rules.get_rules_affected_by_paths(["settings.nonexistent.value"]) == []
+
+
 def test_get_rules_supported_by_settings_returns_only_fully_supported_rules(monkeypatch):
     monkeypatch.setattr(
         validation_rules,
@@ -38,6 +48,17 @@ def test_get_rules_supported_by_settings_returns_only_fully_supported_rules(monk
         "alpha",
         "beta",
     ]
+
+
+def test_get_rules_supported_by_settings_does_not_match_wrong_ancestor_path(monkeypatch):
+    monkeypatch.setattr(
+        validation_rules,
+        "VALIDATION_RULES",
+        (SettingsValidationRule("alpha", ("settings.existent.value",), lambda *_: None),),
+    )
+    settings = {"settings": {"other": {"value": "alpha"}}}
+
+    assert validation_rules.get_rules_supported_by_settings(settings) == []
 
 
 def test_validate_settings_rules_with_updated_paths_runs_affected_supported_rules_only(monkeypatch):
