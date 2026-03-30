@@ -122,6 +122,30 @@ def test_patch_settings_updates_persisted_settings():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_updates_playback_timing_settings():
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {
+        "persisted": {"schema_version": 1, "jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings" and "PATCH" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsPatchInput(root={"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}))
+
+    assert response == {"persisted": {"schema_version": 1, "jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}}
+    settings_service.patch_persisted_settings.assert_called_once_with(
+        {"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_settings_returns_400_for_invalid_settings_write():
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
@@ -136,7 +160,7 @@ def test_patch_settings_returns_400_for_invalid_settings_write():
     )
 
     with pytest.raises(HTTPException) as err:
-        route.endpoint(SettingsPatchInput(root={"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}))
+        route.endpoint(SettingsPatchInput(root={"jukebox": {"reader": {"type": "nfc"}}}))
 
     assert err.value.status_code == 400
     assert err.value.detail == "Unsupported settings path"
@@ -174,6 +198,28 @@ def test_reset_settings_removes_persisted_override():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_reset_settings_removes_playback_timing_override():
+    settings_service = MagicMock()
+    settings_service.reset_persisted_value.return_value = {
+        "persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings/reset" and "POST" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsResetInput(path="jukebox.runtime.loop_interval_seconds"))
+
+    assert response == {"persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}}
+    settings_service.reset_persisted_value.assert_called_once_with("jukebox.runtime.loop_interval_seconds")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_reset_settings_accepts_section_path():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.return_value = {"persisted": {"schema_version": 1}}
@@ -208,7 +254,7 @@ def test_reset_settings_returns_400_for_invalid_reset_path():
     )
 
     with pytest.raises(HTTPException) as err:
-        route.endpoint(SettingsResetInput(path="jukebox.runtime.loop_interval_seconds"))
+        route.endpoint(SettingsResetInput(path="jukebox.reader.type"))
 
     assert err.value.status_code == 400
     assert err.value.detail == "Unsupported settings path"

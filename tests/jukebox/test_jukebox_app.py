@@ -27,7 +27,7 @@ def test_main_uses_resolved_runtime_config(app_mocks):
         player_type="dryrun",
         reader_type="dryrun",
         pause_duration_seconds=100,
-        pause_delay_seconds=0.25,
+        pause_delay_seconds=1.0,
         loop_interval_seconds=0.5,
         nfc_read_timeout_seconds=0.1,
         verbose=True,
@@ -84,3 +84,19 @@ def test_build_settings_service_maps_sonos_host_override():
             }
         }
     }
+
+
+def test_build_settings_service_reads_persisted_playback_timing_settings(tmp_path, mocker):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        '{"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600, "pause_delay_seconds": 0.3}, "runtime": {"loop_interval_seconds": 0.2}}}',
+        encoding="utf-8",
+    )
+    mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
+
+    settings_service = app._build_settings_service(JukeboxCliConfig())
+    runtime_config = settings_service.resolve_jukebox_runtime()
+
+    assert runtime_config.pause_duration_seconds == 600
+    assert runtime_config.pause_delay_seconds == 0.3
+    assert runtime_config.loop_interval_seconds == 0.2

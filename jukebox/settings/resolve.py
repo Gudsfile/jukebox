@@ -6,18 +6,24 @@ from pydantic import ValidationError
 
 from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env_with_warning
 
-from .change_metadata import (
-    build_change_metadata_tree,
+from .definitions import (
+    build_settings_metadata_tree,
     get_editable_paths_for_prefix,
     get_restart_required_paths,
     has_editable_setting_descendants,
     is_editable_setting_path,
 )
 from .dict_utils import deep_merge
-from .entities import AppSettings, PlayerSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
+from .entities import AppSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
 from .errors import InvalidSettingsError
 from .repositories import SettingsRepository
+from .runtime_builders import (
+    build_resolved_admin_runtime_config,
+    build_resolved_jukebox_runtime_config,
+    expand_path,
+)
 from .types import JsonObject, JsonValue
+from .validation_rules import validate_settings_rules
 
 _MISSING = object()
 
@@ -79,43 +85,32 @@ class SettingsService:
             ),
             "derived": {
                 "paths": {
-                    "expanded_library_path": _expand_path(effective_settings.paths.library_path),
+                    "expanded_library_path": expand_path(effective_settings.paths.library_path),
                     "current_tag_path": get_current_tag_path(effective_settings.paths.library_path),
                 }
             },
-            "change_metadata": build_change_metadata_tree(),
+            "settings_metadata": build_settings_metadata_tree(),
         }
 
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
         try:
+            validate_settings_rules(effective_settings.model_dump(mode="python"))
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
-            return ResolvedJukeboxRuntimeConfig(
-                library_path=_expand_path(effective_settings.paths.library_path),
-                player_type=effective_settings.jukebox.player.type,
-                sonos_host=_resolve_sonos_host(effective_settings.jukebox.player),
-                sonos_name=_resolve_sonos_name(effective_settings.jukebox.player),
-                reader_type=effective_settings.jukebox.reader.type,
-                pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
-                pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
-                loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
-                nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
-                verbose=verbose,
-            )
+            return build_resolved_jukebox_runtime_config(effective_settings, verbose=verbose)
         except ValidationError as err:
+            raise InvalidSettingsError(
+                _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
+            ) from err
+        except ValueError as err:
             raise InvalidSettingsError(
                 _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
             ) from err
 
     def resolve_admin_runtime(self, verbose: bool = False) -> ResolvedAdminRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
-        return ResolvedAdminRuntimeConfig(
-            library_path=_expand_path(effective_settings.paths.library_path),
-            api_port=effective_settings.admin.api.port,
-            ui_port=effective_settings.admin.ui.port,
-            verbose=verbose,
-        )
+        return build_resolved_admin_runtime_config(effective_settings, verbose=verbose)
 
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
         if not is_editable_setting_path(dotted_path):
@@ -134,7 +129,6 @@ class SettingsService:
         current_data = self.repository.load().model_dump(mode="python")
         defaults_data = AppSettings().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
-
         for editable_path in editable_paths:
             _set_dotted_path(updated_data, editable_path, _get_dotted_path(defaults_data, editable_path))
 
@@ -191,6 +185,11 @@ class SettingsService:
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
+        try:
+            validate_settings_rules(settings.model_dump(mode="python"), updated_paths)
+        except ValueError as err:
+            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+
         persisted_after = _build_updated_persisted_settings(
             persisted_before,
             cast(JsonObject, settings.model_dump(mode="python")),
@@ -237,35 +236,6 @@ def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_
     return f"Invalid effective settings from persisted settings: {error}"
 
 
-def _resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
-    if player_settings.sonos.manual_host is not None:
-        return player_settings.sonos.manual_host
-
-    if player_settings.sonos.manual_name is not None:
-        return None
-
-    if player_settings.sonos.selected_group is not None:
-        for speaker in player_settings.sonos.selected_group.members:
-            if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
-                return speaker.last_known_host
-
-        for speaker in player_settings.sonos.selected_group.members:
-            if speaker.last_known_host:
-                return speaker.last_known_host
-
-    return None
-
-
-def _resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
-    if player_settings.sonos.manual_name is not None:
-        return player_settings.sonos.manual_name
-
-    if _resolve_sonos_host(player_settings) is not None:
-        return None
-
-    return None
-
-
 def _build_provenance_tree(
     effective_node: JsonObject,
     file_node: JsonObject,
@@ -306,10 +276,6 @@ def _get_child(node: JsonObject, key: str) -> Union[JsonValue, object]:
     if isinstance(node, dict) and key in node:
         return node[key]
     return _MISSING
-
-
-def _expand_path(path: str) -> str:
-    return os.path.abspath(os.path.expanduser(path))
 
 
 def _without_schema_version(data: JsonObject) -> JsonObject:

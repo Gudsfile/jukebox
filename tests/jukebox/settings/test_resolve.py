@@ -94,7 +94,13 @@ def test_settings_service_builds_effective_view_with_provenance(tmp_path):
     assert _lookup_json_value(effective_view, "provenance", "admin", "api", "port") == "file"
     assert _lookup_json_value(effective_view, "provenance", "admin", "ui", "port") == "cli"
     assert _lookup_json_value(effective_view, "provenance", "jukebox", "runtime", "loop_interval_seconds") == "default"
-    assert _lookup_json_value(effective_view, "change_metadata", "admin", "api", "port", "requires_restart") is True
+    assert _lookup_json_value(effective_view, "settings_metadata", "admin", "api", "port", "requires_restart") is True
+    assert (
+        _lookup_json_value(
+            effective_view, "settings_metadata", "jukebox", "runtime", "loop_interval_seconds", "requires_restart"
+        )
+        is True
+    )
 
 
 def test_settings_service_set_persisted_value_updates_sparse_settings_and_reports_restart(tmp_path):
@@ -117,6 +123,39 @@ def test_settings_service_set_persisted_value_updates_sparse_settings_and_report
     assert result["restart_required"] is True
     assert result["restart_required_paths"] == ["admin.api.port"]
     assert result["message"] == "Settings saved. Changes take effect after restart."
+
+
+def test_settings_service_set_library_path_allows_unrelated_invalid_timing_state(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_delay_seconds": 0.3},
+                    "runtime": {"loop_interval_seconds": 0.3},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.set_persisted_value("paths.library_path", "~/repaired-library.json")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "paths": {"library_path": "~/repaired-library.json"},
+        "jukebox": {
+            "playback": {"pause_delay_seconds": 0.3},
+            "runtime": {"loop_interval_seconds": 0.3},
+        },
+    }
+    assert result["updated_paths"] == ["paths.library_path"]
+    effective_view = _lookup_json_object(result, "effective")
+    assert _lookup_json_value(effective_view, "settings", "paths", "library_path") == "~/repaired-library.json"
+    runtime_config = service.resolve_admin_runtime()
+    assert runtime_config.library_path == os.path.abspath(os.path.expanduser("~/repaired-library.json"))
 
 
 def test_settings_service_reset_removes_only_requested_override(tmp_path):
@@ -182,6 +221,66 @@ def test_settings_service_reset_removes_section_subtree(tmp_path):
     runtime_config = service.resolve_admin_runtime()
     assert runtime_config.api_port == 8000
     assert runtime_config.ui_port == 8000
+
+
+def test_settings_service_reset_jukebox_preserves_non_editable_settings(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {"manual_host": "192.168.1.20"},
+                    },
+                    "reader": {"type": "nfc"},
+                    "playback": {
+                        "pause_duration_seconds": 600,
+                        "pause_delay_seconds": 0.3,
+                    },
+                    "runtime": {"loop_interval_seconds": 0.2},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("jukebox")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": "192.168.1.20"},
+            },
+            "reader": {"type": "nfc"},
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "type": "sonos",
+                "sonos": {"manual_host": "192.168.1.20"},
+            },
+            "reader": {"type": "nfc"},
+        },
+    }
+    assert result["updated_paths"] == [
+        "jukebox.playback.pause_delay_seconds",
+        "jukebox.playback.pause_duration_seconds",
+        "jukebox.runtime.loop_interval_seconds",
+    ]
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.player_type == "sonos"
+    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.reader_type == "nfc"
+    assert runtime_config.pause_duration_seconds == 900
+    assert runtime_config.pause_delay_seconds == 0.25
+    assert runtime_config.loop_interval_seconds == 0.1
 
 
 def test_settings_service_patch_updates_library_path_and_derived_current_tag_path(tmp_path):
@@ -330,7 +429,7 @@ def test_settings_service_patch_preserves_unrelated_explicit_default_pins(tmp_pa
 
 
 def test_settings_service_reset_section_preserves_non_editable_persisted_values(tmp_path, monkeypatch):
-    import jukebox.settings.change_metadata as cm
+    import jukebox.settings.definitions as definitions
 
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -345,8 +444,8 @@ def test_settings_service_reset_section_preserves_non_editable_persisted_values(
         ),
         encoding="utf-8",
     )
-    restricted_metadata = {key: value for key, value in cm.CHANGE_METADATA.items() if key != "admin.ui.port"}
-    monkeypatch.setattr(cm, "CHANGE_METADATA", restricted_metadata)
+    restricted_metadata = {key: value for key, value in definitions.SETTINGS.items() if key != "admin.ui.port"}
+    monkeypatch.setattr(definitions, "SETTINGS", restricted_metadata)
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.reset_persisted_value("admin")
@@ -379,6 +478,238 @@ def test_settings_service_set_rejects_unsupported_path_without_writing(tmp_path)
     assert not settings_path.exists()
 
 
+def test_settings_service_patch_updates_playback_timing_settings_and_reports_restart(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.patch_persisted_settings(
+        {
+            "jukebox": {
+                "playback": {
+                    "pause_duration_seconds": 600,
+                    "pause_delay_seconds": 0.3,
+                },
+                "runtime": {
+                    "loop_interval_seconds": 0.2,
+                },
+            }
+        }
+    )
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {
+                "pause_duration_seconds": 600,
+                "pause_delay_seconds": 0.3,
+            },
+            "runtime": {
+                "loop_interval_seconds": 0.2,
+            },
+        },
+    }
+    effective_view = _lookup_json_object(result, "effective")
+
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "playback", "pause_duration_seconds") == 600
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "playback", "pause_delay_seconds") == 0.3
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "runtime", "loop_interval_seconds") == 0.2
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "playback", "pause_duration_seconds") == "file"
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "playback", "pause_delay_seconds") == "file"
+    assert _lookup_json_value(effective_view, "provenance", "jukebox", "runtime", "loop_interval_seconds") == "file"
+    assert result["updated_paths"] == [
+        "jukebox.playback.pause_delay_seconds",
+        "jukebox.playback.pause_duration_seconds",
+        "jukebox.runtime.loop_interval_seconds",
+    ]
+    assert result["restart_required"] is True
+    assert result["restart_required_paths"] == [
+        "jukebox.playback.pause_delay_seconds",
+        "jukebox.playback.pause_duration_seconds",
+        "jukebox.runtime.loop_interval_seconds",
+    ]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
+
+
+def test_settings_service_reset_removes_only_requested_timing_override(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {
+                        "pause_duration_seconds": 600,
+                        "pause_delay_seconds": 0.3,
+                    },
+                    "runtime": {
+                        "loop_interval_seconds": 0.2,
+                    },
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("jukebox.playback.pause_delay_seconds")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {
+                "pause_duration_seconds": 600,
+            },
+            "runtime": {
+                "loop_interval_seconds": 0.2,
+            },
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {
+                "pause_duration_seconds": 600,
+            },
+            "runtime": {
+                "loop_interval_seconds": 0.2,
+            },
+        },
+    }
+    assert result["updated_paths"] == ["jukebox.playback.pause_delay_seconds"]
+    assert result["restart_required_paths"] == ["jukebox.playback.pause_delay_seconds"]
+    runtime_config = service.resolve_jukebox_runtime()
+    assert runtime_config.pause_duration_seconds == 600
+    assert runtime_config.pause_delay_seconds == 0.25
+    assert runtime_config.loop_interval_seconds == 0.2
+
+
+def test_settings_service_set_rejects_invalid_timing_value_without_writing(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "admin": {"api": {"port": 8100}}}),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
+        service.set_persisted_value("jukebox.playback.pause_delay_seconds", "0.19")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8100}},
+    }
+
+
+def test_settings_service_set_rejects_loop_interval_not_lower_than_pause_delay_without_writing(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_delay_seconds": 0.3},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(
+        InvalidSettingsError,
+        match="loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds",
+    ):
+        service.set_persisted_value("jukebox.runtime.loop_interval_seconds", "0.3")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {"pause_delay_seconds": 0.3},
+        },
+    }
+
+
+def test_settings_service_set_loop_interval_allows_unrelated_pause_duration_violation(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 10, "pause_delay_seconds": 10.0},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.set_persisted_value("jukebox.runtime.loop_interval_seconds", "0.2")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {"pause_duration_seconds": 10, "pause_delay_seconds": 10.0},
+            "runtime": {"loop_interval_seconds": 0.2},
+        },
+    }
+    assert result["updated_paths"] == ["jukebox.runtime.loop_interval_seconds"]
+
+
+def test_settings_service_patch_allows_pause_delay_greater_than_pause_duration(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 5},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.patch_persisted_settings({"jukebox": {"playback": {"pause_delay_seconds": 10.0}}})
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {"pause_duration_seconds": 5, "pause_delay_seconds": 10.0},
+        },
+    }
+    assert result["updated_paths"] == ["jukebox.playback.pause_delay_seconds"]
+
+
+def test_settings_service_set_pause_duration_allows_unrelated_loop_interval_violation(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_delay_seconds": 0.3},
+                    "runtime": {"loop_interval_seconds": 0.3},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.set_persisted_value("jukebox.playback.pause_duration_seconds", "20")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "jukebox": {
+            "playback": {"pause_duration_seconds": 20, "pause_delay_seconds": 0.3},
+            "runtime": {"loop_interval_seconds": 0.3},
+        },
+    }
+    assert result["updated_paths"] == ["jukebox.playback.pause_duration_seconds"]
+
+
 def test_settings_service_patch_rejects_out_of_phase_path_transactionally(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -388,7 +719,7 @@ def test_settings_service_patch_rejects_out_of_phase_path_transactionally(tmp_pa
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     with pytest.raises(InvalidSettingsError, match="Unsupported settings path for write"):
-        service.patch_persisted_settings({"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}})
+        service.patch_persisted_settings({"jukebox": {"reader": {"type": "nfc"}}})
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
@@ -722,4 +1053,49 @@ def test_settings_service_rejects_pause_delay_below_minimum_after_cli_overrides(
     )
 
     with pytest.raises(InvalidSettingsError):
+        service.resolve_jukebox_runtime()
+
+
+def test_settings_service_allows_effective_settings_view_with_invalid_timing_relationships(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_delay_seconds": 0.3},
+                    "runtime": {"loop_interval_seconds": 0.3},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    effective_view = service.get_effective_settings_view()
+
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "playback", "pause_delay_seconds") == 0.3
+    assert _lookup_json_value(effective_view, "settings", "jukebox", "runtime", "loop_interval_seconds") == 0.3
+
+
+def test_settings_service_rejects_loop_interval_not_lower_than_pause_delay_at_runtime(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "playback": {"pause_delay_seconds": 0.3},
+                    "runtime": {"loop_interval_seconds": 0.3},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(
+        InvalidSettingsError,
+        match="loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds",
+    ):
         service.resolve_jukebox_runtime()
