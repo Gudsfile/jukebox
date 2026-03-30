@@ -16,7 +16,6 @@ from .change_metadata import (
 from .dict_utils import deep_merge
 from .entities import AppSettings, PlayerSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
 from .errors import InvalidSettingsError
-from .file_settings_repository import build_sparse_settings_payload
 from .repositories import SettingsRepository
 from .types import JsonObject, JsonValue
 
@@ -135,8 +134,11 @@ class SettingsService:
         current_data = self.repository.load().model_dump(mode="python")
         defaults_data = AppSettings().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
-        _set_dotted_path(updated_data, dotted_path, _get_dotted_path(defaults_data, dotted_path))
-        return self._save_updated_settings(updated_data, editable_paths)
+
+        for editable_path in editable_paths:
+            _set_dotted_path(updated_data, editable_path, _get_dotted_path(defaults_data, editable_path))
+
+        return self._save_updated_settings(updated_data, editable_paths, reset_paths=editable_paths)
 
     def patch_persisted_settings(self, patch: JsonObject) -> JsonObject:
         if not isinstance(patch, dict) or not patch:
@@ -176,7 +178,12 @@ class SettingsService:
 
         return effective_settings
 
-    def _save_updated_settings(self, updated_data: JsonObject, updated_paths: list[str]) -> JsonObject:
+    def _save_updated_settings(
+        self,
+        updated_data: JsonObject,
+        updated_paths: list[str],
+        reset_paths: Optional[list[str]] = None,
+    ) -> JsonObject:
         persisted_before = self.repository.load_persisted_settings_data()
 
         try:
@@ -184,7 +191,12 @@ class SettingsService:
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
-        persisted_after = build_sparse_settings_payload(settings)
+        persisted_after = _build_updated_persisted_settings(
+            persisted_before,
+            cast(JsonObject, settings.model_dump(mode="python")),
+            updated_paths,
+            set(reset_paths or []),
+        )
         actual_updated_paths = sorted(
             dotted_path
             for dotted_path in updated_paths
@@ -202,7 +214,7 @@ class SettingsService:
                 "message": "No persisted settings changed.",
             }
 
-        self.repository.save(settings)
+        self.repository.save_persisted_settings_data(persisted_after)
 
         restart_required_paths = get_restart_required_paths(actual_updated_paths)
         return {
@@ -342,6 +354,48 @@ def _get_optional_dotted_path(data: JsonObject, dotted_path: str) -> object:
         return _get_dotted_path(data, dotted_path)
     except InvalidSettingsError:
         return _MISSING
+
+
+def _build_updated_persisted_settings(
+    persisted_before: JsonObject,
+    validated_data: JsonObject,
+    updated_paths: list[str],
+    reset_paths: set[str],
+) -> JsonObject:
+    persisted_after = copy.deepcopy(persisted_before)
+
+    for dotted_path in updated_paths:
+        if dotted_path in reset_paths:
+            _delete_dotted_path(persisted_after, dotted_path)
+            continue
+
+        _set_dotted_path(persisted_after, dotted_path, _get_dotted_path(validated_data, dotted_path))
+
+    persisted_after["schema_version"] = validated_data["schema_version"]
+    return persisted_after
+
+
+def _delete_dotted_path(data: JsonObject, dotted_path: str) -> None:
+    current = data
+    parents = []
+    parts = dotted_path.split(".")
+
+    for part in parts[:-1]:
+        child = current.get(part)
+        if not isinstance(child, dict):
+            return
+        parents.append((current, part, child))
+        current = child
+
+    if parts[-1] not in current:
+        return
+
+    del current[parts[-1]]
+
+    for parent, key, child in reversed(parents):
+        if child:
+            break
+        del parent[key]
 
 
 def _set_dotted_path(data: JsonObject, dotted_path: str, value: JsonValue) -> None:

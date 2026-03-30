@@ -209,18 +209,24 @@ def test_settings_service_patch_updates_library_path_and_derived_current_tag_pat
     assert result["restart_required_paths"] == ["admin.ui.port", "paths.library_path"]
 
 
-def test_settings_service_set_to_default_is_noop_and_does_not_create_file(tmp_path):
+def test_settings_service_set_to_default_persists_explicit_pin(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.set_persisted_value("admin.api.port", "8000")
 
-    assert not settings_path.exists()
-    assert result["persisted"] == {"schema_version": 1}
-    assert result["updated_paths"] == []
-    assert result["restart_required"] is False
-    assert result["restart_required_paths"] == []
-    assert result["message"] == "No persisted settings changed."
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["updated_paths"] == ["admin.api.port"]
+    assert result["restart_required"] is True
+    assert result["restart_required_paths"] == ["admin.api.port"]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
 
 
 def test_settings_service_reset_non_persisted_value_is_noop_and_does_not_create_file(tmp_path):
@@ -237,18 +243,130 @@ def test_settings_service_reset_non_persisted_value_is_noop_and_does_not_create_
     assert result["message"] == "No persisted settings changed."
 
 
-def test_settings_service_patch_default_value_is_noop_and_does_not_create_file(tmp_path):
+def test_settings_service_patch_default_value_persists_explicit_pin(tmp_path):
     settings_path = tmp_path / "settings.json"
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.patch_persisted_settings({"admin": {"api": {"port": 8000}}})
 
-    assert not settings_path.exists()
-    assert result["persisted"] == {"schema_version": 1}
-    assert result["updated_paths"] == []
-    assert result["restart_required"] is False
-    assert result["restart_required_paths"] == []
-    assert result["message"] == "No persisted settings changed."
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["updated_paths"] == ["admin.api.port"]
+    assert result["restart_required"] is True
+    assert result["restart_required_paths"] == ["admin.api.port"]
+    assert result["message"] == "Settings saved. Changes take effect after restart."
+
+
+def test_settings_service_reset_preserves_unrelated_explicit_default_pins(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "admin": {
+                    "api": {"port": 8000},
+                    "ui": {"port": 8200},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("admin.ui.port")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8000}},
+    }
+    assert result["updated_paths"] == ["admin.ui.port"]
+    runtime_config = service.resolve_admin_runtime()
+    assert runtime_config.api_port == 8000
+    assert runtime_config.ui_port == 8000
+
+
+def test_settings_service_patch_preserves_unrelated_explicit_default_pins(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "admin": {
+                    "api": {"port": 8000},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.patch_persisted_settings({"admin": {"ui": {"port": 8200}}})
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {
+            "api": {"port": 8000},
+            "ui": {"port": 8200},
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {
+            "api": {"port": 8000},
+            "ui": {"port": 8200},
+        },
+    }
+    assert result["updated_paths"] == ["admin.ui.port"]
+
+
+def test_settings_service_reset_section_preserves_non_editable_persisted_values(tmp_path, monkeypatch):
+    import jukebox.settings.change_metadata as cm
+
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "admin": {
+                    "api": {"port": 8100},
+                    "ui": {"port": 8200},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    restricted_metadata = {key: value for key, value in cm.CHANGE_METADATA.items() if key != "admin.ui.port"}
+    monkeypatch.setattr(cm, "CHANGE_METADATA", restricted_metadata)
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    result = service.reset_persisted_value("admin")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {
+            "ui": {"port": 8200},
+        },
+    }
+    assert result["persisted"] == {
+        "schema_version": 1,
+        "admin": {
+            "ui": {"port": 8200},
+        },
+    }
+    assert result["updated_paths"] == ["admin.api.port"]
+    runtime_config = service.resolve_admin_runtime()
+    assert runtime_config.api_port == 8000
+    assert runtime_config.ui_port == 8200
 
 
 def test_settings_service_set_rejects_unsupported_path_without_writing(tmp_path):
