@@ -12,6 +12,12 @@ from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 from .validation_rules import validate_settings_rules
 from .value_providers import ObjectLeafValueProvider
 
+_RUNTIME_VALIDATION_PATH_TO_ATTRIBUTE = {
+    "jukebox.playback.pause_duration_seconds": "pause_duration_seconds",
+    "jukebox.playback.pause_delay_seconds": "pause_delay_seconds",
+    "jukebox.runtime.loop_interval_seconds": "loop_interval_seconds",
+}
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -175,7 +181,7 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
 
     @model_validator(mode="after")
     def validate_timing_relationships(self):
-        validate_settings_rules(ObjectLeafValueProvider(self))
+        validate_settings_rules(ObjectLeafValueProvider(self, _RUNTIME_VALIDATION_PATH_TO_ATTRIBUTE))
         return self
 
 

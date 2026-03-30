@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping, Optional, Protocol
 
 
 class SettingsValueProvider(Protocol):
@@ -36,13 +36,24 @@ class NestedMappingValueProvider:
 @dataclass(frozen=True)
 class ObjectLeafValueProvider:
     value_object: object
+    dotted_path_to_attribute: Optional[Mapping[str, str]] = None
 
     def has_value(self, dotted_path: str) -> bool:
-        return hasattr(self.value_object, _leaf_name(dotted_path))
+        attribute_name = self._get_attribute_name(dotted_path)
+        return attribute_name is not None and hasattr(self.value_object, attribute_name)
 
     def get_value(self, dotted_path: str) -> Any:
-        return getattr(self.value_object, _leaf_name(dotted_path))
+        attribute_name = self._get_attribute_name(dotted_path)
+        if attribute_name is None or not hasattr(self.value_object, attribute_name):
+            raise KeyError(dotted_path)
 
+        return getattr(self.value_object, attribute_name)
 
-def _leaf_name(dotted_path: str) -> str:
-    return dotted_path.rsplit(".", 1)[-1]
+    def _get_attribute_name(self, dotted_path: str) -> Optional[str]:
+        if self.dotted_path_to_attribute is not None:
+            return self.dotted_path_to_attribute.get(dotted_path)
+
+        if "." in dotted_path:
+            return None
+
+        return dotted_path

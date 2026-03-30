@@ -7,6 +7,13 @@ from jukebox.settings.validation_rules import SettingsValidationRule
 from jukebox.settings.value_providers import ObjectLeafValueProvider
 
 
+def _provider(**values):
+    return ObjectLeafValueProvider(
+        SimpleNamespace(**values),
+        {f"settings.{name}": name for name in values},
+    )
+
+
 def test_get_rules_affected_by_paths_returns_rules_with_matching_dependencies(monkeypatch):
     monkeypatch.setattr(
         validation_rules,
@@ -31,7 +38,7 @@ def test_get_rules_supported_by_provider_returns_only_fully_supported_rules(monk
             SettingsValidationRule("gamma", ("settings.second", "settings.third"), lambda *_: None),
         ),
     )
-    provider = ObjectLeafValueProvider(SimpleNamespace(first=1, second=2))
+    provider = _provider(first=1, second=2)
 
     assert [rule.name for rule in validation_rules.get_rules_supported_by_provider(provider)] == [
         "alpha",
@@ -57,7 +64,7 @@ def test_validate_settings_rules_with_updated_paths_runs_affected_supported_rule
             SettingsValidationRule("gamma", ("settings.second", "settings.missing"), recorder("gamma")),
         ),
     )
-    provider = ObjectLeafValueProvider(SimpleNamespace(first="a", second="b", third="c"))
+    provider = _provider(first="a", second="b", third="c")
 
     validation_rules.validate_settings_rules(provider, updated_paths=["settings.second"])
 
@@ -82,7 +89,7 @@ def test_validate_settings_rules_without_updated_paths_runs_all_supported_rules(
             SettingsValidationRule("gamma", ("settings.third", "settings.fourth"), recorder("gamma")),
         ),
     )
-    provider = ObjectLeafValueProvider(SimpleNamespace(first="a", second="b", third="c"))
+    provider = _provider(first="a", second="b", third="c")
 
     validation_rules.validate_settings_rules(provider)
 
@@ -98,7 +105,7 @@ def test_validation_rule_uses_depends_on_paths_order_for_arguments():
     def record_args(*args):
         captured_args.extend(args)
 
-    provider = ObjectLeafValueProvider(SimpleNamespace(first_value="alpha", second_value="beta"))
+    provider = _provider(first_value="alpha", second_value="beta")
     rule = SettingsValidationRule(
         name="record_args",
         depends_on_paths=("settings.first_value", "settings.second_value"),
@@ -119,7 +126,7 @@ def test_validate_settings_rules_propagates_validator_errors(monkeypatch):
         "VALIDATION_RULES",
         (SettingsValidationRule("alpha", ("settings.first",), fail),),
     )
-    provider = ObjectLeafValueProvider(SimpleNamespace(first="a"))
+    provider = _provider(first="a")
 
     with pytest.raises(ValueError, match="broken"):
         validation_rules.validate_settings_rules(provider)
