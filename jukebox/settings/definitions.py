@@ -64,6 +64,22 @@ SETTINGS = {
         section="playback",
         requires_restart=True,
     ),
+    "jukebox.reader.type": SettingDefinition(
+        path="jukebox.reader.type",
+        label="Reader Type",
+        description="Reader backend used by jukebox playback.",
+        field_type="string",
+        section="reader",
+        requires_restart=True,
+    ),
+    "jukebox.reader.nfc.read_timeout_seconds": SettingDefinition(
+        path="jukebox.reader.nfc.read_timeout_seconds",
+        label="NFC Read Timeout",
+        description="Timeout in seconds for each NFC poll attempt.",
+        field_type="number",
+        section="reader",
+        requires_restart=True,
+    ),
 }
 
 

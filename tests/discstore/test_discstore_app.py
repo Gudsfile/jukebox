@@ -211,6 +211,24 @@ def test_main_prints_settings_show_payload(app_mocks):
             ("jukebox.playback.pause_duration_seconds", "600"),
         ),
         (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.reader.type",
+                value="nfc",
+            ),
+            "set_persisted_value",
+            ("jukebox.reader.type", "nfc"),
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.reader.nfc.read_timeout_seconds",
+                value="0.2",
+            ),
+            "set_persisted_value",
+            ("jukebox.reader.nfc.read_timeout_seconds", "0.2"),
+        ),
+        (
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
             "reset_persisted_value",
             ("admin.ui.port",),
@@ -219,6 +237,11 @@ def test_main_prints_settings_show_payload(app_mocks):
             SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
             "reset_persisted_value",
             ("jukebox.runtime.loop_interval_seconds",),
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
+            "reset_persisted_value",
+            ("jukebox.reader.nfc.read_timeout_seconds",),
         ),
         (SettingsResetCommand(type="settings_reset", dotted_path="admin"), "reset_persisted_value", ("admin",)),
     ],
