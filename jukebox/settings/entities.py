@@ -11,6 +11,7 @@ from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
 from .runtime_validation import validate_resolved_jukebox_runtime_rules
 
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -215,6 +216,7 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     def validate_runtime_rules(self):
         validate_resolved_jukebox_runtime_rules(self)
         return self
+
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str
