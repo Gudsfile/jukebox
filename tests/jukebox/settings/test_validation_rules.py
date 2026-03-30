@@ -1,17 +1,12 @@
-from types import SimpleNamespace
-
 import pytest
 
 from jukebox.settings import validation_rules
 from jukebox.settings.validation_rules import SettingsValidationRule
-from jukebox.settings.value_providers import ObjectLeafValueProvider
+from jukebox.settings.value_providers import NestedMappingValueProvider
 
 
 def _provider(**values):
-    return ObjectLeafValueProvider(
-        SimpleNamespace(**values),
-        {f"settings.{name}": name for name in values},
-    )
+    return NestedMappingValueProvider({"settings": values})
 
 
 def test_get_rules_affected_by_paths_returns_rules_with_matching_dependencies(monkeypatch):

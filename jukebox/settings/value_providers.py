@@ -1,5 +1,8 @@
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Protocol
+from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Protocol
+
+if TYPE_CHECKING:
+    from .entities import ResolvedJukeboxRuntimeConfig
 
 
 class SettingsValueProvider(Protocol):
@@ -34,26 +37,27 @@ class NestedMappingValueProvider:
 
 
 @dataclass(frozen=True)
-class ObjectLeafValueProvider:
-    value_object: object
-    dotted_path_to_attribute: Optional[Mapping[str, str]] = None
+class ResolvedJukeboxRuntimeValueProvider:
+    runtime_config: "ResolvedJukeboxRuntimeConfig"
+    PATH_TO_ATTRIBUTE: ClassVar[Mapping[str, str]] = {
+        "jukebox.playback.pause_delay_seconds": "pause_delay_seconds",
+        "jukebox.runtime.loop_interval_seconds": "loop_interval_seconds",
+    }
 
     def has_value(self, dotted_path: str) -> bool:
         attribute_name = self._get_attribute_name(dotted_path)
-        return attribute_name is not None and hasattr(self.value_object, attribute_name)
+        return attribute_name is not None and hasattr(self.runtime_config, attribute_name)
 
     def get_value(self, dotted_path: str) -> Any:
         attribute_name = self._get_attribute_name(dotted_path)
-        if attribute_name is None or not hasattr(self.value_object, attribute_name):
+        if attribute_name is None or not hasattr(self.runtime_config, attribute_name):
             raise KeyError(dotted_path)
 
-        return getattr(self.value_object, attribute_name)
+        return getattr(self.runtime_config, attribute_name)
 
-    def _get_attribute_name(self, dotted_path: str) -> Optional[str]:
-        if self.dotted_path_to_attribute is not None:
-            return self.dotted_path_to_attribute.get(dotted_path)
+    @classmethod
+    def supported_paths(cls) -> set[str]:
+        return set(cls.PATH_TO_ATTRIBUTE)
 
-        if "." in dotted_path:
-            return None
-
-        return dotted_path
+    def _get_attribute_name(self, dotted_path: str) -> Any:
+        return self.PATH_TO_ATTRIBUTE.get(dotted_path)
