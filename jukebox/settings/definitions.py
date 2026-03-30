@@ -96,7 +96,7 @@ def get_restart_required_paths(dotted_paths: Iterable[str]) -> list[str]:
     )
 
 
-def build_change_metadata_tree() -> JsonObject:
+def build_settings_metadata_tree() -> JsonObject:
     tree: JsonObject = {}
 
     for dotted_path, definition in SETTINGS.items():

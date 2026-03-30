@@ -94,10 +94,10 @@ def test_settings_service_builds_effective_view_with_provenance(tmp_path):
     assert _lookup_json_value(effective_view, "provenance", "admin", "api", "port") == "file"
     assert _lookup_json_value(effective_view, "provenance", "admin", "ui", "port") == "cli"
     assert _lookup_json_value(effective_view, "provenance", "jukebox", "runtime", "loop_interval_seconds") == "default"
-    assert _lookup_json_value(effective_view, "change_metadata", "admin", "api", "port", "requires_restart") is True
+    assert _lookup_json_value(effective_view, "settings_metadata", "admin", "api", "port", "requires_restart") is True
     assert (
         _lookup_json_value(
-            effective_view, "change_metadata", "jukebox", "runtime", "loop_interval_seconds", "requires_restart"
+            effective_view, "settings_metadata", "jukebox", "runtime", "loop_interval_seconds", "requires_restart"
         )
         is True
     )

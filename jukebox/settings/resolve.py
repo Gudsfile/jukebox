@@ -7,7 +7,7 @@ from pydantic import ValidationError
 from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env_with_warning
 
 from .definitions import (
-    build_change_metadata_tree,
+    build_settings_metadata_tree,
     get_editable_paths_for_prefix,
     get_restart_required_paths,
     has_editable_setting_descendants,
@@ -90,7 +90,7 @@ class SettingsService:
                     "current_tag_path": get_current_tag_path(effective_settings.paths.library_path),
                 }
             },
-            "change_metadata": build_change_metadata_tree(),
+            "settings_metadata": build_settings_metadata_tree(),
         }
 
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
