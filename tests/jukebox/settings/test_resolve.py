@@ -882,6 +882,7 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
         "schema_version": 1,
         "jukebox": {
             "reader": {
+                "type": "dryrun",
                 "nfc": {"read_timeout_seconds": 0.2},
             }
         },
