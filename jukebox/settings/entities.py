@@ -9,9 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
-from .validation_rules import validate_settings_rules
-from .value_providers import ResolvedJukeboxRuntimeValueProvider
-
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -172,11 +169,6 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     loop_interval_seconds: float
     nfc_read_timeout_seconds: float
     verbose: bool = False
-
-    @model_validator(mode="after")
-    def validate_timing_relationships(self):
-        validate_settings_rules(ResolvedJukeboxRuntimeValueProvider(self))
-        return self
 
 
 class ResolvedAdminRuntimeConfig(StrictModel):

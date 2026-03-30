@@ -96,10 +96,17 @@ class SettingsService:
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
         try:
+            validate_settings_rules(
+                NestedMappingValueProvider(effective_settings.model_dump(mode="python")),
+            )
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
             return build_resolved_jukebox_runtime_config(effective_settings, verbose=verbose)
         except ValidationError as err:
+            raise InvalidSettingsError(
+                _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
+            ) from err
+        except ValueError as err:
             raise InvalidSettingsError(
                 _format_invalid_settings_message(str(err), self.env_overrides, self.cli_overrides)
             ) from err
