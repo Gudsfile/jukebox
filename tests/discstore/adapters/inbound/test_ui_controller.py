@@ -91,7 +91,7 @@ def build_controller():
             },
         },
         "derived": {},
-        "change_metadata": {},
+        "settings_metadata": {},
     }
 
     return UIController(
@@ -347,7 +347,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
             },
         },
         "derived": {},
-        "change_metadata": {},
+        "settings_metadata": {},
     }
     route = next(
         route
