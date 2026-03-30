@@ -35,7 +35,7 @@ def build_controller():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {
         "schema_version": 1,
-        "admin": {"api": {"port": 8100}},
+        "admin": {"api": {"port": 8100}, "ui": {"port": 8000}},
         "jukebox": {
             "player": {
                 "sonos": {
@@ -74,7 +74,7 @@ def build_controller():
         },
         "provenance": {
             "paths": {"library_path": "default"},
-            "admin": {"api": {"port": "file"}, "ui": {"port": "default"}},
+            "admin": {"api": {"port": "file"}, "ui": {"port": "file"}},
             "jukebox": {
                 "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                 "runtime": {"loop_interval_seconds": "default"},
@@ -91,7 +91,7 @@ def build_controller():
             },
         },
         "derived": {},
-        "settings_metadata": {},
+        "change_metadata": {},
     }
 
     return UIController(
@@ -248,6 +248,7 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
         component.type == "Paragraph" and component.text == "Persisted: Not persisted" for component in all_components
     )
     assert any(component.type == "Paragraph" and component.text == "Source: file" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Pinned default" for component in all_components)
     assert any(component.type == "Paragraph" and component.text == "Restart required" for component in all_components)
     assert any(
         component.type == "Paragraph"
@@ -286,6 +287,10 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     ]
 
     text_page = route.endpoint("admin.ui.port")[0]
+    assert any(
+        component.type == "Paragraph" and component.text == "Pinned default"
+        for component in walk_components(text_page.components)
+    )
     text_form = next(component for component in walk_components(text_page.components) if component.type == "Form")
     text_field = text_form.form_fields[0]
     assert text_field.type == "FormFieldInput"
@@ -347,7 +352,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
             },
         },
         "derived": {},
-        "settings_metadata": {},
+        "change_metadata": {},
     }
     route = next(
         route
@@ -361,7 +366,10 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
 
     assert object_field.type == "FormFieldTextarea"
     assert object_field.initial == ""
-    assert object_field.placeholder == "Enter a JSON object. Leave blank for no value."
+    assert object_field.placeholder == "Enter a JSON object. Leave blank to persist null."
+    assert object_field.description.endswith(
+        "Leave blank to persist null. Use Reset to remove the persisted override. Takes effect after restart."
+    )
 
 
 @pytest.mark.skipif(

@@ -370,9 +370,19 @@ class UIController(APIController):
             c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
         ]
 
+        badge_components: list[AnyComponent] = []
+        if setting.is_pinned_default:
+            badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
         if setting.requires_restart:
+            badge_components.append(
+                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase")
+            )
+        if badge_components:
             info_components.append(
-                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase mt-2")
+                c.Div(
+                    class_name="d-flex flex-wrap gap-2 mt-2",
+                    components=badge_components,
+                )
             )
 
         action_components: list[AnyComponent] = [
@@ -435,13 +445,30 @@ class UIController(APIController):
             c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
         ]
 
+        badge_components: list[AnyComponent] = []
+        if setting.is_pinned_default:
+            badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
+        if setting.requires_restart:
+            badge_components.append(
+                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase")
+            )
+        if badge_components:
+            components.append(
+                c.Div(
+                    class_name="d-flex flex-wrap gap-2 mt-2",
+                    components=badge_components,
+                )
+            )
+
         components.append(self._build_settings_edit_form(setting))
 
         if setting.is_persisted:
             components.extend(
                 [
                     c.Heading(text="Reset override", level=3),
-                    c.Paragraph(text="Remove the persisted override and fall back to the effective merged value."),
+                    c.Paragraph(
+                        text="Reset removes the persisted override entirely. Use it to unpin a default value or fall back to merged defaults and overrides."
+                    ),
                     self._build_settings_reset_form(setting.path),
                 ]
             )
@@ -461,6 +488,10 @@ class UIController(APIController):
     def _build_settings_edit_form(self, setting: EditableSettingDisplay) -> AnyComponent:
         initial_value = setting.persisted_value if setting.is_persisted else setting.effective_value
         field_description = setting.description
+        if setting.field_type == "object":
+            field_description = (
+                f"{field_description} Leave blank to persist null. Use Reset to remove the persisted override."
+            )
         if setting.requires_restart:
             field_description = f"{field_description} Takes effect after restart."
 
@@ -488,7 +519,7 @@ class UIController(APIController):
                 description=field_description,
                 required=False,
                 rows=12,
-                placeholder="Enter a JSON object. Leave blank for no value.",
+                placeholder="Enter a JSON object. Leave blank to persist null.",
             )
         else:
             form_field = FormFieldInput(

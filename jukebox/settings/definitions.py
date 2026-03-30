@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Iterable, Optional, cast
 
+from .entities import AppSettings
 from .types import JsonObject
 
 _MISSING = object()
@@ -34,10 +35,12 @@ class EditableSettingDisplay:
     requires_restart: bool
     advanced: bool
     choices: tuple[SettingChoice, ...]
+    default_value: object
     persisted_value: object
     effective_value: object
     provenance: str
     is_persisted: bool
+    is_pinned_default: bool
 
 
 SETTINGS = {
@@ -165,6 +168,7 @@ def build_editable_setting_displays(
     persisted_settings: JsonObject,
     effective_settings_view: JsonObject,
 ) -> list[EditableSettingDisplay]:
+    default_settings = AppSettings().model_dump(mode="python")
     effective_settings = _lookup_object(effective_settings_view, "settings")
     provenance = _lookup_object(effective_settings_view, "provenance")
 
@@ -178,10 +182,16 @@ def build_editable_setting_displays(
             requires_restart=definition.requires_restart,
             advanced=definition.advanced,
             choices=definition.choices,
+            default_value=_normalize_lookup_value(_lookup_optional_dotted_path(default_settings, dotted_path)),
             persisted_value=_normalize_lookup_value(_lookup_optional_dotted_path(persisted_settings, dotted_path)),
             effective_value=_normalize_lookup_value(_lookup_optional_dotted_path(effective_settings, dotted_path)),
             provenance=_lookup_provenance_label(provenance, dotted_path),
             is_persisted=_lookup_optional_dotted_path(persisted_settings, dotted_path) is not _MISSING,
+            is_pinned_default=(
+                _lookup_optional_dotted_path(persisted_settings, dotted_path) is not _MISSING
+                and _normalize_lookup_value(_lookup_optional_dotted_path(persisted_settings, dotted_path))
+                == _normalize_lookup_value(_lookup_optional_dotted_path(default_settings, dotted_path))
+            ),
         )
         for dotted_path, definition in sorted(
             SETTINGS.items(),
@@ -190,7 +200,7 @@ def build_editable_setting_displays(
     ]
 
 
-def build_settings_metadata_tree() -> JsonObject:
+def build_change_metadata_tree() -> JsonObject:
     tree: JsonObject = {}
 
     for dotted_path, definition in SETTINGS.items():
