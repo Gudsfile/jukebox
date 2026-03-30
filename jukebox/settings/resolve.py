@@ -1,7 +1,7 @@
 import copy
 import json
 import os
-from typing import Callable, Optional, Union, cast
+from typing import Callable, Optional, Tuple, Union, cast
 
 from pydantic import ValidationError
 
@@ -16,19 +16,15 @@ from .definitions import (
     is_editable_setting_path,
 )
 from .dict_utils import deep_merge
-from .entities import AppSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
+from .entities import AppSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
 from .errors import InvalidSettingsError
 from .repositories import SettingsRepository
-from .runtime_builders import (
-    build_resolved_admin_runtime_config,
-    build_resolved_jukebox_runtime_config,
-    expand_path,
-)
 from .sonos_runtime import SonosGroupResolver
 from .types import JsonObject, JsonValue
 from .validation_rules import validate_settings_rules
 
 _MISSING = object()
+ActiveSonosTarget = Tuple[Optional[str], Optional[str], Optional[ResolvedSonosGroupRuntime]]
 
 
 def build_environment_settings_overrides(logger_warning: Callable[[str], None]) -> JsonObject:
@@ -90,7 +86,7 @@ class SettingsService:
             ),
             "derived": {
                 "paths": {
-                    "expanded_library_path": expand_path(effective_settings.paths.library_path),
+                    "expanded_library_path": _expand_path(effective_settings.paths.library_path),
                     "current_tag_path": get_current_tag_path(effective_settings.paths.library_path),
                 }
             },
@@ -101,15 +97,25 @@ class SettingsService:
         effective_settings = self._resolve_effective_settings()
         try:
             validate_settings_rules(effective_settings.model_dump(mode="python"))
-            sonos_host, sonos_name, sonos_group = self._resolve_active_sonos_target(effective_settings)
+            if effective_settings.jukebox.player.type == "sonos":
+                sonos_host, sonos_name, sonos_group = self._resolve_active_sonos_target(effective_settings)
+            else:
+                sonos_host, sonos_name = self._resolve_configured_sonos_target(effective_settings)
+                sonos_group = None
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
-            return build_resolved_jukebox_runtime_config(
-                effective_settings,
-                verbose=verbose,
+            return ResolvedJukeboxRuntimeConfig(
+                library_path=_expand_path(effective_settings.paths.library_path),
+                player_type=effective_settings.jukebox.player.type,
                 sonos_host=sonos_host,
                 sonos_name=sonos_name,
                 sonos_group=sonos_group,
+                reader_type=effective_settings.jukebox.reader.type,
+                pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
+                pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
+                loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
+                nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
+                verbose=verbose,
             )
         except (ValidationError, ValueError) as err:
             raise InvalidSettingsError(
@@ -118,7 +124,12 @@ class SettingsService:
 
     def resolve_admin_runtime(self, verbose: bool = False) -> ResolvedAdminRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
-        return build_resolved_admin_runtime_config(effective_settings, verbose=verbose)
+        return ResolvedAdminRuntimeConfig(
+            library_path=_expand_path(effective_settings.paths.library_path),
+            api_port=effective_settings.admin.api.port,
+            ui_port=effective_settings.admin.ui.port,
+            verbose=verbose,
+        )
 
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
         if not is_editable_setting_path(dotted_path):
@@ -235,17 +246,17 @@ class SettingsService:
             ),
         }
 
-    def _resolve_active_sonos_target(self, effective_settings: AppSettings):
+    def _resolve_active_sonos_target(self, effective_settings: AppSettings) -> ActiveSonosTarget:
         player_settings = effective_settings.jukebox.player
         if player_settings.type != "sonos":
             return None, None, None
 
         override_target = self._resolve_manual_sonos_override(self.cli_overrides)
-        if override_target is not _MISSING:
+        if override_target is not None:
             return override_target
 
         override_target = self._resolve_manual_sonos_override(self.env_overrides)
-        if override_target is not _MISSING:
+        if override_target is not None:
             return override_target
 
         if player_settings.sonos.selected_group is not None:
@@ -262,6 +273,27 @@ class SettingsService:
 
         return None, None, None
 
+    @staticmethod
+    def _resolve_configured_sonos_target(effective_settings: AppSettings) -> Tuple[Optional[str], Optional[str]]:
+        player_settings = effective_settings.jukebox.player
+
+        if player_settings.sonos.manual_host is not None:
+            return player_settings.sonos.manual_host, None
+
+        if player_settings.sonos.selected_group is not None:
+            for speaker in player_settings.sonos.selected_group.members:
+                if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
+                    return speaker.last_known_host, None
+
+            for speaker in player_settings.sonos.selected_group.members:
+                if speaker.last_known_host:
+                    return speaker.last_known_host, None
+
+        if player_settings.sonos.manual_name is not None:
+            return None, player_settings.sonos.manual_name
+
+        return None, None
+
     def _get_sonos_group_resolver(self) -> SonosGroupResolver:
         if self.sonos_group_resolver is not None:
             return self.sonos_group_resolver
@@ -272,28 +304,28 @@ class SettingsService:
         return self.sonos_group_resolver
 
     @staticmethod
-    def _resolve_manual_sonos_override(overrides: JsonObject):
+    def _resolve_manual_sonos_override(overrides: JsonObject) -> Optional[ActiveSonosTarget]:
         jukebox_overrides = overrides.get("jukebox")
         if not isinstance(jukebox_overrides, dict):
-            return _MISSING
+            return None
 
         player_overrides = jukebox_overrides.get("player")
         if not isinstance(player_overrides, dict):
-            return _MISSING
+            return None
 
         sonos_overrides = player_overrides.get("sonos", {})
         if not isinstance(sonos_overrides, dict):
-            return _MISSING
+            return None
 
-        manual_host = sonos_overrides.get("manual_host", _MISSING)
-        if manual_host is not _MISSING and manual_host is not None:
+        manual_host = sonos_overrides.get("manual_host")
+        if manual_host is not None:
             return manual_host, None, None
 
-        manual_name = sonos_overrides.get("manual_name", _MISSING)
-        if manual_name is not _MISSING and manual_name is not None:
+        manual_name = sonos_overrides.get("manual_name")
+        if manual_name is not None:
             return None, manual_name, None
 
-        return _MISSING
+        return None
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
@@ -302,6 +334,10 @@ def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_
     if env_overrides:
         return f"Invalid effective settings after environment overrides: {error}"
     return f"Invalid effective settings from persisted settings: {error}"
+
+
+def _expand_path(path: str) -> str:
+    return os.path.abspath(os.path.expanduser(path))
 
 
 def _build_provenance_tree(
