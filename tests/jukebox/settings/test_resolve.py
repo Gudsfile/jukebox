@@ -573,11 +573,11 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
         )
         == "file"
     )
-    assert _lookup_json_value(effective_view, "change_metadata", "jukebox", "reader", "type", "section") == "reader"
+    assert _lookup_json_value(effective_view, "settings_metadata", "jukebox", "reader", "type", "section") == "reader"
     assert (
         _lookup_json_value(
             effective_view,
-            "change_metadata",
+            "settings_metadata",
             "jukebox",
             "reader",
             "nfc",
