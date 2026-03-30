@@ -102,7 +102,7 @@ def test_render_settings_output_effective_includes_manual_sonos_targets():
                 },
             },
             "derived": {},
-            "change_metadata": {},
+            "settings_metadata": {},
         },
     )
 
@@ -151,7 +151,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
                 },
             },
             "derived": {},
-            "change_metadata": {},
+            "settings_metadata": {},
         },
     )
 
@@ -207,7 +207,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
                 },
             },
             "derived": {},
-            "change_metadata": {},
+            "settings_metadata": {},
         },
     )
 

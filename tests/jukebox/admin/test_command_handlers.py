@@ -80,7 +80,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                         "current_tag_path": "/Users/test/.jukebox/current-tag.txt",
                     }
                 },
-                "change_metadata": {},
+                "settings_metadata": {},
             },
             [
                 "Effective Settings",
@@ -319,7 +319,7 @@ def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_
         "derived": {
             "paths": {"expanded_library_path": "/tmp/library.json", "current_tag_path": "/tmp/current-tag.txt"}
         },
-        "change_metadata": {},
+        "settings_metadata": {},
     }
     stdout_fn = MagicMock()
     stderr_fn = MagicMock()
