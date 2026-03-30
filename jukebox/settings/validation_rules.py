@@ -1,8 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Iterable, Optional
+from typing import Any, Callable, Iterable, Mapping, Optional
 
 from .timing_validation import validate_loop_interval_lower_than_pause_delay
-from .value_providers import SettingsValueProvider
 
 
 @dataclass(frozen=True)
@@ -11,8 +10,8 @@ class SettingsValidationRule:
     depends_on_paths: tuple[str, ...]
     validator: Callable[..., None]
 
-    def validate(self, provider: SettingsValueProvider) -> None:
-        values = [provider.get_value(dotted_path) for dotted_path in self.depends_on_paths]
+    def validate(self, settings: Mapping[str, Any]) -> None:
+        values = [_get_dotted_path(settings, dotted_path) for dotted_path in self.depends_on_paths]
         self.validator(*values)
 
 
@@ -37,19 +36,19 @@ def get_rules_affected_by_paths(dotted_paths: Iterable[str]) -> list[SettingsVal
     ]
 
 
-def get_rules_supported_by_provider(provider: SettingsValueProvider) -> list[SettingsValidationRule]:
+def get_rules_supported_by_settings(settings: Mapping[str, Any]) -> list[SettingsValidationRule]:
     return [
         rule
         for rule in VALIDATION_RULES
-        if all(provider.has_value(dependency_path) for dependency_path in rule.depends_on_paths)
+        if all(_has_dotted_path(settings, dependency_path) for dependency_path in rule.depends_on_paths)
     ]
 
 
 def validate_settings_rules(
-    provider: SettingsValueProvider,
+    settings: Mapping[str, Any],
     updated_paths: Optional[Iterable[str]] = None,
 ) -> None:
-    supported_rules = get_rules_supported_by_provider(provider)
+    supported_rules = get_rules_supported_by_settings(settings)
     if updated_paths is None:
         rules_to_validate = supported_rules
     else:
@@ -57,4 +56,26 @@ def validate_settings_rules(
         rules_to_validate = [rule for rule in supported_rules if rule.name in affected_names]
 
     for rule in rules_to_validate:
-        rule.validate(provider)
+        rule.validate(settings)
+
+
+def _has_dotted_path(settings: Mapping[str, Any], dotted_path: str) -> bool:
+    current: Any = settings
+
+    for part in dotted_path.split("."):
+        if not isinstance(current, Mapping) or part not in current:
+            return False
+        current = current[part]
+
+    return True
+
+
+def _get_dotted_path(settings: Mapping[str, Any], dotted_path: str) -> Any:
+    current: Any = settings
+
+    for part in dotted_path.split("."):
+        if not isinstance(current, Mapping) or part not in current:
+            raise KeyError(dotted_path)
+        current = current[part]
+
+    return current

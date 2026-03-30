@@ -24,7 +24,6 @@ from .runtime_builders import (
 )
 from .types import JsonObject, JsonValue
 from .validation_rules import validate_settings_rules
-from .value_providers import NestedMappingValueProvider
 
 _MISSING = object()
 
@@ -96,9 +95,7 @@ class SettingsService:
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
         effective_settings = self._resolve_effective_settings()
         try:
-            validate_settings_rules(
-                NestedMappingValueProvider(effective_settings.model_dump(mode="python")),
-            )
+            validate_settings_rules(effective_settings.model_dump(mode="python"))
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
             return build_resolved_jukebox_runtime_config(effective_settings, verbose=verbose)
@@ -189,10 +186,7 @@ class SettingsService:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         try:
-            validate_settings_rules(
-                NestedMappingValueProvider(settings.model_dump(mode="python")),
-                updated_paths,
-            )
+            validate_settings_rules(settings.model_dump(mode="python"), updated_paths)
         except ValueError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
