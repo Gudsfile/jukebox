@@ -236,7 +236,7 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
     ]
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "dryrun"
-    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_host is None
     assert runtime_config.reader_type == "dryrun"
     assert runtime_config.pause_duration_seconds == 900
     assert runtime_config.pause_delay_seconds == 0.25
@@ -485,7 +485,7 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
     assert result["updated_paths"] == ["jukebox.player.sonos.selected_group"]
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "dryrun"
-    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_host is None
 
 
 def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_path):

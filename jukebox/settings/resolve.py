@@ -97,11 +97,7 @@ class SettingsService:
         effective_settings = self._resolve_effective_settings()
         try:
             validate_settings_rules(effective_settings.model_dump(mode="python"))
-            if effective_settings.jukebox.player.type == "sonos":
-                sonos_host, sonos_name, sonos_group = self._resolve_active_sonos_target(effective_settings)
-            else:
-                sonos_host, sonos_name = self._resolve_configured_sonos_target(effective_settings)
-                sonos_group = None
+            sonos_host, sonos_name, sonos_group = self._resolve_active_sonos_target(effective_settings)
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
             return ResolvedJukeboxRuntimeConfig(
@@ -272,27 +268,6 @@ class SettingsService:
             return None, player_settings.sonos.manual_name, None
 
         return None, None, None
-
-    @staticmethod
-    def _resolve_configured_sonos_target(effective_settings: AppSettings) -> Tuple[Optional[str], Optional[str]]:
-        player_settings = effective_settings.jukebox.player
-
-        if player_settings.sonos.manual_host is not None:
-            return player_settings.sonos.manual_host, None
-
-        if player_settings.sonos.selected_group is not None:
-            for speaker in player_settings.sonos.selected_group.members:
-                if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
-                    return speaker.last_known_host, None
-
-            for speaker in player_settings.sonos.selected_group.members:
-                if speaker.last_known_host:
-                    return speaker.last_known_host, None
-
-        if player_settings.sonos.manual_name is not None:
-            return None, player_settings.sonos.manual_name
-
-        return None, None
 
     def _get_sonos_group_resolver(self) -> SonosGroupResolver:
         if self.sonos_group_resolver is not None:
