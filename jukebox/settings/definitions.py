@@ -200,7 +200,7 @@ def build_editable_setting_displays(
     ]
 
 
-def build_change_metadata_tree() -> JsonObject:
+def build_settings_metadata_tree() -> JsonObject:
     tree: JsonObject = {}
 
     for dotted_path, definition in SETTINGS.items():
@@ -227,6 +227,10 @@ def build_change_metadata_tree() -> JsonObject:
         }
 
     return tree
+
+
+def build_change_metadata_tree() -> JsonObject:
+    return build_settings_metadata_tree()
 
 
 def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
