@@ -626,7 +626,15 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        "household_id": None,
+                        "members": [
+                            {
+                                "uid": "speaker-1",
+                                "name": "Living Room",
+                                "household_id": None,
+                                "last_known_host": "192.168.1.20",
+                            }
+                        ],
                     }
                 }
             }
@@ -666,7 +674,15 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        "household_id": None,
+                        "members": [
+                            {
+                                "uid": "speaker-1",
+                                "name": "Living Room",
+                                "household_id": None,
+                                "last_known_host": "192.168.1.20",
+                            }
+                        ],
                     }
                 },
             }
@@ -699,11 +715,11 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
         )
         == "file"
     )
-    assert _lookup_json_value(effective_view, "change_metadata", "jukebox", "player", "type", "section") == "player"
+    assert _lookup_json_value(effective_view, "settings_metadata", "jukebox", "player", "type", "section") == "player"
     assert (
         _lookup_json_value(
             effective_view,
-            "change_metadata",
+            "settings_metadata",
             "jukebox",
             "player",
             "sonos",
