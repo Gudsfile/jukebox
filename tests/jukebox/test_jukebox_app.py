@@ -67,7 +67,7 @@ def test_build_settings_service_maps_sonos_name_override():
         "jukebox": {
             "player": {
                 "type": "sonos",
-                "sonos": {"manual_host": None, "manual_name": "Living Room"},
+                "sonos": {"manual_host": None, "manual_name": "Living Room", "selected_group": None},
             }
         }
     }
@@ -80,7 +80,7 @@ def test_build_settings_service_maps_sonos_host_override():
         "jukebox": {
             "player": {
                 "type": "sonos",
-                "sonos": {"manual_host": "192.168.1.20", "manual_name": None},
+                "sonos": {"manual_host": "192.168.1.20", "manual_name": None, "selected_group": None},
             }
         }
     }
@@ -102,3 +102,19 @@ def test_build_settings_service_reads_persisted_reader_and_timing_settings(tmp_p
     assert runtime_config.pause_duration_seconds == 600
     assert runtime_config.pause_delay_seconds == 0.3
     assert runtime_config.loop_interval_seconds == 0.2
+
+
+def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, mocker):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        '{"schema_version": 1, "jukebox": {"player": {"type": "sonos", "sonos": {"selected_group": {"coordinator_uid": "speaker-2", "members": [{"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"}, {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"}]}}}}}',
+        encoding="utf-8",
+    )
+    mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
+
+    settings_service = app._build_settings_service(JukeboxCliConfig())
+    runtime_config = settings_service.resolve_jukebox_runtime()
+
+    assert runtime_config.player_type == "sonos"
+    assert runtime_config.sonos_host == "192.168.1.40"
+    assert runtime_config.sonos_name is None

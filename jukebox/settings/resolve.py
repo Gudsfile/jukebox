@@ -1,4 +1,5 @@
 import copy
+import json
 import os
 from typing import Callable, Optional, Union, cast
 
@@ -10,6 +11,7 @@ from .definitions import (
     build_settings_metadata_tree,
     get_editable_paths_for_prefix,
     get_restart_required_paths,
+    get_setting_definition,
     has_editable_setting_descendants,
     is_editable_setting_path,
 )
@@ -46,12 +48,12 @@ def build_environment_settings_overrides(logger_warning: Callable[[str], None]) 
         None,
         logger_warning,
     )
-    if sonos_host is not None:
-        overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_host"] = sonos_host
-
     sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
-    if sonos_name is not None:
-        overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})["manual_name"] = sonos_name
+    if sonos_host is not None or sonos_name is not None:
+        sonos_overrides = overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
+        sonos_overrides["manual_host"] = sonos_host
+        sonos_overrides["manual_name"] = sonos_name
+        sonos_overrides["selected_group"] = None
 
     return overrides
 
@@ -118,7 +120,7 @@ class SettingsService:
 
         current_data = self.repository.load().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
-        _set_dotted_path(updated_data, dotted_path, raw_value)
+        _set_dotted_path(updated_data, dotted_path, _parse_raw_setting_value(dotted_path, raw_value))
         return self._save_updated_settings(updated_data, [dotted_path])
 
     def reset_persisted_value(self, dotted_path: str) -> JsonObject:
@@ -290,6 +292,10 @@ def _collect_patch_paths(node: JsonObject, prefix: Optional[str] = None) -> set[
     for key, value in node.items():
         dotted_path = f"{prefix}.{key}" if prefix else key
 
+        if is_editable_setting_path(dotted_path):
+            paths.add(dotted_path)
+            continue
+
         if isinstance(value, dict):
             if not has_editable_setting_descendants(dotted_path):
                 raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
@@ -376,3 +382,20 @@ def _set_dotted_path(data: JsonObject, dotted_path: str, value: JsonValue) -> No
         current = child
 
     current[parts[-1]] = copy.deepcopy(value)
+
+
+def _parse_raw_setting_value(dotted_path: str, raw_value: str) -> JsonValue:
+    definition = get_setting_definition(dotted_path)
+
+    if definition is None or definition.field_type != "object":
+        return raw_value
+
+    try:
+        parsed_value = json.loads(raw_value)
+    except json.JSONDecodeError as err:
+        raise InvalidSettingsError(f"Settings value for '{dotted_path}' must be valid JSON.") from err
+
+    if parsed_value is not None and not isinstance(parsed_value, dict):
+        raise InvalidSettingsError(f"Settings value for '{dotted_path}' must be a JSON object or null.")
+
+    return cast(JsonValue, parsed_value)

@@ -190,6 +190,92 @@ def test_patch_settings_updates_reader_settings():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_updates_player_settings():
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {
+        "persisted": {
+            "schema_version": 1,
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        }
+                    },
+                }
+            },
+        }
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings" and "PATCH" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(
+        SettingsPatchInput(
+            root={
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-1",
+                                "members": [
+                                    {
+                                        "uid": "speaker-1",
+                                        "name": "Living Room",
+                                        "last_known_host": "192.168.1.20",
+                                    }
+                                ],
+                            }
+                        },
+                    }
+                }
+            }
+        )
+    )
+
+    assert response == {
+        "persisted": {
+            "schema_version": 1,
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        }
+                    },
+                }
+            },
+        }
+    }
+    settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                        }
+                    },
+                }
+            }
+        }
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_settings_returns_400_for_invalid_settings_write():
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
@@ -261,6 +347,28 @@ def test_reset_settings_removes_playback_timing_override():
 
     assert response == {"persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}}
     settings_service.reset_persisted_value.assert_called_once_with("jukebox.runtime.loop_interval_seconds")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_reset_settings_removes_selected_group_override():
+    settings_service = MagicMock()
+    settings_service.reset_persisted_value.return_value = {
+        "persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings/reset" and "POST" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsResetInput(path="jukebox.player.sonos.selected_group"))
+
+    assert response == {"persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}}
+    settings_service.reset_persisted_value.assert_called_once_with("jukebox.player.sonos.selected_group")
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

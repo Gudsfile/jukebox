@@ -42,9 +42,6 @@ def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
     if player_settings.sonos.manual_host is not None:
         return player_settings.sonos.manual_host
 
-    if player_settings.sonos.manual_name is not None:
-        return None
-
     if player_settings.sonos.selected_group is not None:
         for speaker in player_settings.sonos.selected_group.members:
             if speaker.uid == player_settings.sonos.selected_group.coordinator_uid and speaker.last_known_host:
@@ -58,10 +55,7 @@ def resolve_sonos_host(player_settings: PlayerSettings) -> Optional[str]:
 
 
 def resolve_sonos_name(player_settings: PlayerSettings) -> Optional[str]:
-    if player_settings.sonos.manual_name is not None:
-        return player_settings.sonos.manual_name
-
     if resolve_sonos_host(player_settings) is not None:
         return None
 
-    return None
+    return player_settings.sonos.manual_name

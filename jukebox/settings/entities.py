@@ -26,6 +26,17 @@ class SelectedSonosGroupSettings(StrictModel):
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
 
+    @model_validator(mode="after")
+    def validate_group_shape(self):
+        if not self.members:
+            raise ValueError("selected_group must include at least one member")
+
+        member_uids = {member.uid for member in self.members}
+        if self.coordinator_uid not in member_uids:
+            raise ValueError("selected_group.coordinator_uid must match a member uid")
+
+        return self
+
 
 class SonosPlayerSettings(StrictModel):
     manual_host: Optional[str] = None

@@ -229,6 +229,27 @@ def test_main_prints_settings_show_payload(app_mocks):
             ("jukebox.reader.nfc.read_timeout_seconds", "0.2"),
         ),
         (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.player.type",
+                value="sonos",
+            ),
+            "set_persisted_value",
+            ("jukebox.player.type", "sonos"),
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.player.sonos.selected_group",
+                value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Living Room","last_known_host":"192.168.1.20"}]}',
+            ),
+            "set_persisted_value",
+            (
+                "jukebox.player.sonos.selected_group",
+                '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Living Room","last_known_host":"192.168.1.20"}]}',
+            ),
+        ),
+        (
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
             "reset_persisted_value",
             ("admin.ui.port",),
@@ -242,6 +263,11 @@ def test_main_prints_settings_show_payload(app_mocks):
             SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
             "reset_persisted_value",
             ("jukebox.reader.nfc.read_timeout_seconds",),
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.player.sonos.selected_group"),
+            "reset_persisted_value",
+            ("jukebox.player.sonos.selected_group",),
         ),
         (SettingsResetCommand(type="settings_reset", dotted_path="admin"), "reset_persisted_value", ("admin",)),
     ],

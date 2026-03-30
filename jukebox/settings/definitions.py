@@ -64,6 +64,22 @@ SETTINGS = {
         section="playback",
         requires_restart=True,
     ),
+    "jukebox.player.type": SettingDefinition(
+        path="jukebox.player.type",
+        label="Player Type",
+        description="Playback backend used by jukebox playback.",
+        field_type="string",
+        section="player",
+        requires_restart=True,
+    ),
+    "jukebox.player.sonos.selected_group": SettingDefinition(
+        path="jukebox.player.sonos.selected_group",
+        label="Selected Sonos Group",
+        description="Durable Sonos speaker or group selection used for playback.",
+        field_type="object",
+        section="player",
+        requires_restart=True,
+    ),
     "jukebox.reader.type": SettingDefinition(
         path="jukebox.reader.type",
         label="Reader Type",
