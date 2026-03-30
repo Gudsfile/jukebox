@@ -1,8 +1,8 @@
-from jukebox.settings.definitions import build_change_metadata_tree, build_editable_setting_displays
+from jukebox.settings.definitions import build_editable_setting_displays, build_settings_metadata_tree
 
 
-def test_build_change_metadata_tree_includes_field_choices():
-    metadata = build_change_metadata_tree()
+def test_build_settings_metadata_tree_includes_field_choices():
+    metadata = build_settings_metadata_tree()
 
     assert metadata["jukebox"]["reader"]["type"]["choices"] == [
         {"value": "dryrun", "label": "Dry Run"},
