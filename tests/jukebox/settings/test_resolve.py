@@ -429,7 +429,7 @@ def test_settings_service_patch_preserves_unrelated_explicit_default_pins(tmp_pa
 
 
 def test_settings_service_reset_section_preserves_non_editable_persisted_values(tmp_path, monkeypatch):
-    import jukebox.settings.change_metadata as cm
+    import jukebox.settings.definitions as definitions
 
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
@@ -444,8 +444,8 @@ def test_settings_service_reset_section_preserves_non_editable_persisted_values(
         ),
         encoding="utf-8",
     )
-    restricted_metadata = {key: value for key, value in cm.CHANGE_METADATA.items() if key != "admin.ui.port"}
-    monkeypatch.setattr(cm, "CHANGE_METADATA", restricted_metadata)
+    restricted_metadata = {key: value for key, value in definitions.SETTINGS.items() if key != "admin.ui.port"}
+    monkeypatch.setattr(definitions, "SETTINGS", restricted_metadata)
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.reset_persisted_value("admin")
