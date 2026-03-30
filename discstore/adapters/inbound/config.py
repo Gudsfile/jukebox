@@ -86,6 +86,17 @@ class SettingsShowCommand(BaseModel):
     effective: bool = False
 
 
+class SettingsSetCommand(BaseModel):
+    type: Literal["settings_set"]
+    dotted_path: str
+    value: str
+
+
+class SettingsResetCommand(BaseModel):
+    type: Literal["settings_reset"]
+    dotted_path: str
+
+
 class DiscStoreConfig(BaseModel):
     library: Optional[str] = None
     verbose: bool = False
@@ -99,6 +110,8 @@ class DiscStoreConfig(BaseModel):
         CliEditCommand,
         CliGetCommand,
         CliSearchCommand,
+        SettingsResetCommand,
+        SettingsSetCommand,
         SettingsShowCommand,
         UiCommand,
     ]
@@ -183,6 +196,11 @@ def parse_config() -> DiscStoreConfig:
         action="store_true",
         help="show merged effective settings with provenance",
     )
+    settings_set_parser = settings_subparsers.add_parser("set", help="Set a persisted setting override")
+    settings_set_parser.add_argument("dotted_path", help="canonical dotted path to update")
+    settings_set_parser.add_argument("value", help="value to persist for the given path")
+    settings_reset_parser = settings_subparsers.add_parser("reset", help="Remove a persisted setting override")
+    settings_reset_parser.add_argument("dotted_path", help="canonical dotted path to reset")
 
     args = parser.parse_args()
 
@@ -195,8 +213,8 @@ def parse_config() -> DiscStoreConfig:
     try:
         # Build and validate final config
         if command_name == "settings":
-            args_dict.pop("settings_command")
-            command_config = {"type": "settings_show", **args_dict}
+            settings_command = args_dict.pop("settings_command")
+            command_config = {"type": f"settings_{settings_command}", **args_dict}
         else:
             command_config = {"type": command_name, **args_dict}
 

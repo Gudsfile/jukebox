@@ -1,11 +1,18 @@
 import copy
 import os
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, cast
 
 from pydantic import ValidationError
 
 from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env_with_warning
 
+from .change_metadata import (
+    build_change_metadata_tree,
+    get_editable_paths_for_prefix,
+    get_restart_required_paths,
+    has_editable_setting_descendants,
+    is_editable_setting_path,
+)
 from .dict_utils import deep_merge
 from .entities import AppSettings, PlayerSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig
 from .errors import InvalidSettingsError
@@ -43,7 +50,7 @@ def build_environment_settings_overrides(logger_warning: Callable[[str], None]) 
     return overrides
 
 
-class SettingsReadService:
+class SettingsService:
     def __init__(
         self,
         repository: SettingsRepository,
@@ -76,6 +83,7 @@ class SettingsReadService:
                     "current_tag_path": get_current_tag_path(effective_settings.paths.library_path),
                 }
             },
+            "change_metadata": build_change_metadata_tree(),
         }
 
     def resolve_jukebox_runtime(self, verbose: bool = False) -> ResolvedJukeboxRuntimeConfig:
@@ -109,6 +117,41 @@ class SettingsReadService:
             verbose=verbose,
         )
 
+    def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
+        if not is_editable_setting_path(dotted_path):
+            raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+
+        current_data = self.repository.load().model_dump(mode="python")
+        updated_data = copy.deepcopy(current_data)
+        _set_dotted_path(updated_data, dotted_path, raw_value)
+        return self._save_updated_settings(updated_data, [dotted_path])
+
+    def reset_persisted_value(self, dotted_path: str) -> JsonObject:
+        editable_paths = get_editable_paths_for_prefix(dotted_path)
+        if not editable_paths:
+            raise InvalidSettingsError(f"Unsupported settings path for reset: '{dotted_path}'")
+
+        current_data = self.repository.load().model_dump(mode="python")
+        defaults_data = AppSettings().model_dump(mode="python")
+        updated_data = copy.deepcopy(current_data)
+
+        for editable_path in editable_paths:
+            _set_dotted_path(updated_data, editable_path, _get_dotted_path(defaults_data, editable_path))
+
+        return self._save_updated_settings(updated_data, editable_paths, reset_paths=editable_paths)
+
+    def patch_persisted_settings(self, patch: JsonObject) -> JsonObject:
+        if not isinstance(patch, dict) or not patch:
+            raise InvalidSettingsError("Settings patch must be a non-empty JSON object.")
+
+        updated_paths = sorted(_collect_patch_paths(patch))
+        if not updated_paths:
+            raise InvalidSettingsError("Settings patch must include at least one editable field.")
+
+        current_data = self.repository.load().model_dump(mode="python")
+        updated_data = deep_merge(current_data, patch)
+        return self._save_updated_settings(updated_data, updated_paths)
+
     def _resolve_effective_settings(self) -> AppSettings:
         # This layer only validates the merged shared settings shape. It must not
         # enforce app-specific runtime requirements for callers like discstore.
@@ -134,6 +177,56 @@ class SettingsReadService:
             raise InvalidSettingsError(f"Invalid effective settings after CLI overrides: {err}") from err
 
         return effective_settings
+
+    def _save_updated_settings(
+        self,
+        updated_data: JsonObject,
+        updated_paths: list[str],
+        reset_paths: Optional[list[str]] = None,
+    ) -> JsonObject:
+        persisted_before = self.repository.load_persisted_settings_data()
+
+        try:
+            settings = AppSettings.model_validate(updated_data)
+        except ValidationError as err:
+            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+
+        persisted_after = _build_updated_persisted_settings(
+            persisted_before,
+            cast(JsonObject, settings.model_dump(mode="python")),
+            updated_paths,
+            set(reset_paths or []),
+        )
+        actual_updated_paths = sorted(
+            dotted_path
+            for dotted_path in updated_paths
+            if _get_optional_dotted_path(persisted_before, dotted_path)
+            != _get_optional_dotted_path(persisted_after, dotted_path)
+        )
+
+        if not actual_updated_paths:
+            return {
+                "persisted": persisted_before,
+                "effective": self.get_effective_settings_view(),
+                "updated_paths": [],
+                "restart_required": False,
+                "restart_required_paths": [],
+                "message": "No persisted settings changed.",
+            }
+
+        self.repository.save_persisted_settings_data(persisted_after)
+
+        restart_required_paths = get_restart_required_paths(actual_updated_paths)
+        return {
+            "persisted": self.get_persisted_settings_view(),
+            "effective": self.get_effective_settings_view(),
+            "updated_paths": actual_updated_paths,
+            "restart_required": bool(restart_required_paths),
+            "restart_required_paths": restart_required_paths,
+            "message": (
+                "Settings saved. Changes take effect after restart." if restart_required_paths else "Settings saved."
+            ),
+        }
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
@@ -188,9 +281,9 @@ def _build_provenance_tree(
         if isinstance(value, dict):
             provenance[key] = _build_provenance_tree(
                 value,
-                file_value if isinstance(file_value, dict) else {},
-                env_value if isinstance(env_value, dict) else {},
-                cli_value if isinstance(cli_value, dict) else {},
+                cast(JsonObject, file_value) if isinstance(file_value, dict) else {},
+                cast(JsonObject, env_value) if isinstance(env_value, dict) else {},
+                cast(JsonObject, cli_value) if isinstance(cli_value, dict) else {},
             )
             continue
 
@@ -223,3 +316,97 @@ def _without_schema_version(data: JsonObject) -> JsonObject:
     filtered = copy.deepcopy(data)
     filtered.pop("schema_version", None)
     return filtered
+
+
+def _collect_patch_paths(node: JsonObject, prefix: Optional[str] = None) -> set[str]:
+    paths = set()
+
+    for key, value in node.items():
+        dotted_path = f"{prefix}.{key}" if prefix else key
+
+        if isinstance(value, dict):
+            if not has_editable_setting_descendants(dotted_path):
+                raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+            paths.update(_collect_patch_paths(value, dotted_path))
+            continue
+
+        if not is_editable_setting_path(dotted_path):
+            raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+
+        paths.add(dotted_path)
+
+    return paths
+
+
+def _get_dotted_path(data: JsonObject, dotted_path: str) -> JsonValue:
+    current: JsonValue = data
+
+    for part in dotted_path.split("."):
+        if not isinstance(current, dict) or part not in current:
+            raise InvalidSettingsError(f"Unknown settings path: '{dotted_path}'")
+        current = current[part]
+
+    return copy.deepcopy(current)
+
+
+def _get_optional_dotted_path(data: JsonObject, dotted_path: str) -> object:
+    try:
+        return _get_dotted_path(data, dotted_path)
+    except InvalidSettingsError:
+        return _MISSING
+
+
+def _build_updated_persisted_settings(
+    persisted_before: JsonObject,
+    validated_data: JsonObject,
+    updated_paths: list[str],
+    reset_paths: set[str],
+) -> JsonObject:
+    persisted_after = copy.deepcopy(persisted_before)
+
+    for dotted_path in updated_paths:
+        if dotted_path in reset_paths:
+            _delete_dotted_path(persisted_after, dotted_path)
+            continue
+
+        _set_dotted_path(persisted_after, dotted_path, _get_dotted_path(validated_data, dotted_path))
+
+    persisted_after["schema_version"] = validated_data["schema_version"]
+    return persisted_after
+
+
+def _delete_dotted_path(data: JsonObject, dotted_path: str) -> None:
+    current = data
+    parents = []
+    parts = dotted_path.split(".")
+
+    for part in parts[:-1]:
+        child = current.get(part)
+        if not isinstance(child, dict):
+            return
+        parents.append((current, part, child))
+        current = child
+
+    if parts[-1] not in current:
+        return
+
+    del current[parts[-1]]
+
+    for parent, key, child in reversed(parents):
+        if child:
+            break
+        del parent[key]
+
+
+def _set_dotted_path(data: JsonObject, dotted_path: str, value: JsonValue) -> None:
+    current = data
+    parts = dotted_path.split(".")
+
+    for part in parts[:-1]:
+        child = current.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            current[part] = child
+        current = child
+
+    current[parts[-1]] = copy.deepcopy(value)

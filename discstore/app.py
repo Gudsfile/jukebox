@@ -6,6 +6,8 @@ from discstore.adapters.inbound.config import (
     ApiCommand,
     DiscStoreConfig,
     InteractiveCliCommand,
+    SettingsResetCommand,
+    SettingsSetCommand,
     SettingsShowCommand,
     UiCommand,
     parse_config,
@@ -13,7 +15,7 @@ from discstore.adapters.inbound.config import (
 from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
-from jukebox.settings.resolve import SettingsReadService, build_environment_settings_overrides
+from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.shared.logger import set_logger
 
@@ -35,7 +37,7 @@ def _load_uvicorn(command_name: str, extra_name: str):
         ) from err
 
 
-def _build_settings_service(config: DiscStoreConfig) -> SettingsReadService:
+def _build_settings_service(config: DiscStoreConfig) -> SettingsService:
     cli_overrides = {}
 
     if config.library is not None:
@@ -47,7 +49,7 @@ def _build_settings_service(config: DiscStoreConfig) -> SettingsReadService:
     if isinstance(config.command, UiCommand) and config.command.port is not None:
         cli_overrides.setdefault("admin", {}).setdefault("ui", {})["port"] = config.command.port
 
-    return SettingsReadService(
+    return SettingsService(
         repository=FileSettingsRepository(),
         env_overrides=build_environment_settings_overrides(LOGGER.warning),
         cli_overrides=cli_overrides,
@@ -65,6 +67,16 @@ def main():
                 if config.command.effective
                 else settings_service.get_persisted_settings_view()
             )
+            print(json.dumps(payload, indent=2))
+            return
+
+        if isinstance(config.command, SettingsSetCommand):
+            payload = settings_service.set_persisted_value(config.command.dotted_path, config.command.value)
+            print(json.dumps(payload, indent=2))
+            return
+
+        if isinstance(config.command, SettingsResetCommand):
+            payload = settings_service.reset_persisted_value(config.command.dotted_path)
             print(json.dumps(payload, indent=2))
             return
 

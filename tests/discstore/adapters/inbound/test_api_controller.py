@@ -8,11 +8,13 @@ import pytest
 FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 
 if FASTAPI_INSTALLED:
+    from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import APIController
+    from discstore.adapters.inbound.api_controller import APIController, SettingsPatchInput, SettingsResetInput
     from discstore.domain.entities import CurrentTagStatus
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
+    from jukebox.settings.errors import InvalidSettingsError
 
 
 def test_dependencies_import_failure(mocker):
@@ -95,3 +97,118 @@ def test_get_effective_settings_returns_effective_settings_payload():
 
     assert response == {"settings": {}, "provenance": {}, "derived": {}}
     settings_service.get_effective_settings_view.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_updates_persisted_settings():
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {
+        "persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings" and "PATCH" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsPatchInput(root={"admin": {"api": {"port": 9000}}}))
+
+    assert response == {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
+    settings_service.patch_persisted_settings.assert_called_once_with({"admin": {"api": {"port": 9000}}})
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_returns_400_for_invalid_settings_write():
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings" and "PATCH" in getattr(route, "methods", set())
+        ),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(SettingsPatchInput(root={"jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}))
+
+    assert err.value.status_code == 400
+    assert err.value.detail == "Unsupported settings path"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_settings_route_generates_openapi_schema():
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+
+    schema = controller.app.openapi()
+
+    assert "/api/v1/settings" in schema["paths"]
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_reset_settings_removes_persisted_override():
+    settings_service = MagicMock()
+    settings_service.reset_persisted_value.return_value = {
+        "persisted": {"schema_version": 1, "admin": {"ui": {"port": 9200}}}
+    }
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings/reset" and "POST" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsResetInput(path="admin.api.port"))
+
+    assert response == {"persisted": {"schema_version": 1, "admin": {"ui": {"port": 9200}}}}
+    settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_reset_settings_accepts_section_path():
+    settings_service = MagicMock()
+    settings_service.reset_persisted_value.return_value = {"persisted": {"schema_version": 1}}
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings/reset" and "POST" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SettingsResetInput(path="admin"))
+
+    assert response == {"persisted": {"schema_version": 1}}
+    settings_service.reset_persisted_value.assert_called_once_with("admin")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_reset_settings_returns_400_for_invalid_reset_path():
+    settings_service = MagicMock()
+    settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Unsupported settings path")
+    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/settings/reset" and "POST" in getattr(route, "methods", set())
+        ),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(SettingsResetInput(path="jukebox.runtime.loop_interval_seconds"))
+
+    assert err.value.status_code == 400
+    assert err.value.detail == "Unsupported settings path"

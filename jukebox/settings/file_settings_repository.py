@@ -2,7 +2,6 @@ import json
 import os
 import tempfile
 from contextlib import suppress
-from typing import Union
 
 from pydantic import ValidationError
 
@@ -10,10 +9,9 @@ from .dict_utils import deep_merge
 from .entities import AppSettings, SparseAppSettings
 from .errors import InvalidSettingsError, MalformedSettingsFileError
 from .migration import CURRENT_SETTINGS_SCHEMA_VERSION, migrate_settings_data
-from .types import JsonObject, JsonValue
+from .types import JsonObject
 
 DEFAULT_SETTINGS_PATH = os.path.expanduser("~/.jukebox/settings.json")
-_MISSING = object()
 
 
 class FileSettingsRepository:
@@ -51,13 +49,8 @@ class FileSettingsRepository:
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
 
-    def save(self, settings: AppSettings) -> None:
-        default_data = AppSettings().model_dump(mode="python")
-        current_data = settings.model_dump(mode="python")
-        sparse_data = _build_sparse_diff(current_data, default_data)
-        sparse_payload = sparse_data if isinstance(sparse_data, dict) else {}
-        sparse_payload["schema_version"] = settings.schema_version
-        self._write_data(sparse_payload)
+    def save_persisted_settings_data(self, data: JsonObject) -> None:
+        self._write_data(data)
 
     def _write_data(self, data: JsonObject) -> None:
         directory = os.path.dirname(self.filepath) or "."
@@ -81,26 +74,3 @@ class FileSettingsRepository:
             with suppress(FileNotFoundError):
                 os.unlink(temp_path)
             raise
-
-
-def _build_sparse_diff(current: JsonValue, default: object) -> Union[JsonValue, object]:
-    if isinstance(current, dict) and isinstance(default, dict):
-        diff = {}
-        for key, current_value in current.items():
-            if key == "schema_version":
-                continue
-
-            default_value = default.get(key, _MISSING)
-            child_diff = _build_sparse_diff(current_value, default_value)
-            if child_diff is not _MISSING:
-                diff[key] = child_diff
-
-        if diff:
-            return diff
-
-        return _MISSING
-
-    if current != default:
-        return current
-
-    return _MISSING

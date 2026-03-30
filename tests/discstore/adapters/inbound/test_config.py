@@ -10,6 +10,8 @@ from discstore.adapters.inbound.config import (
     CliListCommand,
     CliRemoveCommand,
     InteractiveCliCommand,
+    SettingsResetCommand,
+    SettingsSetCommand,
     SettingsShowCommand,
     UiCommand,
     parse_config,
@@ -153,6 +155,31 @@ def test_parse_settings_show_effective_command():
 
     assert isinstance(config.command, SettingsShowCommand)
     assert config.command.effective is True
+
+
+@patch("sys.argv", ["prog_name", "settings", "set", "admin.api.port", "9000"])
+def test_parse_settings_set_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsSetCommand)
+    assert config.command.dotted_path == "admin.api.port"
+    assert config.command.value == "9000"
+
+
+@patch("sys.argv", ["prog_name", "settings", "reset", "admin.ui.port"])
+def test_parse_settings_reset_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsResetCommand)
+    assert config.command.dotted_path == "admin.ui.port"
+
+
+@patch("sys.argv", ["prog_name", "settings", "reset", "admin"])
+def test_parse_settings_reset_section_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsResetCommand)
+    assert config.command.dotted_path == "admin"
 
 
 @patch("sys.argv", ["prog_name", "-v", "--library", "/custom/path.json", "list", "table"])

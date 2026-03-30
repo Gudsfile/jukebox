@@ -13,11 +13,14 @@ from discstore.adapters.inbound.config import (
     CliRemoveCommand,
     DiscStoreConfig,
     InteractiveCliCommand,
+    SettingsResetCommand,
+    SettingsSetCommand,
     SettingsShowCommand,
     UiCommand,
 )
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
+from jukebox.settings.file_settings_repository import FileSettingsRepository
 
 
 def assert_app_mocks_calls(app_mocks, expected_calls: dict):
@@ -188,6 +191,63 @@ def test_main_prints_settings_show_payload(app_mocks):
         },
     )
     settings_service.get_effective_settings_view.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("command", "service_method", "service_args"),
+    [
+        (
+            SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
+            "set_persisted_value",
+            ("admin.api.port", "9000"),
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
+            "reset_persisted_value",
+            ("admin.ui.port",),
+        ),
+        (SettingsResetCommand(type="settings_reset", dotted_path="admin"), "reset_persisted_value", ("admin",)),
+    ],
+)
+def test_main_prints_settings_write_payload(app_mocks, command, service_method, service_args):
+    config = DiscStoreConfig(verbose=True, command=command)
+    settings_service = MagicMock()
+    getattr(settings_service, service_method).return_value = {"message": "Settings saved."}
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+
+    app.main()
+
+    assert_app_mocks_calls(
+        app_mocks,
+        {
+            "parse_config": (),
+            "set_logger": ("discstore", True),
+            "build_settings_service": (config,),
+            "print": (json.dumps({"message": "Settings saved."}, indent=2),),
+        },
+    )
+    getattr(settings_service, service_method).assert_called_once_with(*service_args)
+
+
+def test_build_settings_service_reads_persisted_admin_ports(tmp_path, mocker):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "admin": {"api": {"port": 8100}, "ui": {"port": 8200}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    mocker.patch("discstore.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
+
+    settings_service = app._build_settings_service(DiscStoreConfig(command=ApiCommand(type="api")))
+    runtime_config = settings_service.resolve_admin_runtime()
+
+    assert runtime_config.api_port == 8100
+    assert runtime_config.ui_port == 8200
 
 
 @pytest.mark.parametrize(
