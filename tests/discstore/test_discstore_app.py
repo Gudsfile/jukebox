@@ -41,7 +41,36 @@ def app_mocks(mocker):
         SettingsShowCommand(type="settings_show", effective=False),
         SettingsShowCommand(type="settings_show", effective=True),
         SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.playback.pause_duration_seconds",
+            value="600",
+        ),
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.reader.type",
+            value="nfc",
+        ),
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.reader.nfc.read_timeout_seconds",
+            value="0.2",
+        ),
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.player.type",
+            value="sonos",
+        ),
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path="jukebox.player.sonos.selected_group",
+            value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
+        ),
         SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
+        SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
+        SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
+        SettingsResetCommand(type="settings_reset", dotted_path="jukebox.player.sonos.selected_group"),
+        SettingsResetCommand(type="settings_reset", dotted_path="admin"),
     ],
 )
 def test_main_delegates_admin_commands_to_shared_handler(app_mocks, command):

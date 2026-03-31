@@ -44,10 +44,101 @@ def test_execute_admin_command_prints_persisted_settings():
             {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}},
         ),
         (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.playback.pause_duration_seconds",
+                value="600",
+            ),
+            "set_persisted_value",
+            ("jukebox.playback.pause_duration_seconds", "600"),
+            {"persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}},
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.reader.type",
+                value="nfc",
+            ),
+            "set_persisted_value",
+            ("jukebox.reader.type", "nfc"),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}},
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.reader.nfc.read_timeout_seconds",
+                value="0.2",
+            ),
+            "set_persisted_value",
+            ("jukebox.reader.nfc.read_timeout_seconds", "0.2"),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {"read_timeout_seconds": 0.2}}}}},
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.player.type",
+                value="sonos",
+            ),
+            "set_persisted_value",
+            ("jukebox.player.type", "sonos"),
+            {"persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}},
+        ),
+        (
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="jukebox.player.sonos.selected_group",
+                value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
+            ),
+            "set_persisted_value",
+            (
+                "jukebox.player.sonos.selected_group",
+                '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
+            ),
+            {
+                "persisted": {
+                    "schema_version": 1,
+                    "jukebox": {
+                        "player": {
+                            "sonos": {
+                                "selected_group": {
+                                    "coordinator_uid": "speaker-1",
+                                    "members": [{"uid": "speaker-1"}],
+                                }
+                            }
+                        }
+                    },
+                }
+            },
+        ),
+        (
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
             "reset_persisted_value",
             ("admin.ui.port",),
             {"persisted": {"schema_version": 1, "admin": {}}},
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
+            "reset_persisted_value",
+            ("jukebox.runtime.loop_interval_seconds",),
+            {"persisted": {"schema_version": 1, "jukebox": {"runtime": {}}}},
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
+            "reset_persisted_value",
+            ("jukebox.reader.nfc.read_timeout_seconds",),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {}}}}},
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.player.sonos.selected_group"),
+            "reset_persisted_value",
+            ("jukebox.player.sonos.selected_group",),
+            {"persisted": {"schema_version": 1, "jukebox": {"player": {"sonos": {}}}}},
+        ),
+        (
+            SettingsResetCommand(type="settings_reset", dotted_path="admin"),
+            "reset_persisted_value",
+            ("admin",),
+            {"persisted": {"schema_version": 1}},
         ),
     ],
 )
