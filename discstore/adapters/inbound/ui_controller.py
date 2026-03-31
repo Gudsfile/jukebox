@@ -2,6 +2,7 @@ import asyncio
 import json
 import sys
 from itertools import groupby
+from typing import cast
 from urllib.parse import urlencode
 
 if sys.version_info < (3, 10):
@@ -603,22 +604,21 @@ class UIController(APIController):
             return "null"
 
         if setting_path == "jukebox.player.sonos.selected_group" and isinstance(value, dict):
-            members = value.get("members")
-            coordinator_uid = value.get("coordinator_uid")
+            selected_group = cast(dict[str, object], value)
+            members = selected_group.get("members")
+            coordinator_uid = selected_group.get("coordinator_uid")
             if isinstance(members, list) and isinstance(coordinator_uid, str):
-                member_names = []
-                coordinator_name = coordinator_uid
+                member_uids = []
                 for member in members:
                     if not isinstance(member, dict):
                         continue
-                    name = member.get("name") or member.get("uid")
-                    if not isinstance(name, str):
+                    selected_member = cast(dict[str, object], member)
+                    uid = selected_member.get("uid")
+                    if not isinstance(uid, str):
                         continue
-                    member_names.append(name)
-                    if member.get("uid") == coordinator_uid:
-                        coordinator_name = name
-                if member_names:
-                    return "{} (coordinator); members: {}".format(coordinator_name, ", ".join(member_names))
+                    member_uids.append(uid)
+                if member_uids:
+                    return "{} (coordinator); members: {}".format(coordinator_uid, ", ".join(member_uids))
 
         if isinstance(value, bool):
             return "true" if value else "false"

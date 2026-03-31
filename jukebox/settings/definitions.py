@@ -256,7 +256,7 @@ def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
         child = current.get(part, _MISSING)
         if not isinstance(child, dict):
             return _MISSING
-        current = child
+        current = cast(JsonObject, child)
     return current.get(parts[-1], _MISSING)
 
 

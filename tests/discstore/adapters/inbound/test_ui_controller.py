@@ -42,8 +42,8 @@ def build_controller():
                     "selected_group": {
                         "coordinator_uid": "speaker-2",
                         "members": [
-                            {"uid": "speaker-1", "name": "Kitchen"},
-                            {"uid": "speaker-2", "name": "Living Room"},
+                            {"uid": "speaker-1"},
+                            {"uid": "speaker-2"},
                         ],
                     }
                 }
@@ -64,8 +64,8 @@ def build_controller():
                         "selected_group": {
                             "coordinator_uid": "speaker-2",
                             "members": [
-                                {"uid": "speaker-1", "name": "Kitchen"},
-                                {"uid": "speaker-2", "name": "Living Room"},
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
                             ],
                         }
                     },
@@ -252,7 +252,7 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
     assert any(component.type == "Paragraph" and component.text == "Restart required" for component in all_components)
     assert any(
         component.type == "Paragraph"
-        and component.text == "Effective: Living Room (coordinator); members: Kitchen, Living Room"
+        and component.text == "Effective: speaker-2 (coordinator); members: speaker-1, speaker-2"
         for component in all_components
     )
     reset_forms = [
@@ -305,8 +305,8 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
         {
             "coordinator_uid": "speaker-2",
             "members": [
-                {"uid": "speaker-1", "name": "Kitchen"},
-                {"uid": "speaker-2", "name": "Living Room"},
+                {"uid": "speaker-1"},
+                {"uid": "speaker-2"},
             ],
         },
         indent=2,
@@ -417,7 +417,7 @@ async def test_update_setting_builds_object_patch_from_json_text():
 
     response = await route.endpoint(
         "jukebox.player.sonos.selected_group",
-        SettingValueForm(value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Office"}]}'),
+        SettingValueForm(value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}'),
     )
 
     controller.settings_service.patch_persisted_settings.assert_called_once_with(
@@ -427,7 +427,7 @@ async def test_update_setting_builds_object_patch_from_json_text():
                     "sonos": {
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1", "name": "Office"}],
+                            "members": [{"uid": "speaker-1"}],
                         }
                     }
                 }

@@ -1,14 +1,22 @@
+from typing import cast
+
 from jukebox.settings.definitions import build_change_metadata_tree, build_editable_setting_displays
+from jukebox.settings.types import JsonObject
 
 
 def test_build_change_metadata_tree_includes_field_choices():
     metadata = build_change_metadata_tree()
+    jukebox_metadata = cast(JsonObject, metadata["jukebox"])
+    reader_metadata = cast(JsonObject, jukebox_metadata["reader"])
+    player_metadata = cast(JsonObject, jukebox_metadata["player"])
+    reader_type_metadata = cast(JsonObject, reader_metadata["type"])
+    player_type_metadata = cast(JsonObject, player_metadata["type"])
 
-    assert metadata["jukebox"]["reader"]["type"]["choices"] == [
+    assert reader_type_metadata["choices"] == [
         {"value": "dryrun", "label": "Dry Run"},
         {"value": "nfc", "label": "NFC"},
     ]
-    assert metadata["jukebox"]["player"]["type"]["choices"] == [
+    assert player_type_metadata["choices"] == [
         {"value": "dryrun", "label": "Dry Run"},
         {"value": "sonos", "label": "Sonos"},
     ]
@@ -25,8 +33,8 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
                         "selected_group": {
                             "coordinator_uid": "speaker-2",
                             "members": [
-                                {"uid": "speaker-1", "name": "Kitchen"},
-                                {"uid": "speaker-2", "name": "Living Room"},
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
                             ],
                         }
                     }
@@ -47,8 +55,8 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             }
                         },
@@ -96,7 +104,7 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
     assert selected_group.persisted_value == {
         "coordinator_uid": "speaker-2",
         "members": [
-            {"uid": "speaker-1", "name": "Kitchen"},
-            {"uid": "speaker-2", "name": "Living Room"},
+            {"uid": "speaker-1"},
+            {"uid": "speaker-2"},
         ],
     }
