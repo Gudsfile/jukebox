@@ -6,7 +6,7 @@ from contextlib import suppress
 from pydantic import ValidationError
 
 from .dict_utils import deep_merge
-from .entities import AppSettings, SparseAppSettings
+from .entities import PersistedAppSettings, SparsePersistedAppSettings
 from .errors import InvalidSettingsError, MalformedSettingsFileError
 from .migration import CURRENT_SETTINGS_SCHEMA_VERSION, migrate_settings_data
 from .types import JsonObject
@@ -31,8 +31,10 @@ class FileSettingsRepository:
         migrated_data, migrated = migrate_settings_data(raw_data)
 
         try:
-            SparseAppSettings.model_validate(migrated_data)
-            AppSettings.model_validate(deep_merge(AppSettings().model_dump(mode="python"), migrated_data))
+            SparsePersistedAppSettings.model_validate(migrated_data)
+            PersistedAppSettings.model_validate(
+                deep_merge(PersistedAppSettings().model_dump(mode="python"), migrated_data)
+            )
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
 
@@ -41,11 +43,13 @@ class FileSettingsRepository:
 
         return migrated_data
 
-    def load(self) -> AppSettings:
+    def load_persisted(self) -> PersistedAppSettings:
         raw_data = self.load_persisted_settings_data()
 
         try:
-            return AppSettings.model_validate(deep_merge(AppSettings().model_dump(mode="python"), raw_data))
+            return PersistedAppSettings.model_validate(
+                deep_merge(PersistedAppSettings().model_dump(mode="python"), raw_data)
+            )
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
 

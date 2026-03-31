@@ -40,10 +40,13 @@ class SelectedSonosGroupSettings(StrictModel):
         return self
 
 
-class SonosPlayerSettings(StrictModel):
+class PersistedSonosPlayerSettings(StrictModel):
+    selected_group: Optional[SelectedSonosGroupSettings] = None
+
+
+class SonosPlayerSettings(PersistedSonosPlayerSettings):
     manual_host: Optional[str] = None
     manual_name: Optional[str] = None
-    selected_group: Optional[SelectedSonosGroupSettings] = None
 
     @model_validator(mode="after")
     def validate_manual_target(self):
@@ -52,8 +55,12 @@ class SonosPlayerSettings(StrictModel):
         return self
 
 
-class PlayerSettings(StrictModel):
+class PersistedPlayerSettings(StrictModel):
     type: Literal["dryrun", "sonos"] = "dryrun"
+    sonos: PersistedSonosPlayerSettings = Field(default_factory=PersistedSonosPlayerSettings)
+
+
+class PlayerSettings(PersistedPlayerSettings):
     sonos: SonosPlayerSettings = Field(default_factory=SonosPlayerSettings)
 
 
@@ -75,11 +82,15 @@ class RuntimeSettings(StrictModel):
     loop_interval_seconds: float = Field(default=0.1, gt=0)
 
 
-class JukeboxSettings(StrictModel):
-    player: PlayerSettings = Field(default_factory=PlayerSettings)
+class PersistedJukeboxSettings(StrictModel):
+    player: PersistedPlayerSettings = Field(default_factory=PersistedPlayerSettings)
     reader: ReaderSettings = Field(default_factory=ReaderSettings)
     playback: PlaybackSettings = Field(default_factory=PlaybackSettings)
     runtime: RuntimeSettings = Field(default_factory=RuntimeSettings)
+
+
+class JukeboxSettings(PersistedJukeboxSettings):
+    player: PlayerSettings = Field(default_factory=PlayerSettings)
 
 
 class ServerSettings(StrictModel):
@@ -95,11 +106,15 @@ class AdminSettings(StrictModel):
     ui: ServerSettings = Field(default_factory=ServerSettings)
 
 
-class AppSettings(StrictModel):
+class PersistedAppSettings(StrictModel):
     schema_version: int = 1
     paths: PathsSettings = Field(default_factory=PathsSettings)
-    jukebox: JukeboxSettings = Field(default_factory=JukeboxSettings)
+    jukebox: PersistedJukeboxSettings = Field(default_factory=PersistedJukeboxSettings)
     admin: AdminSettings = Field(default_factory=AdminSettings)
+
+
+class AppSettings(PersistedAppSettings):
+    jukebox: JukeboxSettings = Field(default_factory=JukeboxSettings)
 
 
 class SparseSelectedSonosSpeakerSettings(StrictModel):
@@ -115,14 +130,21 @@ class SparseSelectedSonosGroupSettings(StrictModel):
     members: Optional[list[SparseSelectedSonosSpeakerSettings]] = None
 
 
-class SparseSonosPlayerSettings(StrictModel):
-    manual_host: Optional[str] = None
-    manual_name: Optional[str] = None
+class SparsePersistedSonosPlayerSettings(StrictModel):
     selected_group: Optional[SparseSelectedSonosGroupSettings] = None
 
 
-class SparsePlayerSettings(StrictModel):
+class SparseSonosPlayerSettings(SparsePersistedSonosPlayerSettings):
+    manual_host: Optional[str] = None
+    manual_name: Optional[str] = None
+
+
+class SparsePersistedPlayerSettings(StrictModel):
     type: Optional[Literal["dryrun", "sonos"]] = None
+    sonos: Optional[SparsePersistedSonosPlayerSettings] = None
+
+
+class SparsePlayerSettings(SparsePersistedPlayerSettings):
     sonos: Optional[SparseSonosPlayerSettings] = None
 
 
@@ -144,11 +166,15 @@ class SparseRuntimeSettings(StrictModel):
     loop_interval_seconds: Optional[float] = None
 
 
-class SparseJukeboxSettings(StrictModel):
-    player: Optional[SparsePlayerSettings] = None
+class SparsePersistedJukeboxSettings(StrictModel):
+    player: Optional[SparsePersistedPlayerSettings] = None
     reader: Optional[SparseReaderSettings] = None
     playback: Optional[SparsePlaybackSettings] = None
     runtime: Optional[SparseRuntimeSettings] = None
+
+
+class SparseJukeboxSettings(SparsePersistedJukeboxSettings):
+    player: Optional[SparsePlayerSettings] = None
 
 
 class SparseServerSettings(StrictModel):
@@ -164,11 +190,15 @@ class SparseAdminSettings(StrictModel):
     ui: Optional[SparseServerSettings] = None
 
 
-class SparseAppSettings(StrictModel):
+class SparsePersistedAppSettings(StrictModel):
     schema_version: int
     paths: Optional[SparsePathsSettings] = None
-    jukebox: Optional[SparseJukeboxSettings] = None
+    jukebox: Optional[SparsePersistedJukeboxSettings] = None
     admin: Optional[SparseAdminSettings] = None
+
+
+class SparseAppSettings(SparsePersistedAppSettings):
+    jukebox: Optional[SparseJukeboxSettings] = None
 
 
 class ResolvedSonosSpeakerRuntime(StrictModel):

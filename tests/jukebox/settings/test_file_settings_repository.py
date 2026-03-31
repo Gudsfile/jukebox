@@ -30,6 +30,36 @@ def test_repository_rejects_unknown_keys(tmp_path):
         repository.load_persisted_settings_data()
 
 
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("manual_host", "192.168.1.20"),
+        ("manual_name", "Living Room"),
+    ],
+)
+def test_repository_rejects_persisted_manual_sonos_targets(tmp_path, field_name, value):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "sonos": {
+                            field_name: value,
+                        }
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    repository = FileSettingsRepository(str(settings_path))
+
+    with pytest.raises(InvalidSettingsError):
+        repository.load_persisted_settings_data()
+
+
 def test_repository_migrates_missing_schema_version(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(json.dumps({"paths": {"library_path": "~/custom-library.json"}}), encoding="utf-8")

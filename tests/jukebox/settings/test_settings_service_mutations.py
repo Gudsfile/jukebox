@@ -181,7 +181,6 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
                     "player": {
                         "type": "sonos",
                         "sonos": {
-                            "manual_host": "192.168.1.20",
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
@@ -209,22 +208,8 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
 
     result = service.reset_persisted_value("jukebox")
 
-    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
-        "schema_version": 1,
-        "jukebox": {
-            "player": {
-                "sonos": {"manual_host": "192.168.1.20"},
-            },
-        },
-    }
-    assert result["persisted"] == {
-        "schema_version": 1,
-        "jukebox": {
-            "player": {
-                "sonos": {"manual_host": "192.168.1.20"},
-            },
-        },
-    }
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {"schema_version": 1}
+    assert result["persisted"] == {"schema_version": 1}
     assert result["updated_paths"] == [
         "jukebox.playback.pause_delay_seconds",
         "jukebox.playback.pause_duration_seconds",

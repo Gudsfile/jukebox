@@ -16,7 +16,13 @@ from .definitions import (
     is_editable_setting_path,
 )
 from .dict_utils import deep_merge
-from .entities import AppSettings, ResolvedAdminRuntimeConfig, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
+from .entities import (
+    AppSettings,
+    PersistedAppSettings,
+    ResolvedAdminRuntimeConfig,
+    ResolvedJukeboxRuntimeConfig,
+    ResolvedSonosGroupRuntime,
+)
 from .errors import InvalidSettingsError
 from .repositories import SettingsRepository
 from .sonos_runtime import SonosGroupResolver
@@ -131,7 +137,7 @@ class SettingsService:
         if not is_editable_setting_path(dotted_path):
             raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
 
-        current_data = self.repository.load().model_dump(mode="python")
+        current_data = self.repository.load_persisted().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
         _set_dotted_path(updated_data, dotted_path, _parse_raw_setting_value(dotted_path, raw_value))
         return self._save_updated_settings(updated_data, [dotted_path])
@@ -141,8 +147,8 @@ class SettingsService:
         if not editable_paths:
             raise InvalidSettingsError(f"Unsupported settings path for reset: '{dotted_path}'")
 
-        current_data = self.repository.load().model_dump(mode="python")
-        defaults_data = AppSettings().model_dump(mode="python")
+        current_data = self.repository.load_persisted().model_dump(mode="python")
+        defaults_data = PersistedAppSettings().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
         for editable_path in editable_paths:
             _set_dotted_path(updated_data, editable_path, _get_dotted_path(defaults_data, editable_path))
@@ -157,7 +163,7 @@ class SettingsService:
         if not updated_paths:
             raise InvalidSettingsError("Settings patch must include at least one editable field.")
 
-        current_data = self.repository.load().model_dump(mode="python")
+        current_data = self.repository.load_persisted().model_dump(mode="python")
         updated_data = deep_merge(current_data, patch)
         return self._save_updated_settings(updated_data, updated_paths)
 
@@ -196,18 +202,25 @@ class SettingsService:
         persisted_before = self.repository.load_persisted_settings_data()
 
         try:
-            settings = AppSettings.model_validate(updated_data)
+            persisted_settings = PersistedAppSettings.model_validate(updated_data)
         except ValidationError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         try:
-            validate_settings_rules(settings.model_dump(mode="python"), updated_paths)
+            effective_settings = AppSettings.model_validate(
+                deep_merge(AppSettings().model_dump(mode="python"), persisted_settings.model_dump(mode="python"))
+            )
+        except ValidationError as err:
+            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+
+        try:
+            validate_settings_rules(effective_settings.model_dump(mode="python"), updated_paths)
         except ValueError as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         persisted_after = _build_updated_persisted_settings(
             persisted_before,
-            cast(JsonObject, settings.model_dump(mode="python")),
+            cast(JsonObject, persisted_settings.model_dump(mode="python")),
             updated_paths,
             set(reset_paths or []),
         )
@@ -247,25 +260,17 @@ class SettingsService:
         if player_settings.type != "sonos":
             return None, None, None
 
-        override_target = self._resolve_manual_sonos_override(self.cli_overrides)
-        if override_target is not None:
-            return override_target
+        if player_settings.sonos.manual_host is not None:
+            return player_settings.sonos.manual_host, None, None
 
-        override_target = self._resolve_manual_sonos_override(self.env_overrides)
-        if override_target is not None:
-            return override_target
+        if player_settings.sonos.manual_name is not None:
+            return None, player_settings.sonos.manual_name, None
 
         if player_settings.sonos.selected_group is not None:
             resolved_group = self._get_sonos_group_resolver().resolve_selected_group(
                 player_settings.sonos.selected_group
             )
             return resolved_group.coordinator.host, None, resolved_group
-
-        if player_settings.sonos.manual_host is not None:
-            return player_settings.sonos.manual_host, None, None
-
-        if player_settings.sonos.manual_name is not None:
-            return None, player_settings.sonos.manual_name, None
 
         return None, None, None
 
@@ -277,30 +282,6 @@ class SettingsService:
 
         self.sonos_group_resolver = SoCoSonosGroupResolver()
         return self.sonos_group_resolver
-
-    @staticmethod
-    def _resolve_manual_sonos_override(overrides: JsonObject) -> Optional[ActiveSonosTarget]:
-        jukebox_overrides = overrides.get("jukebox")
-        if not isinstance(jukebox_overrides, dict):
-            return None
-
-        player_overrides = jukebox_overrides.get("player")
-        if not isinstance(player_overrides, dict):
-            return None
-
-        sonos_overrides = player_overrides.get("sonos", {})
-        if not isinstance(sonos_overrides, dict):
-            return None
-
-        manual_host = sonos_overrides.get("manual_host")
-        if manual_host is not None:
-            return manual_host, None, None
-
-        manual_name = sonos_overrides.get("manual_name")
-        if manual_name is not None:
-            return None, manual_name, None
-
-        return None
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
