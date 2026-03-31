@@ -18,13 +18,9 @@ class StrictModel(BaseModel):
 
 class SelectedSonosSpeakerSettings(StrictModel):
     uid: str
-    name: str
-    household_id: Optional[str] = None
-    last_known_host: Optional[str] = None
 
 
 class SelectedSonosGroupSettings(StrictModel):
-    household_id: Optional[str] = None
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
 
@@ -119,13 +115,9 @@ class AppSettings(PersistedAppSettings):
 
 class SparseSelectedSonosSpeakerSettings(StrictModel):
     uid: Optional[str] = None
-    name: Optional[str] = None
-    household_id: Optional[str] = None
-    last_known_host: Optional[str] = None
 
 
 class SparseSelectedSonosGroupSettings(StrictModel):
-    household_id: Optional[str] = None
     coordinator_uid: Optional[str] = None
     members: Optional[list[SparseSelectedSonosSpeakerSettings]] = None
 
@@ -212,7 +204,7 @@ class ResolvedSonosGroupRuntime(StrictModel):
     household_id: str
     coordinator: ResolvedSonosSpeakerRuntime
     members: list[ResolvedSonosSpeakerRuntime]
-    missing_members: list[SelectedSonosSpeakerSettings] = Field(default_factory=list)
+    missing_member_uids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_group_shape(self):
@@ -228,19 +220,19 @@ class ResolvedSonosGroupRuntime(StrictModel):
             raise ValueError("resolved Sonos group members must belong to the same household")
 
         reachable_member_uids = {member.uid for member in self.members}
-        missing_member_uids = {member.uid for member in self.missing_members}
+        missing_member_uids = set(self.missing_member_uids)
         if reachable_member_uids & missing_member_uids:
-            raise ValueError("resolved Sonos group missing_members must not overlap with resolved members")
+            raise ValueError("resolved Sonos group missing_member_uids must not overlap with resolved members")
 
         return self
 
     @property
     def desired_member_uids(self) -> set[str]:
-        return {member.uid for member in self.members} | {member.uid for member in self.missing_members}
+        return {member.uid for member in self.members} | set(self.missing_member_uids)
 
     @property
     def is_partial(self) -> bool:
-        return bool(self.missing_members)
+        return bool(self.missing_member_uids)
 
 
 class ResolvedJukeboxRuntimeConfig(StrictModel):

@@ -89,10 +89,7 @@ class SonosPlayerAdapter(PlayerPort):
         applied_operations = []
 
         if group.is_partial:
-            LOGGER.warning(
-                "Applying Sonos group best-effort with missing saved members: "
-                f"{[member.name for member in group.missing_members]}"
-            )
+            LOGGER.warning(f"Applying Sonos group best-effort with missing saved members: {group.missing_member_uids}")
 
         try:
             for member in group.members:

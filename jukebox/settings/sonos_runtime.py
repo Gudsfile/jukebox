@@ -27,7 +27,7 @@ class SoCoSonosGroupResolver:
 
         available_speakers = self._discover_available_speakers(soco)
         resolved_members = []
-        missing_members = []
+        missing_member_uids = []
         coordinator_resolution_error = None
 
         for saved_member in selected_group.members:
@@ -49,8 +49,6 @@ class SoCoSonosGroupResolver:
                         discovered_host = None
                     if discovered_host:
                         host_candidates.append(discovered_host)
-                if saved_member.last_known_host is not None and saved_member.last_known_host not in host_candidates:
-                    host_candidates.append(saved_member.last_known_host)
 
                 host_errors = []
                 for host in host_candidates:
@@ -63,10 +61,10 @@ class SoCoSonosGroupResolver:
 
                 if runtime_member is None and host_errors:
                     member_resolution_error = "; ".join(host_errors)
-                elif runtime_member is None and saved_member.last_known_host is None:
-                    member_resolution_error = f"{saved_member.uid}: not found on network and has no last_known_host"
+                elif runtime_member is None and resolved_speaker is None:
+                    member_resolution_error = f"{saved_member.uid}: not found on network"
                 else:
-                    member_resolution_error = f"{saved_member.uid} via {saved_member.last_known_host}: not reachable"
+                    member_resolution_error = f"{saved_member.uid}: discovered speaker could not be resolved"
 
             else:
                 member_resolution_error = None
@@ -75,7 +73,7 @@ class SoCoSonosGroupResolver:
                 if saved_member.uid == selected_group.coordinator_uid:
                     coordinator_resolution_error = member_resolution_error
                 else:
-                    missing_members.append(saved_member)
+                    missing_member_uids.append(saved_member.uid)
                 continue
 
             resolved_members.append(runtime_member)
@@ -93,14 +91,11 @@ class SoCoSonosGroupResolver:
         if len(household_ids) != 1:
             raise ValueError("Resolved Sonos group members must belong to the same household")
 
-        if selected_group.household_id is not None and selected_group.household_id not in household_ids:
-            raise ValueError("Resolved Sonos group household does not match the saved selected_group household_id")
-
         return ResolvedSonosGroupRuntime(
             household_id=coordinator.household_id,
             coordinator=coordinator,
             members=resolved_members,
-            missing_members=missing_members,
+            missing_member_uids=missing_member_uids,
         )
 
     @staticmethod

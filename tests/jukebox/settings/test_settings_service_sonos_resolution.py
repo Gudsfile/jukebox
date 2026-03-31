@@ -20,7 +20,7 @@ def test_settings_service_resolves_persisted_one_member_selected_group_into_runt
                         "sonos": {
                             "selected_group": {
                                 "coordinator_uid": "speaker-1",
-                                "members": [{"uid": "speaker-1", "name": "Living Room"}],
+                                "members": [{"uid": "speaker-1"}],
                             }
                         },
                     }
@@ -57,8 +57,8 @@ def test_settings_service_resolves_persisted_multi_member_selected_group_into_ru
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             }
                         },
@@ -101,9 +101,9 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
-                                    {"uid": "speaker-3", "name": "Office", "last_known_host": "192.168.1.50"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
+                                    {"uid": "speaker-3"},
                                 ],
                             }
                         },
@@ -119,7 +119,7 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
             ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
             ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
         ],
-        missing_speakers=[("speaker-3", "Office", "192.168.1.50", None)],
+        missing_member_uids=["speaker-3"],
     )
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
@@ -132,7 +132,7 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
     assert runtime_config.sonos_group == resolved_group
     assert runtime_config.sonos_group is not None
     assert [member.uid for member in runtime_config.sonos_group.members] == ["speaker-1", "speaker-2"]
-    assert [member.uid for member in runtime_config.sonos_group.missing_members] == ["speaker-3"]
+    assert runtime_config.sonos_group.missing_member_uids == ["speaker-3"]
 
 
 def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_path):
@@ -148,8 +148,8 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
-                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -190,8 +190,8 @@ def test_settings_service_env_host_override_beats_persisted_selected_group_witho
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
-                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -228,8 +228,8 @@ def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_p
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -270,8 +270,8 @@ def test_settings_service_cli_name_override_beats_persisted_selected_group_witho
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
-                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
