@@ -201,7 +201,7 @@ def test_patch_settings_updates_player_settings():
                     "sonos": {
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                            "members": [{"uid": "speaker-1"}],
                         }
                     },
                 }
@@ -227,13 +227,7 @@ def test_patch_settings_updates_player_settings():
                         "sonos": {
                             "selected_group": {
                                 "coordinator_uid": "speaker-1",
-                                "members": [
-                                    {
-                                        "uid": "speaker-1",
-                                        "name": "Living Room",
-                                        "last_known_host": "192.168.1.20",
-                                    }
-                                ],
+                                "members": [{"uid": "speaker-1"}],
                             }
                         },
                     }
@@ -251,7 +245,7 @@ def test_patch_settings_updates_player_settings():
                     "sonos": {
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                            "members": [{"uid": "speaker-1"}],
                         }
                     },
                 }
@@ -266,7 +260,7 @@ def test_patch_settings_updates_player_settings():
                     "sonos": {
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                            "members": [{"uid": "speaker-1"}],
                         }
                     },
                 }

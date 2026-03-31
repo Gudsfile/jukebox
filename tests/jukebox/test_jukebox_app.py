@@ -131,7 +131,7 @@ def test_build_settings_service_reads_persisted_reader_and_timing_settings(tmp_p
 def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, mocker):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
-        '{"schema_version": 1, "jukebox": {"player": {"type": "sonos", "sonos": {"selected_group": {"coordinator_uid": "speaker-2", "members": [{"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"}, {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"}]}}}}}',
+        '{"schema_version": 1, "jukebox": {"player": {"type": "sonos", "sonos": {"selected_group": {"coordinator_uid": "speaker-2", "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}]}}}}}',
         encoding="utf-8",
     )
     mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))

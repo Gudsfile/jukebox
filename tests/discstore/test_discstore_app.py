@@ -241,12 +241,12 @@ def test_main_prints_settings_show_payload(app_mocks):
             SettingsSetCommand(
                 type="settings_set",
                 dotted_path="jukebox.player.sonos.selected_group",
-                value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Living Room","last_known_host":"192.168.1.20"}]}',
+                value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
             ),
             "set_persisted_value",
             (
                 "jukebox.player.sonos.selected_group",
-                '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Living Room","last_known_host":"192.168.1.20"}]}',
+                '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
             ),
         ),
         (

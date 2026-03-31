@@ -226,7 +226,7 @@ def test_init_with_partial_group_prunes_extras_but_keeps_missing_desired_members
             ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
             ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
         ],
-        missing_speakers=[("speaker-3", "Office", "192.168.1.50", None)],
+        missing_member_uids=["speaker-3"],
     )
 
     SonosPlayerAdapter(group=group)

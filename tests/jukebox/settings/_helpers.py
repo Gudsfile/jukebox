@@ -3,7 +3,6 @@ from typing import Optional, cast
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
-    SelectedSonosSpeakerSettings,
 )
 from jukebox.settings.types import JsonObject, JsonValue
 
@@ -28,28 +27,19 @@ def build_resolved_sonos_group_runtime(
     coordinator_uid: str = "speaker-1",
     speakers: Optional[list[tuple[str, str, str, str]]] = None,
     household_id: str = "household-1",
-    missing_speakers: Optional[list[tuple[str, str, Optional[str], Optional[str]]]] = None,
+    missing_member_uids: Optional[list[str]] = None,
 ) -> ResolvedSonosGroupRuntime:
     speakers = speakers or [("speaker-1", "Living Room", "192.168.1.20", household_id)]
     members = [
         ResolvedSonosSpeakerRuntime(uid=uid, name=name, host=host, household_id=member_household_id)
         for uid, name, host, member_household_id in speakers
     ]
-    missing_members = [
-        SelectedSonosSpeakerSettings(
-            uid=uid,
-            name=name,
-            last_known_host=last_known_host,
-            household_id=member_household_id,
-        )
-        for uid, name, last_known_host, member_household_id in missing_speakers or []
-    ]
     coordinator = next(member for member in members if member.uid == coordinator_uid)
     return ResolvedSonosGroupRuntime(
         household_id=household_id,
         coordinator=coordinator,
         members=members,
-        missing_members=missing_members,
+        missing_member_uids=missing_member_uids or [],
     )
 
 

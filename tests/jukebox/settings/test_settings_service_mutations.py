@@ -184,8 +184,8 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen", "last_known_host": "192.168.1.30"},
-                                    {"uid": "speaker-2", "name": "Living Room", "last_known_host": "192.168.1.40"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -443,7 +443,7 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
 
     result = service.set_persisted_value(
         "jukebox.player.sonos.selected_group",
-        '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1","name":"Living Room","last_known_host":"192.168.1.20"}]}',
+        '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}',
     )
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
@@ -453,15 +453,7 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "household_id": None,
-                        "members": [
-                            {
-                                "uid": "speaker-1",
-                                "name": "Living Room",
-                                "household_id": None,
-                                "last_known_host": "192.168.1.20",
-                            }
-                        ],
+                        "members": [{"uid": "speaker-1"}],
                     }
                 }
             }
@@ -488,7 +480,7 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
                     "sonos": {
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}],
+                            "members": [{"uid": "speaker-1"}],
                         }
                     },
                 }
@@ -504,15 +496,7 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "household_id": None,
-                        "members": [
-                            {
-                                "uid": "speaker-1",
-                                "name": "Living Room",
-                                "household_id": None,
-                                "last_known_host": "192.168.1.20",
-                            }
-                        ],
+                        "members": [{"uid": "speaker-1"}],
                     }
                 },
             }
@@ -680,9 +664,7 @@ def test_settings_service_reset_removes_only_requested_selected_group_override(t
                         "sonos": {
                             "selected_group": {
                                 "coordinator_uid": "speaker-1",
-                                "members": [
-                                    {"uid": "speaker-1", "name": "Living Room", "last_known_host": "192.168.1.20"}
-                                ],
+                                "members": [{"uid": "speaker-1"}],
                             }
                         },
                     }

@@ -122,7 +122,7 @@ def test_settings_service_allows_effective_view_with_selected_group_without_any_
                         "sonos": {
                             "selected_group": {
                                 "coordinator_uid": "speaker-1",
-                                "members": [{"uid": "speaker-1", "name": "Living Room"}],
+                                "members": [{"uid": "speaker-1"}],
                             }
                         },
                     }
