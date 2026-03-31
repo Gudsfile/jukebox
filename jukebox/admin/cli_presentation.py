@@ -1,7 +1,7 @@
 import json
 import re
 import shlex
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -264,27 +264,26 @@ def _format_selected_group(value: object) -> str:
     if not isinstance(value, dict):
         return str(value)
 
-    members = value.get("members")
-    coordinator_uid = value.get("coordinator_uid")
+    selected_group = cast(Dict[str, object], value)
+    members = selected_group.get("members")
+    coordinator_uid = selected_group.get("coordinator_uid")
     if not isinstance(members, list) or not isinstance(coordinator_uid, str):
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
-    member_names = []
-    coordinator_name = coordinator_uid
+    member_uids = []
     for member in members:
         if not isinstance(member, dict):
             continue
-        name = member.get("name") or member.get("uid")
-        if not isinstance(name, str):
+        selected_member = cast(Dict[str, object], member)
+        uid = selected_member.get("uid")
+        if not isinstance(uid, str):
             continue
-        member_names.append(name)
-        if member.get("uid") == coordinator_uid:
-            coordinator_name = name
+        member_uids.append(uid)
 
-    if not member_names:
+    if not member_uids:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
-    return "{} (coordinator); members: {}".format(coordinator_name, ", ".join(member_names))
+    return "{} (coordinator); members: {}".format(coordinator_uid, ", ".join(member_uids))
 
 
 def _lookup_object(root: JsonObject, key: str) -> JsonObject:

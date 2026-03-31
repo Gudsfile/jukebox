@@ -241,8 +241,8 @@ def ui(
 @library_app.command("add")
 def library_add(
     ctx: typer.Context,
+    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")],
     tag: Annotated[Optional[str], typer.Argument(help="Tag to be associated with the disc")] = None,
-    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")] = ...,
     track: Annotated[Optional[str], typer.Option("--track", help="Name of the track")] = None,
     artist: Annotated[Optional[str], typer.Option("--artist", help="Name of the artist or band")] = None,
     album: Annotated[Optional[str], typer.Option("--album", help="Name of the album")] = None,

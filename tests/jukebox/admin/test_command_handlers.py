@@ -53,8 +53,8 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                                 "selected_group": {
                                     "coordinator_uid": "speaker-2",
                                     "members": [
-                                        {"uid": "speaker-1", "name": "Kitchen"},
-                                        {"uid": "speaker-2", "name": "Living Room"},
+                                        {"uid": "speaker-1"},
+                                        {"uid": "speaker-2"},
                                     ],
                                 }
                             },
@@ -87,7 +87,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                 "Paths",
                 "Library Path [paths.library_path]: ~/.jukebox/library.json (source: default; restart required)",
                 "Admin API Port [admin.api.port]: 8000 (source: file; restart required)",
-                "Selected Sonos Group [jukebox.player.sonos.selected_group]: Living Room (coordinator); members: Kitchen, Living Room (source: file; restart required)",
+                "Selected Sonos Group [jukebox.player.sonos.selected_group]: speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)",
                 "Derived",
                 "derived.paths.current_tag_path: /Users/test/.jukebox/current-tag.txt",
             ],
@@ -121,6 +121,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             "set_persisted_value",
             ("jukebox.playback.pause_duration_seconds", "600"),
             {"persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsSetCommand(
@@ -131,6 +135,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             "set_persisted_value",
             ("jukebox.reader.type", "nfc"),
             {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsSetCommand(
@@ -141,6 +149,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             "set_persisted_value",
             ("jukebox.reader.nfc.read_timeout_seconds", "0.2"),
             {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {"read_timeout_seconds": 0.2}}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsSetCommand(
@@ -151,6 +163,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             "set_persisted_value",
             ("jukebox.player.type", "sonos"),
             {"persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsSetCommand(
@@ -178,6 +194,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                     },
                 }
             },
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
@@ -201,24 +221,40 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             "reset_persisted_value",
             ("jukebox.runtime.loop_interval_seconds",),
             {"persisted": {"schema_version": 1, "jukebox": {"runtime": {}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
             "reset_persisted_value",
             ("jukebox.reader.nfc.read_timeout_seconds",),
             {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {}}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsResetCommand(type="settings_reset", dotted_path="jukebox.player.sonos.selected_group"),
             "reset_persisted_value",
             ("jukebox.player.sonos.selected_group",),
             {"persisted": {"schema_version": 1, "jukebox": {"player": {"sonos": {}}}}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
         (
             SettingsResetCommand(type="settings_reset", dotted_path="admin"),
             "reset_persisted_value",
             ("admin",),
             {"persisted": {"schema_version": 1}},
+            [
+                "Settings command completed.",
+                "Restart Required: no",
+            ],
         ),
     ],
 )

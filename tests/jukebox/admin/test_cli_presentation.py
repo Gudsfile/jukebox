@@ -21,12 +21,11 @@ def test_render_settings_output_persisted_groups_overrides_by_section():
             "jukebox": {
                 "player": {
                     "sonos": {
-                        "manual_host": "192.168.1.20",
                         "selected_group": {
                             "coordinator_uid": "speaker-2",
                             "members": [
-                                {"uid": "speaker-1", "name": "Kitchen"},
-                                {"uid": "speaker-2", "name": "Living Room"},
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
                             ],
                         },
                     }
@@ -42,10 +41,9 @@ def test_render_settings_output_persisted_groups_overrides_by_section():
     assert "Admin" in rendered
     assert "Admin API Port [admin.api.port]: 8100" in rendered
     assert "Player" in rendered
-    assert "jukebox.player.sonos.manual_host: 192.168.1.20" in rendered
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "Living Room (coordinator); members: Kitchen, Living Room"
+        "speaker-2 (coordinator); members: speaker-1, speaker-2"
     ) in rendered
 
 
@@ -127,8 +125,8 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -157,7 +155,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
 
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "Living Room (coordinator); members: Kitchen, Living Room (source: file; restart required)"
+        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)"
     ) in rendered
     assert "jukebox.player.sonos.selected_group.coordinator_uid" not in rendered
     assert "jukebox.player.sonos.selected_group.members" not in rendered
@@ -180,8 +178,8 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
                             "selected_group": {
                                 "coordinator_uid": "speaker-2",
                                 "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
                                 ],
                             },
                         },
@@ -213,7 +211,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
 
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "Living Room (coordinator); members: Kitchen, Living Room (source: file; restart required)"
+        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)"
     ) in rendered
 
 
