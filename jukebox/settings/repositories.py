@@ -1,11 +1,11 @@
 from typing import Protocol
 
-from .entities import AppSettings
+from .entities import PersistedAppSettings
 from .types import JsonObject
 
 
 class SettingsRepository(Protocol):
-    def load(self) -> AppSettings: ...
+    def load_persisted(self) -> PersistedAppSettings: ...
 
     def load_persisted_settings_data(self) -> JsonObject: ...
 

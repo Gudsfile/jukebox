@@ -57,6 +57,15 @@ class PlayerSettings(StrictModel):
     sonos: SonosPlayerSettings = Field(default_factory=SonosPlayerSettings)
 
 
+class PersistedSonosPlayerSettings(StrictModel):
+    selected_group: Optional[SelectedSonosGroupSettings] = None
+
+
+class PersistedPlayerSettings(StrictModel):
+    type: Literal["dryrun", "sonos"] = "dryrun"
+    sonos: PersistedSonosPlayerSettings = Field(default_factory=PersistedSonosPlayerSettings)
+
+
 class NfcReaderSettings(StrictModel):
     read_timeout_seconds: float = Field(default=0.1, gt=0)
 
@@ -82,6 +91,13 @@ class JukeboxSettings(StrictModel):
     runtime: RuntimeSettings = Field(default_factory=RuntimeSettings)
 
 
+class PersistedJukeboxSettings(StrictModel):
+    player: PersistedPlayerSettings = Field(default_factory=PersistedPlayerSettings)
+    reader: ReaderSettings = Field(default_factory=ReaderSettings)
+    playback: PlaybackSettings = Field(default_factory=PlaybackSettings)
+    runtime: RuntimeSettings = Field(default_factory=RuntimeSettings)
+
+
 class ServerSettings(StrictModel):
     port: int = Field(default=8000, ge=1, le=65535)
 
@@ -99,6 +115,13 @@ class AppSettings(StrictModel):
     schema_version: int = 1
     paths: PathsSettings = Field(default_factory=PathsSettings)
     jukebox: JukeboxSettings = Field(default_factory=JukeboxSettings)
+    admin: AdminSettings = Field(default_factory=AdminSettings)
+
+
+class PersistedAppSettings(StrictModel):
+    schema_version: int = 1
+    paths: PathsSettings = Field(default_factory=PathsSettings)
+    jukebox: PersistedJukeboxSettings = Field(default_factory=PersistedJukeboxSettings)
     admin: AdminSettings = Field(default_factory=AdminSettings)
 
 
@@ -121,9 +144,18 @@ class SparseSonosPlayerSettings(StrictModel):
     selected_group: Optional[SparseSelectedSonosGroupSettings] = None
 
 
+class SparsePersistedSonosPlayerSettings(StrictModel):
+    selected_group: Optional[SparseSelectedSonosGroupSettings] = None
+
+
 class SparsePlayerSettings(StrictModel):
     type: Optional[Literal["dryrun", "sonos"]] = None
     sonos: Optional[SparseSonosPlayerSettings] = None
+
+
+class SparsePersistedPlayerSettings(StrictModel):
+    type: Optional[Literal["dryrun", "sonos"]] = None
+    sonos: Optional[SparsePersistedSonosPlayerSettings] = None
 
 
 class SparseNfcReaderSettings(StrictModel):
@@ -151,6 +183,13 @@ class SparseJukeboxSettings(StrictModel):
     runtime: Optional[SparseRuntimeSettings] = None
 
 
+class SparsePersistedJukeboxSettings(StrictModel):
+    player: Optional[SparsePersistedPlayerSettings] = None
+    reader: Optional[SparseReaderSettings] = None
+    playback: Optional[SparsePlaybackSettings] = None
+    runtime: Optional[SparseRuntimeSettings] = None
+
+
 class SparseServerSettings(StrictModel):
     port: Optional[int] = None
 
@@ -168,6 +207,13 @@ class SparseAppSettings(StrictModel):
     schema_version: int
     paths: Optional[SparsePathsSettings] = None
     jukebox: Optional[SparseJukeboxSettings] = None
+    admin: Optional[SparseAdminSettings] = None
+
+
+class SparsePersistedAppSettings(StrictModel):
+    schema_version: int
+    paths: Optional[SparsePathsSettings] = None
+    jukebox: Optional[SparsePersistedJukeboxSettings] = None
     admin: Optional[SparseAdminSettings] = None
 
 

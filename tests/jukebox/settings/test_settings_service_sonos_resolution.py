@@ -1,41 +1,11 @@
 import json
 
-import pytest
-
-from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
 from tests.jukebox.settings._helpers import (
     StubSonosGroupResolver,
     build_resolved_sonos_group_runtime,
 )
-
-
-def test_settings_service_allows_persisted_manual_name_without_selected_group(tmp_path):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "jukebox": {
-                    "player": {
-                        "type": "sonos",
-                        "sonos": {
-                            "manual_name": "Living Room",
-                        },
-                    }
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
-
-    runtime_config = service.resolve_jukebox_runtime()
-
-    assert runtime_config.sonos_host is None
-    assert runtime_config.sonos_name == "Living Room"
-    assert runtime_config.sonos_group is None
 
 
 def test_settings_service_resolves_persisted_one_member_selected_group_into_runtime_group(tmp_path):
@@ -163,83 +133,6 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
     assert runtime_config.sonos_group is not None
     assert [member.uid for member in runtime_config.sonos_group.members] == ["speaker-1", "speaker-2"]
     assert [member.uid for member in runtime_config.sonos_group.missing_members] == ["speaker-3"]
-
-
-def test_settings_service_prefers_selected_group_over_persisted_manual_host(tmp_path):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "jukebox": {
-                    "player": {
-                        "type": "sonos",
-                        "sonos": {
-                            "manual_host": "192.168.1.99",
-                            "selected_group": {
-                                "coordinator_uid": "speaker-2",
-                                "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
-                                ],
-                            },
-                        },
-                    }
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    resolved_group = build_resolved_sonos_group_runtime(
-        coordinator_uid="speaker-2",
-        speakers=[
-            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
-            ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
-        ],
-    )
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=StubSonosGroupResolver(resolved_group=resolved_group),
-    )
-
-    runtime_config = service.resolve_jukebox_runtime()
-
-    assert runtime_config.sonos_host == "192.168.1.40"
-    assert runtime_config.sonos_group == resolved_group
-
-
-def test_settings_service_rejects_failed_selected_group_resolution_even_with_persisted_manual_host(tmp_path):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "jukebox": {
-                    "player": {
-                        "type": "sonos",
-                        "sonos": {
-                            "manual_host": "192.168.1.99",
-                            "selected_group": {
-                                "coordinator_uid": "speaker-2",
-                                "members": [
-                                    {"uid": "speaker-1", "name": "Kitchen"},
-                                    {"uid": "speaker-2", "name": "Living Room"},
-                                ],
-                            },
-                        },
-                    }
-                },
-            }
-        ),
-        encoding="utf-8",
-    )
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=StubSonosGroupResolver(error=ValueError("Saved Sonos group could not be resolved")),
-    )
-
-    with pytest.raises(InvalidSettingsError, match="Saved Sonos group could not be resolved"):
-        service.resolve_jukebox_runtime()
 
 
 def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_path):
