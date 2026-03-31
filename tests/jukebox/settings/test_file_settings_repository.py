@@ -30,8 +30,14 @@ def test_repository_rejects_unknown_keys(tmp_path):
         repository.load_persisted_settings_data()
 
 
-@pytest.mark.parametrize("field_name", ["manual_host", "manual_name"])
-def test_repository_rejects_persisted_manual_sonos_targets(tmp_path, field_name):
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("manual_host", "192.168.1.20"),
+        ("manual_name", "Living Room"),
+    ],
+)
+def test_repository_rejects_persisted_manual_sonos_targets(tmp_path, field_name, value):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
         json.dumps(
@@ -40,7 +46,7 @@ def test_repository_rejects_persisted_manual_sonos_targets(tmp_path, field_name)
                 "jukebox": {
                     "player": {
                         "sonos": {
-                            field_name: "Living Room" if field_name == "manual_name" else "192.168.1.20",
+                            field_name: value,
                         }
                     }
                 },
