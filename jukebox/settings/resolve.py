@@ -260,13 +260,11 @@ class SettingsService:
         if player_settings.type != "sonos":
             return None, None, None
 
-        override_target = self._resolve_manual_sonos_override(self.cli_overrides)
-        if override_target is not None:
-            return override_target
+        if player_settings.sonos.manual_host is not None:
+            return player_settings.sonos.manual_host, None, None
 
-        override_target = self._resolve_manual_sonos_override(self.env_overrides)
-        if override_target is not None:
-            return override_target
+        if player_settings.sonos.manual_name is not None:
+            return None, player_settings.sonos.manual_name, None
 
         if player_settings.sonos.selected_group is not None:
             resolved_group = self._get_sonos_group_resolver().resolve_selected_group(
@@ -284,30 +282,6 @@ class SettingsService:
 
         self.sonos_group_resolver = SoCoSonosGroupResolver()
         return self.sonos_group_resolver
-
-    @staticmethod
-    def _resolve_manual_sonos_override(overrides: JsonObject) -> Optional[ActiveSonosTarget]:
-        jukebox_overrides = overrides.get("jukebox")
-        if not isinstance(jukebox_overrides, dict):
-            return None
-
-        player_overrides = jukebox_overrides.get("player")
-        if not isinstance(player_overrides, dict):
-            return None
-
-        sonos_overrides = player_overrides.get("sonos", {})
-        if not isinstance(sonos_overrides, dict):
-            return None
-
-        manual_host = sonos_overrides.get("manual_host")
-        if manual_host is not None:
-            return manual_host, None, None
-
-        manual_name = sonos_overrides.get("manual_name")
-        if manual_name is not None:
-            return None, manual_name, None
-
-        return None
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
