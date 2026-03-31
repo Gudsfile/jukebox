@@ -154,7 +154,7 @@ def test_soco_sonos_group_resolver_rejects_members_from_different_households(moc
         resolver.resolve_selected_group(selected_group)
 
 
-def test_soco_sonos_group_resolver_aggregates_host_fallback_resolution_failures(mocker):
+def test_soco_sonos_group_resolver_marks_unreachable_non_coordinator_missing_after_host_fallback_failures(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
     impostor = FakeSpeaker("speaker-wrong", "Impostor", "192.168.1.30", "household-1")
     mocker.patch.dict(
@@ -178,11 +178,13 @@ def test_soco_sonos_group_resolver_aggregates_host_fallback_resolution_failures(
         ],
     )
 
-    with pytest.raises(ValueError, match="speaker-2 via 192.168.1.30"):
-        resolver.resolve_selected_group(selected_group)
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert [member.uid for member in resolved_group.members] == ["speaker-1"]
+    assert [member.uid for member in resolved_group.missing_members] == ["speaker-2"]
 
 
-def test_soco_sonos_group_resolver_reports_missing_member_without_last_known_host(mocker):
+def test_soco_sonos_group_resolver_reports_missing_non_coordinator_without_last_known_host(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
     mocker.patch.dict(
         "sys.modules",
@@ -201,8 +203,10 @@ def test_soco_sonos_group_resolver_reports_missing_member_without_last_known_hos
         ],
     )
 
-    with pytest.raises(ValueError, match="speaker-2: not found on network and has no last_known_host"):
-        resolver.resolve_selected_group(selected_group)
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert [member.uid for member in resolved_group.members] == ["speaker-1"]
+    assert [member.uid for member in resolved_group.missing_members] == ["speaker-2"]
 
 
 def test_soco_sonos_group_resolver_wraps_discovery_errors(mocker):
@@ -224,7 +228,7 @@ def test_soco_sonos_group_resolver_wraps_discovery_errors(mocker):
         resolver.resolve_selected_group(selected_group)
 
 
-def test_soco_sonos_group_resolver_wraps_host_contact_errors(mocker):
+def test_soco_sonos_group_resolver_marks_non_coordinator_missing_when_host_contact_fails(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 
     def raise_timeout(host):
@@ -251,7 +255,40 @@ def test_soco_sonos_group_resolver_wraps_host_contact_errors(mocker):
         ],
     )
 
-    with pytest.raises(ValueError, match="Failed to contact saved Sonos speaker at 192.168.1.30"):
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert [member.uid for member in resolved_group.members] == ["speaker-1"]
+    assert [member.uid for member in resolved_group.missing_members] == ["speaker-2"]
+
+
+def test_soco_sonos_group_resolver_rejects_unreachable_coordinator(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+
+    def raise_timeout(host):
+        raise TimeoutError(f"{host} timed out")
+
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {kitchen},
+            soco_constructor=raise_timeout,
+        ),
+    )
+
+    resolver = SoCoSonosGroupResolver()
+    selected_group = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-2",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1", name="Kitchen"),
+            SelectedSonosSpeakerSettings(
+                uid="speaker-2",
+                name="Living Room",
+                last_known_host="192.168.1.40",
+            ),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="Unable to resolve saved Sonos coordinator"):
         resolver.resolve_selected_group(selected_group)
 
 
@@ -484,7 +521,7 @@ def test_soco_sonos_group_resolver_retries_stale_discovered_member_via_discovere
     assert resolved_group.coordinator.name == "Living Room"
 
 
-def test_soco_sonos_group_resolver_wraps_runtime_error_when_resolving_host_uid(mocker):
+def test_soco_sonos_group_resolver_marks_non_coordinator_missing_when_host_uid_resolution_breaks(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 
     class BrokenHostSpeaker:
@@ -517,5 +554,7 @@ def test_soco_sonos_group_resolver_wraps_runtime_error_when_resolving_host_uid(m
         ],
     )
 
-    with pytest.raises(ValueError, match="speaker-2 via 192.168.1.30: Failed to contact saved Sonos speaker"):
-        resolver.resolve_selected_group(selected_group)
+    resolved_group = resolver.resolve_selected_group(selected_group)
+
+    assert [member.uid for member in resolved_group.members] == ["speaker-1"]
+    assert [member.uid for member in resolved_group.missing_members] == ["speaker-2"]

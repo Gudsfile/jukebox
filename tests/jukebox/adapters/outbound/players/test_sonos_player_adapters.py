@@ -188,6 +188,57 @@ def test_init_with_resolved_group_preserves_nonvisible_members(mock_sharelink, m
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_init_with_partial_group_prunes_extras_but_keeps_missing_desired_members(mock_sharelink, mock_soco):
+    coordinator = MagicMock()
+    coordinator.player_name = "Living Room"
+    coordinator.uid = "speaker-2"
+    coordinator.get_speaker_info.return_value = {"software_version": "1.0"}
+
+    missing_desired = MagicMock()
+    missing_desired.uid = "speaker-3"
+    missing_desired.player_name = "Office"
+    missing_desired.is_visible = True
+
+    extra = MagicMock()
+    extra.uid = "speaker-extra"
+    extra.player_name = "Bedroom"
+    extra.is_visible = True
+
+    current_group = MagicMock()
+    current_group.coordinator = coordinator
+    current_group.members = {coordinator, missing_desired, extra}
+    coordinator.group = current_group
+
+    kitchen = MagicMock()
+    kitchen.uid = "speaker-1"
+    kitchen.player_name = "Kitchen"
+    kitchen.group = None
+
+    speakers_by_host = {
+        "192.168.1.30": kitchen,
+        "192.168.1.40": coordinator,
+    }
+    mock_soco.side_effect = lambda host: speakers_by_host[host]
+
+    group = build_resolved_sonos_group_runtime(
+        coordinator_uid="speaker-2",
+        speakers=[
+            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+        ],
+        missing_speakers=[("speaker-3", "Office", "192.168.1.50", None)],
+    )
+
+    SonosPlayerAdapter(group=group)
+
+    kitchen.join.assert_called_once_with(coordinator)
+    extra.unjoin.assert_called_once_with()
+    missing_desired.unjoin.assert_not_called()
+    mock_sharelink.assert_called_once_with(coordinator)
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_with_one_member_resolved_group_preserves_single_speaker_behavior(mock_sharelink, mock_soco):
     speaker = MagicMock()
     speaker.player_name = "Living Room"

@@ -182,6 +182,7 @@ class ResolvedSonosGroupRuntime(StrictModel):
     household_id: str
     coordinator: ResolvedSonosSpeakerRuntime
     members: list[ResolvedSonosSpeakerRuntime]
+    missing_members: list[SelectedSonosSpeakerSettings] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_group_shape(self):
@@ -196,7 +197,20 @@ class ResolvedSonosGroupRuntime(StrictModel):
         if household_ids != {self.household_id}:
             raise ValueError("resolved Sonos group members must belong to the same household")
 
+        reachable_member_uids = {member.uid for member in self.members}
+        missing_member_uids = {member.uid for member in self.missing_members}
+        if reachable_member_uids & missing_member_uids:
+            raise ValueError("resolved Sonos group missing_members must not overlap with resolved members")
+
         return self
+
+    @property
+    def desired_member_uids(self) -> set[str]:
+        return {member.uid for member in self.members} | {member.uid for member in self.missing_members}
+
+    @property
+    def is_partial(self) -> bool:
+        return bool(self.missing_members)
 
 
 class ResolvedJukeboxRuntimeConfig(StrictModel):

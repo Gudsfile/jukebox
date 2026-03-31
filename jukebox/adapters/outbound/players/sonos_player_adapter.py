@@ -83,10 +83,16 @@ class SonosPlayerAdapter(PlayerPort):
         return speakers[0]
 
     def _enforce_group(self, group: ResolvedSonosGroupRuntime) -> None:
-        desired_member_uids = {member.uid for member in group.members}
+        desired_member_uids = group.desired_member_uids
         speakers_by_uid = {member.uid: SoCo(member.host) for member in group.members}
         coordinator = speakers_by_uid[group.coordinator.uid]
         applied_operations = []
+
+        if group.is_partial:
+            LOGGER.warning(
+                "Applying Sonos group best-effort with missing saved members: "
+                f"{[member.name for member in group.missing_members]}"
+            )
 
         try:
             for member in group.members:

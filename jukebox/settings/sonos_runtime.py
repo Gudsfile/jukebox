@@ -27,7 +27,8 @@ class SoCoSonosGroupResolver:
 
         available_speakers = self._discover_available_speakers(soco)
         resolved_members = []
-        member_resolution_errors = []
+        missing_members = []
+        coordinator_resolution_error = None
 
         for saved_member in selected_group.members:
             runtime_member = None
@@ -61,31 +62,31 @@ class SoCoSonosGroupResolver:
                         host_errors.append(f"{saved_member.uid} via {host}: {err}")
 
                 if runtime_member is None and host_errors:
-                    member_resolution_errors.append("; ".join(host_errors))
-                    continue
+                    member_resolution_error = "; ".join(host_errors)
+                elif runtime_member is None and saved_member.last_known_host is None:
+                    member_resolution_error = f"{saved_member.uid}: not found on network and has no last_known_host"
+                else:
+                    member_resolution_error = f"{saved_member.uid} via {saved_member.last_known_host}: not reachable"
+
+            else:
+                member_resolution_error = None
 
             if runtime_member is None:
-                if saved_member.last_known_host is None:
-                    member_resolution_errors.append(
-                        f"{saved_member.uid}: not found on network and has no last_known_host"
-                    )
+                if saved_member.uid == selected_group.coordinator_uid:
+                    coordinator_resolution_error = member_resolution_error
                 else:
-                    member_resolution_errors.append(
-                        f"{saved_member.uid} via {saved_member.last_known_host}: not reachable"
-                    )
+                    missing_members.append(saved_member)
                 continue
 
             resolved_members.append(runtime_member)
-
-        if member_resolution_errors:
-            details = "; ".join(sorted(member_resolution_errors))
-            raise ValueError(f"Unable to resolve saved Sonos speaker(s): {details}")
 
         coordinator = next(
             (member for member in resolved_members if member.uid == selected_group.coordinator_uid),
             None,
         )
         if coordinator is None:
+            if coordinator_resolution_error is not None:
+                raise ValueError(f"Unable to resolve saved Sonos coordinator: {coordinator_resolution_error}")
             raise ValueError("Saved Sonos coordinator did not resolve to one of the selected_group members")
 
         household_ids = {member.household_id for member in resolved_members}
@@ -99,6 +100,7 @@ class SoCoSonosGroupResolver:
             household_id=coordinator.household_id,
             coordinator=coordinator,
             members=resolved_members,
+            missing_members=missing_members,
         )
 
     @staticmethod

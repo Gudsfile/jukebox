@@ -118,6 +118,53 @@ def test_settings_service_resolves_persisted_multi_member_selected_group_into_ru
     assert [member.uid for member in runtime_config.sonos_group.members] == ["speaker-1", "speaker-2"]
 
 
+def test_settings_service_allows_best_effort_selected_group_resolution_with_missing_non_coordinator(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1", "name": "Kitchen"},
+                                    {"uid": "speaker-2", "name": "Living Room"},
+                                    {"uid": "speaker-3", "name": "Office", "last_known_host": "192.168.1.50"},
+                                ],
+                            }
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    resolved_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="speaker-2",
+        speakers=[
+            ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+        ],
+        missing_speakers=[("speaker-3", "Office", "192.168.1.50", None)],
+    )
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        sonos_group_resolver=StubSonosGroupResolver(resolved_group=resolved_group),
+    )
+
+    runtime_config = service.resolve_jukebox_runtime()
+
+    assert runtime_config.sonos_host == "192.168.1.40"
+    assert runtime_config.sonos_group == resolved_group
+    assert runtime_config.sonos_group is not None
+    assert [member.uid for member in runtime_config.sonos_group.members] == ["speaker-1", "speaker-2"]
+    assert [member.uid for member in runtime_config.sonos_group.missing_members] == ["speaker-3"]
+
+
 def test_settings_service_prefers_selected_group_over_persisted_manual_host(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(
