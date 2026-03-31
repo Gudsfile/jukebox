@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 from jukebox.di_container import build_jukebox
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.shared.config_utils import get_current_tag_path
+from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
 
 
 def test_get_current_tag_path_derives_path_beside_library(tmp_path):
@@ -28,6 +29,9 @@ class TestBuildJukebox:
             player_type="sonos",
             sonos_host="192.168.1.100",
             sonos_name=None,
+            sonos_group=build_resolved_sonos_group_runtime(
+                speakers=[("speaker-1", "Living Room", "192.168.1.100", "household-1")]
+            ),
             reader_type="nfc",
             pause_duration_seconds=50,
             pause_delay_seconds=3,
@@ -40,7 +44,7 @@ class TestBuildJukebox:
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
-        mock_player.assert_called_once_with(host="192.168.1.100", name=None)
+        mock_player.assert_called_once_with(host="192.168.1.100", name=None, group=config.sonos_group)
         mock_nfc_class.assert_called_once_with(read_timeout_seconds=0.25)
         assert reader == mock_nfc_instance
         assert handle_tag_event is not None
@@ -55,6 +59,7 @@ class TestBuildJukebox:
             player_type="sonos",
             sonos_host=None,
             sonos_name="Living Room",
+            sonos_group=None,
             reader_type="dryrun",
             pause_duration_seconds=50,
             pause_delay_seconds=3,
@@ -67,7 +72,7 @@ class TestBuildJukebox:
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
-        mock_player.assert_called_once_with(host=None, name="Living Room")
+        mock_player.assert_called_once_with(host=None, name="Living Room", group=None)
         mock_reader.assert_called_once_with()
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
@@ -82,6 +87,7 @@ class TestBuildJukebox:
             player_type="sonos",
             sonos_host=None,
             sonos_name=None,
+            sonos_group=None,
             reader_type="dryrun",
             pause_duration_seconds=50,
             pause_delay_seconds=3,
@@ -94,7 +100,7 @@ class TestBuildJukebox:
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
-        mock_player.assert_called_once_with(host=None, name=None)
+        mock_player.assert_called_once_with(host=None, name=None, group=None)
         mock_reader.assert_called_once_with()
         assert reader == mock_reader.return_value
         assert handle_tag_event is not None
@@ -108,6 +114,7 @@ class TestBuildJukebox:
             library_path="/test/library.json",
             player_type="dryrun",
             sonos_name=None,
+            sonos_group=None,
             reader_type="dryrun",
             pause_duration_seconds=100,
             pause_delay_seconds=5,
@@ -137,6 +144,7 @@ class TestBuildJukebox:
             library_path="/test/library.json",
             player_type="dryrun",
             sonos_name=None,
+            sonos_group=None,
             reader_type="dryrun",
             pause_duration_seconds=200,
             pause_delay_seconds=0.2,

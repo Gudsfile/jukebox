@@ -7,6 +7,7 @@ from jukebox.adapters.inbound.config import JukeboxCliConfig
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
+from tests.jukebox.settings._helpers import StubSonosGroupResolver, build_resolved_sonos_group_runtime
 
 
 @pytest.fixture
@@ -57,6 +58,29 @@ def test_main_exits_on_settings_error(app_mocks):
         app.main()
 
     assert str(err.value) == "broken settings"
+
+
+def test_main_exits_on_build_jukebox_settings_error(app_mocks):
+    runtime_config = ResolvedJukeboxRuntimeConfig(
+        library_path="/resolved/library.json",
+        player_type="dryrun",
+        reader_type="dryrun",
+        pause_duration_seconds=100,
+        pause_delay_seconds=1.0,
+        loop_interval_seconds=0.5,
+        nfc_read_timeout_seconds=0.1,
+        verbose=True,
+    )
+    settings_service = MagicMock()
+    settings_service.resolve_jukebox_runtime.return_value = runtime_config
+    app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.build_jukebox.side_effect = InvalidSettingsError("sonos startup failed")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert str(err.value) == "sonos startup failed"
 
 
 def test_build_settings_service_maps_sonos_name_override():
@@ -113,8 +137,18 @@ def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, 
     mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
 
     settings_service = app._build_settings_service(JukeboxCliConfig())
+    settings_service.sonos_group_resolver = StubSonosGroupResolver(
+        resolved_group=build_resolved_sonos_group_runtime(
+            coordinator_uid="speaker-2",
+            speakers=[
+                ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+                ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+            ],
+        )
+    )
     runtime_config = settings_service.resolve_jukebox_runtime()
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.40"
     assert runtime_config.sonos_name is None
+    assert runtime_config.sonos_group is not None

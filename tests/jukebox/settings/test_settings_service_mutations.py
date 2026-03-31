@@ -7,7 +7,12 @@ from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
 from jukebox.shared.config_utils import get_current_tag_path
-from tests.jukebox.settings._helpers import lookup_json_object, lookup_json_value
+from tests.jukebox.settings._helpers import (
+    StubSonosGroupResolver,
+    build_resolved_sonos_group_runtime,
+    lookup_json_object,
+    lookup_json_value,
+)
 
 
 def test_settings_service_builds_effective_view_with_provenance(tmp_path):
@@ -231,7 +236,7 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
     ]
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "dryrun"
-    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_host is None
     assert runtime_config.reader_type == "dryrun"
     assert runtime_config.pause_duration_seconds == 900
     assert runtime_config.pause_delay_seconds == 0.25
@@ -480,12 +485,15 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
     assert result["updated_paths"] == ["jukebox.player.sonos.selected_group"]
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "dryrun"
-    assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_host is None
 
 
 def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_path):
     settings_path = tmp_path / "settings.json"
-    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        sonos_group_resolver=StubSonosGroupResolver(resolved_group=build_resolved_sonos_group_runtime()),
+    )
 
     result = service.patch_persisted_settings(
         {
@@ -576,6 +584,7 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.20"
+    assert runtime_config.sonos_group is not None
 
 
 def test_settings_service_reset_removes_only_requested_timing_override(tmp_path):

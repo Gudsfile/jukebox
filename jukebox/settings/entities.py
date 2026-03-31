@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
+from .runtime_validation import validate_resolved_jukebox_runtime_rules
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -169,17 +171,65 @@ class SparseAppSettings(StrictModel):
     admin: Optional[SparseAdminSettings] = None
 
 
+class ResolvedSonosSpeakerRuntime(StrictModel):
+    uid: str
+    name: str
+    host: str
+    household_id: str
+
+
+class ResolvedSonosGroupRuntime(StrictModel):
+    household_id: str
+    coordinator: ResolvedSonosSpeakerRuntime
+    members: list[ResolvedSonosSpeakerRuntime]
+    missing_members: list[SelectedSonosSpeakerSettings] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_group_shape(self):
+        if not self.members:
+            raise ValueError("resolved Sonos group must include at least one member")
+
+        member_uids = {member.uid for member in self.members}
+        if self.coordinator.uid not in member_uids:
+            raise ValueError("resolved Sonos group coordinator must be present in members")
+
+        household_ids = {member.household_id for member in self.members}
+        if household_ids != {self.household_id}:
+            raise ValueError("resolved Sonos group members must belong to the same household")
+
+        reachable_member_uids = {member.uid for member in self.members}
+        missing_member_uids = {member.uid for member in self.missing_members}
+        if reachable_member_uids & missing_member_uids:
+            raise ValueError("resolved Sonos group missing_members must not overlap with resolved members")
+
+        return self
+
+    @property
+    def desired_member_uids(self) -> set[str]:
+        return {member.uid for member in self.members} | {member.uid for member in self.missing_members}
+
+    @property
+    def is_partial(self) -> bool:
+        return bool(self.missing_members)
+
+
 class ResolvedJukeboxRuntimeConfig(StrictModel):
     library_path: str
     player_type: Literal["dryrun", "sonos"]
     sonos_host: Optional[str] = None
     sonos_name: Optional[str] = None
+    sonos_group: Optional[ResolvedSonosGroupRuntime] = None
     reader_type: Literal["dryrun", "nfc"]
     pause_duration_seconds: int
     pause_delay_seconds: float
     loop_interval_seconds: float
     nfc_read_timeout_seconds: float
     verbose: bool = False
+
+    @model_validator(mode="after")
+    def validate_runtime_rules(self):
+        validate_resolved_jukebox_runtime_rules(self)
+        return self
 
 
 class ResolvedAdminRuntimeConfig(StrictModel):
