@@ -6,8 +6,10 @@ from .discovery import (
 )
 from .selection import (
     GetSonosSelectionStatus,
-    SelectDefaultSonosSpeaker,
+    PlanSonosSelection,
+    SaveSonosSelection,
     SonosSelectionAvailability,
+    SonosSelectionPlan,
     SonosSelectionResult,
     SonosSelectionStatus,
 )
@@ -17,10 +19,12 @@ __all__ = [
     "DefaultSonosService",
     "DiscoveredSonosSpeaker",
     "GetSonosSelectionStatus",
-    "SelectDefaultSonosSpeaker",
+    "PlanSonosSelection",
+    "SaveSonosSelection",
     "SonosDiscoveryError",
     "SonosDiscoveryPort",
     "SonosSelectionAvailability",
+    "SonosSelectionPlan",
     "SonosSelectionResult",
     "SonosSelectionStatus",
     "SonosService",

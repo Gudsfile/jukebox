@@ -600,7 +600,7 @@ def test_execute_sonos_command_rejects_multiple_scripted_uids():
     settings_service = MagicMock()
     sonos_service.list_available_speakers.return_value = []
 
-    with pytest.raises(RuntimeError, match="requires exactly one UID"):
+    with pytest.raises(RuntimeError, match="exactly one UID"):
         execute_sonos_command(
             command=SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"]),
             sonos_service=sonos_service,

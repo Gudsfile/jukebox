@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Protocol
 
 try:
     from typing import Literal
@@ -11,8 +11,6 @@ from jukebox.settings.entities import (
     SelectedSonosGroupSettings,
     SelectedSonosSpeakerSettings,
 )
-from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
-from jukebox.settings.types import JsonObject
 
 from .discovery import DiscoveredSonosSpeaker
 from .service import SonosService
@@ -45,9 +43,60 @@ class SonosSelectionResult(StrictModel):
     restart_required: bool = False
 
 
-class SelectDefaultSonosSpeaker:
-    def __init__(self, settings_service: SettingsService, sonos_service: SonosService):
-        self.settings_service = settings_service
+class SaveSelectedSonosGroupResult(StrictModel):
+    message: str = "Settings saved."
+    restart_required: bool = False
+
+
+class SelectedSonosGroupRepository(Protocol):
+    def get_selected_group(self) -> Optional[SelectedSonosGroupSettings]: ...
+
+    def save_selected_group(self, selected_group: SelectedSonosGroupSettings) -> SaveSelectedSonosGroupResult: ...
+
+
+class SonosSelectionPlan(StrictModel):
+    status: Literal["resolved", "needs_choice", "invalid_request", "none_available"]
+    selected_uid: Optional[str] = None
+    speakers: list[DiscoveredSonosSpeaker] = []
+    error_message: Optional[str] = None
+
+
+class PlanSonosSelection:
+    def __init__(self, sonos_service: SonosService):
+        self.sonos_service = sonos_service
+
+    def execute(self, requested_uids: Optional[list[str]] = None) -> SonosSelectionPlan:
+        available_speakers = self.sonos_service.list_available_speakers()
+        if requested_uids is not None:
+            if len(requested_uids) != 1:
+                return SonosSelectionPlan(
+                    status="invalid_request",
+                    error_message="`uids` must contain exactly one UID in this phase.",
+                )
+
+            selected_uid = requested_uids[0]
+            if selected_uid not in {speaker.uid for speaker in available_speakers}:
+                return SonosSelectionPlan(
+                    status="invalid_request",
+                    error_message="Selected Sonos speaker is not currently discoverable: {}".format(selected_uid),
+                )
+            return SonosSelectionPlan(status="resolved", selected_uid=selected_uid)
+
+        if not available_speakers:
+            return SonosSelectionPlan(
+                status="none_available",
+                error_message="No visible Sonos speakers found.",
+            )
+
+        if len(available_speakers) == 1:
+            return SonosSelectionPlan(status="resolved", selected_uid=available_speakers[0].uid)
+
+        return SonosSelectionPlan(status="needs_choice", speakers=available_speakers)
+
+
+class SaveSonosSelection:
+    def __init__(self, selected_group_repository: SelectedSonosGroupRepository, sonos_service: SonosService):
+        self.selected_group_repository = selected_group_repository
         self.sonos_service = sonos_service
 
     def execute(self, uid: str) -> SonosSelectionResult:
@@ -60,41 +109,28 @@ class SelectDefaultSonosSpeaker:
             coordinator_uid=uid,
             members=[SelectedSonosSpeakerSettings(uid=uid)],
         )
-        settings_result = self.settings_service.patch_persisted_settings(
-            {
-                "jukebox": {
-                    "player": {
-                        "type": "sonos",
-                        "sonos": {
-                            "selected_group": selected_group.model_dump(mode="python"),
-                        },
-                    }
-                }
-            }
-        )
+        settings_result = self.selected_group_repository.save_selected_group(selected_group)
         return SonosSelectionResult(
             speaker=speaker,
             selected_group=selected_group,
-            settings_message=str(settings_result.get("message", "Settings saved.")),
-            restart_required=bool(settings_result.get("restart_required", False)),
+            settings_message=settings_result.message,
+            restart_required=settings_result.restart_required,
         )
 
 
 class GetSonosSelectionStatus:
-    def __init__(self, settings_service: ReadOnlySettingsService, sonos_service: SonosService):
-        self.settings_service = settings_service
+    def __init__(self, selected_group_repository: SelectedSonosGroupRepository, sonos_service: SonosService):
+        self.selected_group_repository = selected_group_repository
         self.sonos_service = sonos_service
 
     def execute(self) -> SonosSelectionStatus:
-        persisted = self.settings_service.get_persisted_settings_view()
-        selected_group_data = _lookup_selected_group(persisted)
-        if selected_group_data is None:
+        selected_group = self.selected_group_repository.get_selected_group()
+        if selected_group is None:
             return SonosSelectionStatus(
                 selected_group=None,
                 availability=SonosSelectionAvailability(status="not_selected", speaker=None),
             )
 
-        selected_group = SelectedSonosGroupSettings.model_validate(selected_group_data)
         available_speakers = {speaker.uid: speaker for speaker in self.sonos_service.list_available_speakers()}
         selected_speaker = available_speakers.get(selected_group.coordinator_uid)
         if selected_speaker is None:
@@ -106,23 +142,3 @@ class GetSonosSelectionStatus:
             selected_group=selected_group,
             availability=availability,
         )
-
-
-def _lookup_selected_group(persisted: JsonObject) -> Optional[JsonObject]:
-    jukebox_settings = persisted.get("jukebox")
-    if not isinstance(jukebox_settings, dict):
-        return None
-
-    player_settings = jukebox_settings.get("player")
-    if not isinstance(player_settings, dict):
-        return None
-
-    sonos_settings = player_settings.get("sonos")
-    if not isinstance(sonos_settings, dict):
-        return None
-
-    selected_group = sonos_settings.get("selected_group")
-    if not isinstance(selected_group, dict):
-        return None
-
-    return selected_group
