@@ -10,10 +10,11 @@ from discstore.command_handlers import execute_library_command
 from discstore.commands import is_library_command
 from discstore.di_container import build_cli_controller, build_interactive_cli_controller
 from jukebox.admin.cli_presentation import render_cli_error
-from jukebox.admin.command_handlers import execute_admin_command
-from jukebox.admin.commands import is_admin_command
+from jukebox.admin.command_handlers import execute_server_command, execute_settings_command
+from jukebox.admin.commands import is_admin_command, is_settings_command
 from jukebox.admin.di_container import (
     build_admin_api_app,
+    build_admin_services,
     build_admin_ui_app,
 )
 from jukebox.admin.di_container import (
@@ -37,24 +38,36 @@ def main():
     config = parse_config()
     set_logger("discstore", config.verbose)
     try:
-        settings_service = _build_settings_service(config)
         if is_admin_command(config.command):
+            services = build_admin_services(
+                library=config.library,
+                command=config.command,
+                logger_warning=LOGGER.warning,
+            )
             try:
-                execute_admin_command(
-                    verbose=config.verbose,
-                    command=config.command,
-                    settings_service=settings_service,
-                    build_api_app=build_admin_api_app,
-                    build_ui_app=build_admin_ui_app,
-                    source_command="discstore",
-                    library=config.library,
-                )
+                if is_settings_command(config.command):
+                    execute_settings_command(
+                        command=config.command,
+                        settings_service=services.settings,
+                        source_command="discstore",
+                        library=config.library,
+                    )
+                else:
+                    execute_server_command(
+                        verbose=config.verbose,
+                        command=config.command,
+                        services=services,
+                        build_api_app=build_admin_api_app,
+                        build_ui_app=build_admin_ui_app,
+                        source_command="discstore",
+                    )
             except RuntimeError as err:
                 print(str(err), file=sys.stderr)
                 raise SystemExit(1) from err
             return
 
         if is_library_command(config.command):
+            settings_service = _build_settings_service(config)
             try:
                 execute_library_command(
                     verbose=config.verbose,

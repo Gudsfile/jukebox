@@ -2,11 +2,13 @@ import logging
 
 from jukebox.adapters.inbound.cli_controller import CLIController
 from jukebox.adapters.inbound.config import JukeboxCliConfig, parse_config
+from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.di_container import build_jukebox
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
 from jukebox.shared.logger import set_logger
+from jukebox.sonos.service import DefaultSonosService
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -49,6 +51,7 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
         repository=FileSettingsRepository(),
         env_overrides=build_environment_settings_overrides(LOGGER.warning),
         cli_overrides=cli_overrides,
+        sonos_service=DefaultSonosService(SoCoSonosDiscoveryAdapter()),
     )
 
 

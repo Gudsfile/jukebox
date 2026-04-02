@@ -3,7 +3,7 @@ import json
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
 from tests.jukebox.settings._helpers import (
-    StubSonosGroupResolver,
+    StubSonosService,
     build_resolved_sonos_group_runtime,
 )
 
@@ -30,10 +30,10 @@ def test_settings_service_resolves_persisted_one_member_selected_group_into_runt
         encoding="utf-8",
     )
     resolved_group = build_resolved_sonos_group_runtime()
-    resolver = StubSonosGroupResolver(resolved_group=resolved_group)
+    resolver = StubSonosService(resolved_group=resolved_group)
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=resolver,
+        sonos_service=resolver,
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -77,7 +77,7 @@ def test_settings_service_resolves_persisted_multi_member_selected_group_into_ru
     )
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=StubSonosGroupResolver(resolved_group=resolved_group),
+        sonos_service=StubSonosService(resolved_group=resolved_group),
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -123,7 +123,7 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
     )
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=StubSonosGroupResolver(resolved_group=resolved_group),
+        sonos_service=StubSonosService(resolved_group=resolved_group),
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -159,7 +159,7 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
         ),
         encoding="utf-8",
     )
-    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    resolver = StubSonosService(error=AssertionError("resolver should not be called"))
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         env_overrides={
@@ -167,7 +167,7 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
                 "player": {"sonos": {"manual_host": "192.168.1.99", "manual_name": None, "selected_group": None}}
             }
         },
-        sonos_group_resolver=resolver,
+        sonos_service=resolver,
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -201,11 +201,11 @@ def test_settings_service_env_host_override_beats_persisted_selected_group_witho
         ),
         encoding="utf-8",
     )
-    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    resolver = StubSonosService(error=AssertionError("resolver should not be called"))
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         env_overrides={"jukebox": {"player": {"sonos": {"manual_host": "192.168.1.99"}}}},
-        sonos_group_resolver=resolver,
+        sonos_service=resolver,
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -239,7 +239,7 @@ def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_p
         ),
         encoding="utf-8",
     )
-    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    resolver = StubSonosService(error=AssertionError("resolver should not be called"))
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         cli_overrides={
@@ -247,7 +247,7 @@ def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_p
                 "player": {"sonos": {"manual_host": "192.168.1.99", "manual_name": None, "selected_group": None}}
             }
         },
-        sonos_group_resolver=resolver,
+        sonos_service=resolver,
     )
 
     runtime_config = service.resolve_jukebox_runtime()
@@ -281,11 +281,11 @@ def test_settings_service_cli_name_override_beats_persisted_selected_group_witho
         ),
         encoding="utf-8",
     )
-    resolver = StubSonosGroupResolver(error=AssertionError("resolver should not be called"))
+    resolver = StubSonosService(error=AssertionError("resolver should not be called"))
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         cli_overrides={"jukebox": {"player": {"sonos": {"manual_name": "Office"}}}},
-        sonos_group_resolver=resolver,
+        sonos_service=resolver,
     )
 
     runtime_config = service.resolve_jukebox_runtime()

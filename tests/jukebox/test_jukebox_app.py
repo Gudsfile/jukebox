@@ -7,7 +7,7 @@ from jukebox.adapters.inbound.config import JukeboxCliConfig
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
-from tests.jukebox.settings._helpers import StubSonosGroupResolver, build_resolved_sonos_group_runtime
+from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
 
 
 @pytest.fixture
@@ -137,7 +137,7 @@ def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, 
     mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
 
     settings_service = app._build_settings_service(JukeboxCliConfig())
-    settings_service.sonos_group_resolver = StubSonosGroupResolver(
+    settings_service.sonos_service = StubSonosService(
         resolved_group=build_resolved_sonos_group_runtime(
             coordinator_uid="speaker-2",
             speakers=[
