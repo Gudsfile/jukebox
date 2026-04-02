@@ -14,6 +14,8 @@ from jukebox.admin.commands import (
     SettingsSetCommand,
     SettingsShowCommand,
     SonosListCommand,
+    SonosSelectCommand,
+    SonosShowCommand,
     UiCommand,
 )
 from jukebox.admin.services import AdminServices
@@ -422,6 +424,187 @@ def test_execute_sonos_command_preserves_sonos_discovery_failures():
         execute_sonos_command(
             command=SonosListCommand(type="sonos_list"),
             sonos_service=sonos_service,
+        )
+
+
+def test_execute_sonos_command_selects_requested_uid_and_renders_success():
+    stdout_fn = MagicMock()
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {
+        "message": "Settings saved. Changes take effect after restart."
+    }
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+
+    execute_sonos_command(
+        command=SonosSelectCommand(type="sonos_select", uids=["speaker-1"]),
+        sonos_service=sonos_service,
+        settings_service=settings_service,
+        stdout_fn=stdout_fn,
+    )
+
+    settings_service.patch_persisted_settings.assert_called_once()
+    rendered_output = stdout_fn.call_args.args[0]
+    assert "Selected Sonos speaker: Kitchen" in rendered_output
+    assert "UID: speaker-1" in rendered_output
+
+
+def test_execute_sonos_command_selects_single_discovered_speaker_without_prompt():
+    stdout_fn = MagicMock()
+    prompt_fn = MagicMock()
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+
+    execute_sonos_command(
+        command=SonosSelectCommand(type="sonos_select"),
+        sonos_service=sonos_service,
+        settings_service=settings_service,
+        speaker_prompt_fn=prompt_fn,
+        stdout_fn=stdout_fn,
+    )
+
+    prompt_fn.assert_not_called()
+    settings_service.patch_persisted_settings.assert_called_once()
+
+
+def test_execute_sonos_command_uses_prompt_for_multiple_speakers():
+    stdout_fn = MagicMock()
+    prompt_fn = MagicMock(return_value="speaker-2")
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Kitchen",
+            host="192.168.1.31",
+            household_id="household-1",
+            is_visible=True,
+        ),
+    ]
+
+    execute_sonos_command(
+        command=SonosSelectCommand(type="sonos_select"),
+        sonos_service=sonos_service,
+        settings_service=settings_service,
+        speaker_prompt_fn=prompt_fn,
+        stdout_fn=stdout_fn,
+    )
+
+    prompt_fn.assert_called_once_with(sonos_service.list_available_speakers.return_value)
+    settings_service.patch_persisted_settings.assert_called_once()
+    assert "speaker-2" in stdout_fn.call_args.args[0]
+
+
+def test_execute_sonos_command_cancel_does_not_write_settings():
+    stdout_fn = MagicMock()
+    prompt_fn = MagicMock(return_value=None)
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Living Room",
+            host="192.168.1.31",
+            household_id="household-1",
+            is_visible=True,
+        ),
+    ]
+
+    execute_sonos_command(
+        command=SonosSelectCommand(type="sonos_select"),
+        sonos_service=sonos_service,
+        settings_service=settings_service,
+        speaker_prompt_fn=prompt_fn,
+        stdout_fn=stdout_fn,
+    )
+
+    settings_service.patch_persisted_settings.assert_not_called()
+    stdout_fn.assert_not_called()
+
+
+def test_execute_sonos_command_show_renders_saved_selection_status():
+    stdout_fn = MagicMock()
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-1",
+                        "members": [{"uid": "speaker-1"}],
+                    }
+                }
+            }
+        },
+    }
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+
+    execute_sonos_command(
+        command=SonosShowCommand(type="sonos_show"),
+        sonos_service=sonos_service,
+        settings_service=settings_service,
+        stdout_fn=stdout_fn,
+    )
+
+    rendered_output = stdout_fn.call_args.args[0]
+    assert "Selected Sonos Speaker" in rendered_output
+    assert "- Status: available" in rendered_output
+    assert "- Host: 192.168.1.30" in rendered_output
+
+
+def test_execute_sonos_command_rejects_multiple_scripted_uids():
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = []
+
+    with pytest.raises(RuntimeError, match="requires exactly one UID"):
+        execute_sonos_command(
+            command=SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"]),
+            sonos_service=sonos_service,
+            settings_service=settings_service,
         )
 
 
