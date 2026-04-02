@@ -69,6 +69,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         speaker: "_SonosSpeakerLike",
     ) -> tuple[Optional[DiscoveredSonosSpeaker], Optional[str]]:
         from requests.exceptions import RequestException
+        from soco import SoCo
         from soco.exceptions import SoCoException, SoCoUPnPException
         from urllib3.exceptions import HTTPError
 
@@ -84,6 +85,13 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 None,
             )
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            host = _safe_speaker_host(speaker)
+            expected_uid = _safe_speaker_uid(speaker)
+            if host is not None:
+                retried = SoCoSonosDiscoveryAdapter._normalize_speaker_by_host(SoCo, host, expected_uid)
+                if retried is not None:
+                    return retried, None
+
             return (
                 None,
                 "{}: {}".format(
@@ -91,6 +99,34 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                     err,
                 ),
             )
+
+    @staticmethod
+    def _normalize_speaker_by_host(
+        SoCo: Any,
+        host: str,
+        expected_uid: Optional[str],
+    ) -> Optional[DiscoveredSonosSpeaker]:
+        from requests.exceptions import RequestException
+        from soco.exceptions import SoCoException, SoCoUPnPException
+        from urllib3.exceptions import HTTPError
+
+        try:
+            speaker = SoCo(host)
+            if speaker is None:
+                return None
+            uid = speaker.uid
+            if expected_uid is not None and uid != expected_uid:
+                return None
+
+            return DiscoveredSonosSpeaker(
+                uid=uid,
+                name=speaker.player_name,
+                host=speaker.ip_address,
+                household_id=speaker.household_id,
+                is_visible=getattr(speaker, "is_visible", True) is not False,
+            )
+        except (AttributeError, HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException):
+            return None
 
 
 class _SonosSpeakerLike(Protocol):
@@ -102,9 +138,9 @@ class _SonosSpeakerLike(Protocol):
 
 
 def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
-    ip_address = getattr(speaker, "ip_address", None)
+    ip_address = _safe_speaker_host(speaker)
     if ip_address:
-        return str(ip_address)
+        return ip_address
 
     try:
         uid = getattr(speaker, "uid")
@@ -112,3 +148,21 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
         return "unknown speaker"
 
     return str(uid)
+
+
+def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> Optional[str]:
+    try:
+        ip_address = getattr(speaker, "ip_address", None)
+    except Exception:
+        return None
+
+    if ip_address:
+        return str(ip_address)
+    return None
+
+
+def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> Optional[str]:
+    try:
+        return str(getattr(speaker, "uid"))
+    except Exception:
+        return None
