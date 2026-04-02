@@ -12,12 +12,25 @@ from jukebox.sonos.discovery import (
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def discover_speakers(self) -> list[DiscoveredSonosSpeaker]:
         snapshot = self.discover_runtime_snapshot()
-        if not snapshot.speakers and snapshot.normalization_errors:
+        speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
+        for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
+            for host in hosts:
+                try:
+                    recovered = self.resolve_speaker_by_host(expected_uid, host)
+                except ValueError:
+                    continue
+
+                existing = speakers_by_uid.get(recovered.uid)
+                speakers_by_uid[recovered.uid] = self._choose_preferred(existing, recovered)
+                break
+
+        recovered_speakers = sort_sonos_speakers(list(speakers_by_uid.values()))
+        if not recovered_speakers and snapshot.normalization_errors:
             raise SonosDiscoveryError(
                 "Discovered Sonos speakers but failed to inspect any reachable speakers: "
                 f"{snapshot.normalization_errors[0]}"
             )
-        return snapshot.speakers
+        return recovered_speakers
 
     def discover_runtime_snapshot(self) -> SonosDiscoverySnapshot:
         import soco
