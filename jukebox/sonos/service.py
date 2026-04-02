@@ -29,7 +29,8 @@ class DefaultSonosService:
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> ResolvedSonosGroupRuntime:
-        available_speakers = {speaker.uid: speaker for speaker in self.discovery.discover_speakers()}
+        snapshot = self.discovery.discover_runtime_snapshot()
+        available_speakers = {speaker.uid: speaker for speaker in snapshot.speakers}
         resolved_members = []
         missing_member_uids = []
         coordinator_resolution_error = None
@@ -37,9 +38,22 @@ class DefaultSonosService:
         for saved_member in selected_group.members:
             resolved_speaker = available_speakers.get(saved_member.uid)
             runtime_member = self._build_runtime_speaker(resolved_speaker) if resolved_speaker is not None else None
-            member_resolution_error = (
-                None if runtime_member is not None else f"{saved_member.uid}: not found on network"
-            )
+            member_resolution_error = None
+
+            if runtime_member is None:
+                host_errors = []
+                for host in snapshot.retry_hosts_by_uid.get(saved_member.uid, []):
+                    try:
+                        resolved_speaker = self.discovery.resolve_speaker_by_host(saved_member.uid, host)
+                        runtime_member = self._build_runtime_speaker(resolved_speaker)
+                        break
+                    except ValueError as err:
+                        host_errors.append(f"{saved_member.uid} via {host}: {err}")
+
+                if runtime_member is None and host_errors:
+                    member_resolution_error = "; ".join(host_errors)
+                elif runtime_member is None:
+                    member_resolution_error = f"{saved_member.uid}: not found on network"
 
             if runtime_member is None:
                 if saved_member.uid == selected_group.coordinator_uid:
