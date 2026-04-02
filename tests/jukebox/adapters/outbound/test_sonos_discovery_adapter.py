@@ -94,6 +94,48 @@ def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     assert [speaker.uid for speaker in speakers] == ["speaker-1"]
 
 
+def test_soco_sonos_discovery_adapter_raises_when_all_discovered_speakers_fail_normalization(mocker):
+    class UnreachableSpeaker:
+        ip_address = "10.1.10.87"
+        all_zones = set()
+
+        @property
+        def uid(self):
+            raise OSError("No route to host")
+
+        def __hash__(self):
+            return hash("unreachable")
+
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {UnreachableSpeaker()}))
+
+    with pytest.raises(
+        SonosDiscoveryError,
+        match="Discovered Sonos speakers but failed to inspect any reachable speakers: 10.1.10.87: No route to host",
+    ):
+        SoCoSonosDiscoveryAdapter().discover_speakers()
+
+
+def test_soco_sonos_discovery_adapter_keeps_reachable_speakers_when_some_fail_normalization(mocker):
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+
+    class UnreachableSpeaker:
+        ip_address = "10.1.10.87"
+        all_zones = set()
+
+        @property
+        def uid(self):
+            raise OSError("No route to host")
+
+        def __hash__(self):
+            return hash("unreachable")
+
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {living_room, UnreachableSpeaker()}))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.uid for speaker in speakers] == ["speaker-1"]
+
+
 def test_soco_sonos_discovery_adapter_wraps_discovery_errors(mocker):
     mocker.patch.dict(
         "sys.modules",
