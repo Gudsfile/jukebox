@@ -146,39 +146,3 @@ def execute_server_command(
         return
 
     raise TypeError("Unsupported server command")
-
-
-def execute_admin_command(
-    verbose: bool,
-    command: object,
-    services: AdminServices,
-    build_api_app: Callable[[str, AdminServices], AppController],
-    build_ui_app: Callable[[str, AdminServices], AppController],
-    source_command: str,
-    library: Optional[str] = None,
-    stdout_fn: Callable[[str], None] = print,
-    stderr_fn: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
-) -> None:
-    if isinstance(command, (SettingsShowCommand, SettingsSetCommand, SettingsResetCommand)):
-        execute_settings_command(
-            command=command,
-            settings_service=services.settings,
-            source_command=source_command,
-            library=library,
-            stdout_fn=stdout_fn,
-            stderr_fn=stderr_fn,
-        )
-        return
-
-    if isinstance(command, SonosListCommand):
-        execute_sonos_command(command=command, sonos_service=services.sonos, stdout_fn=stdout_fn)
-        return
-
-    execute_server_command(
-        verbose=verbose,
-        command=command,
-        services=services,
-        build_api_app=build_api_app,
-        build_ui_app=build_ui_app,
-        source_command=source_command,
-    )

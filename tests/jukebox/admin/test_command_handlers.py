@@ -1,10 +1,9 @@
 import json
-from unittest.mock import ANY, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from jukebox.admin.command_handlers import (
-    execute_admin_command,
     execute_server_command,
     execute_settings_command,
     execute_sonos_command,
@@ -289,44 +288,3 @@ def test_execute_server_command_rewrites_controller_dependency_failures(mocker, 
         extra_name=extra_name,
         source_command=f"jukebox-admin {extra_name}",
     )
-
-
-def test_execute_admin_command_routes_to_settings_command(mocker):
-    execute_settings = mocker.patch("jukebox.admin.command_handlers.execute_settings_command")
-    services = build_services()
-    command = SettingsShowCommand(type="settings_show")
-
-    execute_admin_command(
-        verbose=False,
-        command=command,
-        services=services,
-        build_api_app=MagicMock(),
-        build_ui_app=MagicMock(),
-        source_command="jukebox-admin",
-    )
-
-    execute_settings.assert_called_once_with(
-        command=command,
-        settings_service=services.settings,
-        source_command="jukebox-admin",
-        library=None,
-        stdout_fn=print,
-        stderr_fn=ANY,
-    )
-
-
-def test_execute_admin_command_routes_to_sonos_command(mocker):
-    execute_sonos = mocker.patch("jukebox.admin.command_handlers.execute_sonos_command")
-    services = build_services()
-    command = SonosListCommand(type="sonos_list")
-
-    execute_admin_command(
-        verbose=False,
-        command=command,
-        services=services,
-        build_api_app=MagicMock(),
-        build_ui_app=MagicMock(),
-        source_command="jukebox-admin",
-    )
-
-    execute_sonos.assert_called_once_with(command=command, sonos_service=services.sonos, stdout_fn=print)
