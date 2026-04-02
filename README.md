@@ -119,6 +119,16 @@ discstore add --from-current --uri /path/to/media.mp3
 
 Other commands are available, use `--help` to see them.
 
+### Admin CLI
+
+Use `jukebox-admin` for admin workflows such as settings inspection and the
+admin API/UI servers.
+
+```shell
+jukebox-admin settings show
+jukebox-admin settings show --effective
+```
+
 To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
 
 ```shell
@@ -132,9 +142,11 @@ uv tool install gukebox[ui]
 When running from this repository with `uv`, include the extra on the command as well:
 
 ```shell
-uv run --extra api discstore api
-uv run --extra ui discstore ui
+uv run --extra api jukebox-admin api
+uv run --extra ui jukebox-admin ui
 ```
+
+`discstore settings ...`, `discstore api`, and `discstore ui` remain available as compatibility commands, but `jukebox-admin` is the preferred CLI for admin flows.
 
 ### Manage the library manually
 
@@ -292,9 +304,23 @@ Start the discstore `uv` and use `--help` to show help message
 uv run discstore --help
 ```
 
-For the server-backed commands, include the matching extra:
+Use `jukebox-admin` for admin commands:
 
 ```shell
+uv run jukebox-admin settings show
+```
+
+For the server-backed admin commands, include the matching extra:
+
+```shell
+uv run --extra api jukebox-admin api
+uv run --extra ui jukebox-admin ui
+```
+
+Legacy compatibility commands remain available during the transition:
+
+```shell
+uv run discstore settings show
 uv run --extra api discstore api
 uv run --extra ui discstore ui
 ```

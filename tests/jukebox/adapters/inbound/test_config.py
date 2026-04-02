@@ -85,3 +85,11 @@ def test_parse_config_reader_flag_overrides_positional_reader(capsys):
 def test_parse_config_rejects_sonos_host_and_name_together():
     with pytest.raises(SystemExit):
         parse_config()
+
+
+@pytest.mark.parametrize("subcommand", ["settings", "api", "ui"])
+def test_parse_config_rejects_admin_subcommands(subcommand):
+    with patch("sys.argv", ["jukebox", subcommand]), pytest.raises(SystemExit) as err:
+        parse_config()
+
+    assert err.value.code == 2

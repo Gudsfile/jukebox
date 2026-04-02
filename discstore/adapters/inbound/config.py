@@ -11,6 +11,7 @@ except ImportError:
 
 from pydantic import BaseModel, ValidationError, model_validator
 
+from jukebox.admin.commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
 from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 LOGGER = logging.getLogger("discstore")
@@ -69,32 +70,6 @@ class CliSearchCommand(BaseModel):
 
 class InteractiveCliCommand(BaseModel):
     type: Literal["interactive"]
-
-
-class ApiCommand(BaseModel):
-    type: Literal["api"]
-    port: Optional[int] = None
-
-
-class UiCommand(BaseModel):
-    type: Literal["ui"]
-    port: Optional[int] = None
-
-
-class SettingsShowCommand(BaseModel):
-    type: Literal["settings_show"]
-    effective: bool = False
-
-
-class SettingsSetCommand(BaseModel):
-    type: Literal["settings_set"]
-    dotted_path: str
-    value: str
-
-
-class SettingsResetCommand(BaseModel):
-    type: Literal["settings_reset"]
-    dotted_path: str
 
 
 class DiscStoreConfig(BaseModel):

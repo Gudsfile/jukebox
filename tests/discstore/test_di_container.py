@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from discstore.di_container import build_api_app, build_cli_controller, build_interactive_cli_controller, build_ui_app
+from discstore.di_container import build_cli_controller, build_interactive_cli_controller
 from jukebox.shared.config_utils import get_current_tag_path
 
 
@@ -105,50 +105,3 @@ def test_build_interactive_cli_controller_wiring(mocker, mocks):
         mocks.get_current_tag_status_instance,
     )
     assert result is mock_interactive_cli_instance
-
-
-def test_build_api_app_wiring(mocker, mocks):
-    mock_api_instance = MagicMock()
-    mock_api_controller_class = MagicMock(return_value=mock_api_instance)
-    mocker.patch.dict(
-        "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
-    )
-    settings_service = MagicMock()
-
-    result = build_api_app("/test/library.json", settings_service)
-
-    mocks.repo_class.assert_called_once_with("/test/library.json")
-    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
-    mock_api_controller_class.assert_called_once_with(
-        mocks.add_disc_instance,
-        mocks.list_discs_instance,
-        mocks.remove_disc_instance,
-        mocks.edit_disc_instance,
-        mocks.get_current_tag_status_instance,
-        settings_service,
-    )
-    assert result is mock_api_instance
-
-
-def test_build_ui_app_wiring(mocker, mocks):
-    mock_ui_instance = MagicMock()
-    mock_ui_controller_class = MagicMock(return_value=mock_ui_instance)
-    mocker.patch.dict(
-        "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
-    )
-    settings_service = MagicMock()
-
-    result = build_ui_app("/test/library.json", settings_service)
-
-    mocks.repo_class.assert_called_once_with("/test/library.json")
-    mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
-    mock_ui_controller_class.assert_called_once_with(
-        mocks.add_disc_instance,
-        mocks.list_discs_instance,
-        mocks.remove_disc_instance,
-        mocks.edit_disc_instance,
-        mocks.get_disc_instance,
-        mocks.get_current_tag_status_instance,
-        settings_service,
-    )
-    assert result is mock_ui_instance
