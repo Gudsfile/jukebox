@@ -124,11 +124,45 @@ def test_soco_sonos_discovery_adapter_retries_stale_discovered_speaker_by_host(m
         ),
     )
 
-    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+    snapshot = SoCoSonosDiscoveryAdapter().discover_runtime_snapshot()
 
-    assert [(speaker.uid, speaker.name, speaker.host) for speaker in speakers] == [
-        ("speaker-1", "Living Room", "192.168.1.20")
-    ]
+    assert snapshot.speakers == []
+    assert snapshot.retry_hosts_by_uid == {"speaker-1": ["192.168.1.20"]}
+
+
+def test_soco_sonos_discovery_adapter_resolves_speaker_by_host_with_uid_check(mocker):
+    healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: set(),
+            soco_constructor=lambda host: {"192.168.1.20": healthy_speaker}[host],
+        ),
+    )
+
+    speaker = SoCoSonosDiscoveryAdapter().resolve_speaker_by_host("speaker-1", "192.168.1.20")
+
+    assert speaker.model_dump() == {
+        "uid": "speaker-1",
+        "name": "Living Room",
+        "host": "192.168.1.20",
+        "household_id": "household-1",
+        "is_visible": True,
+    }
+
+
+def test_soco_sonos_discovery_adapter_rejects_host_retry_uid_mismatch(mocker):
+    mismatched_speaker = FakeSpeaker("speaker-2", "Office", "192.168.1.20", "household-1")
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: set(),
+            soco_constructor=lambda host: {"192.168.1.20": mismatched_speaker}[host],
+        ),
+    )
+
+    with pytest.raises(ValueError, match="expected speaker-1, resolved speaker-2"):
+        SoCoSonosDiscoveryAdapter().resolve_speaker_by_host("speaker-1", "192.168.1.20")
 
 
 def test_soco_sonos_discovery_adapter_raises_when_all_discovered_speakers_fail_normalization(mocker):

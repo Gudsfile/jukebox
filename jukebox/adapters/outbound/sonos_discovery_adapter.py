@@ -4,12 +4,22 @@ from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
     SonosDiscoveryPort,
+    SonosDiscoverySnapshot,
     sort_sonos_speakers,
 )
 
 
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def discover_speakers(self) -> list[DiscoveredSonosSpeaker]:
+        snapshot = self.discover_runtime_snapshot()
+        if not snapshot.speakers and snapshot.normalization_errors:
+            raise SonosDiscoveryError(
+                "Discovered Sonos speakers but failed to inspect any reachable speakers: "
+                f"{snapshot.normalization_errors[0]}"
+            )
+        return snapshot.speakers
+
+    def discover_runtime_snapshot(self) -> SonosDiscoverySnapshot:
         import soco
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException
@@ -31,23 +41,56 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 available_speakers.add(speaker)
 
         speakers_by_uid = {}
+        retry_hosts_by_uid = {}
         normalization_errors = []
         for speaker in available_speakers:
+            expected_uid = _safe_speaker_uid(speaker)
             normalized, error = self._normalize_speaker(speaker)
             if normalized is None:
                 if error is not None:
                     normalization_errors.append(error)
+                if expected_uid is not None:
+                    host = _safe_speaker_host(speaker)
+                    if host is not None:
+                        retry_hosts_by_uid.setdefault(expected_uid, set()).add(host)
                 continue
 
             existing = speakers_by_uid.get(normalized.uid)
             speakers_by_uid[normalized.uid] = self._choose_preferred(existing, normalized)
 
-        if not speakers_by_uid and normalization_errors:
-            raise SonosDiscoveryError(
-                f"Discovered Sonos speakers but failed to inspect any reachable speakers: {normalization_errors[0]}"
+        return SonosDiscoverySnapshot(
+            speakers=sort_sonos_speakers(list(speakers_by_uid.values())),
+            retry_hosts_by_uid={uid: sorted(hosts) for uid, hosts in sorted(retry_hosts_by_uid.items())},
+            normalization_errors=normalization_errors,
+        )
+
+    def resolve_speaker_by_host(self, expected_uid: str, host: str) -> DiscoveredSonosSpeaker:
+        from requests.exceptions import RequestException
+        from soco import SoCo
+        from soco.exceptions import SoCoException, SoCoUPnPException
+        from urllib3.exceptions import HTTPError
+
+        try:
+            speaker = SoCo(host)
+            resolved_uid = speaker.uid
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            raise ValueError(f"Failed to contact saved Sonos speaker at {host}: {err}") from err
+
+        if resolved_uid != expected_uid:
+            raise ValueError(
+                f"Saved Sonos speaker UID mismatch for host {host}: expected {expected_uid}, resolved {resolved_uid}"
             )
 
-        return sort_sonos_speakers(list(speakers_by_uid.values()))
+        try:
+            return DiscoveredSonosSpeaker(
+                uid=speaker.uid,
+                name=speaker.player_name,
+                host=speaker.ip_address,
+                household_id=speaker.household_id,
+                is_visible=getattr(speaker, "is_visible", True) is not False,
+            )
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            raise ValueError(f"Failed to inspect discovered Sonos speaker at {host}: {err}") from err
 
     @staticmethod
     def _choose_preferred(
@@ -69,7 +112,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         speaker: "_SonosSpeakerLike",
     ) -> tuple[Optional[DiscoveredSonosSpeaker], Optional[str]]:
         from requests.exceptions import RequestException
-        from soco import SoCo
         from soco.exceptions import SoCoException, SoCoUPnPException
         from urllib3.exceptions import HTTPError
 
@@ -85,13 +127,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 None,
             )
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
-            host = _safe_speaker_host(speaker)
-            expected_uid = _safe_speaker_uid(speaker)
-            if host is not None:
-                retried = SoCoSonosDiscoveryAdapter._normalize_speaker_by_host(SoCo, host, expected_uid)
-                if retried is not None:
-                    return retried, None
-
             return (
                 None,
                 "{}: {}".format(
@@ -99,34 +134,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                     err,
                 ),
             )
-
-    @staticmethod
-    def _normalize_speaker_by_host(
-        SoCo: Any,
-        host: str,
-        expected_uid: Optional[str],
-    ) -> Optional[DiscoveredSonosSpeaker]:
-        from requests.exceptions import RequestException
-        from soco.exceptions import SoCoException, SoCoUPnPException
-        from urllib3.exceptions import HTTPError
-
-        try:
-            speaker = SoCo(host)
-            if speaker is None:
-                return None
-            uid = speaker.uid
-            if expected_uid is not None and uid != expected_uid:
-                return None
-
-            return DiscoveredSonosSpeaker(
-                uid=uid,
-                name=speaker.player_name,
-                host=speaker.ip_address,
-                household_id=speaker.household_id,
-                is_visible=getattr(speaker, "is_visible", True) is not False,
-            )
-        except (AttributeError, HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException):
-            return None
 
 
 class _SonosSpeakerLike(Protocol):

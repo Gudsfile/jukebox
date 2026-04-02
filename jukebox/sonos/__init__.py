@@ -1,4 +1,10 @@
-from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryError, SonosDiscoveryPort, sort_sonos_speakers
+from .discovery import (
+    DiscoveredSonosSpeaker,
+    SonosDiscoveryError,
+    SonosDiscoveryPort,
+    SonosDiscoverySnapshot,
+    sort_sonos_speakers,
+)
 from .service import DefaultSonosService, SonosService
 
 __all__ = [
@@ -6,6 +12,7 @@ __all__ = [
     "DiscoveredSonosSpeaker",
     "SonosDiscoveryError",
     "SonosDiscoveryPort",
+    "SonosDiscoverySnapshot",
     "SonosService",
     "sort_sonos_speakers",
 ]
