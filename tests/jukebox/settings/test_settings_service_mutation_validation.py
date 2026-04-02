@@ -5,6 +5,7 @@ import pytest
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
+from tests.jukebox.settings._helpers import resolve_jukebox_runtime
 
 
 def test_settings_service_set_rejects_invalid_timing_value_without_writing(tmp_path):
@@ -256,7 +257,7 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
     }
     assert dryrun_result["updated_paths"] == ["jukebox.reader.type"]
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.reader_type == "dryrun"
     assert runtime_config.nfc_read_timeout_seconds == 0.2
 
@@ -272,7 +273,7 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
         },
     }
     assert nfc_result["updated_paths"] == ["jukebox.reader.type"]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.reader_type == "nfc"
     assert runtime_config.nfc_read_timeout_seconds == 0.2
 

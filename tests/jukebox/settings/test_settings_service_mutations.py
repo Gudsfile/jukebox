@@ -12,6 +12,7 @@ from tests.jukebox.settings._helpers import (
     build_resolved_sonos_group_runtime,
     lookup_json_object,
     lookup_json_value,
+    resolve_jukebox_runtime,
 )
 
 
@@ -219,7 +220,7 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
         "jukebox.reader.type",
         "jukebox.runtime.loop_interval_seconds",
     ]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.player_type == "dryrun"
     assert runtime_config.sonos_host is None
     assert runtime_config.reader_type == "dryrun"
@@ -432,7 +433,7 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
     ]
     assert result["message"] == "Settings saved. Changes take effect after restart."
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.reader_type == "nfc"
     assert runtime_config.nfc_read_timeout_seconds == 0.2
 
@@ -460,17 +461,14 @@ def test_settings_service_set_selected_group_from_json_string(tmp_path):
         },
     }
     assert result["updated_paths"] == ["jukebox.player.sonos.selected_group"]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.player_type == "dryrun"
     assert runtime_config.sonos_host is None
 
 
 def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_path):
     settings_path = tmp_path / "settings.json"
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_service=StubSonosService(resolved_group=build_resolved_sonos_group_runtime()),
-    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     result = service.patch_persisted_settings(
         {
@@ -550,7 +548,10 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
         "jukebox.player.sonos.selected_group",
         "jukebox.player.type",
     ]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(
+        service,
+        StubSonosService(resolved_group=build_resolved_sonos_group_runtime()),
+    )
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.20"
     assert runtime_config.sonos_group is not None
@@ -603,7 +604,7 @@ def test_settings_service_reset_removes_only_requested_timing_override(tmp_path)
     }
     assert result["updated_paths"] == ["jukebox.playback.pause_delay_seconds"]
     assert result["restart_required_paths"] == ["jukebox.playback.pause_delay_seconds"]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.pause_duration_seconds == 600
     assert runtime_config.pause_delay_seconds == 0.25
     assert runtime_config.loop_interval_seconds == 0.2
@@ -647,7 +648,7 @@ def test_settings_service_reset_removes_only_requested_reader_override(tmp_path)
     }
     assert result["updated_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
     assert result["restart_required_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.reader_type == "nfc"
     assert runtime_config.nfc_read_timeout_seconds == 0.1
 

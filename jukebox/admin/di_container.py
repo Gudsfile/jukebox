@@ -24,7 +24,6 @@ def build_settings_service(
     library: Optional[str],
     command: Optional[object],
     logger_warning: Callable[[str], None],
-    sonos_service: Optional[SonosService] = None,
 ) -> SettingsService:
     cli_overrides = {}
 
@@ -41,7 +40,6 @@ def build_settings_service(
         repository=FileSettingsRepository(),
         env_overrides=build_environment_settings_overrides(logger_warning),
         cli_overrides=cli_overrides,
-        sonos_service=sonos_service,
     )
 
 
@@ -55,7 +53,6 @@ def build_admin_services(
         library=library,
         command=command,
         logger_warning=logger_warning,
-        sonos_service=sonos_service,
     )
     return AdminServices(settings=settings_service, sonos=sonos_service)
 
