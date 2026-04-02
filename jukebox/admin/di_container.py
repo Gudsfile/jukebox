@@ -88,6 +88,7 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
         GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
         services.settings,
+        services.sonos,
     )
 
 

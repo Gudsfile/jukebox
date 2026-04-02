@@ -33,6 +33,7 @@ def build_controller():
     from discstore.adapters.inbound.ui_controller import UIController
 
     settings_service = MagicMock()
+    sonos_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {
         "schema_version": 1,
         "admin": {"api": {"port": 8100}, "ui": {"port": 8000}},
@@ -102,6 +103,7 @@ def build_controller():
         get_disc=MagicMock(),
         get_current_tag_status=MagicMock(),
         settings_service=settings_service,
+        sonos_service=sonos_service,
     )
 
 
