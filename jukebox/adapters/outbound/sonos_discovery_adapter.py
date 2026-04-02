@@ -31,7 +31,11 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
 
         if not discovered:
-            return []
+            return SonosDiscoverySnapshot(
+                speakers=[],
+                retry_hosts_by_uid={},
+                normalization_errors=[],
+            )
 
         available_speakers = set(discovered)
         for speaker in list(discovered):

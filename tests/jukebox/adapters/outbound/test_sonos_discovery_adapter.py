@@ -75,6 +75,16 @@ def test_soco_sonos_discovery_adapter_preserves_visibility_flag(mocker):
     assert speakers[0].is_visible is False
 
 
+def test_soco_sonos_discovery_adapter_returns_empty_snapshot_when_no_speakers_are_found(mocker):
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: set()))
+
+    snapshot = SoCoSonosDiscoveryAdapter().discover_runtime_snapshot()
+
+    assert snapshot.speakers == []
+    assert snapshot.retry_hosts_by_uid == {}
+    assert snapshot.normalization_errors == []
+
+
 def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 
