@@ -6,6 +6,7 @@ from typing import Callable, Optional, Tuple, Union, cast
 from pydantic import ValidationError
 
 from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env_with_warning
+from jukebox.sonos.service import DefaultSonosService, SonosService
 
 from .definitions import (
     build_settings_metadata_tree,
@@ -25,7 +26,6 @@ from .entities import (
 )
 from .errors import InvalidSettingsError
 from .repositories import SettingsRepository
-from .sonos_runtime import SonosGroupResolver
 from .types import JsonObject, JsonValue
 from .validation_rules import validate_settings_rules
 
@@ -67,12 +67,12 @@ class SettingsService:
         repository: SettingsRepository,
         env_overrides: Optional[JsonObject] = None,
         cli_overrides: Optional[JsonObject] = None,
-        sonos_group_resolver: Optional[SonosGroupResolver] = None,
+        sonos_service: Optional[SonosService] = None,
     ):
         self.repository = repository
         self.env_overrides = copy.deepcopy(env_overrides or {})
         self.cli_overrides = copy.deepcopy(cli_overrides or {})
-        self.sonos_group_resolver = sonos_group_resolver
+        self.sonos_service = sonos_service
 
     def get_persisted_settings_view(self) -> JsonObject:
         return self.repository.load_persisted_settings_data()
@@ -267,21 +267,19 @@ class SettingsService:
             return None, player_settings.sonos.manual_name, None
 
         if player_settings.sonos.selected_group is not None:
-            resolved_group = self._get_sonos_group_resolver().resolve_selected_group(
-                player_settings.sonos.selected_group
-            )
+            resolved_group = self._get_sonos_service().resolve_selected_group(player_settings.sonos.selected_group)
             return resolved_group.coordinator.host, None, resolved_group
 
         return None, None, None
 
-    def _get_sonos_group_resolver(self) -> SonosGroupResolver:
-        if self.sonos_group_resolver is not None:
-            return self.sonos_group_resolver
+    def _get_sonos_service(self) -> SonosService:
+        if self.sonos_service is not None:
+            return self.sonos_service
 
-        from .sonos_runtime import SoCoSonosGroupResolver
+        from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 
-        self.sonos_group_resolver = SoCoSonosGroupResolver()
-        return self.sonos_group_resolver
+        self.sonos_service = DefaultSonosService(SoCoSonosDiscoveryAdapter())
+        return self.sonos_service
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:

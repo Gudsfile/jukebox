@@ -1,0 +1,104 @@
+from types import ModuleType
+
+import pytest
+
+from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
+from jukebox.sonos.discovery import SonosDiscoveryError
+
+
+class FakeSpeaker:
+    def __init__(self, uid, name, host, household_id, is_visible=True):
+        self.uid = uid
+        self.player_name = name
+        self.ip_address = host
+        self.household_id = household_id
+        self.is_visible = is_visible
+        self.all_zones = {self}
+
+    def __hash__(self):
+        return hash((self.uid, self.ip_address))
+
+
+def build_fake_soco_module(discover):
+    fake_soco = ModuleType("soco")
+    setattr(fake_soco, "discover", discover)
+
+    fake_exceptions = ModuleType("soco.exceptions")
+
+    class FakeSoCoException(Exception):
+        pass
+
+    class FakeSoCoUPnPException(FakeSoCoException):
+        pass
+
+    setattr(fake_exceptions, "SoCoException", FakeSoCoException)
+    setattr(fake_exceptions, "SoCoUPnPException", FakeSoCoUPnPException)
+    return {"soco": fake_soco, "soco.exceptions": fake_exceptions}
+
+
+def test_soco_sonos_discovery_adapter_normalizes_and_sorts_speakers(mocker):
+    kitchen = FakeSpeaker("speaker-2", "Kitchen", "192.168.1.40", "household-1")
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.30", "household-1")
+    office = FakeSpeaker("speaker-3", "Kitchen", "192.168.1.35", "household-1")
+    kitchen.all_zones = {kitchen, living_room, office}
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {kitchen}))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [(speaker.name, speaker.host, speaker.uid) for speaker in speakers] == [
+        ("Kitchen", "192.168.1.35", "speaker-3"),
+        ("Kitchen", "192.168.1.40", "speaker-2"),
+        ("Living Room", "192.168.1.30", "speaker-1"),
+    ]
+
+
+def test_soco_sonos_discovery_adapter_deduplicates_by_uid(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    kitchen_duplicate = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    kitchen.all_zones = {kitchen, kitchen_duplicate}
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {kitchen}))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert len(speakers) == 1
+    assert speakers[0].uid == "speaker-1"
+
+
+def test_soco_sonos_discovery_adapter_preserves_visibility_flag(mocker):
+    hidden = FakeSpeaker("speaker-hidden", "Living Room Surround", "192.168.1.99", "household-1", is_visible=False)
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {hidden}))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert len(speakers) == 1
+    assert speakers[0].is_visible is False
+
+
+def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+
+    class StaleSpeaker:
+        all_zones = set()
+
+        @property
+        def uid(self):
+            raise OSError("stale zone")
+
+        def __hash__(self):
+            return hash("stale")
+
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {living_room, StaleSpeaker()}))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.uid for speaker in speakers] == ["speaker-1"]
+
+
+def test_soco_sonos_discovery_adapter_wraps_discovery_errors(mocker):
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(discover=lambda: (_ for _ in ()).throw(OSError("network unavailable"))),
+    )
+
+    with pytest.raises(SonosDiscoveryError, match="Failed to discover Sonos speakers: network unavailable"):
+        SoCoSonosDiscoveryAdapter().discover_speakers()

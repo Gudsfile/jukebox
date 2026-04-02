@@ -20,6 +20,8 @@ from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+from jukebox.sonos.service import SonosService
 
 
 class DiscInput(Disc):
@@ -31,6 +33,10 @@ class DiscOutput(Disc):
 
 
 class CurrentTagStatusOutput(CurrentTagStatus):
+    pass
+
+
+class SonosSpeakerOutput(DiscoveredSonosSpeaker):
     pass
 
 
@@ -51,6 +57,7 @@ class APIController:
         edit_disc: EditDisc,
         get_current_tag_status: GetCurrentTagStatus,
         settings_service: SettingsService,
+        sonos_service: SonosService,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -58,6 +65,7 @@ class APIController:
         self.edit_disc = edit_disc
         self.get_current_tag_status = get_current_tag_status
         self.settings_service = settings_service
+        self.sonos_service = sonos_service
         self.app = FastAPI(
             title="DiscStore API",
             description="API for managing Jukebox disc library",
@@ -82,6 +90,15 @@ class APIController:
                 return Response(status_code=204)
 
             return CurrentTagStatusOutput(**current_tag_status.model_dump())
+
+        @self.app.get("/api/v1/sonos/speakers", response_model=list[SonosSpeakerOutput])
+        def get_sonos_speakers():
+            try:
+                return self.sonos_service.list_available_speakers()
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
         @self.app.get("/api/v1/settings")
         def get_settings():

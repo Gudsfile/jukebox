@@ -8,7 +8,7 @@ from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
 from jukebox.shared.config_utils import get_current_tag_path
 from tests.jukebox.settings._helpers import (
-    StubSonosGroupResolver,
+    StubSonosService,
     build_resolved_sonos_group_runtime,
     lookup_json_object,
     lookup_json_value,
@@ -469,7 +469,7 @@ def test_settings_service_patch_updates_player_settings_and_reports_restart(tmp_
     settings_path = tmp_path / "settings.json"
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
-        sonos_group_resolver=StubSonosGroupResolver(resolved_group=build_resolved_sonos_group_runtime()),
+        sonos_service=StubSonosService(resolved_group=build_resolved_sonos_group_runtime()),
     )
 
     result = service.patch_persisted_settings(

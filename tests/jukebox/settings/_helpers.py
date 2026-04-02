@@ -43,7 +43,7 @@ def build_resolved_sonos_group_runtime(
     )
 
 
-class StubSonosGroupResolver:
+class StubSonosService:
     def __init__(
         self,
         resolved_group: Optional[ResolvedSonosGroupRuntime] = None,
@@ -59,3 +59,6 @@ class StubSonosGroupResolver:
             raise self.error
         assert self.resolved_group is not None
         return self.resolved_group
+
+    def list_available_speakers(self):
+        return []

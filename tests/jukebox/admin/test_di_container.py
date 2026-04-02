@@ -3,7 +3,13 @@ from unittest.mock import MagicMock
 import pytest
 
 from jukebox.admin.commands import ApiCommand, SettingsShowCommand, UiCommand
-from jukebox.admin.di_container import build_admin_api_app, build_admin_ui_app, build_settings_service
+from jukebox.admin.di_container import (
+    build_admin_api_app,
+    build_admin_services,
+    build_admin_ui_app,
+    build_settings_service,
+)
+from jukebox.admin.services import AdminServices
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 
@@ -35,6 +41,22 @@ def test_build_settings_service_maps_cli_overrides(command, expected_overrides):
     assert isinstance(service, SettingsServiceImpl)
     assert isinstance(service.repository, FileSettingsRepository)
     assert service.cli_overrides == expected_overrides
+
+
+def test_build_admin_services_shares_sonos_service_with_settings_service(mocker):
+    build_sonos_service = mocker.patch("jukebox.admin.di_container.build_sonos_service")
+    sonos_service = MagicMock()
+    build_sonos_service.return_value = sonos_service
+
+    services = build_admin_services(
+        library="/custom/library.json",
+        command=SettingsShowCommand(type="settings_show"),
+        logger_warning=MagicMock(),
+    )
+
+    assert isinstance(services, AdminServices)
+    assert services.sonos is sonos_service
+    assert services.settings.sonos_service is sonos_service
 
 
 @pytest.fixture
@@ -75,9 +97,9 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
     mocker.patch.dict(
         "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
     )
-    settings_service = MagicMock()
+    services = AdminServices(settings=MagicMock(), sonos=MagicMock())
 
-    result = build_admin_api_app("/test/library.json", settings_service)
+    result = build_admin_api_app("/test/library.json", services)
 
     bootstrap_mocks.repo_class.assert_called_once_with("/test/library.json")
     bootstrap_mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
@@ -87,7 +109,8 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         bootstrap_mocks.remove_disc_instance,
         bootstrap_mocks.edit_disc_instance,
         bootstrap_mocks.get_current_tag_status_instance,
-        settings_service,
+        services.settings,
+        services.sonos,
     )
     assert result is mock_api_instance
 
@@ -98,9 +121,9 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
     mocker.patch.dict(
         "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
     )
-    settings_service = MagicMock()
+    services = AdminServices(settings=MagicMock(), sonos=MagicMock())
 
-    result = build_admin_ui_app("/test/library.json", settings_service)
+    result = build_admin_ui_app("/test/library.json", services)
 
     bootstrap_mocks.repo_class.assert_called_once_with("/test/library.json")
     bootstrap_mocks.current_tag_repo_class.assert_called_once_with("/test/current-tag.txt")
@@ -111,6 +134,6 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
         bootstrap_mocks.edit_disc_instance,
         bootstrap_mocks.get_disc_instance,
         bootstrap_mocks.get_current_tag_status_instance,
-        settings_service,
+        services.settings,
     )
     assert result is mock_ui_instance

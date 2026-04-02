@@ -15,6 +15,24 @@ if FASTAPI_INSTALLED:
     from discstore.domain.entities import CurrentTagStatus
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+
+
+def build_controller(
+    *,
+    get_current_tag_status=None,
+    settings_service=None,
+    sonos_service=None,
+):
+    return APIController(
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        get_current_tag_status or MagicMock(),
+        settings_service or MagicMock(),
+        sonos_service or MagicMock(),
+    )
 
 
 def test_dependencies_import_failure(mocker):
@@ -35,7 +53,7 @@ def test_dependencies_import_failure(mocker):
 def test_get_current_tag_returns_current_tag_payload(known_in_library):
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=known_in_library)
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
+    controller = build_controller(get_current_tag_status=get_current_tag_status)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -53,7 +71,7 @@ def test_get_current_tag_returns_current_tag_payload(known_in_library):
 def test_get_current_tag_returns_no_content_when_absent():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = None
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
+    controller = build_controller(get_current_tag_status=get_current_tag_status)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -68,10 +86,76 @@ def test_get_current_tag_returns_no_content_when_absent():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_speakers_returns_normalized_discovered_speakers():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+    controller = build_controller(sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+    )
+
+    response = route.endpoint()
+
+    assert route.response_model is not None
+    assert [speaker.model_dump() for speaker in response] == [
+        {
+            "uid": "speaker-1",
+            "name": "Kitchen",
+            "host": "192.168.1.30",
+            "household_id": "household-1",
+            "is_visible": True,
+        }
+    ]
+    sonos_service.list_available_speakers.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_speakers_returns_empty_results():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = []
+    controller = build_controller(sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+    )
+
+    assert route.endpoint() == []
+    sonos_service.list_available_speakers.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_speakers_returns_502_on_discovery_failure():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+        "Failed to discover Sonos speakers: network unavailable"
+    )
+    controller = build_controller(sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint()
+
+    assert err.value.status_code == 502
+    assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_settings_returns_sparse_settings_payload():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings"),
@@ -87,7 +171,7 @@ def test_get_settings_returns_sparse_settings_payload():
 def test_get_effective_settings_returns_effective_settings_payload():
     settings_service = MagicMock()
     settings_service.get_effective_settings_view.return_value = {"settings": {}, "provenance": {}, "derived": {}}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings/effective"),
@@ -105,7 +189,7 @@ def test_patch_settings_updates_persisted_settings():
     settings_service.patch_persisted_settings.return_value = {
         "persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -127,7 +211,7 @@ def test_patch_settings_updates_playback_timing_settings():
     settings_service.patch_persisted_settings.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -159,7 +243,7 @@ def test_patch_settings_updates_reader_settings():
             },
         }
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -208,7 +292,7 @@ def test_patch_settings_updates_player_settings():
             },
         }
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -273,7 +357,7 @@ def test_patch_settings_updates_player_settings():
 def test_patch_settings_returns_400_for_invalid_settings_write():
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -292,7 +376,7 @@ def test_patch_settings_returns_400_for_invalid_settings_write():
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_settings_route_generates_openapi_schema():
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+    controller = build_controller()
 
     schema = controller.app.openapi()
 
@@ -305,7 +389,7 @@ def test_reset_settings_removes_persisted_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "admin": {"ui": {"port": 9200}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -327,7 +411,7 @@ def test_reset_settings_removes_playback_timing_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -349,7 +433,7 @@ def test_reset_settings_removes_selected_group_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -371,7 +455,7 @@ def test_reset_settings_removes_reader_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -391,7 +475,7 @@ def test_reset_settings_removes_reader_override():
 def test_reset_settings_accepts_section_path():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.return_value = {"persisted": {"schema_version": 1}}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -411,7 +495,7 @@ def test_reset_settings_accepts_section_path():
 def test_reset_settings_returns_400_for_invalid_reset_path():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Unsupported settings path")
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(

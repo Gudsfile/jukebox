@@ -18,6 +18,10 @@ class UiCommand(BaseModel):
     port: Optional[int] = None
 
 
+class SonosListCommand(BaseModel):
+    type: Literal["sonos_list"]
+
+
 class SettingsShowCommand(BaseModel):
     type: Literal["settings_show"]
     effective: bool = False
@@ -42,6 +46,7 @@ AdminCommand = Union[
     SettingsResetCommand,
     SettingsSetCommand,
     SettingsShowCommand,
+    SonosListCommand,
     UiCommand,
 ]
 
@@ -54,6 +59,7 @@ def is_admin_command(command: object) -> bool:
             SettingsResetCommand,
             SettingsSetCommand,
             SettingsShowCommand,
+            SonosListCommand,
             UiCommand,
         ),
     )
@@ -68,3 +74,11 @@ def is_settings_command(command: object) -> bool:
             SettingsShowCommand,
         ),
     )
+
+
+def is_sonos_command(command: object) -> bool:
+    return isinstance(command, SonosListCommand)
+
+
+def is_server_command(command: object) -> bool:
+    return isinstance(command, (ApiCommand, UiCommand))
