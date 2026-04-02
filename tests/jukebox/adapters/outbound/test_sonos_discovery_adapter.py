@@ -140,6 +140,48 @@ def test_soco_sonos_discovery_adapter_retries_stale_discovered_speaker_by_host(m
     assert snapshot.retry_hosts_by_uid == {"speaker-1": ["192.168.1.20"]}
 
 
+def test_soco_sonos_discovery_adapter_recovers_stale_speaker_for_discover_speakers(mocker):
+    class StaleDiscoveredSpeaker:
+        ip_address = "192.168.1.20"
+        household_id = "household-1"
+        is_visible = True
+
+        def __init__(self):
+            self.all_zones = {self}
+
+        @property
+        def uid(self):
+            return "speaker-1"
+
+        @property
+        def player_name(self):
+            raise OSError("stale topology")
+
+        def __hash__(self):
+            return hash((self.uid, self.ip_address))
+
+    healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {StaleDiscoveredSpeaker()},
+            soco_constructor=lambda host: {"192.168.1.20": healthy_speaker}[host],
+        ),
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.model_dump() for speaker in speakers] == [
+        {
+            "uid": "speaker-1",
+            "name": "Living Room",
+            "host": "192.168.1.20",
+            "household_id": "household-1",
+            "is_visible": True,
+        }
+    ]
+
+
 def test_soco_sonos_discovery_adapter_resolves_speaker_by_host_with_uid_check(mocker):
     healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
     mocker.patch.dict(
