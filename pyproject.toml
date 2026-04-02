@@ -51,8 +51,8 @@ nfc = [
 dev = [
     "pytest==8.4.2",
     "pytest-mock==3.15.1",
-    "ruff==0.15.4",
-    "ty==0.0.20",
+    "ruff==0.15.9",
+    "ty==0.0.27",
 ]
 
 [tool.ruff]
