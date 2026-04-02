@@ -20,6 +20,8 @@ from jukebox.admin.commands import (
     SettingsSetCommand,
     SettingsShowCommand,
     SonosListCommand,
+    SonosSelectCommand,
+    SonosShowCommand,
     UiCommand,
 )
 
@@ -69,6 +71,12 @@ def app_mocks(mocker):
             "execute_settings_command",
         ),
         (["sonos", "list"], SonosListCommand(type="sonos_list"), "execute_sonos_command"),
+        (
+            ["sonos", "select", "--uids", "speaker-1"],
+            SonosSelectCommand(type="sonos_select", uids=["speaker-1"]),
+            "execute_sonos_command",
+        ),
+        (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
         (["api", "--port", "9000"], ApiCommand(type="api", port=9000), "execute_server_command"),
         (["ui", "--port", "9100"], UiCommand(type="ui", port=9100), "execute_server_command"),
     ],
@@ -98,7 +106,12 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
         app_mocks.execute_sonos_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()
     elif executor_name == "execute_sonos_command":
-        executor.assert_called_once_with(command=expected_command, sonos_service=services.sonos)
+        executor.assert_called_once_with(
+            command=expected_command,
+            sonos_service=services.sonos,
+            settings_service=services.settings,
+            speaker_prompt_fn=ANY,
+        )
         app_mocks.execute_settings_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()
     else:

@@ -11,7 +11,12 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import APIController, SettingsPatchInput, SettingsResetInput
+    from discstore.adapters.inbound.api_controller import (
+        APIController,
+        SettingsPatchInput,
+        SettingsResetInput,
+        SonosSelectionInput,
+    )
     from discstore.domain.entities import CurrentTagStatus
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
@@ -146,6 +151,287 @@ def test_get_sonos_speakers_returns_502_on_discovery_failure():
 
     with pytest.raises(HTTPException) as err:
         route.endpoint()
+
+    assert err.value.status_code == 502
+    assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_selection_returns_not_selected_without_discovery():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
+    sonos_service = MagicMock()
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+    )
+
+    response = route.endpoint()
+
+    assert route.response_model is not None
+    assert response.model_dump() == {
+        "selected_group": None,
+        "availability": {
+            "status": "not_selected",
+            "speaker": None,
+        },
+    }
+    sonos_service.list_available_speakers.assert_not_called()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_selection_returns_available_saved_selection():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-1",
+                        "members": [{"uid": "speaker-1"}],
+                    }
+                }
+            }
+        },
+    }
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+    )
+
+    response = route.endpoint()
+
+    assert response.model_dump() == {
+        "selected_group": {
+            "coordinator_uid": "speaker-1",
+            "members": [{"uid": "speaker-1"}],
+        },
+        "availability": {
+            "status": "available",
+            "speaker": {
+                "uid": "speaker-1",
+                "name": "Kitchen",
+                "host": "192.168.1.30",
+                "household_id": "household-1",
+                "is_visible": True,
+            },
+        },
+    }
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_selection_returns_unavailable_saved_selection():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-1",
+                        "members": [{"uid": "speaker-1"}],
+                    }
+                }
+            }
+        },
+    }
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = []
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+    )
+
+    response = route.endpoint()
+
+    assert response.model_dump() == {
+        "selected_group": {
+            "coordinator_uid": "speaker-1",
+            "members": [{"uid": "speaker-1"}],
+        },
+        "availability": {
+            "status": "unavailable",
+            "speaker": None,
+        },
+    }
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_selection_returns_502_on_discovery_failure():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-1",
+                        "members": [{"uid": "speaker-1"}],
+                    }
+                }
+            }
+        },
+    }
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+        "Failed to discover Sonos speakers: network unavailable"
+    )
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint()
+
+    assert err.value.status_code == 502
+    assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_put_sonos_selection_persists_single_speaker_selection():
+    settings_service = MagicMock()
+    settings_service.patch_persisted_settings.return_value = {
+        "message": "Settings saved. Changes take effect after restart.",
+        "restart_required": True,
+    }
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
+        ),
+    )
+
+    response = route.endpoint(SonosSelectionInput(uids=["speaker-1"]))
+
+    assert response.model_dump() == {
+        "selected_group": {
+            "coordinator_uid": "speaker-1",
+            "members": [{"uid": "speaker-1"}],
+        },
+        "availability": {
+            "status": "available",
+            "speaker": {
+                "uid": "speaker-1",
+                "name": "Kitchen",
+                "host": "192.168.1.30",
+                "household_id": "household-1",
+                "is_visible": True,
+            },
+        },
+        "message": "Settings saved. Changes take effect after restart.",
+        "restart_required": True,
+    }
+    settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1"}],
+                        }
+                    },
+                }
+            }
+        }
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+@pytest.mark.parametrize("uids", [[], ["speaker-1", "speaker-2"]])
+def test_put_sonos_selection_rejects_non_single_uid_payloads(uids):
+    settings_service = MagicMock()
+    sonos_service = MagicMock()
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
+        ),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(SonosSelectionInput(uids=uids))
+
+    assert err.value.status_code == 400
+    assert err.value.detail == "`uids` must contain exactly one UID in this phase."
+    settings_service.patch_persisted_settings.assert_not_called()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_put_sonos_selection_rejects_unknown_uid():
+    settings_service = MagicMock()
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = []
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
+        ),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(SonosSelectionInput(uids=["speaker-9"]))
+
+    assert err.value.status_code == 400
+    assert err.value.detail == "Selected Sonos speaker is not currently discoverable: speaker-9"
+    settings_service.patch_persisted_settings.assert_not_called()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_put_sonos_selection_returns_502_on_discovery_failure():
+    settings_service = MagicMock()
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+        "Failed to discover Sonos speakers: network unavailable"
+    )
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
+        ),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(SonosSelectionInput(uids=["speaker-1"]))
 
     assert err.value.status_code == 502
     assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
