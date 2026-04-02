@@ -43,7 +43,7 @@ def test_build_settings_service_maps_cli_overrides(command, expected_overrides):
     assert service.cli_overrides == expected_overrides
 
 
-def test_build_admin_services_shares_sonos_service_with_settings_service(mocker):
+def test_build_admin_services_builds_peer_settings_and_sonos_services(mocker):
     build_sonos_service = mocker.patch("jukebox.admin.di_container.build_sonos_service")
     sonos_service = MagicMock()
     build_sonos_service.return_value = sonos_service
@@ -56,7 +56,7 @@ def test_build_admin_services_shares_sonos_service_with_settings_service(mocker)
 
     assert isinstance(services, AdminServices)
     assert services.sonos is sonos_service
-    assert services.settings.sonos_service is sonos_service
+    assert isinstance(services.settings, SettingsServiceImpl)
 
 
 @pytest.fixture

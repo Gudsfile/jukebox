@@ -7,7 +7,11 @@ from jukebox.adapters.inbound.config import JukeboxCliConfig
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
-from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
+from tests.jukebox.settings._helpers import (
+    StubSonosService,
+    build_resolved_sonos_group_runtime,
+    resolve_jukebox_runtime,
+)
 
 
 @pytest.fixture
@@ -16,6 +20,7 @@ def app_mocks(mocker):
         parse_config = mocker.patch("jukebox.app.parse_config")
         set_logger = mocker.patch("jukebox.app.set_logger")
         build_settings_service = mocker.patch("jukebox.app._build_settings_service")
+        build_runtime_resolver = mocker.patch("jukebox.app._build_runtime_resolver")
         build_jukebox = mocker.patch("jukebox.app.build_jukebox")
         controller_class = mocker.patch("jukebox.app.CLIController")
 
@@ -34,16 +39,19 @@ def test_main_uses_resolved_runtime_config(app_mocks):
         verbose=True,
     )
     settings_service = MagicMock()
-    settings_service.resolve_jukebox_runtime.return_value = runtime_config
+    runtime_resolver = MagicMock()
+    runtime_resolver.resolve.return_value = runtime_config
     app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
     app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.build_runtime_resolver.return_value = runtime_resolver
     app_mocks.build_jukebox.return_value = (MagicMock(), MagicMock())
 
     app.main()
 
     app_mocks.set_logger.assert_called_once_with("jukebox", True)
     app_mocks.build_settings_service.assert_called_once_with(JukeboxCliConfig(verbose=True))
-    settings_service.resolve_jukebox_runtime.assert_called_once_with(verbose=True)
+    app_mocks.build_runtime_resolver.assert_called_once_with(settings_service)
+    runtime_resolver.resolve.assert_called_once_with(verbose=True)
     app_mocks.build_jukebox.assert_called_once_with(runtime_config)
     app_mocks.controller_class.assert_called_once()
     assert app_mocks.controller_class.call_args.kwargs["loop_interval_seconds"] == 0.5
@@ -72,9 +80,11 @@ def test_main_exits_on_build_jukebox_settings_error(app_mocks):
         verbose=True,
     )
     settings_service = MagicMock()
-    settings_service.resolve_jukebox_runtime.return_value = runtime_config
+    runtime_resolver = MagicMock()
+    runtime_resolver.resolve.return_value = runtime_config
     app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
     app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.build_runtime_resolver.return_value = runtime_resolver
     app_mocks.build_jukebox.side_effect = InvalidSettingsError("sonos startup failed")
 
     with pytest.raises(SystemExit) as err:
@@ -119,7 +129,7 @@ def test_build_settings_service_reads_persisted_reader_and_timing_settings(tmp_p
     mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
 
     settings_service = app._build_settings_service(JukeboxCliConfig())
-    runtime_config = settings_service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(settings_service)
 
     assert runtime_config.reader_type == "nfc"
     assert runtime_config.nfc_read_timeout_seconds == 0.2
@@ -137,16 +147,18 @@ def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, 
     mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
 
     settings_service = app._build_settings_service(JukeboxCliConfig())
-    settings_service.sonos_service = StubSonosService(
-        resolved_group=build_resolved_sonos_group_runtime(
-            coordinator_uid="speaker-2",
-            speakers=[
-                ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
-                ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
-            ],
-        )
+    runtime_config = resolve_jukebox_runtime(
+        settings_service,
+        StubSonosService(
+            resolved_group=build_resolved_sonos_group_runtime(
+                coordinator_uid="speaker-2",
+                speakers=[
+                    ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+                    ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+                ],
+            ),
+        ),
     )
-    runtime_config = settings_service.resolve_jukebox_runtime()
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.40"

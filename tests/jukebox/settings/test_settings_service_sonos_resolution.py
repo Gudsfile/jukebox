@@ -5,6 +5,7 @@ from jukebox.settings.resolve import SettingsService
 from tests.jukebox.settings._helpers import (
     StubSonosService,
     build_resolved_sonos_group_runtime,
+    resolve_jukebox_runtime,
 )
 
 
@@ -31,12 +32,9 @@ def test_settings_service_resolves_persisted_one_member_selected_group_into_runt
     )
     resolved_group = build_resolved_sonos_group_runtime()
     resolver = StubSonosService(resolved_group=resolved_group)
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_service=resolver,
-    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, resolver)
 
     assert runtime_config.sonos_host == "192.168.1.20"
     assert runtime_config.sonos_name is None
@@ -75,12 +73,9 @@ def test_settings_service_resolves_persisted_multi_member_selected_group_into_ru
             ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
         ],
     )
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_service=StubSonosService(resolved_group=resolved_group),
-    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, StubSonosService(resolved_group=resolved_group))
 
     assert runtime_config.sonos_host == "192.168.1.40"
     assert runtime_config.sonos_group == resolved_group
@@ -121,12 +116,9 @@ def test_settings_service_allows_best_effort_selected_group_resolution_with_miss
         ],
         missing_member_uids=["speaker-3"],
     )
-    service = SettingsService(
-        repository=FileSettingsRepository(str(settings_path)),
-        sonos_service=StubSonosService(resolved_group=resolved_group),
-    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, StubSonosService(resolved_group=resolved_group))
 
     assert runtime_config.sonos_host == "192.168.1.40"
     assert runtime_config.sonos_group == resolved_group
@@ -167,10 +159,9 @@ def test_settings_service_env_host_override_beats_persisted_selected_group(tmp_p
                 "player": {"sonos": {"manual_host": "192.168.1.99", "manual_name": None, "selected_group": None}}
             }
         },
-        sonos_service=resolver,
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, resolver)
 
     assert runtime_config.sonos_host == "192.168.1.99"
     assert runtime_config.sonos_group is None
@@ -205,10 +196,9 @@ def test_settings_service_env_host_override_beats_persisted_selected_group_witho
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         env_overrides={"jukebox": {"player": {"sonos": {"manual_host": "192.168.1.99"}}}},
-        sonos_service=resolver,
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, resolver)
 
     assert runtime_config.sonos_host == "192.168.1.99"
     assert runtime_config.sonos_group is None
@@ -247,10 +237,9 @@ def test_settings_service_cli_host_override_beats_persisted_selected_group(tmp_p
                 "player": {"sonos": {"manual_host": "192.168.1.99", "manual_name": None, "selected_group": None}}
             }
         },
-        sonos_service=resolver,
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, resolver)
 
     assert runtime_config.sonos_host == "192.168.1.99"
     assert runtime_config.sonos_group is None
@@ -285,10 +274,9 @@ def test_settings_service_cli_name_override_beats_persisted_selected_group_witho
     service = SettingsService(
         repository=FileSettingsRepository(str(settings_path)),
         cli_overrides={"jukebox": {"player": {"sonos": {"manual_name": "Office"}}}},
-        sonos_service=resolver,
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service, resolver)
 
     assert runtime_config.sonos_host is None
     assert runtime_config.sonos_name == "Office"
@@ -312,7 +300,7 @@ def test_settings_service_cli_host_overrides_env_name(tmp_path):
         },
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.sonos_host == "192.168.1.20"
     assert runtime_config.sonos_name is None
@@ -329,7 +317,7 @@ def test_settings_service_allows_env_override_to_supply_sonos_name(tmp_path):
         env_overrides={"jukebox": {"player": {"sonos": {"manual_name": "Living Room"}}}},
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host is None
@@ -352,7 +340,7 @@ def test_settings_service_cli_name_overrides_env_host(tmp_path):
         },
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.sonos_host is None
     assert runtime_config.sonos_name == "Living Room"
