@@ -78,7 +78,3 @@ def is_settings_command(command: object) -> bool:
 
 def is_sonos_command(command: object) -> bool:
     return isinstance(command, SonosListCommand)
-
-
-def is_server_command(command: object) -> bool:
-    return isinstance(command, (ApiCommand, UiCommand))
