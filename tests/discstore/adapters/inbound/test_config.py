@@ -76,6 +76,15 @@ def test_parse_list_command_positional_mode_is_deprecated(capsys):
     assert capsys.readouterr().err.strip() == "warning: positional mode argument is deprecated; use --mode instead"
 
 
+@patch("sys.argv", ["prog_name", "list", "table", "--mode", "line"])
+def test_parse_list_positional_mode_overrides_option():
+    # This is temporary until the positional argument is deprecated/removed.
+    config = parse_config()
+
+    assert isinstance(config.command, CliListCommand)
+    assert config.command.mode == CliListCommandModes.table
+
+
 @patch("sys.argv", ["prog_name", "remove", "tag-to-delete"])
 def test_parse_remove_command():
     config = parse_config()

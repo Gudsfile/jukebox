@@ -86,6 +86,8 @@ def _build_library_command(command_name: str, args: argparse.Namespace):
                 "warning: positional mode argument is deprecated; use --mode instead",
                 file=sys.stderr,
             )
+        # if args.positional_mode is not None and args.mode is not None:
+        #    raise ValueError("You must provide exactly one of: mode OR --mode argument")
         return CliListCommand(type="list", mode=args.positional_mode if args.positional_mode else args.mode)
     if command_name == "remove":
         return CliRemoveCommand(type="remove", tag=args.tag, use_current_tag=args.use_current_tag)
