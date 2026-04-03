@@ -39,13 +39,27 @@ def app_mocks(mocker):
     [
         (["settings", "show"], SettingsShowCommand(type="settings_show", effective=False)),
         (["settings", "show", "--effective"], SettingsShowCommand(type="settings_show", effective=True)),
+        (["settings", "show", "--json"], SettingsShowCommand(type="settings_show", effective=False, json_output=True)),
         (
             ["settings", "set", "admin.api.port", "9000"],
             SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
         ),
         (
+            ["settings", "set", "admin.api.port", "9000", "--json"],
+            SettingsSetCommand(
+                type="settings_set",
+                dotted_path="admin.api.port",
+                value="9000",
+                json_output=True,
+            ),
+        ),
+        (
             ["settings", "reset", "admin.ui.port"],
             SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
+        ),
+        (
+            ["settings", "reset", "admin.ui.port", "--json"],
+            SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port", json_output=True),
         ),
         (["api", "--port", "9000"], ApiCommand(type="api", port=9000)),
         (["ui", "--port", "9100"], UiCommand(type="ui", port=9100)),
@@ -83,6 +97,51 @@ def test_jukebox_admin_version_flag(app_mocks, mocker):
     app_mocks.set_logger.assert_not_called()
     app_mocks.build_settings_service.assert_not_called()
     app_mocks.execute_admin_command.assert_not_called()
+
+
+def test_jukebox_admin_renders_friendly_settings_errors(app_mocks):
+    app_mocks.build_settings_service.side_effect = ValueError("boom")
+
+    result = runner.invoke(app, ["settings", "show"])
+
+    assert result.exit_code == 1
+    assert "Unexpected error. Re-run with `--verbose` for details." in result.output
+
+
+def test_jukebox_admin_preserves_ui_startup_runtime_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = RuntimeError("The `ui_controller` module requires Python 3.10+.")
+
+    result = runner.invoke(app, ["ui"])
+
+    assert result.exit_code == 1
+    assert "The `ui_controller` module requires Python 3.10+." in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
+def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = ValueError("No current tag is available.")
+
+    result = runner.invoke(app, ["library", "get", "--from-current"])
+
+    assert result.exit_code == 1
+    assert "No current tag is available." in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
+def test_jukebox_admin_preserves_os_errors(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = PermissionError("[Errno 13] Permission denied: '/tmp/settings.json'")
+
+    result = runner.invoke(app, ["settings", "show"])
+
+    assert result.exit_code == 1
+    assert "[Errno 13] Permission denied: '/tmp/settings.json'" in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
 
 
 @pytest.mark.parametrize(

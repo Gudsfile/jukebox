@@ -111,11 +111,20 @@ def _build_admin_command(args: argparse.Namespace):
         raise ValueError(f"Unsupported admin command: {args.command}")
 
     if args.settings_command == "show":
-        return SettingsShowCommand(type="settings_show", effective=args.effective)
+        return SettingsShowCommand(type="settings_show", effective=args.effective, json_output=args.json_output)
     if args.settings_command == "set":
-        return SettingsSetCommand(type="settings_set", dotted_path=args.dotted_path, value=args.value)
+        return SettingsSetCommand(
+            type="settings_set",
+            dotted_path=args.dotted_path,
+            value=args.value,
+            json_output=args.json_output,
+        )
     if args.settings_command == "reset":
-        return SettingsResetCommand(type="settings_reset", dotted_path=args.dotted_path)
+        return SettingsResetCommand(
+            type="settings_reset",
+            dotted_path=args.dotted_path,
+            json_output=args.json_output,
+        )
     raise ValueError(f"Unsupported settings command: {args.settings_command}")
 
 
@@ -189,11 +198,29 @@ def parse_config() -> DiscStoreConfig:
         action="store_true",
         help="show merged effective settings with provenance",
     )
+    settings_show_parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        help="print the raw machine-readable payload",
+    )
     settings_set_parser = settings_subparsers.add_parser("set", help="Set a persisted setting override")
     settings_set_parser.add_argument("dotted_path", help="canonical dotted path to update")
     settings_set_parser.add_argument("value", help="value to persist for the given path")
+    settings_set_parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        help="print the raw machine-readable payload",
+    )
     settings_reset_parser = settings_subparsers.add_parser("reset", help="Remove a persisted setting override")
     settings_reset_parser.add_argument("dotted_path", help="canonical dotted path to reset")
+    settings_reset_parser.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        help="print the raw machine-readable payload",
+    )
 
     args = parser.parse_args()
 

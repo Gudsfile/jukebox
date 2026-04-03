@@ -147,6 +147,7 @@ def test_parse_settings_show_command():
 
     assert isinstance(config.command, SettingsShowCommand)
     assert config.command.effective is False
+    assert config.command.json_output is False
 
 
 @patch("sys.argv", ["prog_name", "settings", "show", "--effective"])
@@ -155,6 +156,16 @@ def test_parse_settings_show_effective_command():
 
     assert isinstance(config.command, SettingsShowCommand)
     assert config.command.effective is True
+    assert config.command.json_output is False
+
+
+@patch("sys.argv", ["prog_name", "settings", "show", "--json"])
+def test_parse_settings_show_json_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsShowCommand)
+    assert config.command.effective is False
+    assert config.command.json_output is True
 
 
 @patch("sys.argv", ["prog_name", "settings", "set", "admin.api.port", "9000"])
@@ -164,6 +175,17 @@ def test_parse_settings_set_command():
     assert isinstance(config.command, SettingsSetCommand)
     assert config.command.dotted_path == "admin.api.port"
     assert config.command.value == "9000"
+    assert config.command.json_output is False
+
+
+@patch("sys.argv", ["prog_name", "settings", "set", "admin.api.port", "9000", "--json"])
+def test_parse_settings_set_json_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsSetCommand)
+    assert config.command.dotted_path == "admin.api.port"
+    assert config.command.value == "9000"
+    assert config.command.json_output is True
 
 
 @patch("sys.argv", ["prog_name", "settings", "reset", "admin.ui.port"])
@@ -172,6 +194,16 @@ def test_parse_settings_reset_command():
 
     assert isinstance(config.command, SettingsResetCommand)
     assert config.command.dotted_path == "admin.ui.port"
+    assert config.command.json_output is False
+
+
+@patch("sys.argv", ["prog_name", "settings", "reset", "admin.ui.port", "--json"])
+def test_parse_settings_reset_json_command():
+    config = parse_config()
+
+    assert isinstance(config.command, SettingsResetCommand)
+    assert config.command.dotted_path == "admin.ui.port"
+    assert config.command.json_output is True
 
 
 @patch("sys.argv", ["prog_name", "settings", "reset", "admin"])

@@ -93,6 +93,7 @@ def test_main_delegates_admin_commands_to_shared_handler(app_mocks, command):
         build_api_app=app_mocks.build_api_app,
         build_ui_app=app_mocks.build_ui_app,
         source_command="discstore",
+        library="fake_library_path",
     )
     app_mocks.build_interactive.assert_not_called()
     app_mocks.build_cli.assert_not_called()
@@ -147,7 +148,7 @@ def test_build_settings_service_reads_persisted_admin_ports(tmp_path, mocker):
     assert runtime_config.ui_port == 8200
 
 
-def test_main_exits_on_settings_error(app_mocks):
+def test_main_exits_on_settings_error(app_mocks, capsys):
     config = DiscStoreConfig(command=SettingsShowCommand(type="settings_show"))
     app_mocks.parse_config.return_value = config
     app_mocks.build_settings_service.side_effect = InvalidSettingsError("broken settings")
@@ -155,10 +156,12 @@ def test_main_exits_on_settings_error(app_mocks):
     with pytest.raises(SystemExit) as err:
         app.main()
 
-    assert str(err.value) == "broken settings"
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "broken settings"
 
 
-def test_main_exits_on_settings_error_from_library_command(app_mocks):
+def test_main_exits_on_settings_error_from_library_command(app_mocks, capsys):
     config = DiscStoreConfig(command=CliSearchCommand(type="search", query="dummy"))
     settings_service = MagicMock()
     app_mocks.parse_config.return_value = config
@@ -168,4 +171,51 @@ def test_main_exits_on_settings_error_from_library_command(app_mocks):
     with pytest.raises(SystemExit) as err:
         app.main()
 
-    assert str(err.value) == "broken settings"
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "broken settings"
+
+
+def test_main_preserves_library_validation_errors(app_mocks, capsys):
+    config = DiscStoreConfig(command=CliGetCommand(type="get", use_current_tag=True))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = ValueError("No current tag is available.")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "No current tag is available."
+
+
+def test_main_preserves_admin_runtime_errors(app_mocks, capsys):
+    config = DiscStoreConfig(command=UiCommand(type="ui"))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_admin_command.side_effect = RuntimeError("The `ui_controller` module requires Python 3.10+.")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "The `ui_controller` module requires Python 3.10+."
+
+
+def test_main_preserves_os_errors_from_library_commands(app_mocks, capsys):
+    config = DiscStoreConfig(command=CliAddCommand(type="add", tag="dummy_tag", uri="dummy_uri"))
+    settings_service = MagicMock()
+    app_mocks.parse_config.return_value = config
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.execute_library_command.side_effect = PermissionError("[Errno 13] Permission denied: '/tmp/library.json'")
+
+    with pytest.raises(SystemExit) as err:
+        app.main()
+
+    assert err.value.code == 1
+    captured = capsys.readouterr()
+    assert captured.err.strip() == "[Errno 13] Permission denied: '/tmp/library.json'"

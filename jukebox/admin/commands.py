@@ -21,17 +21,20 @@ class UiCommand(BaseModel):
 class SettingsShowCommand(BaseModel):
     type: Literal["settings_show"]
     effective: bool = False
+    json_output: bool = False
 
 
 class SettingsSetCommand(BaseModel):
     type: Literal["settings_set"]
     dotted_path: str
     value: str
+    json_output: bool = False
 
 
 class SettingsResetCommand(BaseModel):
     type: Literal["settings_reset"]
     dotted_path: str
+    json_output: bool = False
 
 
 AdminCommand = Union[
@@ -52,5 +55,16 @@ def is_admin_command(command: object) -> bool:
             SettingsSetCommand,
             SettingsShowCommand,
             UiCommand,
+        ),
+    )
+
+
+def is_settings_command(command: object) -> bool:
+    return isinstance(
+        command,
+        (
+            SettingsResetCommand,
+            SettingsSetCommand,
+            SettingsShowCommand,
         ),
     )

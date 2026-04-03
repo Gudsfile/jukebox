@@ -1,4 +1,5 @@
 import logging
+import traceback
 from typing import Annotated, Optional
 
 import typer
@@ -20,6 +21,7 @@ from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
 
+from .cli_presentation import render_cli_error
 from .command_handlers import execute_admin_command
 from .commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
 from .di_container import build_admin_api_app, build_admin_ui_app, build_settings_service
@@ -55,16 +57,36 @@ def _run_command(ctx: typer.Context, command: object) -> None:
             command=command,
             logger_warning=LOGGER.warning,
         )
-        execute_admin_command(
-            verbose=state.verbose,
-            command=command,
-            settings_service=settings_service,
-            build_api_app=build_admin_api_app,
-            build_ui_app=build_admin_ui_app,
-            source_command="jukebox-admin",
-        )
+        try:
+            execute_admin_command(
+                verbose=state.verbose,
+                command=command,
+                settings_service=settings_service,
+                build_api_app=build_admin_api_app,
+                build_ui_app=build_admin_ui_app,
+                source_command="jukebox-admin",
+            )
+        except RuntimeError as err:
+            typer.echo(str(err), err=True)
+            raise typer.Exit(code=1)
+    except SystemExit as err:
+        if isinstance(err.code, str):
+            typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+            raise typer.Exit(code=1)
+        raise
+    except typer.Exit:
+        raise
     except SettingsError as err:
-        raise SystemExit(str(err)) from err
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        raise typer.Exit(code=1)
+    except OSError as err:
+        typer.echo(str(err), err=True)
+        raise typer.Exit(code=1)
+    except Exception as err:
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        if state.verbose:
+            traceback.print_exception(type(err), err, err.__traceback__)
+        raise typer.Exit(code=1)
 
 
 def _run_library_command(ctx: typer.Context, command: object) -> None:
@@ -76,15 +98,30 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
             command=command,
             logger_warning=LOGGER.warning,
         )
-        execute_library_command(
-            verbose=state.verbose,
-            command=command,
-            settings_service=settings_service,
-            build_cli_controller=build_cli_controller,
-            build_interactive_cli_controller=build_interactive_cli_controller,
-        )
+        try:
+            execute_library_command(
+                verbose=state.verbose,
+                command=command,
+                settings_service=settings_service,
+                build_cli_controller=build_cli_controller,
+                build_interactive_cli_controller=build_interactive_cli_controller,
+            )
+        except (ValueError, RuntimeError) as err:
+            typer.echo(str(err), err=True)
+            raise typer.Exit(code=1)
+    except typer.Exit:
+        raise
     except SettingsError as err:
-        raise SystemExit(str(err)) from err
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        raise typer.Exit(code=1)
+    except OSError as err:
+        typer.echo(str(err), err=True)
+        raise typer.Exit(code=1)
+    except Exception as err:
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        if state.verbose:
+            traceback.print_exception(type(err), err, err.__traceback__)
+        raise typer.Exit(code=1)
 
 
 def _exit_on_command_validation_error(err: ValidationError) -> None:
@@ -131,8 +168,12 @@ def settings_show(
         bool,
         typer.Option("--effective", help="show merged effective settings with provenance"),
     ] = False,
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="print the raw machine-readable payload"),
+    ] = False,
 ) -> None:
-    _run_command(ctx, SettingsShowCommand(type="settings_show", effective=effective))
+    _run_command(ctx, SettingsShowCommand(type="settings_show", effective=effective, json_output=json_output))
 
 
 @settings_app.command("set")
@@ -140,16 +181,39 @@ def settings_set(
     ctx: typer.Context,
     dotted_path: Annotated[str, typer.Argument(help="canonical dotted path to update")],
     value: Annotated[str, typer.Argument(help="value to persist for the given path")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="print the raw machine-readable payload"),
+    ] = False,
 ) -> None:
-    _run_command(ctx, SettingsSetCommand(type="settings_set", dotted_path=dotted_path, value=value))
+    _run_command(
+        ctx,
+        SettingsSetCommand(
+            type="settings_set",
+            dotted_path=dotted_path,
+            value=value,
+            json_output=json_output,
+        ),
+    )
 
 
 @settings_app.command("reset")
 def settings_reset(
     ctx: typer.Context,
     dotted_path: Annotated[str, typer.Argument(help="canonical dotted path to reset")],
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="print the raw machine-readable payload"),
+    ] = False,
 ) -> None:
-    _run_command(ctx, SettingsResetCommand(type="settings_reset", dotted_path=dotted_path))
+    _run_command(
+        ctx,
+        SettingsResetCommand(
+            type="settings_reset",
+            dotted_path=dotted_path,
+            json_output=json_output,
+        ),
+    )
 
 
 @app.command("api")
@@ -177,8 +241,8 @@ def ui(
 @library_app.command("add")
 def library_add(
     ctx: typer.Context,
+    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")],
     tag: Annotated[Optional[str], typer.Argument(help="Tag to be associated with the disc")] = None,
-    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")] = ...,
     track: Annotated[Optional[str], typer.Option("--track", help="Name of the track")] = None,
     artist: Annotated[Optional[str], typer.Option("--artist", help="Name of the artist or band")] = None,
     album: Annotated[Optional[str], typer.Option("--album", help="Name of the album")] = None,
