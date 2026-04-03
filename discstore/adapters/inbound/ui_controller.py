@@ -249,7 +249,7 @@ class UIController(APIController):
         try:
             result = self.settings_service.reset_persisted_value(setting_path)
         except SettingsError as err:
-            raise self._field_validation_error("path", str(err))
+            return self._build_settings_edit_page_components(setting_path, reset_error=str(err))
         except HTTPException:
             raise
         except Exception as err:
@@ -406,7 +406,11 @@ class UIController(APIController):
             ],
         )
 
-    def _build_settings_edit_page_components(self, setting_path: str) -> List[AnyComponent]:
+    def _build_settings_edit_page_components(
+        self,
+        setting_path: str,
+        reset_error: Optional[str] = None,
+    ) -> List[AnyComponent]:
         setting = self._get_setting_display(setting_path)
         if setting is None:
             return [
@@ -435,6 +439,14 @@ class UIController(APIController):
                 c.Div(
                     class_name="d-flex flex-wrap gap-2 mb-3",
                     components=badge_components,
+                )
+            )
+
+        if reset_error:
+            components.append(
+                c.Error(
+                    title="Reset failed",
+                    description=reset_error,
                 )
             )
 

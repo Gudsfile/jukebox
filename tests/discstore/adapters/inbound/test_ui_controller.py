@@ -616,6 +616,35 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
+@pytest.mark.anyio
+async def test_reset_setting_rerenders_edit_page_with_visible_error():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+    controller.settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Invalid settings update.")
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port")
+    all_components = list(walk_components(response[0].components))
+
+    controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
+    assert response[0].type == "Page"
+    assert any(
+        component.type == "Error"
+        and component.title == "Reset failed"
+        and component.description == "Invalid settings update."
+        for component in all_components
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
 def test_ui_controller_does_not_register_get_reset_setting_route():
     controller = build_controller()
 
