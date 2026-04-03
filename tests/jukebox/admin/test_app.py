@@ -152,8 +152,12 @@ def test_jukebox_admin_preserves_os_errors(app_mocks):
             CliAddCommand(type="add", tag="tag-123", uri="/music/song.mp3", track="Song"),
         ),
         (
-            ["library", "list", "line"],
+            ["library", "list", "--mode", "line"],
             CliListCommand(type="list", mode=CliListCommandModes.line),
+        ),
+        (
+            ["library", "list"],
+            CliListCommand(type="list", mode=CliListCommandModes.table),
         ),
         (
             ["library", "remove", "--from-current"],
