@@ -8,6 +8,7 @@ from discstore.adapters.inbound.config import (
     CliEditCommand,
     CliGetCommand,
     CliListCommand,
+    CliListCommandModes,
     CliRemoveCommand,
     InteractiveCliCommand,
     SettingsResetCommand,
@@ -48,13 +49,31 @@ def test_parse_add_command():
     assert config.command.album == "Code Hits"
 
 
-@patch("sys.argv", ["prog_name", "list", "line"])
+@patch("sys.argv", ["prog_name", "list", "--mode", "line"])
 def test_parse_list_command():
     config = parse_config()
 
     assert isinstance(config.command, CliListCommand)
     assert config.command.type == "list"
-    assert config.command.mode == "line"
+    assert config.command.mode == CliListCommandModes.line
+
+
+@patch("sys.argv", ["prog_name", "list"])
+def test_parse_list_command_defaults_to_table(capsys):
+    config = parse_config()
+
+    assert isinstance(config.command, CliListCommand)
+    assert config.command.mode == CliListCommandModes.table
+    assert capsys.readouterr().err == ""
+
+
+@patch("sys.argv", ["prog_name", "list", "line"])
+def test_parse_list_command_positional_mode_is_deprecated(capsys):
+    config = parse_config()
+
+    assert isinstance(config.command, CliListCommand)
+    assert config.command.mode == CliListCommandModes.line
+    assert capsys.readouterr().err.strip() == "warning: positional mode argument is deprecated; use --mode instead"
 
 
 @patch("sys.argv", ["prog_name", "remove", "tag-to-delete"])
@@ -214,7 +233,7 @@ def test_parse_settings_reset_section_command():
     assert config.command.dotted_path == "admin"
 
 
-@patch("sys.argv", ["prog_name", "-v", "--library", "/custom/path.json", "list", "table"])
+@patch("sys.argv", ["prog_name", "-v", "--library", "/custom/path.json", "list"])
 def test_verbose_and_library_flags():
     config = parse_config()
 
@@ -222,7 +241,7 @@ def test_verbose_and_library_flags():
     assert config.library == "/custom/path.json"
 
 
-@patch("sys.argv", ["prog_name", "list", "table"])
+@patch("sys.argv", ["prog_name", "list"])
 def test_default_library_override_is_none():
     config = parse_config()
 

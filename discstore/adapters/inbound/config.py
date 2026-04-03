@@ -1,5 +1,6 @@
 import argparse
 import logging
+import sys
 from typing import Optional, Union
 
 from pydantic import BaseModel, ValidationError
@@ -80,7 +81,12 @@ def _build_library_command(command_name: str, args: argparse.Namespace):
             album=args.album,
         )
     if command_name == "list":
-        return CliListCommand(type="list", mode=args.mode)
+        if args.positional_mode is not None:
+            print(
+                "warning: positional mode argument is deprecated; use --mode instead",
+                file=sys.stderr,
+            )
+        return CliListCommand(type="list", mode=args.positional_mode if args.positional_mode else args.mode)
     if command_name == "remove":
         return CliRemoveCommand(type="remove", tag=args.tag, use_current_tag=args.use_current_tag)
     if command_name == "edit":
@@ -157,7 +163,10 @@ def parse_config() -> DiscStoreConfig:
     add_parser.add_argument("--opts", required=False, help="Playback options for the discs")
 
     list_parser = subparsers.add_parser("list", help="List all discs")
-    list_parser.add_argument("mode", choices=["line", "table"], help="Displaying mode")
+    list_parser.add_argument("positional_mode", nargs="?", choices=["line", "table"], help=argparse.SUPPRESS)
+    list_parser.add_argument(
+        "--mode", choices=["line", "table"], default="table", help="Displaying mode (default: table)"
+    )
 
     remove_parser = subparsers.add_parser("remove", help="Remove a disc")
     add_from_current_arg(remove_parser)

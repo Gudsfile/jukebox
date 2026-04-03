@@ -270,7 +270,7 @@ def library_add(
 @library_app.command("list")
 def library_list(
     ctx: typer.Context,
-    mode: Annotated[CliListCommandModes, typer.Argument(help="Displaying mode")] = CliListCommandModes.table,
+    mode: Annotated[CliListCommandModes, typer.Option("--mode", help="Displaying mode")] = CliListCommandModes.table,
 ) -> None:
     _run_library_command(ctx, CliListCommand(type="list", mode=mode))
 
