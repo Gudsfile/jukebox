@@ -312,7 +312,7 @@ class UIController(APIController):
         toast: Optional[str] = None,
         toast_message: Optional[str] = None,
     ) -> List[AnyComponent]:
-        settings = self._get_settings_displays()
+        settings, effective_settings_error = self._get_settings_displays()
         components: list[AnyComponent] = [
             c.Heading(text="Settings", level=1),
             c.Div(
@@ -322,6 +322,16 @@ class UIController(APIController):
                 ],
             ),
         ]
+        if effective_settings_error:
+            components.append(
+                c.Error(
+                    title="Effective settings unavailable",
+                    description=(
+                        f"{effective_settings_error} Persisted overrides are still shown below so you can inspect"
+                        " and repair saved values."
+                    ),
+                )
+            )
 
         for section, entries_iter in groupby(settings, key=lambda entry: entry.section):
             entries = list(entries_iter)
@@ -411,7 +421,8 @@ class UIController(APIController):
         setting_path: str,
         reset_error: Optional[str] = None,
     ) -> List[AnyComponent]:
-        setting = self._get_setting_display(setting_path)
+        settings, effective_settings_error = self._get_settings_displays()
+        setting = next((candidate for candidate in settings if candidate.path == setting_path), None)
         if setting is None:
             return [
                 c.Page(
@@ -447,6 +458,17 @@ class UIController(APIController):
                 c.Error(
                     title="Reset failed",
                     description=reset_error,
+                )
+            )
+
+        if effective_settings_error:
+            components.append(
+                c.Error(
+                    title="Effective settings unavailable",
+                    description=(
+                        f"{effective_settings_error} Showing persisted and default values where possible so this"
+                        " setting can still be reviewed or repaired."
+                    ),
                 )
             )
 
@@ -564,14 +586,16 @@ class UIController(APIController):
             footer=[c.Button(text="Reset", html_type="submit", class_name="btn btn-outline-danger text-nowrap px-3")],
         )
 
-    def _get_settings_displays(self) -> List[EditableSettingDisplay]:
-        return build_editable_setting_displays(
-            self.settings_service.get_persisted_settings_view(),
-            self.settings_service.get_effective_settings_view(),
-        )
+    def _get_settings_displays(self) -> tuple[List[EditableSettingDisplay], Optional[str]]:
+        persisted_settings = self.settings_service.get_persisted_settings_view()
+        effective_settings_error: Optional[str] = None
+        try:
+            effective_settings_view = self.settings_service.get_effective_settings_view()
+        except SettingsError as err:
+            effective_settings_view = {}
+            effective_settings_error = str(err)
 
-    def _get_setting_display(self, setting_path: str) -> Optional[EditableSettingDisplay]:
-        return next((setting for setting in self._get_settings_displays() if setting.path == setting_path), None)
+        return build_editable_setting_displays(persisted_settings, effective_settings_view), effective_settings_error
 
     def _build_settings_badges(self, setting: EditableSettingDisplay) -> list[AnyComponent]:
         badge_components: list[AnyComponent] = []

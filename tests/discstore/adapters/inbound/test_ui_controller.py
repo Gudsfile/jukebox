@@ -345,6 +345,51 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
+def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+    controller.settings_service.get_effective_settings_view.side_effect = InvalidSettingsError(
+        "Invalid effective settings after environment overrides."
+    )
+
+    settings_route = next(
+        route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings"
+    )
+    settings_page = settings_route.endpoint()[0]
+    settings_components = list(walk_components(settings_page.components))
+
+    assert any(
+        component.type == "Error"
+        and component.title == "Effective settings unavailable"
+        and "Invalid effective settings after environment overrides." in component.description
+        for component in settings_components
+    )
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in settings_components)
+    assert any(component.type == "Paragraph" and component.text == "unknown" for component in settings_components)
+
+    edit_route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/edit"
+    )
+    edit_page = edit_route.endpoint("admin.api.port")[0]
+    edit_components = list(walk_components(edit_page.components))
+
+    assert any(
+        component.type == "Error"
+        and component.title == "Effective settings unavailable"
+        and "Showing persisted and default values where possible" in component.description
+        for component in edit_components
+    )
+    assert any(component.type == "Paragraph" and component.text == "8000" for component in edit_components)
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in edit_components)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
 def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
     controller = build_controller()
     controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}

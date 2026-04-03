@@ -235,6 +235,9 @@ def build_editable_setting_displays(
         section_definition = get_setting_section_definition(definition.section)
         persisted_value = _lookup_optional_dotted_path(persisted_settings, dotted_path)
         default_value = _lookup_optional_dotted_path(default_settings, dotted_path)
+        effective_value = _lookup_optional_dotted_path(effective_settings, dotted_path)
+        if effective_value is _MISSING:
+            effective_value = persisted_value if persisted_value is not _MISSING else default_value
         displays.append(
             EditableSettingDisplay(
                 path=dotted_path,
@@ -250,7 +253,7 @@ def build_editable_setting_displays(
                 choices=definition.choices,
                 default_value=_normalize_lookup_value(default_value),
                 persisted_value=_normalize_lookup_value(persisted_value),
-                effective_value=_normalize_lookup_value(_lookup_optional_dotted_path(effective_settings, dotted_path)),
+                effective_value=_normalize_lookup_value(effective_value),
                 provenance=_lookup_provenance_label(provenance, dotted_path),
                 is_persisted=persisted_value is not _MISSING,
                 is_pinned_default=(
