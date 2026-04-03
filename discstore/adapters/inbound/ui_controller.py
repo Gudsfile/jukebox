@@ -43,6 +43,8 @@ from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
 
+_MISSING = object()
+
 
 class DiscTable(DiscMetadata, DiscOption):
     tag: str = Field(title="Tag ID")
@@ -202,12 +204,15 @@ class UIController(APIController):
                 raise HTTPException(status_code=404, detail=f"Unknown setting path: {setting_path}")
 
             try:
-                result = self.settings_service.patch_persisted_settings(
-                    self._build_settings_patch(setting_path, form.value)
-                )
+                patch = self._build_settings_patch(setting_path, form.value)
+                result = self.settings_service.patch_persisted_settings(patch)
             except ValueError as err:
                 raise self._field_validation_error("value", str(err))
             except SettingsError as err:
+                if self._persisted_value_matches(setting_path, self._lookup_optional_dotted_path(patch, setting_path)):
+                    return self._build_settings_success_response(
+                        "Settings saved, but effective settings are still unavailable."
+                    )
                 raise self._field_validation_error("value", str(err))
             except HTTPException:
                 raise
@@ -249,6 +254,10 @@ class UIController(APIController):
         try:
             result = self.settings_service.reset_persisted_value(setting_path)
         except SettingsError as err:
+            if not self._has_persisted_value(setting_path):
+                return self._build_settings_success_response(
+                    "Settings reset, but effective settings are still unavailable."
+                )
             return self._build_settings_edit_page_components(setting_path, reset_error=str(err))
         except HTTPException:
             raise
@@ -698,6 +707,28 @@ class UIController(APIController):
             cursor = child
         cursor[parts[-1]] = value
         return patch
+
+    def _persisted_value_matches(self, dotted_path: str, expected_value: object) -> bool:
+        return (
+            self._lookup_optional_dotted_path(self.settings_service.get_persisted_settings_view(), dotted_path)
+            == expected_value
+        )
+
+    def _has_persisted_value(self, dotted_path: str) -> bool:
+        return (
+            self._lookup_optional_dotted_path(self.settings_service.get_persisted_settings_view(), dotted_path)
+            is not _MISSING
+        )
+
+    def _lookup_optional_dotted_path(self, root: JsonObject, dotted_path: str) -> object:
+        current: JsonObject = root
+        parts = dotted_path.split(".")
+        for part in parts[:-1]:
+            child = current.get(part, _MISSING)
+            if not isinstance(child, dict):
+                return _MISSING
+            current = cast(JsonObject, child)
+        return current.get(parts[-1], _MISSING)
 
     def _format_settings_display_value(self, setting_path: str, value: object) -> str:
         if value is None:

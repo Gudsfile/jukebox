@@ -608,6 +608,52 @@ async def test_update_setting_returns_field_error_for_non_object_json():
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
+async def test_update_setting_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+
+    def raise_after_persist(patch):
+        controller.settings_service.get_persisted_settings_view.return_value = {
+            "schema_version": 1,
+            "admin": {"api": {"port": 9000}, "ui": {"port": 8000}},
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+
+    controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port", SettingValueForm(value="9000"))
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+    assert "toast=toast-settings-success" in response[0].event.url
+    assert "effective+settings+are+still+unavailable" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
 async def test_update_setting_returns_field_error_for_shared_validation_failure():
     from fastapi import HTTPException
 
@@ -634,6 +680,52 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
             }
         ]
     }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_reset_setting_redirects_when_reset_succeeds_but_effective_settings_stay_invalid():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+
+    def raise_after_reset(setting_path):
+        del setting_path
+        controller.settings_service.get_persisted_settings_view.return_value = {
+            "schema_version": 1,
+            "admin": {"ui": {"port": 8000}},
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+
+    controller.settings_service.reset_persisted_value.side_effect = raise_after_reset
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port")
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+    assert "toast=toast-settings-success" in response[0].event.url
+    assert "effective+settings+are+still+unavailable" in response[0].event.url
 
 
 @pytest.mark.skipif(
