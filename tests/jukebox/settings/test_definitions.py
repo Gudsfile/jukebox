@@ -84,6 +84,10 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
         },
     )
 
+    assert displays[0].path == "paths.library_path"
+    assert displays[0].section_label == "Paths"
+    assert displays[0].section_description == "Shared file locations used by the admin tools and jukebox runtime."
+
     admin_api_port = next(display for display in displays if display.path == "admin.api.port")
     assert admin_api_port.persisted_value == 8100
     assert admin_api_port.effective_value == 8100

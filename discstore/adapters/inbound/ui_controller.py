@@ -218,20 +218,11 @@ class UIController(APIController):
 
         @self.app.post("/api/ui/settings/{setting_path}/reset", response_model=FastUI, response_model_exclude_none=True)
         async def reset_setting(setting_path: str) -> list[AnyComponent]:
-            definition = get_setting_definition(setting_path)
-            if definition is None:
-                raise HTTPException(status_code=404, detail=f"Unknown setting path: {setting_path}")
+            return self._reset_setting(setting_path)
 
-            try:
-                result = self.settings_service.reset_persisted_value(setting_path)
-            except SettingsError as err:
-                raise self._field_validation_error("path", str(err))
-            except HTTPException:
-                raise
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-            return self._build_settings_success_response(str(result["message"]))
+        @self.app.get("/api/ui/settings/{setting_path}/reset", response_model=FastUI, response_model_exclude_none=True)
+        def reset_setting_page(setting_path: str) -> List[AnyComponent]:
+            return self._reset_setting(setting_path)
 
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
@@ -253,6 +244,22 @@ class UIController(APIController):
         return [
             c.FireEvent(event=GoToEvent(url=f"/settings?{query}")),
         ]
+
+    def _reset_setting(self, setting_path: str) -> list[AnyComponent]:
+        definition = get_setting_definition(setting_path)
+        if definition is None:
+            raise HTTPException(status_code=404, detail=f"Unknown setting path: {setting_path}")
+
+        try:
+            result = self.settings_service.reset_persisted_value(setting_path)
+        except SettingsError as err:
+            raise self._field_validation_error("path", str(err))
+        except HTTPException:
+            raise
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        return self._build_settings_success_response(str(result["message"]))
 
     def _build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
         discs = self.list_discs.execute()
@@ -312,11 +319,10 @@ class UIController(APIController):
         settings = self._get_settings_displays()
         components: list[AnyComponent] = [
             c.Heading(text="Settings", level=1),
-            c.Paragraph(text="Manage shared admin and jukebox settings from the same backend used by the CLI and API."),
             c.Div(
                 class_name="d-flex flex-wrap gap-2 mb-4",
                 components=[
-                    c.Button(text="Back to Library", on_click=GoToEvent(url="/"), class_name="btn btn-secondary"),
+                    c.Link(components=[c.Text(text="Back to Library")], on_click=GoToEvent(url="/")),
                 ],
             ),
         ]
@@ -345,12 +351,22 @@ class UIController(APIController):
         section: str,
         settings: List[EditableSettingDisplay],
     ) -> List[AnyComponent]:
-        return [
-            c.Heading(text=section.title(), level=2),
+        first_setting = settings[0]
+        section_components: list[AnyComponent] = [
+            c.Heading(text=first_setting.section_label, level=2),
+        ]
+        if first_setting.section_description:
+            section_components.append(c.Paragraph(text=first_setting.section_description, class_name="mb-2"))
+
+        section_components.append(
             c.Div(
                 class_name="border rounded overflow-hidden mb-4",
                 components=[self._build_settings_row(setting, index) for index, setting in enumerate(settings)],
-            ),
+            )
+        )
+
+        return [
+            *section_components,
         ]
 
     def _build_settings_row(self, setting: EditableSettingDisplay, index: int) -> AnyComponent:
@@ -358,44 +374,25 @@ class UIController(APIController):
             c.Heading(text=setting.label, level=4),
             c.Paragraph(text=setting.path, class_name="text-muted small mb-1"),
             c.Paragraph(text=setting.description, class_name="mb-2"),
-            c.Paragraph(
-                text="Persisted: {}".format(self._format_settings_display_value(setting.path, setting.persisted_value))
-                if setting.is_persisted
-                else "Persisted: Not persisted",
-                class_name="mb-1",
-            ),
-            c.Paragraph(
-                text="Effective: {}".format(self._format_settings_display_value(setting.path, setting.effective_value)),
-                class_name="mb-1",
-            ),
-            c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
         ]
 
-        badge_components: list[AnyComponent] = []
-        if setting.is_pinned_default:
-            badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
-        if setting.requires_restart:
-            badge_components.append(
-                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase")
-            )
+        badge_components = self._build_settings_badges(setting)
         if badge_components:
             info_components.append(
                 c.Div(
-                    class_name="d-flex flex-wrap gap-2 mt-2",
+                    class_name="d-flex flex-wrap gap-2 mb-3",
                     components=badge_components,
                 )
             )
+        info_components.append(self._build_settings_value_summary(setting))
 
         action_components: list[AnyComponent] = [
             c.Button(
-                text="Edit",
+                text="Edit ✏️",
                 on_click=GoToEvent(url=f"/settings/{setting.path}/edit"),
                 class_name="btn btn-secondary",
             )
         ]
-        if setting.is_persisted:
-            action_components.append(self._build_settings_reset_form(setting.path))
-
         row_class_name = "px-3 py-3"
         if index > 0:
             row_class_name += " border-top"
@@ -404,10 +401,10 @@ class UIController(APIController):
             class_name=row_class_name,
             components=[
                 c.Div(
-                    class_name="d-flex flex-column flex-lg-row gap-3 justify-content-between align-items-lg-start",
+                    class_name="d-flex flex-column flex-xl-row gap-3 justify-content-between align-items-xl-start",
                     components=[
                         c.Div(class_name="flex-grow-1", components=info_components),
-                        c.Div(class_name="d-flex flex-wrap gap-2", components=action_components),
+                        c.Div(class_name="d-grid gap-2 align-self-start", components=action_components),
                     ],
                 )
             ],
@@ -421,6 +418,7 @@ class UIController(APIController):
                     components=[
                         c.Heading(text="Edit setting", level=1),
                         c.Error(title="Setting not found", description=f"Unknown setting path: {setting_path}"),
+                        c.Link(components=[c.Text(text="Back to Settings")], on_click=GoToEvent(url="/settings")),
                         c.Link(components=[c.Text(text="Back to Library")], on_click=GoToEvent(url="/")),
                     ]
                 )
@@ -428,49 +426,59 @@ class UIController(APIController):
 
         components: list[AnyComponent] = [
             c.Heading(text=f"Edit {setting.label}", level=1),
+            c.Paragraph(
+                text=f"{setting.section_label} setting", class_name="text-uppercase text-muted small fw-semibold mb-1"
+            ),
             c.Paragraph(text=setting.path, class_name="text-muted small mb-1"),
-            c.Paragraph(
-                text="Current persisted value: {}".format(
-                    self._format_settings_display_value(setting.path, setting.persisted_value)
-                )
-                if setting.is_persisted
-                else "Current persisted value: Not persisted",
-                class_name="mb-1",
-            ),
-            c.Paragraph(
-                text="Current effective value: {}".format(
-                    self._format_settings_display_value(setting.path, setting.effective_value)
-                ),
-                class_name="mb-1",
-            ),
-            c.Paragraph(text=f"Source: {setting.provenance}", class_name="mb-0"),
+            c.Paragraph(text=setting.description, class_name="mb-3"),
         ]
 
-        badge_components: list[AnyComponent] = []
-        if setting.is_pinned_default:
-            badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
-        if setting.requires_restart:
-            badge_components.append(
-                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase")
-            )
+        badge_components = self._build_settings_badges(setting)
         if badge_components:
             components.append(
                 c.Div(
-                    class_name="d-flex flex-wrap gap-2 mt-2",
+                    class_name="d-flex flex-wrap gap-2 mb-3",
                     components=badge_components,
                 )
             )
 
-        components.append(self._build_settings_edit_form(setting))
+        components.append(
+            c.Div(
+                class_name="border rounded p-3 mb-4 bg-light-subtle",
+                components=[
+                    c.Heading(text="Current values", level=3),
+                    self._build_settings_value_summary(setting),
+                ],
+            )
+        )
+
+        components.append(
+            c.Div(
+                class_name="border rounded p-3 mb-4",
+                components=[
+                    c.Heading(text="Update override", level=3),
+                    c.Paragraph(text=self._build_settings_edit_guidance(setting), class_name="mb-3"),
+                    self._build_settings_edit_form(setting),
+                ],
+            )
+        )
 
         if setting.is_persisted:
             components.extend(
                 [
-                    c.Heading(text="Reset override", level=3),
-                    c.Paragraph(
-                        text="Reset removes the persisted override entirely. Use it to unpin a default value or fall back to merged defaults and overrides."
-                    ),
-                    self._build_settings_reset_form(setting.path),
+                    c.Div(
+                        class_name="border rounded p-3 mb-4",
+                        components=[
+                            c.Heading(text="Reset override", level=3),
+                            c.Paragraph(
+                                text=(
+                                    "Reset removes the persisted override entirely. Use it to fall back to defaults,"
+                                    " environment overrides, or CLI overrides."
+                                )
+                            ),
+                            self._build_settings_reset_button(setting.path),
+                        ],
+                    )
                 ]
             )
 
@@ -491,7 +499,8 @@ class UIController(APIController):
         field_description = setting.description
         if setting.field_type == "object":
             field_description = (
-                f"{field_description} Leave blank to persist null. Use Reset to remove the persisted override."
+                f"{field_description} Enter a JSON object matching the persisted setting shape. "
+                "Leave blank to persist null. Use Reset to remove the persisted override."
             )
         if setting.requires_restart:
             field_description = f"{field_description} Takes effect after restart."
@@ -539,13 +548,11 @@ class UIController(APIController):
             footer=[c.Button(text="Save", html_type="submit", class_name="btn btn-primary")],
         )
 
-    def _build_settings_reset_form(self, setting_path: str) -> AnyComponent:
-        return c.Form(
-            form_fields=[],
-            submit_url=f"/api/ui/settings/{setting_path}/reset",
-            method="POST",
-            display_mode="inline",
-            footer=[c.Button(text="Reset", html_type="submit", class_name="btn btn-outline-danger")],
+    def _build_settings_reset_button(self, setting_path: str) -> AnyComponent:
+        return c.Button(
+            text="Reset",
+            on_click=GoToEvent(url=f"/settings/{setting_path}/reset"),
+            class_name="btn btn-outline-danger text-nowrap px-3",
         )
 
     def _get_settings_displays(self) -> List[EditableSettingDisplay]:
@@ -556,6 +563,64 @@ class UIController(APIController):
 
     def _get_setting_display(self, setting_path: str) -> Optional[EditableSettingDisplay]:
         return next((setting for setting in self._get_settings_displays() if setting.path == setting_path), None)
+
+    def _build_settings_badges(self, setting: EditableSettingDisplay) -> list[AnyComponent]:
+        badge_components: list[AnyComponent] = []
+        if setting.is_pinned_default:
+            badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
+        if setting.requires_restart:
+            badge_components.append(
+                c.Paragraph(text="Restart required", class_name="badge text-bg-warning text-uppercase")
+            )
+        if setting.advanced:
+            badge_components.append(c.Paragraph(text="Advanced", class_name="badge text-bg-dark text-uppercase"))
+        return badge_components
+
+    def _build_settings_value_summary(self, setting: EditableSettingDisplay) -> AnyComponent:
+        return c.Div(
+            class_name="row g-3",
+            components=[
+                self._build_settings_value_cell(
+                    "Default",
+                    self._format_settings_display_value(setting.path, setting.default_value),
+                ),
+                self._build_settings_value_cell(
+                    "Persisted override",
+                    self._format_settings_display_value(setting.path, setting.persisted_value)
+                    if setting.is_persisted
+                    else "None",
+                ),
+                self._build_settings_value_cell(
+                    "Effective value",
+                    self._format_settings_display_value(setting.path, setting.effective_value),
+                ),
+                self._build_settings_value_cell(
+                    "Source",
+                    self._format_settings_provenance(setting.provenance),
+                ),
+            ],
+        )
+
+    def _build_settings_value_cell(self, label: str, value: str) -> AnyComponent:
+        return c.Div(
+            class_name="col-12 col-md-6 col-xl-3",
+            components=[
+                c.Paragraph(text=label, class_name="text-uppercase text-muted small fw-semibold mb-1"),
+                c.Paragraph(text=value, class_name="mb-0 text-break"),
+            ],
+        )
+
+    def _build_settings_edit_guidance(self, setting: EditableSettingDisplay) -> str:
+        guidance = "Save a persisted override for this setting."
+        if setting.choices:
+            guidance = f"{guidance} Choose one of the supported options below."
+        elif setting.field_type == "object":
+            guidance = (
+                f"{guidance} Provide a JSON object matching the stored setting shape,"
+                " or leave the field blank to persist null."
+            )
+
+        return f"{guidance} The effective value may still be superseded by environment or CLI overrides."
 
     def _build_settings_patch(self, setting_path: str, raw_value: str) -> JsonObject:
         definition = get_setting_definition(setting_path)
@@ -583,6 +648,8 @@ class UIController(APIController):
                 value = json.loads(raw_value)
             except json.JSONDecodeError as err:
                 raise ValueError("Enter valid JSON.") from err
+            if not isinstance(value, dict):
+                raise ValueError("Enter a JSON object.")
         else:
             value = raw_value
 
@@ -602,6 +669,12 @@ class UIController(APIController):
     def _format_settings_display_value(self, setting_path: str, value: object) -> str:
         if value is None:
             return "null"
+
+        definition = get_setting_definition(setting_path)
+        if definition is not None and definition.choices and isinstance(value, str):
+            choice_labels = {choice.value: choice.label for choice in definition.choices}
+            if value in choice_labels:
+                return choice_labels[value]
 
         if setting_path == "jukebox.player.sonos.selected_group" and isinstance(value, dict):
             selected_group = cast(dict[str, object], value)
@@ -630,6 +703,15 @@ class UIController(APIController):
             return json.dumps(value, sort_keys=True, separators=(", ", ": "))
         except TypeError:
             return str(value)
+
+    def _format_settings_provenance(self, provenance: str) -> str:
+        labels = {
+            "default": "Default",
+            "file": "Settings file",
+            "env": "Environment override",
+            "cli": "CLI override",
+        }
+        return labels.get(provenance, provenance)
 
     def _build_form_page_components(self, title: str, form_components: List[AnyComponent]) -> List[AnyComponent]:
         return [

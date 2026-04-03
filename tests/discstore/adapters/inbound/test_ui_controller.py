@@ -153,6 +153,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/settings", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}/edit", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}", ("POST",)) in route_index
+    assert ("/api/ui/settings/{setting_path}/reset", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}/reset", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
@@ -240,27 +241,36 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
     all_components = list(walk_components(page[0].components))
 
     assert any(component.type == "Heading" and component.text == "Settings" for component in all_components)
-    assert any(component.type == "Heading" and component.text == "Admin" for component in all_components)
-    assert any(component.type == "Heading" and component.text == "Player" for component in all_components)
-    assert any(component.type == "Paragraph" and component.text == "Persisted: 8100" for component in all_components)
-    assert any(component.type == "Paragraph" and component.text == "Effective: 8000" for component in all_components)
-    assert any(
-        component.type == "Paragraph" and component.text == "Persisted: Not persisted" for component in all_components
-    )
-    assert any(component.type == "Paragraph" and component.text == "Source: file" for component in all_components)
-    assert any(component.type == "Paragraph" and component.text == "Pinned default" for component in all_components)
-    assert any(component.type == "Paragraph" and component.text == "Restart required" for component in all_components)
-    assert any(
-        component.type == "Paragraph"
-        and component.text == "Effective: speaker-2 (coordinator); members: speaker-1, speaker-2"
-        for component in all_components
-    )
-    reset_forms = [
+    back_link = next(
         component
         for component in all_components
-        if component.type == "Form" and component.submit_url == "/api/ui/settings/admin.api.port/reset"
+        if component.type == "Link" and getattr(component.on_click, "url", None) == "/"
+    )
+    assert back_link.components[0].text == "Back to Library"
+    assert any(
+        component.type == "Paragraph" and component.text == "Ports used by the admin API and admin UI processes."
+        for component in all_components
+    )
+    settings_headings = [
+        component.text for component in all_components if component.type == "Heading" and component.level == 2
     ]
-    assert len(reset_forms) == 1
+    assert settings_headings == ["Paths", "Admin", "Playback", "Player", "Reader"]
+    assert any(component.type == "Heading" and component.text == "Admin" for component in all_components)
+    assert any(component.type == "Heading" and component.text == "Player" for component in all_components)
+    assert any(component.type == "Button" and component.text == "Edit ✏️" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Persisted override" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "8000" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "None" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Settings file" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Pinned default" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Restart required" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Dry Run" for component in all_components)
+    assert any(
+        component.type == "Paragraph" and component.text == "speaker-2 (coordinator); members: speaker-1, speaker-2"
+        for component in all_components
+    )
+    assert not any(component.type == "Button" and component.text == "Reset" for component in all_components)
     assert page[1].event.name == "toast-settings-success"
 
 
@@ -287,6 +297,10 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     ]
 
     text_page = route.endpoint("admin.ui.port")[0]
+    assert any(
+        component.type == "Heading" and component.text == "Current values"
+        for component in walk_components(text_page.components)
+    )
     assert any(
         component.type == "Paragraph" and component.text == "Pinned default"
         for component in walk_components(text_page.components)
@@ -368,7 +382,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
     assert object_field.initial == ""
     assert object_field.placeholder == "Enter a JSON object. Leave blank to persist null."
     assert object_field.description.endswith(
-        "Leave blank to persist null. Use Reset to remove the persisted override. Takes effect after restart."
+        "Enter a JSON object matching the persisted setting shape. Leave blank to persist null. Use Reset to remove the persisted override. Takes effect after restart."
     )
 
 
@@ -504,6 +518,37 @@ async def test_update_setting_returns_field_error_for_invalid_json():
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
+async def test_update_setting_returns_field_error_for_non_object_json():
+    from fastapi import HTTPException
+
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    with pytest.raises(HTTPException) as err:
+        await route.endpoint("jukebox.player.sonos.selected_group", SettingValueForm(value='["speaker-1"]'))
+
+    assert err.value.status_code == 422
+    assert err.value.detail == {
+        "form": [
+            {
+                "loc": ["value"],
+                "msg": "Enter a JSON object.",
+            }
+        ]
+    }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
 async def test_update_setting_returns_field_error_for_shared_validation_failure():
     from fastapi import HTTPException
 
@@ -537,7 +582,7 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
     reason="FastUI dependencies are not installed",
 )
 @pytest.mark.anyio
-async def test_reset_setting_calls_service_and_redirects():
+async def test_reset_setting_calls_service_and_returns_refreshed_settings_page():
     controller = build_controller()
     controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
     route = next(
@@ -547,6 +592,26 @@ async def test_reset_setting_calls_service_and_redirects():
     )
 
     response = await route.endpoint("admin.api.port")
+
+    controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_get_reset_setting_calls_service_and_returns_refreshed_settings_page():
+    controller = build_controller()
+    controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "GET" in route.methods
+    )
+
+    response = route.endpoint("admin.api.port")
 
     controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
     assert response[0].type == "FireEvent"
