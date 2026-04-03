@@ -153,7 +153,6 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/settings", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}/edit", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}", ("POST",)) in route_index
-    assert ("/api/ui/settings/{setting_path}/reset", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}/reset", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
@@ -311,6 +310,13 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     assert text_field.initial == "8000"
     assert text_field.html_type == "number"
 
+    number_page = route.endpoint("jukebox.playback.pause_delay_seconds")[0]
+    number_form = next(component for component in walk_components(number_page.components) if component.type == "Form")
+    number_field = number_form.form_fields[0]
+    assert number_field.type == "FormFieldInput"
+    assert number_field.initial == "0.25"
+    assert number_field.html_type == "text"
+
     object_page = route.endpoint("jukebox.player.sonos.selected_group")[0]
     object_form = next(component for component in walk_components(object_page.components) if component.type == "Form")
     object_field = object_form.form_fields[0]
@@ -325,6 +331,14 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
         },
         indent=2,
     )
+    reset_form = next(
+        component
+        for component in walk_components(text_page.components)
+        if component.type == "Form" and component.submit_url == "/api/ui/settings/admin.ui.port/reset"
+    )
+    assert reset_form.method == "POST"
+    assert reset_form.footer[0].type == "Button"
+    assert reset_form.footer[0].text == "Reset"
 
 
 @pytest.mark.skipif(
@@ -602,20 +616,14 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
-def test_get_reset_setting_calls_service_and_returns_refreshed_settings_page():
+def test_ui_controller_does_not_register_get_reset_setting_route():
     controller = build_controller()
-    controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
-    route = next(
-        route
+
+    assert not any(
+        getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset"
+        and "GET" in getattr(route, "methods", set())
         for route in controller.app.routes
-        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "GET" in route.methods
     )
-
-    response = route.endpoint("admin.api.port")
-
-    controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
-    assert response[0].type == "FireEvent"
-    assert response[0].event.url.startswith("/settings?")
 
 
 @pytest.mark.skipif(

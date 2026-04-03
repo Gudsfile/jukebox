@@ -220,10 +220,6 @@ class UIController(APIController):
         async def reset_setting(setting_path: str) -> list[AnyComponent]:
             return self._reset_setting(setting_path)
 
-        @self.app.get("/api/ui/settings/{setting_path}/reset", response_model=FastUI, response_model_exclude_none=True)
-        def reset_setting_page(setting_path: str) -> List[AnyComponent]:
-            return self._reset_setting(setting_path)
-
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
             del path
@@ -476,7 +472,7 @@ class UIController(APIController):
                                     " environment overrides, or CLI overrides."
                                 )
                             ),
-                            self._build_settings_reset_button(setting.path),
+                            self._build_settings_reset_form(setting.path),
                         ],
                     )
                 ]
@@ -538,7 +534,7 @@ class UIController(APIController):
                 initial=None if initial_value is None else str(initial_value),
                 description=field_description,
                 required=True,
-                html_type="number" if setting.field_type in {"integer", "number"} else "text",
+                html_type="number" if setting.field_type == "integer" else "text",
             )
 
         return c.Form(
@@ -548,11 +544,12 @@ class UIController(APIController):
             footer=[c.Button(text="Save", html_type="submit", class_name="btn btn-primary")],
         )
 
-    def _build_settings_reset_button(self, setting_path: str) -> AnyComponent:
-        return c.Button(
-            text="Reset",
-            on_click=GoToEvent(url=f"/settings/{setting_path}/reset"),
-            class_name="btn btn-outline-danger text-nowrap px-3",
+    def _build_settings_reset_form(self, setting_path: str) -> AnyComponent:
+        return c.Form(
+            form_fields=[],
+            submit_url=f"/api/ui/settings/{setting_path}/reset",
+            method="POST",
+            footer=[c.Button(text="Reset", html_type="submit", class_name="btn btn-outline-danger text-nowrap px-3")],
         )
 
     def _get_settings_displays(self) -> List[EditableSettingDisplay]:
