@@ -177,34 +177,23 @@ jukebox --player PLAYER --reader READER
 
 ### Readers
 
-**Dry run** (`dryrun`)
-Read a text entry.
-Allows you to simulate reading an NFC tag by writting the tag id in the console.
-Expected syntax: `tag_id` or `tag_id duration_seconds`.
-- tag_id: the full identifier of the tag, in the format required by the system
-- duration_seconds: a non-negative number of seconds used to simulate how long the tag remains in place. Fractional values are allowed.
-Complete example: `your:tag:uid 2.5`
+| Name | Description |
+| --- | --- |
+| Dry Run (`dryrun`) | Simulates NFC tag reading via stdin. Input format: `tag_id` or `tag_id duration_seconds`. |
+| Pn532 NFC (`pn532`) | Reads physical NFC tags. Works with a **PN532** reader and **NTAG2xx** tags. Requires the `pn532` extra and SPI enabled on the Raspberry Pi. |
 
-**NFC Pn532** (`pn532`)
-Read an NFC tag and get its UID.
-This project works with an NFC reader like the **PN532** and NFC tags like the **NTAG2xx**.
-It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT).
-Don't forget to enable the SPI interface using the command `sudo raspi-config`, then go to: `Interface Options > SPI > Enable > Yes`.
+> [!NOTE]
+> See [docs/readers.md](docs/readers.md) for full setup, hardware requirements, and settings reference.
 
 ### Players
 
-**Dry run** (`dryrun`)
-Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.).
+| Name | Description |
+| --- | --- |
+| Dry Run (`dryrun`) | Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.). |
+| Sonos (`sonos`) | [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo) Plays music through a Sonos speaker. Select by IP (`--sonos-host`), by name (`--sonos-name`), or let it auto-discover. |
 
-**Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
-Play music through a Sonos speaker.
-Three ways to select the speaker (mutually exclusive):
-
-| Option | CLI flag | Environment variable | Behaviour |
-| --- | --- | --- | --- |
-| By IP | `--sonos-host 192.168.0.x` | `JUKEBOX_SONOS_HOST` | Connect directly, no discovery |
-| By name | `--sonos-name "Living Room"` | `JUKEBOX_SONOS_NAME` | Discover, then filter by name (case-sensitive) |
-| Auto | *(omit both)* | *(omit both)* | Discover, pick the first speaker alphabetically |
+> [!NOTE]
+> See [docs/players.md](docs/players.md) for the full configuration reference.
 
 ## The library file
 
