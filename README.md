@@ -158,7 +158,7 @@ Take a look at `library.example.json` and the [The library file](#the-library-fi
 Start the jukebox with the `jukebox` command (show help message with `--help`)
 
 ```shell
-jukebox PLAYER_TO_USE READER_TO_USE
+jukebox --player PLAYER --reader READER
 ```
 
 🎉 With choosing the `sonos` player and `nfc` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
@@ -168,6 +168,8 @@ Optional Parameters
 | Parameter | Description |
 | --- | --- |
 | `--help` | Show help message. |
+| `--player PLAYER` | Player to use (`sonos`, `dryrun`). |
+| `--reader READER` | Reader to use (`nfc`, `dryrun`). |
 | `--library` | Path to the library file, default: `~/.jukebox/library.json`. |
 | `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.2` are supported, with a minimum of `0.2` seconds to avoid pausing on brief missed reads. Default: 0.25 seconds. |
 | `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
@@ -283,9 +285,7 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-If needed, set `JUKEBOX_SONOS_HOST` (IP) or `JUKEBOX_SONOS_NAME` (speaker name) to select your Sonos speaker (see [Players](#players)).
-If neither is set, the jukebox will auto-discover a speaker on the network.
-To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
+If needed, you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 
 Create a `library.json` file and complete it with the desired NFC tags and CDs.
@@ -296,7 +296,7 @@ Take a look at `library.example.json` and the [The library file](#the-library-fi
 Start the jukebox with `uv` and use `--help` to show help message
 
 ```shell
-uv run jukebox PLAYER_TO_USE READER_TO_USE
+uv run jukebox --player PLAYER_TO_USE --reader READER_TO_USE
 ```
 
 Start the discstore `uv` and use `--help` to show help message
@@ -325,7 +325,7 @@ uv run --extra api discstore api
 uv run --extra ui discstore ui
 ```
 
-Other commands are available:
+### Development commands
 
 | Command | Description |
 | --- | --- |
