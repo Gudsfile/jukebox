@@ -2,6 +2,7 @@ import json
 import os
 import tempfile
 from contextlib import suppress
+from typing import Optional
 
 from pydantic import ValidationError
 
@@ -11,12 +12,14 @@ from .errors import InvalidSettingsError, MalformedSettingsFileError
 from .migration import CURRENT_SETTINGS_SCHEMA_VERSION, migrate_settings_data
 from .types import JsonObject
 
-DEFAULT_SETTINGS_PATH = os.path.expanduser("~/.jukebox/settings.json")
-
 
 class FileSettingsRepository:
-    def __init__(self, filepath: str = DEFAULT_SETTINGS_PATH):
-        self.filepath = os.path.expanduser(filepath)
+    def __init__(self, filepath: Optional[str] = None):
+        if filepath is None:
+            xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+            self.filepath = os.path.expanduser(os.path.join(xdg_config_home, "jukebox/settings.json"))
+        else:
+            self.filepath = os.path.expanduser(filepath)
 
     def load_persisted_settings_data(self) -> JsonObject:
         if not os.path.exists(self.filepath):

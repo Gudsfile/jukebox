@@ -41,7 +41,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             (),
             {
                 "settings": {
-                    "paths": {"library_path": "~/.jukebox/library.json"},
+                    "paths": {"library_path": "~/.config/jukebox/library.json"},
                     "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
                     "jukebox": {
                         "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
@@ -76,8 +76,8 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                 },
                 "derived": {
                     "paths": {
-                        "expanded_library_path": "/Users/test/.jukebox/library.json",
-                        "current_tag_path": "/Users/test/.jukebox/current-tag.txt",
+                        "expanded_library_path": "/Users/test/.config/jukebox/library.json",
+                        "current_tag_path": "/Users/test/.config/jukebox/current-tag.txt",
                     }
                 },
                 "settings_metadata": {},
@@ -85,11 +85,11 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             [
                 "Effective Settings",
                 "Paths",
-                "Library Path [paths.library_path]: ~/.jukebox/library.json (source: default; restart required)",
+                "Library Path [paths.library_path]: ~/.config/jukebox/library.json (source: default; restart required)",
                 "Admin API Port [admin.api.port]: 8000 (source: file; restart required)",
                 "Selected Sonos Group [jukebox.player.sonos.selected_group]: speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)",
                 "Derived",
-                "derived.paths.current_tag_path: /Users/test/.jukebox/current-tag.txt",
+                "derived.paths.current_tag_path: /Users/test/.config/jukebox/current-tag.txt",
             ],
         ),
         (
@@ -333,7 +333,7 @@ def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_
     settings_service = MagicMock()
     settings_service.get_effective_settings_view.return_value = {
         "settings": {
-            "paths": {"library_path": "~/.jukebox/library.json"},
+            "paths": {"library_path": "~/.config/jukebox/library.json"},
             "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
             "jukebox": {
                 "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
