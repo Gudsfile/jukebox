@@ -419,7 +419,7 @@ def test_render_sonos_selection_status_output_for_available_selection():
     )
 
     assert "Selected Sonos Group" in rendered
-    assert "- Coordinator UID: speaker-1" in rendered
+    assert "- Coordinator: Kitchen [speaker-1]" in rendered
     assert "- Status: available" in rendered
     assert "speaker-1" in rendered
     assert "speaker-2" in rendered
@@ -461,8 +461,47 @@ def test_render_sonos_selection_status_output_for_partially_available_selection(
     )
 
     assert "- Status: partially available" in rendered
+    assert "- Coordinator: Kitchen [speaker-1]" in rendered
     assert "speaker-2" in rendered
     assert "unavailable" in rendered
+
+
+def test_render_sonos_selection_status_output_falls_back_to_coordinator_uid_when_unresolved():
+    rendered = render_sonos_selection_status_output(
+        SonosSelectionStatus(
+            selected_group=SelectedSonosGroupSettings(
+                coordinator_uid="speaker-1",
+                members=[
+                    SelectedSonosSpeakerSettings(uid="speaker-1"),
+                    SelectedSonosSpeakerSettings(uid="speaker-2"),
+                ],
+            ),
+            availability=SonosSelectionAvailability(
+                status="unavailable",
+                members=[
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-1",
+                        status="unavailable",
+                        speaker=None,
+                    ),
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-2",
+                        status="available",
+                        speaker=DiscoveredSonosSpeaker(
+                            uid="speaker-2",
+                            name="Living Room",
+                            host="192.168.1.31",
+                            household_id="household-1",
+                            is_visible=True,
+                        ),
+                    ),
+                ],
+            ),
+        )
+    )
+
+    assert "- Coordinator UID: speaker-1" in rendered
+    assert "- Status: unavailable" in rendered
 
 
 def test_render_settings_output_json_mode_preserves_payload_shape():
