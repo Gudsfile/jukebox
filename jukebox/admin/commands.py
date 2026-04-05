@@ -5,7 +5,7 @@ try:
 except ImportError:
     from typing_extensions import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class ApiCommand(BaseModel):
@@ -16,6 +16,26 @@ class ApiCommand(BaseModel):
 class UiCommand(BaseModel):
     type: Literal["ui"]
     port: Optional[int] = None
+
+
+class SonosListCommand(BaseModel):
+    type: Literal["sonos_list"]
+
+
+class SonosSelectCommand(BaseModel):
+    type: Literal["sonos_select"]
+    uids: Optional[list[str]] = None
+    coordinator: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_coordinator_requires_uids(self):
+        if self.coordinator is not None and not self.uids:
+            raise ValueError("--coordinator requires --uids")
+        return self
+
+
+class SonosShowCommand(BaseModel):
+    type: Literal["sonos_show"]
 
 
 class SettingsShowCommand(BaseModel):
@@ -42,6 +62,9 @@ AdminCommand = Union[
     SettingsResetCommand,
     SettingsSetCommand,
     SettingsShowCommand,
+    SonosListCommand,
+    SonosSelectCommand,
+    SonosShowCommand,
     UiCommand,
 ]
 
@@ -54,6 +77,9 @@ def is_admin_command(command: object) -> bool:
             SettingsResetCommand,
             SettingsSetCommand,
             SettingsShowCommand,
+            SonosListCommand,
+            SonosSelectCommand,
+            SonosShowCommand,
             UiCommand,
         ),
     )
@@ -68,3 +94,7 @@ def is_settings_command(command: object) -> bool:
             SettingsShowCommand,
         ),
     )
+
+
+def is_sonos_command(command: object) -> bool:
+    return isinstance(command, (SonosListCommand, SonosSelectCommand, SonosShowCommand))

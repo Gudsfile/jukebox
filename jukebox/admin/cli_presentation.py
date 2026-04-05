@@ -1,7 +1,7 @@
 import json
 import re
 import shlex
-from typing import Dict, Iterable, List, Optional, Tuple, cast
+from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -11,6 +11,9 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.settings.types import JsonObject, JsonValue
+from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 
@@ -20,19 +23,20 @@ _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
 
 def render_settings_output(
     command: object,
-    payload: JsonObject,
+    payload: Mapping[str, object],
 ) -> str:
     if isinstance(command, SettingsShowCommand):
         if command.json_output:
             return json.dumps(payload, indent=2)
+        settings_payload = cast(JsonObject, payload)
         if command.effective:
-            return _render_effective_settings(payload)
-        return _render_persisted_settings(payload)
+            return _render_effective_settings(settings_payload)
+        return _render_persisted_settings(settings_payload)
 
     if isinstance(command, (SettingsSetCommand, SettingsResetCommand)):
         if command.json_output:
             return json.dumps(payload, indent=2)
-        return _render_write_result(payload)
+        return _render_write_result(cast(JsonObject, payload))
 
     raise TypeError("Unsupported settings command")
 
@@ -49,6 +53,94 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     if verbose and str(err) and str(err) != message:
         return "{}\n\nDetails: {}".format(message, str(err))
     return message
+
+
+def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
+    if not speakers:
+        return "No visible Sonos speakers found."
+
+    name_width = max(len(speaker.name) for speaker in speakers)
+    host_width = max(len(speaker.host) for speaker in speakers)
+    return "\n".join(
+        "{index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
+            index=index,
+            name=speaker.name,
+            name_width=name_width,
+            host=speaker.host,
+            host_width=host_width,
+            uid=speaker.uid,
+        )
+        for index, speaker in enumerate(speakers, start=1)
+    )
+
+
+def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
+    return "{} ({})".format(speaker.name, speaker.host)
+
+
+def render_sonos_selection_saved_output(result: SonosSelectionResult) -> str:
+    member_labels = ", ".join("{} [{}]".format(member.name, member.uid) for member in result.members)
+    return "\n".join(
+        [
+            "Selected Sonos group saved.",
+            "Coordinator: {} [{}]".format(result.coordinator.name, result.coordinator.uid),
+            "Members: {}".format(member_labels),
+            result.settings_message,
+        ]
+    )
+
+
+def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
+    lines = ["Selected Sonos Group", ""]
+
+    if status.selected_group is None:
+        lines.append("- Status: not selected")
+        return "\n".join(lines)
+
+    status_label = "partially available" if status.availability.status == "partial" else status.availability.status
+    coordinator_speaker = next(
+        (
+            member.speaker
+            for member in status.availability.members
+            if member.uid == status.selected_group.coordinator_uid and member.speaker is not None
+        ),
+        None,
+    )
+    if coordinator_speaker is None:
+        lines.append("- Coordinator UID: {}".format(status.selected_group.coordinator_uid))
+    else:
+        lines.append("- Coordinator: {} [{}]".format(coordinator_speaker.name, coordinator_speaker.uid))
+    lines.append("- Status: {}".format(status_label))
+    lines.append("- Members:")
+
+    name_width = max(
+        len(member.speaker.name) if member.speaker is not None else len("unavailable")
+        for member in status.availability.members
+    )
+    host_width = max(
+        len(member.speaker.host) if member.speaker is not None else len("-") for member in status.availability.members
+    )
+    household_width = max(
+        len(member.speaker.household_id) if member.speaker is not None else len("-")
+        for member in status.availability.members
+    )
+
+    for member in status.availability.members:
+        speaker = member.speaker
+        lines.append(
+            "  - {uid:<18}  {name:<{name_width}}  {host:<{host_width}}  {household:<{household_width}}  {status}".format(
+                uid=member.uid,
+                name=speaker.name if speaker is not None else "unavailable",
+                name_width=name_width,
+                host=speaker.host if speaker is not None else "-",
+                host_width=host_width,
+                household=speaker.household_id if speaker is not None else "-",
+                household_width=household_width,
+                status=member.status,
+            )
+        )
+
+    return "\n".join(lines)
 
 
 def _render_persisted_settings(payload: JsonObject) -> str:
@@ -74,9 +166,9 @@ def _render_persisted_settings(payload: JsonObject) -> str:
 
 
 def _render_effective_settings(payload: JsonObject) -> str:
-    settings = _lookup_object(payload, "settings")
-    provenance = _lookup_object(payload, "provenance")
-    derived = _lookup_object(payload, "derived")
+    settings = lookup_object(payload, "settings")
+    provenance = lookup_object(payload, "provenance")
+    derived = lookup_object(payload, "derived")
     grouped_entries = _group_entries_by_section(_collect_leaf_entries(settings))
 
     lines = ["Effective Settings"]
@@ -91,8 +183,10 @@ def _render_effective_settings(payload: JsonObject) -> str:
         lines.append(_format_section_title(section))
         rendered_paths = set()
         for definition in definitions:
-            value = _lookup_optional_dotted_path(settings, definition.path)
-            provenance_label = _lookup_provenance_label(provenance, definition.path)
+            value = lookup_optional_dotted_path(settings, definition.path)
+            if value is MISSING:
+                value = None
+            provenance_label = lookup_provenance_label(provenance, definition.path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(definition.path),
@@ -110,7 +204,7 @@ def _render_effective_settings(payload: JsonObject) -> str:
                 continue
 
             definition = get_setting_definition(dotted_path)
-            provenance_label = _lookup_provenance_label(provenance, dotted_path)
+            provenance_label = lookup_provenance_label(provenance, dotted_path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(dotted_path),
@@ -284,55 +378,6 @@ def _format_selected_group(value: object) -> str:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
     return "{} (coordinator); members: {}".format(coordinator_uid, ", ".join(member_uids))
-
-
-def _lookup_object(root: JsonObject, key: str) -> JsonObject:
-    value = root.get(key, {})
-    if isinstance(value, dict):
-        return value
-    return {}
-
-
-def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
-    current = root
-    parts = dotted_path.split(".")
-    for part in parts[:-1]:
-        child = current.get(part)
-        if not isinstance(child, dict):
-            return None
-        current = child
-    return current.get(parts[-1])
-
-
-def _lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
-    value = _lookup_optional_dotted_path(root, dotted_path)
-    collapsed_label = _collapse_provenance_value(value)
-    if collapsed_label is None:
-        return "unknown"
-    return collapsed_label
-
-
-def _collapse_provenance_value(value: object) -> Optional[str]:
-    if isinstance(value, str):
-        return value
-    if not isinstance(value, dict):
-        return None
-
-    child_labels = []
-    for child_value in value.values():
-        child_label = _collapse_provenance_value(child_value)
-        if child_label is None:
-            continue
-        child_labels.append(child_label)
-
-    if not child_labels:
-        return None
-
-    distinct_labels = set(child_labels)
-    if len(distinct_labels) == 1:
-        return child_labels[0]
-
-    return "mixed"
 
 
 def _build_equivalent_jukebox_admin_command(command: object, library: Optional[str] = None) -> str:
