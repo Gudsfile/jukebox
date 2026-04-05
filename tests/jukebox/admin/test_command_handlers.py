@@ -22,10 +22,26 @@ from jukebox.admin.services import AdminServices
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
 def build_services():
     return AdminServices(settings=MagicMock(), sonos=MagicMock())
+
+
+def build_inspected_group(
+    resolved_members,
+    coordinator_uid,
+    missing_member_uids=None,
+    error_message=None,
+):
+    coordinator = next((member for member in resolved_members if member.uid == coordinator_uid), None)
+    return InspectedSelectedSonosGroup(
+        coordinator=coordinator,
+        resolved_members=list(resolved_members),
+        missing_member_uids=list(missing_member_uids or []),
+        error_message=error_message,
+    )
 
 
 def test_execute_settings_command_renders_human_readable_persisted_settings():
@@ -653,22 +669,25 @@ def test_execute_sonos_command_show_renders_saved_selection_status():
             }
         },
     }
-    sonos_service.list_available_speakers.return_value = [
-        DiscoveredSonosSpeaker(
-            uid="speaker-1",
-            name="Kitchen",
-            host="192.168.1.30",
-            household_id="household-1",
-            is_visible=True,
-        ),
-        DiscoveredSonosSpeaker(
-            uid="speaker-2",
-            name="Living Room",
-            host="192.168.1.31",
-            household_id="household-1",
-            is_visible=True,
-        ),
-    ]
+    sonos_service.inspect_selected_group.return_value = build_inspected_group(
+        resolved_members=[
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-1",
+                is_visible=True,
+            ),
+            DiscoveredSonosSpeaker(
+                uid="speaker-2",
+                name="Living Room",
+                host="192.168.1.31",
+                household_id="household-1",
+                is_visible=True,
+            ),
+        ],
+        coordinator_uid="speaker-1",
+    )
 
     execute_sonos_command(
         command=SonosShowCommand(type="sonos_show"),

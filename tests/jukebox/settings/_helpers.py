@@ -7,6 +7,8 @@ from jukebox.settings.entities import (
 from jukebox.settings.resolve import SettingsService
 from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.settings.types import JsonObject, JsonValue
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
 def lookup_json_value(root: JsonObject, *path: str) -> JsonValue:
@@ -49,9 +51,11 @@ class StubSonosService:
     def __init__(
         self,
         resolved_group: Optional[ResolvedSonosGroupRuntime] = None,
+        inspected_group: Optional[InspectedSelectedSonosGroup] = None,
         error: Optional[Exception] = None,
     ):
         self.resolved_group = resolved_group
+        self.inspected_group = inspected_group
         self.error = error
         self.calls = []
 
@@ -61,6 +65,30 @@ class StubSonosService:
             raise self.error
         assert self.resolved_group is not None
         return self.resolved_group
+
+    def inspect_selected_group(self, selected_group):
+        self.calls.append(selected_group)
+        if self.error is not None:
+            raise self.error
+        if self.inspected_group is not None:
+            return self.inspected_group
+        assert self.resolved_group is not None
+        members = [
+            DiscoveredSonosSpeaker(
+                uid=member.uid,
+                name=member.name,
+                host=member.host,
+                household_id=member.household_id,
+                is_visible=True,
+            )
+            for member in self.resolved_group.members
+        ]
+        coordinator = next((member for member in members if member.uid == self.resolved_group.coordinator.uid), None)
+        return InspectedSelectedSonosGroup(
+            coordinator=coordinator,
+            resolved_members=members,
+            missing_member_uids=list(self.resolved_group.missing_member_uids),
+        )
 
     def list_available_speakers(self):
         return []

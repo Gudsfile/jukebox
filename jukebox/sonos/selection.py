@@ -156,11 +156,9 @@ class GetSonosSelectionStatus:
                 availability=SonosSelectionAvailability(status="not_selected"),
             )
 
-        available_speakers = {speaker.uid: speaker for speaker in self.sonos_service.list_available_speakers()}
+        inspection = self.sonos_service.inspect_selected_group(selected_group)
+        available_speakers = {speaker.uid: speaker for speaker in inspection.resolved_members}
         members = []
-        coordinator_available = False
-        available_member_count = 0
-        available_household_ids = set()
 
         for saved_member in selected_group.members:
             speaker = available_speakers.get(saved_member.uid)
@@ -173,10 +171,6 @@ class GetSonosSelectionStatus:
                 )
                 continue
 
-            available_member_count += 1
-            available_household_ids.add(speaker.household_id)
-            if saved_member.uid == selected_group.coordinator_uid:
-                coordinator_available = True
             members.append(
                 SonosSelectionMemberAvailability(
                     uid=saved_member.uid,
@@ -185,12 +179,12 @@ class GetSonosSelectionStatus:
                 )
             )
 
-        if not coordinator_available or len(available_household_ids) > 1:
+        if inspection.error_message is not None:
             availability = SonosSelectionAvailability(status="unavailable", members=members)
-        elif available_member_count == len(selected_group.members):
-            availability = SonosSelectionAvailability(status="available", members=members)
-        else:
+        elif inspection.missing_member_uids:
             availability = SonosSelectionAvailability(status="partial", members=members)
+        else:
+            availability = SonosSelectionAvailability(status="available", members=members)
 
         return SonosSelectionStatus(
             selected_group=selected_group,
