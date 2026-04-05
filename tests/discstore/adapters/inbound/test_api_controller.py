@@ -551,7 +551,7 @@ def test_put_sonos_selection_rejects_unknown_uid():
         route.endpoint(SonosSelectionInput(uids=["speaker-9"]))
 
     assert err.value.status_code == 400
-    assert err.value.detail == "Selected Sonos speaker is not currently discoverable: speaker-9"
+    assert err.value.detail == "Selected Sonos speakers are not currently discoverable: speaker-9"
     settings_service.patch_persisted_settings.assert_not_called()
 
 
