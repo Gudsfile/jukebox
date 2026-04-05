@@ -21,7 +21,7 @@ jobs:
     if: |
       github.event.pull_request.merged == true
       && startsWith(github.head_ref, 'auto-bump/')
-      && contains(github.event.pull_request.labels.*.name, 'auto-release')
+      && github.event.pull_request.user.login == 'github-actions[bot]'
 
     steps:
       - uses: actions/checkout@v6
