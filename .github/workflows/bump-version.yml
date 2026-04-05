@@ -34,6 +34,13 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -71,3 +78,10 @@ jobs:
             --title "🔖 v${{ steps.version.outputs.version }}" \
             --body "Automated version bump to v${{ steps.version.outputs.version }}\n\nThis PR was created by the bump-version workflow." \
             --label auto-release
+
+      - name: Approve and enable auto-merge
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh pr review auto-bump/v${{ steps.version.outputs.version }} --approve
+          gh pr merge --auto --merge auto-bump/v${{ steps.version.outputs.version }}
