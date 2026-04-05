@@ -1,6 +1,7 @@
 from unittest.mock import ANY, MagicMock
 
 import pytest
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from discstore.commands import (
@@ -190,6 +191,20 @@ def test_jukebox_admin_preserves_os_errors(app_mocks):
     assert result.exit_code == 1
     assert "[Errno 13] Permission denied: '/tmp/settings.json'" in result.output
     assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
+def test_jukebox_admin_rejects_coordinator_without_uids(app_mocks):
+    result = runner.invoke(app, ["sonos", "select", "--coordinator", "speaker-2"])
+
+    assert result.exit_code == 1
+    assert "--coordinator requires --uids" in result.output
+    app_mocks.build_admin_services.assert_not_called()
+    app_mocks.execute_sonos_command.assert_not_called()
+
+
+def test_sonos_select_command_rejects_coordinator_without_uids():
+    with pytest.raises(ValidationError, match="--coordinator requires --uids"):
+        SonosSelectCommand(type="sonos_select", coordinator="speaker-2")
 
 
 @pytest.mark.parametrize(

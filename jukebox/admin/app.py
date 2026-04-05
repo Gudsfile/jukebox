@@ -326,7 +326,12 @@ def sonos_select(
     parsed_uids = (
         None if uids is None else [uid.strip() for raw_uids in uids for uid in raw_uids.split(",") if uid.strip()]
     )
-    _run_command(ctx, SonosSelectCommand(type="sonos_select", uids=parsed_uids, coordinator=coordinator))
+    try:
+        command = SonosSelectCommand(type="sonos_select", uids=parsed_uids, coordinator=coordinator)
+    except ValidationError as err:
+        _exit_on_command_validation_error(err)
+
+    _run_command(ctx, command)
 
 
 @sonos_app.command("show")
