@@ -98,7 +98,18 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
         return "\n".join(lines)
 
     status_label = "partially available" if status.availability.status == "partial" else status.availability.status
-    lines.append("- Coordinator UID: {}".format(status.selected_group.coordinator_uid))
+    coordinator_speaker = next(
+        (
+            member.speaker
+            for member in status.availability.members
+            if member.uid == status.selected_group.coordinator_uid and member.speaker is not None
+        ),
+        None,
+    )
+    if coordinator_speaker is None:
+        lines.append("- Coordinator UID: {}".format(status.selected_group.coordinator_uid))
+    else:
+        lines.append("- Coordinator: {} [{}]".format(coordinator_speaker.name, coordinator_speaker.uid))
     lines.append("- Status: {}".format(status_label))
     lines.append("- Members:")
 
