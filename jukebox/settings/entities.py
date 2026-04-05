@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 try:
@@ -10,6 +11,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
 from .runtime_validation import validate_resolved_jukebox_runtime_rules
+
+
+def _resolve_default_library_path():
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+    return os.path.expanduser(os.path.join(xdg_config_home, "jukebox/library.json"))
 
 
 class StrictModel(BaseModel):
@@ -94,7 +100,7 @@ class ServerSettings(StrictModel):
 
 
 class PathsSettings(StrictModel):
-    library_path: str = "~/.jukebox/library.json"
+    library_path: str = _resolve_default_library_path()
 
 
 class AdminSettings(StrictModel):

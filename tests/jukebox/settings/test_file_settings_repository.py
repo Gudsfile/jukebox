@@ -99,3 +99,26 @@ def test_repository_migrates_missing_schema_version(tmp_path):
         "schema_version": 1,
         "paths": {"library_path": "~/custom-library.json"},
     }
+
+
+@pytest.mark.parametrize(
+    "xdg_config_home, expected_settings_path",
+    (
+        ("~/.config", "/dummy/home/.config/jukebox/settings.json"),
+        ("~/.config/", "/dummy/home/.config/jukebox/settings.json"),
+        ("~/", "/dummy/home/jukebox/settings.json"),
+        ("/custom/path", "/custom/path/jukebox/settings.json"),
+    ),
+)
+def test_repository_uses_xdg_config_home(monkeypatch, xdg_config_home, expected_settings_path):
+    monkeypatch.setenv("HOME", "/dummy/home")
+    monkeypatch.setenv("XDG_CONFIG_HOME", xdg_config_home)
+    repository = FileSettingsRepository()
+    assert repository.filepath == expected_settings_path
+
+
+def test_repository_falls_back_to_default_config_dir(monkeypatch):
+    monkeypatch.setenv("HOME", "/dummy/home")
+    monkeypatch.delenv("XDG_CONFIG_HOME", raising=False)
+    repository = FileSettingsRepository()
+    assert repository.filepath == "/dummy/home/.config/jukebox/settings.json"

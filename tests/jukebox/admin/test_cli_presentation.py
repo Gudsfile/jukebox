@@ -66,7 +66,7 @@ def test_render_settings_output_effective_includes_manual_sonos_targets():
         SettingsShowCommand(type="settings_show", effective=True),
         {
             "settings": {
-                "paths": {"library_path": "~/.jukebox/library.json"},
+                "paths": {"library_path": "~/.config/jukebox/library.json"},
                 "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
@@ -113,7 +113,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
         SettingsShowCommand(type="settings_show", effective=True),
         {
             "settings": {
-                "paths": {"library_path": "~/.jukebox/library.json"},
+                "paths": {"library_path": "~/.config/jukebox/library.json"},
                 "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
@@ -166,7 +166,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
         SettingsShowCommand(type="settings_show", effective=True),
         {
             "settings": {
-                "paths": {"library_path": "~/.jukebox/library.json"},
+                "paths": {"library_path": "~/.config/jukebox/library.json"},
                 "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},

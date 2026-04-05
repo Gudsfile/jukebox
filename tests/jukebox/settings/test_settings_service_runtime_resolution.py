@@ -36,7 +36,7 @@ def test_settings_service_allows_admin_runtime_resolution_without_sonos_target(t
 
     runtime_config = service.resolve_admin_runtime()
 
-    assert runtime_config.library_path == os.path.abspath(os.path.expanduser("~/.jukebox/library.json"))
+    assert runtime_config.library_path == os.path.abspath(os.path.expanduser("~/.config/jukebox/library.json"))
     assert runtime_config.api_port == 8000
     assert runtime_config.ui_port == 8000
 

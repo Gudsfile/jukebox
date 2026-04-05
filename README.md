@@ -103,7 +103,7 @@ uv sync
 
 ## First steps
 
-Initialize the library file with `discstore` or manually create it at `~/.jukebox/library.json`.
+Initialize the library file with `discstore` or manually create it at `~/.config/jukebox/library.json`.
 
 ### Manage the library with the discstore
 
@@ -150,7 +150,7 @@ uv run --extra ui jukebox-admin ui
 
 ### Manage the library manually
 
-Complete your `~/.jukebox/library.json` file with each tag id and the expected media URI.
+Complete your `~/.config/jukebox/library.json` file with each tag id and the expected media URI.
 Take a look at `library.example.json` and the [The library file](#the-library-file) section for more information.
 
 ## Usage
@@ -168,7 +168,7 @@ Optional Parameters
 | Parameter | Description |
 | --- | --- |
 | `--help` | Show help message. |
-| `--library` | Path to the library file, default: `~/.jukebox/library.json`. |
+| `--library` | Path to the library file, default: `~/.config/jukebox/library.json`. |
 | `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.2` are supported, with a minimum of `0.2` seconds to avoid pausing on brief missed reads. Default: 0.25 seconds. |
 | `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
 | `--verbose` | Enable verbose logging. |
@@ -211,7 +211,7 @@ The `library.json` file is a JSON file that contains the artists, albums and tag
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
 And the `discstore` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `discstore --help`).
 
-By default, this file should be placed at `~/.jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
+By default, this file should be placed at `~/.config/jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
 
 ```json
 {
@@ -250,7 +250,7 @@ It is also possible to use the `shuffle` key to play the album in shuffle mode:
     }
 ```
 
-To summarize, for example, if you have the following `~/.jukebox/library.json` file:
+To summarize, for example, if you have the following `~/.config/jukebox/library.json` file:
 
 ```json
 {
