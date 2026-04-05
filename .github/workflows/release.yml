@@ -4,6 +4,13 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: "Dry run (no actual publish)"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -19,9 +26,13 @@ jobs:
     outputs:
       is_stable: ${{ steps.check-stable.outputs.is_stable }}
     if: |
-      github.event.pull_request.merged == true
-      && startsWith(github.head_ref, 'auto-bump/')
-      && github.event.pull_request.user.login == 'github-actions[bot]'
+      (
+        github.event_name == 'workflow_dispatch'
+      ) || (
+        github.event.pull_request.merged == true
+        && startsWith(github.head_ref, 'auto-bump/')
+        && github.event.pull_request.user.login == 'github-actions[bot]'
+      )
 
     steps:
       - uses: actions/checkout@v6
@@ -40,7 +51,7 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
-        run: uv publish
+        run: uv publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v7
@@ -88,4 +99,5 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "v${{ steps.version.outputs.version }}" \
             --generate-notes \
+            ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }} \
             dist/*
