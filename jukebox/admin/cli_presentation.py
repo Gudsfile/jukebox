@@ -1,7 +1,7 @@
 import json
 import re
 import shlex
-from typing import Dict, Iterable, List, Optional, Tuple, cast
+from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -22,19 +22,20 @@ _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
 
 def render_settings_output(
     command: object,
-    payload: JsonObject,
+    payload: Mapping[str, object],
 ) -> str:
     if isinstance(command, SettingsShowCommand):
         if command.json_output:
             return json.dumps(payload, indent=2)
+        settings_payload = cast(JsonObject, payload)
         if command.effective:
-            return _render_effective_settings(payload)
-        return _render_persisted_settings(payload)
+            return _render_effective_settings(settings_payload)
+        return _render_persisted_settings(settings_payload)
 
     if isinstance(command, (SettingsSetCommand, SettingsResetCommand)):
         if command.json_output:
             return json.dumps(payload, indent=2)
-        return _render_write_result(payload)
+        return _render_write_result(cast(JsonObject, payload))
 
     raise TypeError("Unsupported settings command")
 
