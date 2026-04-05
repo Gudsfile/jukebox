@@ -505,15 +505,36 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 @pytest.mark.parametrize(
-    ("payload_data", "detail"),
+    ("payload_data", "available_speakers", "detail"),
     [
-        ({"uids": []}, "`uids` must include at least one UID."),
-        ({"uids": ["speaker-1", "speaker-1"]}, "`uids` must not contain duplicate UIDs."),
+        ({"uids": []}, [], "`uids` must include at least one UID."),
+        ({"uids": ["speaker-1", "speaker-1"]}, [], "`uids` must not contain duplicate UIDs."),
+        (
+            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
+            [
+                DiscoveredSonosSpeaker(
+                    uid="speaker-1",
+                    name="Kitchen",
+                    host="192.168.1.30",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+                DiscoveredSonosSpeaker(
+                    uid="speaker-2",
+                    name="Living Room",
+                    host="192.168.1.31",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+            ],
+            "Selected Sonos coordinator must be one of the selected speakers: ",
+        ),
     ],
 )
-def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, detail):
+def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, available_speakers, detail):
     settings_service = MagicMock()
     sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = available_speakers
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
