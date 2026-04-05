@@ -1,3 +1,4 @@
+import json
 import sys
 from importlib import util
 from unittest import mock
@@ -31,6 +32,68 @@ def test_dependencies_import_failure(mocker):
 def build_controller():
     from discstore.adapters.inbound.ui_controller import UIController
 
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8100}, "ui": {"port": 8000}},
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-2",
+                        "members": [
+                            {"uid": "speaker-1"},
+                            {"uid": "speaker-2"},
+                        ],
+                    }
+                }
+            }
+        },
+    }
+    settings_service.get_effective_settings_view.return_value = {
+        "settings": {
+            "paths": {"library_path": "~/.jukebox/library.json"},
+            "admin": {"api": {"port": 8100}, "ui": {"port": 8000}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                "runtime": {"loop_interval_seconds": 0.1},
+                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "player": {
+                    "type": "dryrun",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
+                            ],
+                        }
+                    },
+                },
+            },
+        },
+        "provenance": {
+            "paths": {"library_path": "default"},
+            "admin": {"api": {"port": "file"}, "ui": {"port": "file"}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                "runtime": {"loop_interval_seconds": "default"},
+                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "player": {
+                    "type": "default",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "file",
+                            "members": "file",
+                        }
+                    },
+                },
+            },
+        },
+        "derived": {},
+        "change_metadata": {},
+    }
+
     return UIController(
         add_disc=MagicMock(),
         list_discs=MagicMock(),
@@ -38,7 +101,7 @@ def build_controller():
         edit_disc=MagicMock(),
         get_disc=MagicMock(),
         get_current_tag_status=MagicMock(),
-        settings_service=MagicMock(),
+        settings_service=settings_service,
     )
 
 
@@ -87,6 +150,10 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/discs/{tag_id}", ("POST",)) in route_index
     assert ("/api/ui/discs/{tag_id}/delete", ("GET",)) in route_index
     assert ("/api/ui/discs/{tag_id}/delete", ("POST",)) in route_index
+    assert ("/api/ui/settings", ("GET",)) in route_index
+    assert ("/api/ui/settings/{setting_path}/edit", ("GET",)) in route_index
+    assert ("/api/ui/settings/{setting_path}", ("POST",)) in route_index
+    assert ("/api/ui/settings/{setting_path}/reset", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
     assert ("/api/v1/disc", ("POST",)) in route_index
@@ -101,6 +168,9 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
         for component in all_components
         if component.type == "Button" and component.text == "➕ Add a new disc"
     )
+    settings_button = next(
+        component for component in all_components if component.type == "Button" and component.text == "⚙️ Settings"
+    )
     edit_button = next(
         component
         for component in all_components
@@ -112,6 +182,8 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert server_load.sse is True
     assert add_button.on_click.type == "go-to"
     assert add_button.on_click.url == "/discs/new"
+    assert settings_button.on_click.type == "go-to"
+    assert settings_button.on_click.url == "/settings"
     assert edit_button.on_click.type == "go-to"
     assert edit_button.on_click.url == "/discs/tag-123/edit"
 
@@ -154,6 +226,590 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     html_response = html_route.endpoint("discs/new")
     assert html_response.status_code == 200
     assert "/api/ui" in html_response.body.decode("utf-8")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_settings_page_groups_entries_and_shows_persisted_and_effective_values():
+    controller = build_controller()
+
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings")
+    page = route.endpoint(toast="toast-settings-success", toast_message="Settings saved.")
+    all_components = list(walk_components(page[0].components))
+
+    assert any(component.type == "Heading" and component.text == "Settings" for component in all_components)
+    back_link = next(
+        component
+        for component in all_components
+        if component.type == "Link" and getattr(component.on_click, "url", None) == "/"
+    )
+    assert back_link.components[0].text == "Back to Library"
+    assert any(
+        component.type == "Paragraph" and component.text == "Ports used by the admin API and admin UI processes."
+        for component in all_components
+    )
+    settings_headings = [
+        component.text for component in all_components if component.type == "Heading" and component.level == 2
+    ]
+    assert settings_headings == ["Paths", "Admin", "Playback", "Player", "Reader"]
+    assert any(component.type == "Heading" and component.text == "Admin" for component in all_components)
+    assert any(component.type == "Heading" and component.text == "Player" for component in all_components)
+    assert any(component.type == "Button" and component.text == "Edit ✏️" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Persisted override" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "8000" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "None" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Settings file" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Pinned default" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Restart required" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Dry Run" for component in all_components)
+    assert any(
+        component.type == "Paragraph" and component.text == "speaker-2 (coordinator); members: speaker-1, speaker-2"
+        for component in all_components
+    )
+    assert not any(component.type == "Button" and component.text == "Reset" for component in all_components)
+    assert page[1].event.name == "toast-settings-success"
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_settings_edit_pages_render_select_text_and_json_fields():
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/edit"
+    )
+
+    select_page = route.endpoint("jukebox.reader.type")[0]
+    select_form = next(component for component in walk_components(select_page.components) if component.type == "Form")
+    select_field = select_form.form_fields[0]
+    assert select_field.type == "FormFieldSelect"
+    assert select_field.initial == "dryrun"
+    assert select_field.options == [
+        {"value": "dryrun", "label": "Dry Run"},
+        {"value": "nfc", "label": "NFC"},
+    ]
+
+    text_page = route.endpoint("admin.ui.port")[0]
+    assert any(
+        component.type == "Heading" and component.text == "Current values"
+        for component in walk_components(text_page.components)
+    )
+    assert any(
+        component.type == "Paragraph" and component.text == "Pinned default"
+        for component in walk_components(text_page.components)
+    )
+    text_form = next(component for component in walk_components(text_page.components) if component.type == "Form")
+    text_field = text_form.form_fields[0]
+    assert text_field.type == "FormFieldInput"
+    assert text_field.initial == "8000"
+    assert text_field.html_type == "number"
+
+    number_page = route.endpoint("jukebox.playback.pause_delay_seconds")[0]
+    number_form = next(component for component in walk_components(number_page.components) if component.type == "Form")
+    number_field = number_form.form_fields[0]
+    assert number_field.type == "FormFieldInput"
+    assert number_field.initial == "0.25"
+    assert number_field.html_type == "text"
+
+    object_page = route.endpoint("jukebox.player.sonos.selected_group")[0]
+    object_form = next(component for component in walk_components(object_page.components) if component.type == "Form")
+    object_field = object_form.form_fields[0]
+    assert object_field.type == "FormFieldTextarea"
+    assert object_field.initial == json.dumps(
+        {
+            "coordinator_uid": "speaker-2",
+            "members": [
+                {"uid": "speaker-1"},
+                {"uid": "speaker-2"},
+            ],
+        },
+        indent=2,
+    )
+    reset_form = next(
+        component
+        for component in walk_components(text_page.components)
+        if component.type == "Form" and component.submit_url == "/api/ui/settings/admin.ui.port/reset"
+    )
+    assert reset_form.method == "POST"
+    assert reset_form.footer[0].type == "Button"
+    assert reset_form.footer[0].text == "Reset"
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+    controller.settings_service.get_effective_settings_view.side_effect = InvalidSettingsError(
+        "Invalid effective settings after environment overrides."
+    )
+
+    settings_route = next(
+        route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings"
+    )
+    settings_page = settings_route.endpoint()[0]
+    settings_components = list(walk_components(settings_page.components))
+
+    assert any(
+        component.type == "Error"
+        and component.title == "Effective settings unavailable"
+        and "Invalid effective settings after environment overrides." in component.description
+        for component in settings_components
+    )
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in settings_components)
+    assert any(component.type == "Paragraph" and component.text == "unknown" for component in settings_components)
+
+    edit_route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/edit"
+    )
+    edit_page = edit_route.endpoint("admin.api.port")[0]
+    edit_components = list(walk_components(edit_page.components))
+
+    assert any(
+        component.type == "Error"
+        and component.title == "Effective settings unavailable"
+        and "Showing persisted and default values where possible" in component.description
+        for component in edit_components
+    )
+    assert any(component.type == "Paragraph" and component.text == "8000" for component in edit_components)
+    assert any(component.type == "Paragraph" and component.text == "8100" for component in edit_components)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_settings_page_renders_mixed_provenance_label():
+    controller = build_controller()
+    controller.settings_service.get_effective_settings_view.return_value["provenance"]["jukebox"]["player"]["sonos"][
+        "selected_group"
+    ] = {
+        "coordinator_uid": "file",
+        "members": "env",
+    }
+
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings")
+    page = route.endpoint()[0]
+    all_components = list(walk_components(page.components))
+
+    assert any(component.type == "Paragraph" and component.text == "Mixed source" for component in all_components)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
+    controller = build_controller()
+    controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
+    controller.settings_service.get_effective_settings_view.return_value = {
+        "settings": {
+            "paths": {"library_path": "~/.jukebox/library.json"},
+            "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                "runtime": {"loop_interval_seconds": 0.1},
+                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "player": {
+                    "type": "dryrun",
+                    "sonos": {
+                        "selected_group": None,
+                    },
+                },
+            },
+        },
+        "provenance": {
+            "paths": {"library_path": "default"},
+            "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+            "jukebox": {
+                "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                "runtime": {"loop_interval_seconds": "default"},
+                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "player": {
+                    "type": "default",
+                    "sonos": {
+                        "selected_group": "default",
+                    },
+                },
+            },
+        },
+        "derived": {},
+        "change_metadata": {},
+    }
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/edit"
+    )
+
+    object_page = route.endpoint("jukebox.player.sonos.selected_group")[0]
+    object_form = next(component for component in walk_components(object_page.components) if component.type == "Form")
+    object_field = object_form.form_fields[0]
+
+    assert object_field.type == "FormFieldTextarea"
+    assert object_field.initial == ""
+    assert object_field.placeholder == "Enter a JSON object. Leave blank to persist null."
+    assert object_field.description.endswith(
+        "Enter a JSON object matching the persisted setting shape. Leave blank to persist null. Use Reset to remove the persisted override. Takes effect after restart."
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_builds_scalar_patch_and_redirects_with_service_message():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {
+        "message": "Settings saved. Changes take effect after restart."
+    }
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port", SettingValueForm(value="9000"))
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with({"admin": {"api": {"port": 9000}}})
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+    assert "toast=toast-settings-success" in response[0].event.url
+    assert "Changes+take+effect+after+restart." in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_builds_object_patch_from_json_text():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    response = await route.endpoint(
+        "jukebox.player.sonos.selected_group",
+        SettingValueForm(value='{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"}]}'),
+    )
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1"}],
+                        }
+                    }
+                }
+            }
+        }
+    )
+    assert response[0].event.url.startswith("/settings?")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_treats_blank_object_text_as_none():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    await route.endpoint("jukebox.player.sonos.selected_group", SettingValueForm(value=""))
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": None,
+                    }
+                }
+            }
+        }
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_returns_field_error_for_invalid_json():
+    from fastapi import HTTPException
+
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    with pytest.raises(HTTPException) as err:
+        await route.endpoint("jukebox.player.sonos.selected_group", SettingValueForm(value="{"))
+
+    assert err.value.status_code == 422
+    assert err.value.detail == {
+        "form": [
+            {
+                "loc": ["value"],
+                "msg": "Enter valid JSON.",
+            }
+        ]
+    }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_returns_field_error_for_non_object_json():
+    from fastapi import HTTPException
+
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    with pytest.raises(HTTPException) as err:
+        await route.endpoint("jukebox.player.sonos.selected_group", SettingValueForm(value='["speaker-1"]'))
+
+    assert err.value.status_code == 422
+    assert err.value.detail == {
+        "form": [
+            {
+                "loc": ["value"],
+                "msg": "Enter a JSON object.",
+            }
+        ]
+    }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+
+    def raise_after_persist(patch):
+        controller.settings_service.get_persisted_settings_view.return_value = {
+            "schema_version": 1,
+            "admin": {"api": {"port": 9000}, "ui": {"port": 8000}},
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+
+    controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port", SettingValueForm(value="9000"))
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+    assert "toast=toast-settings-success" in response[0].event.url
+    assert "effective+settings+are+still+unavailable" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_setting_returns_field_error_for_shared_validation_failure():
+    from fastapi import HTTPException
+
+    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Invalid settings update.")
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
+    )
+
+    with pytest.raises(HTTPException) as err:
+        await route.endpoint("admin.api.port", SettingValueForm(value="0"))
+
+    assert err.value.status_code == 422
+    assert err.value.detail == {
+        "form": [
+            {
+                "loc": ["value"],
+                "msg": "Invalid settings update.",
+            }
+        ]
+    }
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_reset_setting_redirects_when_reset_succeeds_but_effective_settings_stay_invalid():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+
+    def raise_after_reset(setting_path):
+        del setting_path
+        controller.settings_service.get_persisted_settings_view.return_value = {
+            "schema_version": 1,
+            "admin": {"ui": {"port": 8000}},
+            "jukebox": {
+                "player": {
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [
+                                {"uid": "speaker-1"},
+                                {"uid": "speaker-2"},
+                            ],
+                        }
+                    }
+                }
+            },
+        }
+        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+
+    controller.settings_service.reset_persisted_value.side_effect = raise_after_reset
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port")
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+    assert "toast=toast-settings-success" in response[0].event.url
+    assert "effective+settings+are+still+unavailable" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_reset_setting_calls_service_and_returns_refreshed_settings_page():
+    controller = build_controller()
+    controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port")
+
+    controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/settings?")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_reset_setting_rerenders_edit_page_with_visible_error():
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+    controller.settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Invalid settings update.")
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint("admin.api.port")
+    all_components = list(walk_components(response[0].components))
+
+    controller.settings_service.reset_persisted_value.assert_called_once_with("admin.api.port")
+    assert response[0].type == "Page"
+    assert any(
+        component.type == "Error"
+        and component.title == "Reset failed"
+        and component.description == "Invalid settings update."
+        for component in all_components
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_ui_controller_does_not_register_get_reset_setting_route():
+    controller = build_controller()
+
+    assert not any(
+        getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset"
+        and "GET" in getattr(route, "methods", set())
+        for route in controller.app.routes
+    )
 
 
 @pytest.mark.skipif(
