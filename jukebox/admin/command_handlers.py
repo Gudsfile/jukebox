@@ -2,11 +2,31 @@ import sys
 from importlib import import_module
 from typing import Callable, Optional, Protocol
 
-from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
+from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
+from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.selection import GetSonosSelectionStatus, PlanSonosSelection, SaveSonosSelection
+from jukebox.sonos.service import SonosService
 
-from .cli_presentation import build_discstore_settings_deprecation_warning, render_settings_output
-from .commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
+from .cli_presentation import (
+    build_discstore_settings_deprecation_warning,
+    render_settings_output,
+    render_sonos_selection_saved_output,
+    render_sonos_selection_status_output,
+    render_sonos_speakers_output,
+)
+from .commands import (
+    ApiCommand,
+    SettingsResetCommand,
+    SettingsSetCommand,
+    SettingsShowCommand,
+    SonosListCommand,
+    SonosSelectCommand,
+    SonosShowCommand,
+    UiCommand,
+)
+from .services import AdminServices
 
 
 class AppController(Protocol):
@@ -33,27 +53,24 @@ def _load_uvicorn(command_name: str, extra_name: str, source_command: str):
 
 
 def _build_server_app(
-    build_app: Callable[[str, SettingsService], AppController],
+    build_app: Callable[[str, AdminServices], AppController],
     library_path: str,
-    settings_service: SettingsService,
+    services: AdminServices,
     command_name: str,
     extra_name: str,
     source_command: str,
 ):
     try:
-        return build_app(library_path, settings_service)
+        return build_app(library_path, services)
     except ModuleNotFoundError as err:
         if err.name in {"fastapi", "fastui"} or "requires the optional" in str(err):
             _raise_optional_extra_error(command_name, extra_name, source_command, err)
         raise
 
 
-def execute_admin_command(
-    verbose: bool,
+def execute_settings_command(
     command: object,
     settings_service: SettingsService,
-    build_api_app: Callable[[str, SettingsService], AppController],
-    build_ui_app: Callable[[str, ReadOnlySettingsService], AppController],
     source_command: str,
     library: Optional[str] = None,
     stdout_fn: Callable[[str], None] = print,
@@ -84,14 +101,79 @@ def execute_admin_command(
         stdout_fn(render_settings_output(command, payload))
         return
 
-    runtime_config = settings_service.resolve_admin_runtime(verbose=verbose)
+    raise TypeError("Unsupported settings command")
+
+
+def execute_sonos_command(
+    command: object,
+    sonos_service: SonosService,
+    settings_service: Optional[SettingsService] = None,
+    speaker_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[str]]] = None,
+    stdout_fn: Callable[[str], None] = print,
+) -> None:
+    if isinstance(command, SonosListCommand):
+        stdout_fn(render_sonos_speakers_output(sonos_service.list_available_speakers()))
+        return
+
+    if isinstance(command, SonosSelectCommand):
+        if settings_service is None:
+            raise TypeError("settings_service is required for Sonos select commands")
+
+        plan = PlanSonosSelection(sonos_service=sonos_service).execute(requested_uids=command.uids)
+        if plan.status in {"invalid_request", "none_available"}:
+            raise RuntimeError(str(plan.error_message))
+
+        selected_uid = plan.selected_uid
+        if plan.status == "needs_choice":
+            if speaker_prompt_fn is None:
+                raise RuntimeError("Interactive Sonos speaker selection is not available in this context.")
+            selected_uid = speaker_prompt_fn(plan.speakers)
+            if selected_uid is None:
+                return
+
+        if selected_uid is None:
+            raise RuntimeError("No Sonos speaker selection was made.")
+
+        try:
+            result = SaveSonosSelection(
+                selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
+                sonos_service=sonos_service,
+            ).execute(selected_uid)
+        except ValueError as err:
+            raise RuntimeError(str(err)) from err
+        stdout_fn(render_sonos_selection_saved_output(result))
+        return
+
+    if isinstance(command, SonosShowCommand):
+        if settings_service is None:
+            raise TypeError("settings_service is required for Sonos show commands")
+
+        status = GetSonosSelectionStatus(
+            selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
+            sonos_service=sonos_service,
+        ).execute()
+        stdout_fn(render_sonos_selection_status_output(status))
+        return
+
+    raise TypeError("Unsupported Sonos command")
+
+
+def execute_server_command(
+    verbose: bool,
+    command: object,
+    services: AdminServices,
+    build_api_app: Callable[[str, AdminServices], AppController],
+    build_ui_app: Callable[[str, AdminServices], AppController],
+    source_command: str,
+) -> None:
+    runtime_config = services.settings.resolve_admin_runtime(verbose=verbose)
 
     if isinstance(command, ApiCommand):
         uvicorn = _load_uvicorn("api", "api", source_command)
         api = _build_server_app(
             build_app=build_api_app,
             library_path=runtime_config.library_path,
-            settings_service=settings_service,
+            services=services,
             command_name="api",
             extra_name="api",
             source_command=source_command,
@@ -104,7 +186,7 @@ def execute_admin_command(
         ui = _build_server_app(
             build_app=build_ui_app,
             library_path=runtime_config.library_path,
-            settings_service=settings_service,
+            services=services,
             command_name="ui",
             extra_name="ui",
             source_command=source_command,
@@ -112,4 +194,4 @@ def execute_admin_command(
         uvicorn.run(ui.app, host="0.0.0.0", port=runtime_config.ui_port)
         return
 
-    raise TypeError("Unsupported admin command")
+    raise TypeError("Unsupported server command")

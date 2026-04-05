@@ -20,11 +20,23 @@ from discstore.di_container import build_cli_controller, build_interactive_cli_c
 from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
-from .cli_presentation import render_cli_error
-from .command_handlers import execute_admin_command
-from .commands import ApiCommand, SettingsResetCommand, SettingsSetCommand, SettingsShowCommand, UiCommand
-from .di_container import build_admin_api_app, build_admin_ui_app, build_settings_service
+from .cli_presentation import build_sonos_speaker_choice_label, render_cli_error
+from .command_handlers import execute_server_command, execute_settings_command, execute_sonos_command
+from .commands import (
+    ApiCommand,
+    SettingsResetCommand,
+    SettingsSetCommand,
+    SettingsShowCommand,
+    SonosListCommand,
+    SonosSelectCommand,
+    SonosShowCommand,
+    UiCommand,
+    is_settings_command,
+    is_sonos_command,
+)
+from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
 
 LOGGER = logging.getLogger("jukebox-admin")
 
@@ -52,20 +64,34 @@ def _run_command(ctx: typer.Context, command: object) -> None:
     state = _get_state(ctx)
 
     try:
-        settings_service = build_settings_service(
+        services = build_admin_services(
             library=state.library,
             command=command,
             logger_warning=LOGGER.warning,
         )
         try:
-            execute_admin_command(
-                verbose=state.verbose,
-                command=command,
-                settings_service=settings_service,
-                build_api_app=build_admin_api_app,
-                build_ui_app=build_admin_ui_app,
-                source_command="jukebox-admin",
-            )
+            if is_settings_command(command):
+                execute_settings_command(
+                    command=command,
+                    settings_service=services.settings,
+                    source_command="jukebox-admin",
+                )
+            elif is_sonos_command(command):
+                execute_sonos_command(
+                    command=command,
+                    sonos_service=services.sonos,
+                    settings_service=services.settings,
+                    speaker_prompt_fn=_prompt_for_sonos_speaker_selection,
+                )
+            else:
+                execute_server_command(
+                    verbose=state.verbose,
+                    command=command,
+                    services=services,
+                    build_api_app=build_admin_api_app,
+                    build_ui_app=build_admin_ui_app,
+                    source_command="jukebox-admin",
+                )
         except RuntimeError as err:
             typer.echo(str(err), err=True)
             raise typer.Exit(code=1)
@@ -128,11 +154,31 @@ def _exit_on_command_validation_error(err: ValidationError) -> None:
     raise SystemExit(str(err)) from err
 
 
+def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
+    import questionary
+
+    try:
+        return questionary.select(
+            "Select a Sonos speaker",
+            choices=[
+                questionary.Choice(
+                    title=build_sonos_speaker_choice_label(speaker),
+                    value=speaker.uid,
+                )
+                for speaker in speakers
+            ],
+        ).ask()
+    except KeyboardInterrupt:
+        return None
+
+
 app = typer.Typer(help="Admin CLI for jukebox")
 settings_app = typer.Typer(help="Inspect and manage application settings")
 library_app = typer.Typer(help="Manage the library")
+sonos_app = typer.Typer(help="Inspect Sonos speakers and manage the saved Sonos selection")
 app.add_typer(settings_app, name="settings")
 app.add_typer(library_app, name="library")
+app.add_typer(sonos_app, name="sonos")
 
 
 @app.callback()
@@ -236,6 +282,27 @@ def ui(
     ] = None,
 ) -> None:
     _run_command(ctx, UiCommand(type="ui", port=port))
+
+
+@sonos_app.command("list")
+def sonos_list(ctx: typer.Context) -> None:
+    _run_command(ctx, SonosListCommand(type="sonos_list"))
+
+
+@sonos_app.command("select")
+def sonos_select(
+    ctx: typer.Context,
+    uids: Annotated[
+        Optional[list[str]],
+        typer.Option("--uids", help="discover and persist exactly one Sonos speaker UID"),
+    ] = None,
+) -> None:
+    _run_command(ctx, SonosSelectCommand(type="sonos_select", uids=uids))
+
+
+@sonos_app.command("show")
+def sonos_show(ctx: typer.Context) -> None:
+    _run_command(ctx, SonosShowCommand(type="sonos_show"))
 
 
 @library_app.command("add")
