@@ -76,6 +76,11 @@ def app_mocks(mocker):
             SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
             "execute_sonos_command",
         ),
+        (
+            ["sonos", "select", "--uids", "speaker-1", "--uids", "speaker-2", "--coordinator", "speaker-2"],
+            SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
+            "execute_sonos_command",
+        ),
         (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
         (["api", "--port", "9000"], ApiCommand(type="api", port=9000), "execute_server_command"),
         (["ui", "--port", "9100"], UiCommand(type="ui", port=9100), "execute_server_command"),
