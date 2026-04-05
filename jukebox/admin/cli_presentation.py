@@ -79,30 +79,55 @@ def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
 
 
 def render_sonos_selection_saved_output(result: SonosSelectionResult) -> str:
+    member_labels = ", ".join("{} [{}]".format(member.name, member.uid) for member in result.members)
     return "\n".join(
         [
-            "Selected Sonos speaker: {}".format(result.speaker.name),
-            "UID: {}".format(result.speaker.uid),
+            "Selected Sonos group saved.",
+            "Coordinator: {} [{}]".format(result.coordinator.name, result.coordinator.uid),
+            "Members: {}".format(member_labels),
             result.settings_message,
         ]
     )
 
 
 def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
-    lines = ["Selected Sonos Speaker", ""]
+    lines = ["Selected Sonos Group", ""]
 
     if status.selected_group is None:
         lines.append("- Status: not selected")
         return "\n".join(lines)
 
-    lines.append("- UID: {}".format(status.selected_group.coordinator_uid))
-    lines.append("- Status: {}".format(status.availability.status))
+    status_label = "partially available" if status.availability.status == "partial" else status.availability.status
+    lines.append("- Coordinator UID: {}".format(status.selected_group.coordinator_uid))
+    lines.append("- Status: {}".format(status_label))
+    lines.append("- Members:")
 
-    speaker = status.availability.speaker
-    if speaker is not None:
-        lines.append("- Name: {}".format(speaker.name))
-        lines.append("- Host: {}".format(speaker.host))
-        lines.append("- Household: {}".format(speaker.household_id))
+    name_width = max(
+        len(member.speaker.name) if member.speaker is not None else len("unavailable")
+        for member in status.availability.members
+    )
+    host_width = max(
+        len(member.speaker.host) if member.speaker is not None else len("-") for member in status.availability.members
+    )
+    household_width = max(
+        len(member.speaker.household_id) if member.speaker is not None else len("-")
+        for member in status.availability.members
+    )
+
+    for member in status.availability.members:
+        speaker = member.speaker
+        lines.append(
+            "  - {uid:<18}  {name:<{name_width}}  {host:<{host_width}}  {household:<{household_width}}  {status}".format(
+                uid=member.uid,
+                name=speaker.name if speaker is not None else "unavailable",
+                name_width=name_width,
+                host=speaker.host if speaker is not None else "-",
+                host_width=host_width,
+                household=speaker.household_id if speaker is not None else "-",
+                household_width=household_width,
+                status=member.status,
+            )
+        )
 
     return "\n".join(lines)
 

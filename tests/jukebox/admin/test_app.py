@@ -72,8 +72,8 @@ def app_mocks(mocker):
         ),
         (["sonos", "list"], SonosListCommand(type="sonos_list"), "execute_sonos_command"),
         (
-            ["sonos", "select", "--uids", "speaker-1"],
-            SonosSelectCommand(type="sonos_select", uids=["speaker-1"]),
+            ["sonos", "select", "--uids", "speaker-1,speaker-2", "--coordinator", "speaker-2"],
+            SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
             "execute_sonos_command",
         ),
         (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
@@ -111,6 +111,7 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
             sonos_service=services.sonos,
             settings_service=services.settings,
             speaker_prompt_fn=ANY,
+            coordinator_prompt_fn=ANY,
         )
         app_mocks.execute_settings_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()

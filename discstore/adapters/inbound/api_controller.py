@@ -47,9 +47,15 @@ class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
     pass
 
 
-class SonosSelectionAvailabilityOutput(BaseModel):
+class SonosSelectionMemberAvailabilityOutput(BaseModel):
+    uid: str
     status: str
     speaker: Optional[SonosSpeakerOutput] = None
+
+
+class SonosSelectionAvailabilityOutput(BaseModel):
+    status: str
+    members: list[SonosSelectionMemberAvailabilityOutput]
 
 
 class SonosSelectionOutput(BaseModel):
@@ -59,6 +65,7 @@ class SonosSelectionOutput(BaseModel):
 
 class SonosSelectionInput(BaseModel):
     uids: list[str]
+    coordinator_uid: Optional[str] = None
 
 
 class SonosSelectionUpdateOutput(BaseModel):
@@ -143,21 +150,31 @@ class APIController:
         @self.app.put("/api/v1/sonos/selection", response_model=SonosSelectionUpdateOutput)
         def put_sonos_selection(payload: SonosSelectionInput):
             try:
-                plan = PlanSonosSelection(self.sonos_service).execute(requested_uids=payload.uids)
+                plan = PlanSonosSelection(self.sonos_service).execute(
+                    requested_uids=payload.uids,
+                    coordinator_uid=payload.coordinator_uid,
+                )
                 if plan.status in {"invalid_request", "none_available"}:
                     raise HTTPException(status_code=400, detail=str(plan.error_message))
-                if plan.status == "needs_choice" or plan.selected_uid is None:
+                if plan.status == "needs_choice" or plan.coordinator_uid is None:
                     raise HTTPException(status_code=400, detail="No Sonos speaker selection was made.")
 
                 result = SaveSonosSelection(
                     SettingsSelectedSonosGroupRepository(self.settings_service),
                     self.sonos_service,
-                ).execute(plan.selected_uid)
+                ).execute(plan.selected_uids, coordinator_uid=plan.coordinator_uid)
                 return SonosSelectionUpdateOutput(
                     selected_group=SelectedSonosGroupOutput(**result.selected_group.model_dump()),
                     availability=SonosSelectionAvailabilityOutput(
                         status="available",
-                        speaker=SonosSpeakerOutput(**result.speaker.model_dump()),
+                        members=[
+                            SonosSelectionMemberAvailabilityOutput(
+                                uid=member.uid,
+                                status="available",
+                                speaker=SonosSpeakerOutput(**member.model_dump()),
+                            )
+                            for member in result.members
+                        ],
                     ),
                     message=result.settings_message,
                     restart_required=result.restart_required,

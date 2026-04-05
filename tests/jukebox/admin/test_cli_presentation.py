@@ -15,7 +15,12 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.selection import SonosSelectionAvailability, SonosSelectionResult, SonosSelectionStatus
+from jukebox.sonos.selection import (
+    SonosSelectionAvailability,
+    SonosSelectionMemberAvailability,
+    SonosSelectionResult,
+    SonosSelectionStatus,
+)
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():
@@ -322,23 +327,43 @@ def test_build_sonos_speaker_choice_label_includes_host_for_disambiguation():
 def test_render_sonos_selection_saved_output_is_human_readable():
     rendered = render_sonos_selection_saved_output(
         SonosSelectionResult(
-            speaker=DiscoveredSonosSpeaker(
+            coordinator=DiscoveredSonosSpeaker(
                 uid="speaker-1",
                 name="Kitchen",
                 host="192.168.1.30",
                 household_id="household-1",
                 is_visible=True,
             ),
+            members=[
+                DiscoveredSonosSpeaker(
+                    uid="speaker-1",
+                    name="Kitchen",
+                    host="192.168.1.30",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+                DiscoveredSonosSpeaker(
+                    uid="speaker-2",
+                    name="Living Room",
+                    host="192.168.1.31",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+            ],
             selected_group=SelectedSonosGroupSettings(
                 coordinator_uid="speaker-1",
-                members=[SelectedSonosSpeakerSettings(uid="speaker-1")],
+                members=[
+                    SelectedSonosSpeakerSettings(uid="speaker-1"),
+                    SelectedSonosSpeakerSettings(uid="speaker-2"),
+                ],
             ),
             settings_message="Settings saved. Changes take effect after restart.",
         )
     )
 
-    assert "Selected Sonos speaker: Kitchen" in rendered
-    assert "UID: speaker-1" in rendered
+    assert "Selected Sonos group saved." in rendered
+    assert "Coordinator: Kitchen [speaker-1]" in rendered
+    assert "Members: Kitchen [speaker-1], Living Room [speaker-2]" in rendered
     assert "Settings saved. Changes take effect after restart." in rendered
 
 
@@ -346,11 +371,11 @@ def test_render_sonos_selection_status_output_for_not_selected():
     rendered = render_sonos_selection_status_output(
         SonosSelectionStatus(
             selected_group=None,
-            availability=SonosSelectionAvailability(status="not_selected", speaker=None),
+            availability=SonosSelectionAvailability(status="not_selected", members=[]),
         )
     )
 
-    assert rendered == "Selected Sonos Speaker\n\n- Status: not selected"
+    assert rendered == "Selected Sonos Group\n\n- Status: not selected"
 
 
 def test_render_sonos_selection_status_output_for_available_selection():
@@ -358,25 +383,86 @@ def test_render_sonos_selection_status_output_for_available_selection():
         SonosSelectionStatus(
             selected_group=SelectedSonosGroupSettings(
                 coordinator_uid="speaker-1",
-                members=[SelectedSonosSpeakerSettings(uid="speaker-1")],
+                members=[
+                    SelectedSonosSpeakerSettings(uid="speaker-1"),
+                    SelectedSonosSpeakerSettings(uid="speaker-2"),
+                ],
             ),
             availability=SonosSelectionAvailability(
                 status="available",
-                speaker=DiscoveredSonosSpeaker(
-                    uid="speaker-1",
-                    name="Kitchen",
-                    host="192.168.1.30",
-                    household_id="household-1",
-                    is_visible=True,
-                ),
+                members=[
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-1",
+                        status="available",
+                        speaker=DiscoveredSonosSpeaker(
+                            uid="speaker-1",
+                            name="Kitchen",
+                            host="192.168.1.30",
+                            household_id="household-1",
+                            is_visible=True,
+                        ),
+                    ),
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-2",
+                        status="available",
+                        speaker=DiscoveredSonosSpeaker(
+                            uid="speaker-2",
+                            name="Living Room",
+                            host="192.168.1.31",
+                            household_id="household-1",
+                            is_visible=True,
+                        ),
+                    ),
+                ],
             ),
         )
     )
 
-    assert "Selected Sonos Speaker" in rendered
-    assert "- UID: speaker-1" in rendered
+    assert "Selected Sonos Group" in rendered
+    assert "- Coordinator UID: speaker-1" in rendered
     assert "- Status: available" in rendered
-    assert "- Household: household-1" in rendered
+    assert "speaker-1" in rendered
+    assert "speaker-2" in rendered
+    assert "household-1" in rendered
+
+
+def test_render_sonos_selection_status_output_for_partially_available_selection():
+    rendered = render_sonos_selection_status_output(
+        SonosSelectionStatus(
+            selected_group=SelectedSonosGroupSettings(
+                coordinator_uid="speaker-1",
+                members=[
+                    SelectedSonosSpeakerSettings(uid="speaker-1"),
+                    SelectedSonosSpeakerSettings(uid="speaker-2"),
+                ],
+            ),
+            availability=SonosSelectionAvailability(
+                status="partial",
+                members=[
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-1",
+                        status="available",
+                        speaker=DiscoveredSonosSpeaker(
+                            uid="speaker-1",
+                            name="Kitchen",
+                            host="192.168.1.30",
+                            household_id="household-1",
+                            is_visible=True,
+                        ),
+                    ),
+                    SonosSelectionMemberAvailability(
+                        uid="speaker-2",
+                        status="unavailable",
+                        speaker=None,
+                    ),
+                ],
+            ),
+        )
+    )
+
+    assert "- Status: partially available" in rendered
+    assert "speaker-2" in rendered
+    assert "unavailable" in rendered
 
 
 def test_render_settings_output_json_mode_preserves_payload_shape():

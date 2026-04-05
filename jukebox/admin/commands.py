@@ -25,6 +25,7 @@ class SonosListCommand(BaseModel):
 class SonosSelectCommand(BaseModel):
     type: Literal["sonos_select"]
     uids: Optional[list[str]] = None
+    coordinator: Optional[str] = None
 
 
 class SonosShowCommand(BaseModel):
