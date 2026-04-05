@@ -302,3 +302,54 @@ def test_get_sonos_selection_status_reports_unavailable_selection_when_coordinat
     assert status.selected_uid == "speaker-2"
     assert status.availability.status == "unavailable"
     assert [member.status for member in status.availability.members] == ["available", "unavailable"]
+
+
+def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_households():
+    selected_group_repository = MagicMock()
+    selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+        ],
+    )
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        build_speaker(uid="speaker-1", household_id="household-1"),
+        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-2"),
+    ]
+
+    status = GetSonosSelectionStatus(
+        selected_group_repository=selected_group_repository,
+        sonos_service=sonos_service,
+    ).execute()
+
+    assert status.selected_uid == "speaker-1"
+    assert status.availability.status == "unavailable"
+    assert [member.status for member in status.availability.members] == ["available", "available"]
+
+
+def test_get_sonos_selection_status_reports_unavailable_when_partial_group_spans_households():
+    selected_group_repository = MagicMock()
+    selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+            SelectedSonosSpeakerSettings(uid="speaker-3"),
+        ],
+    )
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        build_speaker(uid="speaker-1", household_id="household-1"),
+        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-2"),
+    ]
+
+    status = GetSonosSelectionStatus(
+        selected_group_repository=selected_group_repository,
+        sonos_service=sonos_service,
+    ).execute()
+
+    assert status.selected_uid == "speaker-1"
+    assert status.availability.status == "unavailable"
+    assert [member.status for member in status.availability.members] == ["available", "available", "unavailable"]
