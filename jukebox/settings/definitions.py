@@ -298,10 +298,6 @@ def build_settings_metadata_tree() -> JsonObject:
     return tree
 
 
-def build_change_metadata_tree() -> JsonObject:
-    return build_settings_metadata_tree()
-
-
 def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
     child = node.get(key)
     if not isinstance(child, dict):

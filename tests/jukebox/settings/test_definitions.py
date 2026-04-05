@@ -1,11 +1,11 @@
 from typing import cast
 
-from jukebox.settings.definitions import build_change_metadata_tree, build_editable_setting_displays
+from jukebox.settings.definitions import build_editable_setting_displays, build_settings_metadata_tree
 from jukebox.settings.types import JsonObject
 
 
-def test_build_change_metadata_tree_includes_field_choices():
-    metadata = build_change_metadata_tree()
+def test_build_settings_metadata_tree_includes_field_choices():
+    metadata = build_settings_metadata_tree()
     jukebox_metadata = cast(JsonObject, metadata["jukebox"])
     reader_metadata = cast(JsonObject, jukebox_metadata["reader"])
     player_metadata = cast(JsonObject, jukebox_metadata["player"])
