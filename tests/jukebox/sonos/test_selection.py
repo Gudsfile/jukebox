@@ -151,6 +151,22 @@ def test_plan_sonos_selection_rejects_explicit_coordinator_outside_selected_grou
     assert plan.error_message == "Selected Sonos coordinator must be one of the selected speakers: speaker-2"
 
 
+def test_plan_sonos_selection_rejects_blank_coordinator_uid():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        build_speaker(uid="speaker-1"),
+        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
+    ]
+
+    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
+        requested_uids=["speaker-1", "speaker-2"],
+        coordinator_uid="",
+    )
+
+    assert plan.status == "invalid_request"
+    assert plan.error_message == "Selected Sonos coordinator must be one of the selected speakers: "
+
+
 def test_plan_sonos_selection_rejects_mixed_household_input():
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [

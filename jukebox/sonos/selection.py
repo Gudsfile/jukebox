@@ -217,7 +217,7 @@ def _validate_selection_request(
     if unknown_uids:
         raise ValueError("Selected Sonos speakers are not currently discoverable: {}".format(", ".join(unknown_uids)))
 
-    resolved_coordinator_uid = coordinator_uid or requested_uids[0]
+    resolved_coordinator_uid = requested_uids[0] if coordinator_uid is None else coordinator_uid
     if resolved_coordinator_uid not in requested_uids:
         raise ValueError(
             "Selected Sonos coordinator must be one of the selected speakers: {}".format(resolved_coordinator_uid)
