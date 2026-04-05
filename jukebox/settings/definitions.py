@@ -1,7 +1,23 @@
 from dataclasses import dataclass
 from typing import Iterable, Optional, cast
 
+from .entities import AppSettings
 from .types import JsonObject
+from .view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+
+
+@dataclass(frozen=True)
+class SettingChoice:
+    value: str
+    label: str
+
+
+@dataclass(frozen=True)
+class SettingSectionDefinition:
+    key: str
+    label: str
+    description: str
+    sort_order: int
 
 
 @dataclass(frozen=True)
@@ -13,6 +29,62 @@ class SettingDefinition:
     section: str
     requires_restart: bool = False
     advanced: bool = False
+    choices: tuple[SettingChoice, ...] = ()
+
+
+@dataclass(frozen=True)
+class EditableSettingDisplay:
+    path: str
+    label: str
+    description: str
+    field_type: str
+    section: str
+    section_label: str
+    section_description: str
+    section_sort_order: int
+    requires_restart: bool
+    advanced: bool
+    choices: tuple[SettingChoice, ...]
+    default_value: object
+    persisted_value: object
+    effective_value: object
+    provenance: str
+    is_persisted: bool
+    is_pinned_default: bool
+
+
+SETTING_SECTIONS = {
+    "paths": SettingSectionDefinition(
+        key="paths",
+        label="Paths",
+        description="Shared file locations used by the admin tools and jukebox runtime.",
+        sort_order=0,
+    ),
+    "admin": SettingSectionDefinition(
+        key="admin",
+        label="Admin",
+        description="Ports used by the admin API and admin UI processes.",
+        sort_order=1,
+    ),
+    "playback": SettingSectionDefinition(
+        key="playback",
+        label="Playback",
+        description="Timing controls for pause handling and the main playback loop.",
+        sort_order=2,
+    ),
+    "player": SettingSectionDefinition(
+        key="player",
+        label="Player",
+        description="Playback backend selection and Sonos targeting.",
+        sort_order=3,
+    ),
+    "reader": SettingSectionDefinition(
+        key="reader",
+        label="Reader",
+        description="Reader backend selection and NFC polling behavior.",
+        sort_order=4,
+    ),
+}
 
 
 SETTINGS = {
@@ -71,6 +143,10 @@ SETTINGS = {
         field_type="string",
         section="player",
         requires_restart=True,
+        choices=(
+            SettingChoice(value="dryrun", label="Dry Run"),
+            SettingChoice(value="sonos", label="Sonos"),
+        ),
     ),
     "jukebox.player.sonos.selected_group": SettingDefinition(
         path="jukebox.player.sonos.selected_group",
@@ -87,6 +163,10 @@ SETTINGS = {
         field_type="string",
         section="reader",
         requires_restart=True,
+        choices=(
+            SettingChoice(value="dryrun", label="Dry Run"),
+            SettingChoice(value="nfc", label="NFC"),
+        ),
     ),
     "jukebox.reader.nfc.read_timeout_seconds": SettingDefinition(
         path="jukebox.reader.nfc.read_timeout_seconds",
@@ -101,6 +181,19 @@ SETTINGS = {
 
 def get_setting_definition(dotted_path: str) -> Optional[SettingDefinition]:
     return SETTINGS.get(dotted_path)
+
+
+def get_setting_section_definition(section: str) -> SettingSectionDefinition:
+    fallback_order = len(SETTING_SECTIONS)
+    return SETTING_SECTIONS.get(
+        section,
+        SettingSectionDefinition(
+            key=section,
+            label=section.title(),
+            description="",
+            sort_order=fallback_order,
+        ),
+    )
 
 
 def is_editable_setting_path(dotted_path: str) -> bool:
@@ -128,6 +221,53 @@ def get_restart_required_paths(dotted_paths: Iterable[str]) -> list[str]:
     )
 
 
+def build_editable_setting_displays(
+    persisted_settings: JsonObject,
+    effective_settings_view: JsonObject,
+) -> list[EditableSettingDisplay]:
+    default_settings = AppSettings().model_dump(mode="python")
+    effective_settings = lookup_object(effective_settings_view, "settings")
+    provenance = lookup_object(effective_settings_view, "provenance")
+    displays: list[EditableSettingDisplay] = []
+
+    for dotted_path, definition in SETTINGS.items():
+        section_definition = get_setting_section_definition(definition.section)
+        persisted_value = lookup_optional_dotted_path(persisted_settings, dotted_path)
+        default_value = lookup_optional_dotted_path(default_settings, dotted_path)
+        effective_value = lookup_optional_dotted_path(effective_settings, dotted_path)
+        if effective_value is MISSING:
+            effective_value = persisted_value if persisted_value is not MISSING else default_value
+        displays.append(
+            EditableSettingDisplay(
+                path=dotted_path,
+                label=definition.label,
+                description=definition.description,
+                field_type=definition.field_type,
+                section=definition.section,
+                section_label=section_definition.label,
+                section_description=section_definition.description,
+                section_sort_order=section_definition.sort_order,
+                requires_restart=definition.requires_restart,
+                advanced=definition.advanced,
+                choices=definition.choices,
+                default_value=_normalize_lookup_value(default_value),
+                persisted_value=_normalize_lookup_value(persisted_value),
+                effective_value=_normalize_lookup_value(effective_value),
+                provenance=lookup_provenance_label(provenance, dotted_path),
+                is_persisted=persisted_value is not MISSING,
+                is_pinned_default=(
+                    persisted_value is not MISSING
+                    and _normalize_lookup_value(persisted_value) == _normalize_lookup_value(default_value)
+                ),
+            )
+        )
+
+    return sorted(
+        displays,
+        key=lambda display: (display.section_sort_order, display.label, display.path),
+    )
+
+
 def build_settings_metadata_tree() -> JsonObject:
     tree: JsonObject = {}
 
@@ -145,6 +285,13 @@ def build_settings_metadata_tree() -> JsonObject:
             "section": definition.section,
             "requires_restart": definition.requires_restart,
             "advanced": definition.advanced,
+            "choices": [
+                {
+                    "value": choice.value,
+                    "label": choice.label,
+                }
+                for choice in definition.choices
+            ],
         }
 
     return tree
@@ -157,3 +304,9 @@ def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
         node[key] = child
 
     return cast(JsonObject, child)
+
+
+def _normalize_lookup_value(value: object) -> object:
+    if value is MISSING:
+        return None
+    return value

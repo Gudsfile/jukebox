@@ -2,7 +2,7 @@ import sys
 from importlib import import_module
 from typing import Callable, Optional, Protocol
 
-from jukebox.settings.service_protocols import ReadOnlySettingsService, SettingsService
+from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 from .cli_presentation import build_discstore_settings_deprecation_warning, render_settings_output
@@ -53,7 +53,7 @@ def execute_admin_command(
     command: object,
     settings_service: SettingsService,
     build_api_app: Callable[[str, SettingsService], AppController],
-    build_ui_app: Callable[[str, ReadOnlySettingsService], AppController],
+    build_ui_app: Callable[[str, SettingsService], AppController],
     source_command: str,
     library: Optional[str] = None,
     stdout_fn: Callable[[str], None] = print,
