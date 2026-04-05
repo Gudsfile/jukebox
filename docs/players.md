@@ -25,27 +25,32 @@ Plays music through a Sonos speaker.
 
 ### Ways to set the target
 
+The jukebox will automatically discover available devices on your network and select one but you can target a speaker either by name or by IP address.
+
 | Layer | How to set | Notes |
 | --- | --- | --- |
 | CLI | `--sonos-host <ip>` or `--sonos-name <name>` | Overrides everything for the current process |
 | Environment | `JUKEBOX_SONOS_HOST` or `JUKEBOX_SONOS_NAME` | Overrides persisted settings for the current process |
-| Persisted | `jukebox.player.sonos.selected_group` (written automatically) | Reused across restarts when no CLI/env override is given |
+| Persisted | `jukebox.player.sonos.selected_group` | Reused across restarts when no CLI/env override is given |
 
 `--sonos-host` and `--sonos-name` (and their env equivalents) are mutually exclusive. CLI enforces this directly; if both appear via env or persisted data, runtime resolution fails.
 
-### Source precedence
+In summary: `( CLI | Environment ) > Persisted > Auto-discovery`.
 
-When settings are merged, higher layers override lower ones:
+### Developer documentation
 
-```
-Defaults < Persisted settings < Environment < CLI
-```
+**Settings Merge Behavior**
 
-So CLI beats environment, and environment beats persisted settings.
+During configuration merge:
+- CLI and environment overrides are process-local
+- They invalidate the persisted selected_group for the current run
+- Persisted configuration remains unchanged
+Example:
+- If `selected_group` is stored
+- And `--sonos-host` is provided
+- the stored group is ignored for that execution
 
-> CLI and environment Sonos overrides are process-local: they intentionally clear the persisted `selected_group` for that run. For example, `--sonos-host` ignores any stored group, and `JUKEBOX_SONOS_NAME` replaces a persisted group for the duration of the process.
-
-### Target resolution
+**Target resolution**
 
 Once the merged settings object is built, the Sonos target is resolved in this order:
 
