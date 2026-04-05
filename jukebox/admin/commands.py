@@ -5,7 +5,7 @@ try:
 except ImportError:
     from typing_extensions import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 
 class ApiCommand(BaseModel):
@@ -26,6 +26,12 @@ class SonosSelectCommand(BaseModel):
     type: Literal["sonos_select"]
     uids: Optional[list[str]] = None
     coordinator: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_coordinator_requires_uids(self):
+        if self.coordinator is not None and not self.uids:
+            raise ValueError("--coordinator requires --uids")
+        return self
 
 
 class SonosShowCommand(BaseModel):
