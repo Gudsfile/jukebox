@@ -160,6 +160,7 @@ class GetSonosSelectionStatus:
         members = []
         coordinator_available = False
         available_member_count = 0
+        available_household_ids = set()
 
         for saved_member in selected_group.members:
             speaker = available_speakers.get(saved_member.uid)
@@ -173,6 +174,7 @@ class GetSonosSelectionStatus:
                 continue
 
             available_member_count += 1
+            available_household_ids.add(speaker.household_id)
             if saved_member.uid == selected_group.coordinator_uid:
                 coordinator_available = True
             members.append(
@@ -183,7 +185,7 @@ class GetSonosSelectionStatus:
                 )
             )
 
-        if not coordinator_available:
+        if not coordinator_available or len(available_household_ids) > 1:
             availability = SonosSelectionAvailability(status="unavailable", members=members)
         elif available_member_count == len(selected_group.members):
             availability = SonosSelectionAvailability(status="available", members=members)
