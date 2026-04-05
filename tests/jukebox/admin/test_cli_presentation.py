@@ -221,6 +221,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
         "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)"
     ) in rendered
 
+
 def test_render_settings_output_effective_reports_mixed_nested_provenance():
     rendered = render_settings_output(
         SettingsShowCommand(type="settings_show", effective=True),
