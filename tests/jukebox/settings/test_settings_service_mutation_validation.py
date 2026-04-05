@@ -79,6 +79,26 @@ def test_settings_service_set_rejects_invalid_selected_group_without_writing(tmp
     }
 
 
+def test_settings_service_set_rejects_duplicate_selected_group_members_without_writing(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps({"schema_version": 1, "admin": {"api": {"port": 8100}}}),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    with pytest.raises(InvalidSettingsError, match="selected_group.members must not contain duplicate uids"):
+        service.set_persisted_value(
+            "jukebox.player.sonos.selected_group",
+            '{"coordinator_uid":"speaker-1","members":[{"uid":"speaker-1"},{"uid":"speaker-1"}]}',
+        )
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "admin": {"api": {"port": 8100}},
+    }
+
+
 def test_settings_service_set_rejects_non_json_selected_group_without_writing(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(

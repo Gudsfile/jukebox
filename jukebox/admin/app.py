@@ -82,6 +82,7 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                     sonos_service=services.sonos,
                     settings_service=services.settings,
                     speaker_prompt_fn=_prompt_for_sonos_speaker_selection,
+                    coordinator_prompt_fn=_prompt_for_sonos_group_coordinator,
                 )
             else:
                 execute_server_command(
@@ -154,12 +155,30 @@ def _exit_on_command_validation_error(err: ValidationError) -> None:
     raise SystemExit(str(err)) from err
 
 
-def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
+def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> Optional[list[str]]:
+    import questionary
+
+    try:
+        return questionary.checkbox(
+            "Select one or more Sonos speakers",
+            choices=[
+                questionary.Choice(
+                    title=build_sonos_speaker_choice_label(speaker),
+                    value=speaker.uid,
+                )
+                for speaker in speakers
+            ],
+        ).ask()
+    except KeyboardInterrupt:
+        return None
+
+
+def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
     import questionary
 
     try:
         return questionary.select(
-            "Select a Sonos speaker",
+            "Select the Sonos coordinator",
             choices=[
                 questionary.Choice(
                     title=build_sonos_speaker_choice_label(speaker),
@@ -293,11 +312,16 @@ def sonos_list(ctx: typer.Context) -> None:
 def sonos_select(
     ctx: typer.Context,
     uids: Annotated[
-        Optional[list[str]],
-        typer.Option("--uids", help="discover and persist exactly one Sonos speaker UID"),
+        Optional[str],
+        typer.Option("--uids", help="comma-separated Sonos speaker UIDs to persist as the selected group"),
+    ] = None,
+    coordinator: Annotated[
+        Optional[str],
+        typer.Option("--coordinator", help="coordinator UID for the selected Sonos group"),
     ] = None,
 ) -> None:
-    _run_command(ctx, SonosSelectCommand(type="sonos_select", uids=uids))
+    parsed_uids = None if uids is None else [uid.strip() for uid in uids.split(",") if uid.strip()]
+    _run_command(ctx, SonosSelectCommand(type="sonos_select", uids=parsed_uids, coordinator=coordinator))
 
 
 @sonos_app.command("show")
