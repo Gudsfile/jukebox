@@ -312,15 +312,20 @@ def sonos_list(ctx: typer.Context) -> None:
 def sonos_select(
     ctx: typer.Context,
     uids: Annotated[
-        Optional[str],
-        typer.Option("--uids", help="comma-separated Sonos speaker UIDs to persist as the selected group"),
+        Optional[list[str]],
+        typer.Option(
+            "--uids",
+            help="comma-separated Sonos speaker UIDs to persist as the selected group; may be repeated",
+        ),
     ] = None,
     coordinator: Annotated[
         Optional[str],
         typer.Option("--coordinator", help="coordinator UID for the selected Sonos group"),
     ] = None,
 ) -> None:
-    parsed_uids = None if uids is None else [uid.strip() for uid in uids.split(",") if uid.strip()]
+    parsed_uids = (
+        None if uids is None else [uid.strip() for raw_uids in uids for uid in raw_uids.split(",") if uid.strip()]
+    )
     _run_command(ctx, SonosSelectCommand(type="sonos_select", uids=parsed_uids, coordinator=coordinator))
 
 
