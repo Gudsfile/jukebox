@@ -774,6 +774,7 @@ class UIController(APIController):
             "file": "Settings file",
             "env": "Environment override",
             "cli": "CLI override",
+            "mixed": "Mixed source",
         }
         return labels.get(provenance, provenance)
 

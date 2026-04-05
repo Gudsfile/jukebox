@@ -11,6 +11,7 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.settings.types import JsonObject, JsonValue
+from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 
@@ -74,9 +75,9 @@ def _render_persisted_settings(payload: JsonObject) -> str:
 
 
 def _render_effective_settings(payload: JsonObject) -> str:
-    settings = _lookup_object(payload, "settings")
-    provenance = _lookup_object(payload, "provenance")
-    derived = _lookup_object(payload, "derived")
+    settings = lookup_object(payload, "settings")
+    provenance = lookup_object(payload, "provenance")
+    derived = lookup_object(payload, "derived")
     grouped_entries = _group_entries_by_section(_collect_leaf_entries(settings))
 
     lines = ["Effective Settings"]
@@ -91,8 +92,10 @@ def _render_effective_settings(payload: JsonObject) -> str:
         lines.append(_format_section_title(section))
         rendered_paths = set()
         for definition in definitions:
-            value = _lookup_optional_dotted_path(settings, definition.path)
-            provenance_label = _lookup_provenance_label(provenance, definition.path)
+            value = lookup_optional_dotted_path(settings, definition.path)
+            if value is MISSING:
+                value = None
+            provenance_label = lookup_provenance_label(provenance, definition.path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(definition.path),
@@ -110,7 +113,7 @@ def _render_effective_settings(payload: JsonObject) -> str:
                 continue
 
             definition = get_setting_definition(dotted_path)
-            provenance_label = _lookup_provenance_label(provenance, dotted_path)
+            provenance_label = lookup_provenance_label(provenance, dotted_path)
             lines.append(
                 "- {}: {}{}".format(
                     _format_entry_label(dotted_path),
@@ -284,55 +287,6 @@ def _format_selected_group(value: object) -> str:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
     return "{} (coordinator); members: {}".format(coordinator_uid, ", ".join(member_uids))
-
-
-def _lookup_object(root: JsonObject, key: str) -> JsonObject:
-    value = root.get(key, {})
-    if isinstance(value, dict):
-        return value
-    return {}
-
-
-def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
-    current = root
-    parts = dotted_path.split(".")
-    for part in parts[:-1]:
-        child = current.get(part)
-        if not isinstance(child, dict):
-            return None
-        current = child
-    return current.get(parts[-1])
-
-
-def _lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
-    value = _lookup_optional_dotted_path(root, dotted_path)
-    collapsed_label = _collapse_provenance_value(value)
-    if collapsed_label is None:
-        return "unknown"
-    return collapsed_label
-
-
-def _collapse_provenance_value(value: object) -> Optional[str]:
-    if isinstance(value, str):
-        return value
-    if not isinstance(value, dict):
-        return None
-
-    child_labels = []
-    for child_value in value.values():
-        child_label = _collapse_provenance_value(child_value)
-        if child_label is None:
-            continue
-        child_labels.append(child_label)
-
-    if not child_labels:
-        return None
-
-    distinct_labels = set(child_labels)
-    if len(distinct_labels) == 1:
-        return child_labels[0]
-
-    return "mixed"
 
 
 def _build_equivalent_jukebox_admin_command(command: object, library: Optional[str] = None) -> str:

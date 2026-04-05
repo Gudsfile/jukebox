@@ -112,3 +112,53 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
             {"uid": "speaker-2"},
         ],
     }
+
+
+def test_build_editable_setting_displays_marks_mixed_object_provenance():
+    displays = build_editable_setting_displays(
+        {"schema_version": 1},
+        {
+            "settings": {
+                "paths": {"library_path": "~/.jukebox/library.json"},
+                "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                    "runtime": {"loop_interval_seconds": 0.1},
+                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "player": {
+                        "type": "dryrun",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
+                                ],
+                            }
+                        },
+                    },
+                },
+            },
+            "provenance": {
+                "paths": {"library_path": "default"},
+                "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                    "runtime": {"loop_interval_seconds": "default"},
+                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "player": {
+                        "type": "default",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "file",
+                                "members": "env",
+                            }
+                        },
+                    },
+                },
+            },
+        },
+    )
+
+    selected_group = next(display for display in displays if display.path == "jukebox.player.sonos.selected_group")
+    assert selected_group.provenance == "mixed"

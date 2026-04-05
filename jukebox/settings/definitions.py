@@ -3,8 +3,7 @@ from typing import Iterable, Optional, cast
 
 from .entities import AppSettings
 from .types import JsonObject
-
-_MISSING = object()
+from .view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
 
 
 @dataclass(frozen=True)
@@ -227,17 +226,17 @@ def build_editable_setting_displays(
     effective_settings_view: JsonObject,
 ) -> list[EditableSettingDisplay]:
     default_settings = AppSettings().model_dump(mode="python")
-    effective_settings = _lookup_object(effective_settings_view, "settings")
-    provenance = _lookup_object(effective_settings_view, "provenance")
+    effective_settings = lookup_object(effective_settings_view, "settings")
+    provenance = lookup_object(effective_settings_view, "provenance")
     displays: list[EditableSettingDisplay] = []
 
     for dotted_path, definition in SETTINGS.items():
         section_definition = get_setting_section_definition(definition.section)
-        persisted_value = _lookup_optional_dotted_path(persisted_settings, dotted_path)
-        default_value = _lookup_optional_dotted_path(default_settings, dotted_path)
-        effective_value = _lookup_optional_dotted_path(effective_settings, dotted_path)
-        if effective_value is _MISSING:
-            effective_value = persisted_value if persisted_value is not _MISSING else default_value
+        persisted_value = lookup_optional_dotted_path(persisted_settings, dotted_path)
+        default_value = lookup_optional_dotted_path(default_settings, dotted_path)
+        effective_value = lookup_optional_dotted_path(effective_settings, dotted_path)
+        if effective_value is MISSING:
+            effective_value = persisted_value if persisted_value is not MISSING else default_value
         displays.append(
             EditableSettingDisplay(
                 path=dotted_path,
@@ -254,10 +253,10 @@ def build_editable_setting_displays(
                 default_value=_normalize_lookup_value(default_value),
                 persisted_value=_normalize_lookup_value(persisted_value),
                 effective_value=_normalize_lookup_value(effective_value),
-                provenance=_lookup_provenance_label(provenance, dotted_path),
-                is_persisted=persisted_value is not _MISSING,
+                provenance=lookup_provenance_label(provenance, dotted_path),
+                is_persisted=persisted_value is not MISSING,
                 is_pinned_default=(
-                    persisted_value is not _MISSING
+                    persisted_value is not MISSING
                     and _normalize_lookup_value(persisted_value) == _normalize_lookup_value(default_value)
                 ),
             )
@@ -307,50 +306,7 @@ def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
     return cast(JsonObject, child)
 
 
-def _lookup_object(node: JsonObject, key: str) -> JsonObject:
-    child = node.get(key, {})
-    if isinstance(child, dict):
-        return child
-    return {}
-
-
-def _lookup_optional_dotted_path(root: JsonObject, dotted_path: str) -> object:
-    current: JsonObject = root
-    parts = dotted_path.split(".")
-    for part in parts[:-1]:
-        child = current.get(part, _MISSING)
-        if not isinstance(child, dict):
-            return _MISSING
-        current = cast(JsonObject, child)
-    return current.get(parts[-1], _MISSING)
-
-
 def _normalize_lookup_value(value: object) -> object:
-    if value is _MISSING:
+    if value is MISSING:
         return None
     return value
-
-
-def _lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
-    value = _lookup_optional_dotted_path(root, dotted_path)
-    collapsed_label = _collapse_provenance_value(value)
-    if collapsed_label is None:
-        return "unknown"
-    return collapsed_label
-
-
-def _collapse_provenance_value(value: object) -> Optional[str]:
-    if isinstance(value, str):
-        return value
-    if not isinstance(value, dict):
-        return None
-
-    labels = {
-        label
-        for child_value in value.values()
-        for label in [_collapse_provenance_value(child_value)]
-        if label is not None
-    }
-    if len(labels) == 1:
-        return next(iter(labels))
-    return None

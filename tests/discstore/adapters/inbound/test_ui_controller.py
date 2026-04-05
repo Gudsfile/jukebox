@@ -390,6 +390,26 @@ def test_settings_pages_render_error_banner_when_effective_settings_are_unavaila
     sys.version_info < (3, 10) or util.find_spec("fastui") is None,
     reason="FastUI dependencies are not installed",
 )
+def test_settings_page_renders_mixed_provenance_label():
+    controller = build_controller()
+    controller.settings_service.get_effective_settings_view.return_value["provenance"]["jukebox"]["player"]["sonos"][
+        "selected_group"
+    ] = {
+        "coordinator_uid": "file",
+        "members": "env",
+    }
+
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings")
+    page = route.endpoint()[0]
+    all_components = list(walk_components(page.components))
+
+    assert any(component.type == "Paragraph" and component.text == "Mixed source" for component in all_components)
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
 def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
     controller = build_controller()
     controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}

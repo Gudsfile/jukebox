@@ -215,6 +215,60 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
     ) in rendered
 
 
+def test_render_settings_output_effective_reports_mixed_nested_provenance():
+    rendered = render_settings_output(
+        SettingsShowCommand(type="settings_show", effective=True),
+        {
+            "settings": {
+                "paths": {"library_path": "~/.jukebox/library.json"},
+                "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
+                    "runtime": {"loop_interval_seconds": 0.1},
+                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "player": {
+                        "type": "sonos",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "speaker-2",
+                                "members": [
+                                    {"uid": "speaker-1"},
+                                    {"uid": "speaker-2"},
+                                ],
+                            },
+                        },
+                    },
+                },
+            },
+            "provenance": {
+                "paths": {"library_path": "default"},
+                "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
+                "jukebox": {
+                    "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
+                    "runtime": {"loop_interval_seconds": "default"},
+                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "player": {
+                        "type": "default",
+                        "sonos": {
+                            "selected_group": {
+                                "coordinator_uid": "file",
+                                "members": "env",
+                            },
+                        },
+                    },
+                },
+            },
+            "derived": {},
+            "settings_metadata": {},
+        },
+    )
+
+    assert (
+        "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
+        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: mixed; restart required)"
+    ) in rendered
+
+
 def test_render_settings_output_json_mode_preserves_payload_shape():
     command = SettingsSetCommand(
         type="settings_set",
