@@ -16,6 +16,7 @@ on:
           - patch-dev
           - dev
           - stable
+        default: dev
 
 permissions:
   contents: write
