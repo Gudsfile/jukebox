@@ -1,0 +1,28 @@
+name: protect-version-bump
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: No version bump commits in PR
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check for version bump commits
+        run: |
+          commits=$(git log --format="%s" --no-merges origin/${{ github.base_ref }}..HEAD)
+          if echo "$commits" | grep -q '^🔖 v'; then
+            echo "This PR contains version bump commit(s) starting with '🔖 v'."
+            echo "Version bumps are pushed directly to main via the bump-version workflow."
+            exit 1
+          fi
