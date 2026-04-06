@@ -11,10 +11,47 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import APIController, SettingsPatchInput, SettingsResetInput
-    from discstore.domain.entities import CurrentTagStatus
+    from discstore.adapters.inbound.api_controller import (
+        APIController,
+        DiscCreateInput,
+        DiscPatchInput,
+        SettingsPatchInput,
+        SettingsResetInput,
+    )
+    from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
+
+
+def build_controller(
+    add_disc=None,
+    list_discs=None,
+    remove_disc=None,
+    edit_disc=None,
+    get_disc=None,
+    get_current_tag_status=None,
+    settings_service=None,
+):
+    return APIController(
+        add_disc or MagicMock(),
+        list_discs or MagicMock(),
+        remove_disc or MagicMock(),
+        edit_disc or MagicMock(),
+        get_disc or MagicMock(),
+        get_current_tag_status or MagicMock(),
+        settings_service or MagicMock(),
+    )
+
+
+def get_route(controller, path, method="GET"):
+    return cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == path and method in getattr(route, "methods", set())
+        ),
+    )
 
 
 def test_dependencies_import_failure(mocker):
@@ -35,7 +72,7 @@ def test_dependencies_import_failure(mocker):
 def test_get_current_tag_returns_current_tag_payload(known_in_library):
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=known_in_library)
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
+    controller = build_controller(get_current_tag_status=get_current_tag_status)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -53,7 +90,7 @@ def test_get_current_tag_returns_current_tag_payload(known_in_library):
 def test_get_current_tag_returns_no_content_when_absent():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = None
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), get_current_tag_status, MagicMock())
+    controller = build_controller(get_current_tag_status=get_current_tag_status)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/current-tag"),
@@ -68,10 +105,198 @@ def test_get_current_tag_returns_no_content_when_absent():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_disc_routes_use_explicit_crud_paths():
+    controller = build_controller()
+
+    route_index = {
+        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
+        for route in controller.app.routes
+        if hasattr(route, "path")
+    }
+
+    assert ("/api/v1/discs", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("POST",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("PATCH",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("DELETE",)) in route_index
+    assert not any(path == "/api/v1/disc" for path, _ in route_index)
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_list_discs_returns_disc_mapping():
+    list_discs = MagicMock()
+    list_discs.execute.return_value = {
+        "tag-123": Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+            option=DiscOption(shuffle=True),
+        )
+    }
+    controller = build_controller(list_discs=list_discs)
+
+    response = get_route(controller, "/api/v1/discs").endpoint()
+
+    assert response == {
+        "tag-123": Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+            option=DiscOption(shuffle=True),
+        )
+    }
+    list_discs.execute.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_disc_returns_disc_payload():
+    get_disc = MagicMock()
+    get_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(shuffle=True),
+    )
+    controller = build_controller(get_disc=get_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}")
+
+    response = route.endpoint("tag-123")
+
+    assert route.response_model is not None
+    assert route.response_model.__name__ == "DiscOutput"
+    assert response.model_dump() == {
+        "uri": "/music/song.mp3",
+        "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
+        "option": {"shuffle": True, "is_test": False},
+    }
+    get_disc.execute.assert_called_once_with("tag-123")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_disc_returns_404_when_missing():
+    get_disc = MagicMock()
+    get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing-tag'")
+    controller = build_controller(get_disc=get_disc)
+
+    with pytest.raises(HTTPException) as err:
+        get_route(controller, "/api/v1/discs/{tag_id}").endpoint("missing-tag")
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag not found: tag_id='missing-tag'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_create_disc_returns_201_and_calls_add_use_case():
+    add_disc = MagicMock()
+    controller = build_controller(add_disc=add_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", method="POST")
+
+    response = route.endpoint(
+        "tag-123",
+        DiscCreateInput(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+            option=DiscOption(shuffle=True),
+        ),
+    )
+
+    assert route.status_code == 201
+    assert response == {"message": "Disc added"}
+    add_disc.execute.assert_called_once_with(
+        "tag-123",
+        Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+            option=DiscOption(shuffle=True),
+        ),
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_create_disc_returns_409_when_tag_already_exists():
+    add_disc = MagicMock()
+    add_disc.execute.side_effect = ValueError("Already existing tag: tag_id='tag-123'")
+    controller = build_controller(add_disc=add_disc)
+
+    with pytest.raises(HTTPException) as err:
+        get_route(controller, "/api/v1/discs/{tag_id}", method="POST").endpoint(
+            "tag-123",
+            DiscCreateInput(uri="/music/song.mp3", metadata=DiscMetadata()),
+        )
+
+    assert err.value.status_code == 409
+    assert err.value.detail == "Already existing tag: tag_id='tag-123'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_returns_200_and_calls_edit_use_case():
+    edit_disc = MagicMock()
+    controller = build_controller(edit_disc=edit_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", method="PATCH")
+
+    response = route.endpoint(
+        "tag-123",
+        DiscPatchInput(
+            uri="/music/updated.mp3",
+            metadata={"artist": "Updated Artist"},
+            option={"shuffle": True},
+        ),
+    )
+
+    assert route.status_code == 200
+    assert response == {"message": "Disc updated"}
+    edit_disc.execute.assert_called_once_with(
+        tag_id="tag-123",
+        uri="/music/updated.mp3",
+        metadata=DiscMetadata(artist="Updated Artist"),
+        option=DiscOption(shuffle=True),
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_returns_404_when_target_is_missing():
+    edit_disc = MagicMock()
+    edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing-tag'")
+    controller = build_controller(edit_disc=edit_disc)
+
+    with pytest.raises(HTTPException) as err:
+        get_route(controller, "/api/v1/discs/{tag_id}", method="PATCH").endpoint(
+            "missing-tag",
+            DiscPatchInput(metadata={"artist": "Updated Artist"}),
+        )
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag does not exist: tag_id='missing-tag'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_delete_disc_returns_200_and_calls_remove_use_case():
+    remove_disc = MagicMock()
+    controller = build_controller(remove_disc=remove_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", method="DELETE")
+
+    response = route.endpoint("tag-123")
+
+    assert route.status_code == 200
+    assert response == {"message": "Disc removed"}
+    remove_disc.execute.assert_called_once_with("tag-123")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_delete_disc_returns_404_when_target_is_missing():
+    remove_disc = MagicMock()
+    remove_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing-tag'")
+    controller = build_controller(remove_disc=remove_disc)
+
+    with pytest.raises(HTTPException) as err:
+        get_route(controller, "/api/v1/discs/{tag_id}", method="DELETE").endpoint("missing-tag")
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag does not exist: tag_id='missing-tag'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_settings_returns_sparse_settings_payload():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings"),
@@ -87,7 +312,7 @@ def test_get_settings_returns_sparse_settings_payload():
 def test_get_effective_settings_returns_effective_settings_payload():
     settings_service = MagicMock()
     settings_service.get_effective_settings_view.return_value = {"settings": {}, "provenance": {}, "derived": {}}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/settings/effective"),
@@ -105,7 +330,7 @@ def test_patch_settings_updates_persisted_settings():
     settings_service.patch_persisted_settings.return_value = {
         "persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -127,7 +352,7 @@ def test_patch_settings_updates_playback_timing_settings():
     settings_service.patch_persisted_settings.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"runtime": {"loop_interval_seconds": 0.2}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -159,7 +384,7 @@ def test_patch_settings_updates_reader_settings():
             },
         }
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -208,7 +433,7 @@ def test_patch_settings_updates_player_settings():
             },
         }
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -273,7 +498,7 @@ def test_patch_settings_updates_player_settings():
 def test_patch_settings_returns_400_for_invalid_settings_write():
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -292,7 +517,7 @@ def test_patch_settings_returns_400_for_invalid_settings_write():
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_settings_route_generates_openapi_schema():
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock())
+    controller = build_controller()
 
     schema = controller.app.openapi()
 
@@ -305,7 +530,7 @@ def test_reset_settings_removes_persisted_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "admin": {"ui": {"port": 9200}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -327,7 +552,7 @@ def test_reset_settings_removes_playback_timing_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"playback": {"pause_duration_seconds": 600}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -349,7 +574,7 @@ def test_reset_settings_removes_selected_group_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -371,7 +596,7 @@ def test_reset_settings_removes_reader_override():
     settings_service.reset_persisted_value.return_value = {
         "persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}
     }
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -391,7 +616,7 @@ def test_reset_settings_removes_reader_override():
 def test_reset_settings_accepts_section_path():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.return_value = {"persisted": {"schema_version": 1}}
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
@@ -411,7 +636,7 @@ def test_reset_settings_accepts_section_path():
 def test_reset_settings_returns_400_for_invalid_reset_path():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Unsupported settings path")
-    controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
+    controller = build_controller(settings_service=settings_service)
     route = cast(
         APIRoute,
         next(
