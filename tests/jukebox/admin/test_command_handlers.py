@@ -271,7 +271,7 @@ def test_execute_settings_command_renders_human_readable_persisted_settings():
         ),
     ],
 )
-def test_execute_admin_command_renders_human_readable_settings_output(
+def test_execute_settings_command_renders_human_readable_settings_output(
     command,
     service_method,
     service_args,
@@ -282,14 +282,10 @@ def test_execute_admin_command_renders_human_readable_settings_output(
     getattr(settings_service, service_method).return_value = payload
     stdout_fn = MagicMock()
 
-    execute_admin_command(
-        verbose=True,
+    execute_settings_command(
         command=command,
         settings_service=settings_service,
-        build_api_app=MagicMock(),
-        build_ui_app=MagicMock(),
         source_command="jukebox-admin",
-        library=None,
         stdout_fn=stdout_fn,
     )
 
