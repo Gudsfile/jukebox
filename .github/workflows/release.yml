@@ -84,7 +84,7 @@ jobs:
     name: Create GitHub Release
     needs: build-and-publish
     runs-on: ubuntu-latest
-    if: needs.build-and-publish.outputs.is_stable == 'true'
+    if: needs.build-and-publish.outputs.is_stable == 'true' && github.event_name == 'workflow_run'
 
     steps:
       - uses: actions/checkout@v6
@@ -113,5 +113,4 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             --title "v${{ steps.version.outputs.version }}" \
             --generate-notes \
-            ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }} \
             dist/*
