@@ -20,7 +20,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 env:
   UV_PROJECT_ENVIRONMENT: $pythonLocation
@@ -33,14 +32,22 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v6
-
       - name: Generate app token
         id: app-token
         uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
+
+      - name: Get app user ID
+        id: user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+
+      - uses: actions/checkout@v6
+        with:
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -65,23 +72,10 @@ jobs:
         id: version
         run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
 
-      - name: Create Pull Request
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push to main
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config user.email '${{ steps.user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
           git add pyproject.toml uv.lock
           git commit -m "🔖 v${{ steps.version.outputs.version }}"
-          git push origin HEAD:auto-bump/v${{ steps.version.outputs.version }}
-          gh pr create \
-            --head auto-bump/v${{ steps.version.outputs.version }} \
-            --title "🔖 v${{ steps.version.outputs.version }}" \
-            --body $'Automated version bump to v${{ steps.version.outputs.version }}\n\nThis PR was created by the bump-version workflow.'
-
-      - name: Approve and enable auto-merge
-        env:
-          GH_TOKEN: ${{ steps.app-token.outputs.token }}
-        run: |
-          gh pr review auto-bump/v${{ steps.version.outputs.version }} --approve
-          gh pr merge --auto --merge auto-bump/v${{ steps.version.outputs.version }}
+          git push origin HEAD:${{ github.ref_name }}

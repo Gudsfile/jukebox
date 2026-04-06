@@ -1,8 +1,9 @@
 name: release
 
 on:
-  pull_request:
-    types: [closed]
+  workflow_run:
+    workflows: ["ci"]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -26,16 +27,17 @@ jobs:
     outputs:
       is_stable: ${{ steps.check-stable.outputs.is_stable }}
     if: |
-      (
-        github.event_name == 'workflow_dispatch'
-      ) || (
-        github.event.pull_request.merged == true
-        && startsWith(github.head_ref, 'auto-bump/')
-        && github.event.pull_request.user.login == 'github-actions[bot]'
+      github.event_name == 'workflow_dispatch'
+      || (
+        github.event_name == 'workflow_run'
+        && github.event.workflow_run.conclusion == 'success'
+        && startsWith(github.event.workflow_run.head_commit.message, '🔖 v')
       )
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -59,6 +61,16 @@ jobs:
           name: built-package
           path: dist/
 
+      - name: Get version
+        id: version
+        run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
+
+      - name: Create and push tag
+        if: github.event_name == 'workflow_run'
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}" ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
+
       - name: Check if stable release
         id: check-stable
         run: |
@@ -76,6 +88,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Download built package
         uses: actions/download-artifact@v8
