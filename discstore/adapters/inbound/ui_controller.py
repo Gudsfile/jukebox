@@ -76,7 +76,9 @@ class UIController(APIController):
         settings_service: SettingsService,
     ):
         self.get_disc = get_disc
-        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status, settings_service)
+        super().__init__(
+            add_disc, list_discs, remove_disc, edit_disc, get_disc, get_current_tag_status, settings_service
+        )
 
     def register_routes(self):
         super().register_routes()
