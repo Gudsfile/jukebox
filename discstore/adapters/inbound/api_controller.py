@@ -8,6 +8,7 @@ except ModuleNotFoundError as e:
     ) from e
 
 from discstore.adapters.inbound.api import (
+    CurrentTagDiscOutput,
     CurrentTagStatusOutput,
     DiscInput,
     DiscOutput,
@@ -28,6 +29,7 @@ from jukebox.settings.service_protocols import SettingsService
 
 __all__ = [
     "APIController",
+    "CurrentTagDiscOutput",
     "CurrentTagStatusOutput",
     "DiscInput",
     "DiscOutput",
@@ -73,5 +75,13 @@ class APIController:
                 get_disc=self.get_disc,
             )
         )
-        self.app.include_router(build_current_tag_router(self.get_current_tag_status))
+        self.app.include_router(
+            build_current_tag_router(
+                get_current_tag_status=self.get_current_tag_status,
+                add_disc=self.add_disc,
+                edit_disc=self.edit_disc,
+                get_disc=self.get_disc,
+                remove_disc=self.remove_disc,
+            )
+        )
         self.app.include_router(build_settings_router(self.settings_service))
