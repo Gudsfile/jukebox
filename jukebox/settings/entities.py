@@ -35,7 +35,10 @@ class SelectedSonosGroupSettings(StrictModel):
         if not self.members:
             raise ValueError("selected_group must include at least one member")
 
-        member_uids = {member.uid for member in self.members}
+        member_uids = [member.uid for member in self.members]
+        if len(set(member_uids)) != len(member_uids):
+            raise ValueError("selected_group.members must not contain duplicate uids")
+
         if self.coordinator_uid not in member_uids:
             raise ValueError("selected_group.coordinator_uid must match a member uid")
 

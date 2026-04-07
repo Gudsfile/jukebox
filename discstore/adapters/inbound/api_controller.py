@@ -1,4 +1,4 @@
-from typing import Any, Dict, cast
+from typing import Any, Dict, Optional, cast
 
 from pydantic import BaseModel, RootModel
 
@@ -17,9 +17,14 @@ from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
+from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.settings.errors import SettingsError
+from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+from jukebox.sonos.selection import GetSonosSelectionStatus, PlanSonosSelection, SaveSonosSelection
+from jukebox.sonos.service import SonosService
 
 
 class DiscInput(Disc):
@@ -32,6 +37,42 @@ class DiscOutput(Disc):
 
 class CurrentTagStatusOutput(CurrentTagStatus):
     pass
+
+
+class SonosSpeakerOutput(DiscoveredSonosSpeaker):
+    pass
+
+
+class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
+    pass
+
+
+class SonosSelectionMemberAvailabilityOutput(BaseModel):
+    uid: str
+    status: str
+    speaker: Optional[SonosSpeakerOutput] = None
+
+
+class SonosSelectionAvailabilityOutput(BaseModel):
+    status: str
+    members: list[SonosSelectionMemberAvailabilityOutput]
+
+
+class SonosSelectionOutput(BaseModel):
+    selected_group: Optional[SelectedSonosGroupOutput] = None
+    availability: SonosSelectionAvailabilityOutput
+
+
+class SonosSelectionInput(BaseModel):
+    uids: list[str]
+    coordinator_uid: Optional[str] = None
+
+
+class SonosSelectionUpdateOutput(BaseModel):
+    selected_group: SelectedSonosGroupOutput
+    availability: SonosSelectionAvailabilityOutput
+    message: str
+    restart_required: bool
 
 
 class SettingsResetInput(BaseModel):
@@ -51,6 +92,7 @@ class APIController:
         edit_disc: EditDisc,
         get_current_tag_status: GetCurrentTagStatus,
         settings_service: SettingsService,
+        sonos_service: SonosService,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -58,6 +100,7 @@ class APIController:
         self.edit_disc = edit_disc
         self.get_current_tag_status = get_current_tag_status
         self.settings_service = settings_service
+        self.sonos_service = sonos_service
         self.app = FastAPI(
             title="DiscStore API",
             description="API for managing Jukebox disc library",
@@ -82,6 +125,68 @@ class APIController:
                 return Response(status_code=204)
 
             return CurrentTagStatusOutput(**current_tag_status.model_dump())
+
+        @self.app.get("/api/v1/sonos/speakers", response_model=list[SonosSpeakerOutput])
+        def get_sonos_speakers():
+            try:
+                return self.sonos_service.list_available_speakers()
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @self.app.get("/api/v1/sonos/selection", response_model=SonosSelectionOutput)
+        def get_sonos_selection():
+            try:
+                return GetSonosSelectionStatus(
+                    SettingsSelectedSonosGroupRepository(self.settings_service),
+                    self.sonos_service,
+                ).execute()
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @self.app.put("/api/v1/sonos/selection", response_model=SonosSelectionUpdateOutput)
+        def put_sonos_selection(payload: SonosSelectionInput):
+            try:
+                plan = PlanSonosSelection(self.sonos_service).execute(
+                    requested_uids=payload.uids,
+                    coordinator_uid=payload.coordinator_uid,
+                )
+                if plan.status in {"invalid_request", "none_available"}:
+                    raise HTTPException(status_code=400, detail=str(plan.error_message))
+                if plan.status == "needs_choice" or plan.coordinator_uid is None:
+                    raise HTTPException(status_code=400, detail="No Sonos speaker selection was made.")
+
+                result = SaveSonosSelection(
+                    SettingsSelectedSonosGroupRepository(self.settings_service),
+                    self.sonos_service,
+                ).execute(plan.selected_uids, coordinator_uid=plan.coordinator_uid)
+                return SonosSelectionUpdateOutput(
+                    selected_group=SelectedSonosGroupOutput(**result.selected_group.model_dump()),
+                    availability=SonosSelectionAvailabilityOutput(
+                        status="available",
+                        members=[
+                            SonosSelectionMemberAvailabilityOutput(
+                                uid=member.uid,
+                                status="available",
+                                speaker=SonosSpeakerOutput(**member.model_dump()),
+                            )
+                            for member in result.members
+                        ],
+                    ),
+                    message=result.settings_message,
+                    restart_required=result.restart_required,
+                )
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except ValueError as err:
+                raise HTTPException(status_code=400, detail=str(err))
+            except HTTPException:
+                raise
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
 
         @self.app.get("/api/v1/settings")
         def get_settings():

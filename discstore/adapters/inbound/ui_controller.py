@@ -42,6 +42,7 @@ from jukebox.settings.definitions import (
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
+from jukebox.sonos.service import SonosService
 
 _MISSING = object()
 
@@ -74,9 +75,18 @@ class UIController(APIController):
         get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
         settings_service: SettingsService,
+        sonos_service: SonosService,
     ):
         self.get_disc = get_disc
-        super().__init__(add_disc, list_discs, remove_disc, edit_disc, get_current_tag_status, settings_service)
+        super().__init__(
+            add_disc,
+            list_discs,
+            remove_disc,
+            edit_disc,
+            get_current_tag_status,
+            settings_service,
+            sonos_service,
+        )
 
     def register_routes(self):
         super().register_routes()

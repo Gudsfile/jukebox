@@ -7,7 +7,7 @@ import pytest
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
-from tests.jukebox.settings._helpers import lookup_json_value
+from tests.jukebox.settings._helpers import lookup_json_value, resolve_jukebox_runtime
 
 
 def test_settings_service_allows_sonos_runtime_without_active_target_for_autodiscovery(tmp_path):
@@ -18,7 +18,7 @@ def test_settings_service_allows_sonos_runtime_without_active_target_for_autodis
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host is None
@@ -68,7 +68,7 @@ def test_settings_service_allows_env_override_to_supply_sonos_target(tmp_path):
         env_overrides={"jukebox": {"player": {"sonos": {"manual_host": "192.168.1.20"}}}},
     )
 
-    runtime_config = service.resolve_jukebox_runtime()
+    runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.player_type == "sonos"
     assert runtime_config.sonos_host == "192.168.1.20"
@@ -87,7 +87,7 @@ def test_settings_service_rejects_manual_host_and_name_together(tmp_path):
     )
 
     with pytest.raises(InvalidSettingsError):
-        service.resolve_jukebox_runtime()
+        resolve_jukebox_runtime(service)
 
 
 def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
@@ -107,7 +107,7 @@ def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
         )
 
     with pytest.raises(InvalidSettingsError, match="manual_host and manual_name are mutually exclusive"):
-        service.resolve_jukebox_runtime()
+        resolve_jukebox_runtime(service)
 
 
 def test_settings_service_allows_effective_view_with_selected_group_without_any_host(tmp_path):
@@ -158,7 +158,7 @@ def test_settings_service_rejects_pause_delay_below_minimum_after_cli_overrides(
     )
 
     with pytest.raises(InvalidSettingsError):
-        service.resolve_jukebox_runtime()
+        resolve_jukebox_runtime(service)
 
 
 def test_settings_service_allows_effective_settings_view_with_invalid_timing_relationships(tmp_path):
@@ -203,4 +203,4 @@ def test_settings_service_rejects_loop_interval_not_lower_than_pause_delay_at_ru
         InvalidSettingsError,
         match="loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds",
     ):
-        service.resolve_jukebox_runtime()
+        resolve_jukebox_runtime(service)
