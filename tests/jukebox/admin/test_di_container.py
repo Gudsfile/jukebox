@@ -108,6 +108,7 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         bootstrap_mocks.list_disc_instance,
         bootstrap_mocks.remove_disc_instance,
         bootstrap_mocks.edit_disc_instance,
+        bootstrap_mocks.get_disc_instance,
         bootstrap_mocks.get_current_tag_status_instance,
         services.settings,
         services.sonos,

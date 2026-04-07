@@ -4,6 +4,7 @@ from discstore.adapters.inbound.api.models import (
     CurrentTagStatusOutput,
     DiscInput,
     DiscOutput,
+    DiscPatchInput,
     SettingsPatchInput,
     SettingsResetInput,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "CurrentTagStatusOutput",
     "DiscInput",
     "DiscOutput",
+    "DiscPatchInput",
     "SettingsPatchInput",
     "SettingsResetInput",
     "build_current_tag_router",

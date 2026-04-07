@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel, RootModel
 
@@ -11,6 +11,24 @@ class DiscInput(Disc):
 
 class DiscOutput(Disc):
     pass
+
+
+class DiscPatchMetadataInput(BaseModel):
+    artist: Optional[str] = None
+    album: Optional[str] = None
+    track: Optional[str] = None
+    playlist: Optional[str] = None
+
+
+class DiscPatchOptionInput(BaseModel):
+    shuffle: Optional[bool] = None
+    is_test: Optional[bool] = None
+
+
+class DiscPatchInput(BaseModel):
+    uri: Optional[str] = None
+    metadata: Optional[DiscPatchMetadataInput] = None
+    option: Optional[DiscPatchOptionInput] = None
 
 
 class CurrentTagStatusOutput(CurrentTagStatus):
