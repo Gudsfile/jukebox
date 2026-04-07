@@ -24,14 +24,14 @@ class EditDisc:
         new_metadata = current_disc.metadata
         if metadata is not None:
             current_data = current_disc.metadata.model_dump()
-            new_data = metadata.model_dump(exclude_unset=True, exclude_none=True)
+            new_data = metadata.model_dump(exclude_unset=True)
             current_data.update(new_data)
             new_metadata = DiscMetadata(**current_data)
 
         new_option = current_disc.option
         if option is not None:
             current_opt_data = current_disc.option.model_dump()
-            new_opt_data = option.model_dump(exclude_unset=True, exclude_none=True)
+            new_opt_data = option.model_dump(exclude_unset=True)
             current_opt_data.update(new_opt_data)
             new_option = DiscOption(**current_opt_data)
 
