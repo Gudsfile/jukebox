@@ -1,6 +1,7 @@
 from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException, Response, status
+from pydantic import ValidationError
 
 from discstore.adapters.inbound.api.models import (
     CurrentTagDiscOutput,
@@ -121,14 +122,16 @@ def build_current_tag_router(
         try:
             metadata = None
             if disc_patch.metadata is not None:
-                metadata = DiscMetadata(**disc_patch.metadata.model_dump(exclude_unset=True, exclude_none=True))
+                metadata = DiscMetadata(**disc_patch.metadata.model_dump(exclude_unset=True))
 
             option = None
             if disc_patch.option is not None:
-                option = DiscOption(**disc_patch.option.model_dump(exclude_unset=True, exclude_none=True))
+                option = DiscOption(**disc_patch.option.model_dump(exclude_unset=True))
 
             edit_disc.execute(current_tag_status.tag_id, disc_patch.uri, metadata, option)
             return build_current_tag_disc_output(current_tag_status.tag_id, get_disc.execute(current_tag_status.tag_id))
+        except ValidationError as err:
+            raise HTTPException(status_code=422, detail=err.errors())
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
