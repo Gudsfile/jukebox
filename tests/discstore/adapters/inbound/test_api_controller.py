@@ -530,6 +530,17 @@ def test_patch_disc_partially_updates_existing_disc():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_returns_422_when_null_assigned_to_non_nullable_option_field():
+    controller = build_controller()
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "PATCH")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint("tag-123", DiscPatchInput(option=DiscPatchOptionInput(shuffle=None)))
+
+    assert err.value.status_code == 422
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_disc_returns_404_when_missing():
     edit_disc = MagicMock()
     edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing'")
@@ -541,6 +552,24 @@ def test_patch_disc_returns_404_when_missing():
 
     assert err.value.status_code == 404
     assert err.value.detail == "Tag does not exist: tag_id='missing'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_clears_nullable_metadata_field():
+    edit_disc = MagicMock()
+    edit_disc.execute.return_value = "the_value_returned_by_the_EditDisc_use_case"
+    controller = build_controller(edit_disc=edit_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "PATCH")
+
+    response = route.endpoint("tag-123", DiscPatchInput(metadata=DiscPatchMetadataInput(artist=None)))
+
+    assert response == "the_value_returned_by_the_EditDisc_use_case"
+    edit_disc.execute.assert_called_once_with(
+        "tag-123",
+        None,
+        DiscMetadata(artist=None),
+        None,
+    )
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
