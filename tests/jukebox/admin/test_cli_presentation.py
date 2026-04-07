@@ -9,6 +9,7 @@ from jukebox.settings.errors import (
     MalformedSettingsFileError,
     UnsupportedSettingsVersionError,
 )
+from jukebox.settings.types import JsonObject
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():
@@ -276,7 +277,7 @@ def test_render_settings_output_json_mode_preserves_payload_shape():
         value="9000",
         json_output=True,
     )
-    payload = {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
+    payload: JsonObject = {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
 
     assert (
         render_settings_output(command, payload)
