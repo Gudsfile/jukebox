@@ -51,6 +51,7 @@ def build_admin_api_app(library_path: str, settings_service: SettingsService):
         ListDiscs(repository),
         RemoveDisc(repository),
         EditDisc(repository),
+        GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
         settings_service,
     )
