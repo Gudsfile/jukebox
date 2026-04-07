@@ -35,6 +35,11 @@ class CurrentTagStatusOutput(CurrentTagStatus):
     pass
 
 
+class CurrentTagDiscOutput(BaseModel):
+    tag_id: str
+    disc: DiscOutput
+
+
 class SettingsResetInput(BaseModel):
     path: str
 
