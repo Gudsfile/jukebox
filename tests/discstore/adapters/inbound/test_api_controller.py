@@ -370,6 +370,50 @@ def test_patch_current_tag_disc_returns_404_when_missing():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_current_tag_disc_returns_422_when_null_assigned_to_non_nullable_option_field():
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
+    controller = build_controller(get_current_tag_status=get_current_tag_status)
+    route = get_route(controller, "/api/v1/current-tag/disc", "PATCH")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(DiscPatchInput(option=DiscPatchOptionInput(shuffle=None)))
+
+    assert err.value.status_code == 422
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_current_tag_disc_clears_nullable_metadata_field():
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
+    edit_disc = MagicMock()
+    edit_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist=None, album="Album", track="Track"),
+        option=DiscOption(shuffle=False),
+    )
+    controller = build_controller(get_current_tag_status=get_current_tag_status, edit_disc=edit_disc)
+    route = get_route(controller, "/api/v1/current-tag/disc", "PATCH")
+
+    response = route.endpoint(DiscPatchInput(metadata=DiscPatchMetadataInput(artist=None)))
+
+    assert response.model_dump() == {
+        "disc": {
+            "metadata": {"album": "Album", "artist": None, "playlist": None, "track": "Track"},
+            "option": {"is_test": False, "shuffle": False},
+            "uri": "/music/song.mp3",
+        },
+        "tag_id": "tag-123",
+    }
+    edit_disc.execute.assert_called_once_with(
+        "tag-123",
+        None,
+        DiscMetadata(artist=None),
+        None,
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_delete_current_tag_disc_returns_no_content():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
