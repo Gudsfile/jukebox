@@ -12,7 +12,7 @@ def test_parse_config_without_overrides():
     assert config == JukeboxCliConfig()
 
 
-@patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.50"])
+@patch("sys.argv", ["jukebox", "--player", "sonos", "--reader", "nfc", "--sonos-host", "192.168.1.50"])
 def test_parse_config_with_player_reader_and_host_overrides():
     config = parse_config()
 
@@ -22,7 +22,7 @@ def test_parse_config_with_player_reader_and_host_overrides():
     assert config.sonos_name is None
 
 
-@patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-name", "Living Room"])
+@patch("sys.argv", ["jukebox", "--player", "sonos", "--reader", "nfc", "--sonos-name", "Living Room"])
 def test_parse_config_with_sonos_name_override():
     config = parse_config()
 
@@ -48,37 +48,12 @@ def test_parse_config_with_library_and_verbose_flags():
     assert config.verbose is True
 
 
-@patch("sys.argv", ["jukebox", "dryrun"])
-def test_parse_config_allows_partial_type_overrides(capsys):
-    config = parse_config()
-
-    assert config.player == "dryrun"
-    assert config.reader is None
-    assert (
-        capsys.readouterr().err.strip()
-        == "warning: positional player/reader arguments are deprecated; use --player/--reader instead"
-    )
-
-
 @patch("sys.argv", ["jukebox", "--reader", "nfc"])
-def test_parse_config_allows_reader_only_override_flag(capsys):
+def test_parse_config_allows_reader_only_override_flag():
     config = parse_config()
 
     assert config.player is None
     assert config.reader == "nfc"
-    assert capsys.readouterr().err == ""
-
-
-@patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--reader", "nfc"])
-def test_parse_config_reader_flag_overrides_positional_reader(capsys):
-    config = parse_config()
-
-    assert config.player == "dryrun"
-    assert config.reader == "nfc"
-    assert (
-        capsys.readouterr().err.strip()
-        == "warning: positional player/reader arguments are deprecated; use --player/--reader instead"
-    )
 
 
 @patch("sys.argv", ["jukebox", "--sonos-host", "192.168.1.1", "--sonos-name", "Living Room"])

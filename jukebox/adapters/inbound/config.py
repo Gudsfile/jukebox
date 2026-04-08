@@ -1,5 +1,4 @@
 import argparse
-import sys
 from typing import Optional
 
 try:
@@ -38,9 +37,6 @@ def parse_config() -> JukeboxCliConfig:
     )
     add_verbose_arg(parser)
     add_version_arg(parser)
-
-    parser.add_argument("positional_player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
-    parser.add_argument("positional_reader", nargs="?", choices=["dryrun", "nfc"], help="override the reader type")
 
     parser.add_argument(
         "--player",
@@ -82,17 +78,11 @@ def parse_config() -> JukeboxCliConfig:
 
     args = parser.parse_args()
 
-    if args.positional_player is not None or args.positional_reader is not None:
-        print(
-            "warning: positional player/reader arguments are deprecated; use --player/--reader instead",
-            file=sys.stderr,
-        )
-
     return JukeboxCliConfig(
         library=args.library,
         verbose=args.verbose,
-        player=args.player or args.positional_player,
-        reader=args.reader or args.positional_reader,
+        player=args.player,
+        reader=args.reader,
         sonos_host=args.sonos_host,
         sonos_name=args.sonos_name,
         pause_duration_seconds=args.pause_duration,
