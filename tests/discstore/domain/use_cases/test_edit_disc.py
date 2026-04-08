@@ -175,6 +175,23 @@ def test_edit_nonexistent_tag_raises_error():
     assert repo.update_calls == []
 
 
+def test_edit_clears_metadata_field():
+    original_disc = Disc(
+        uri="uri:123",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(),
+    )
+    repo = MockRepo(Library(discs={"tag:123": original_disc}))
+
+    edit_disc = EditDisc(repo)
+    edit_disc.execute(tag_id="tag:123", metadata=DiscMetadata(artist=None))
+
+    updated_disc = repo.library.discs["tag:123"]
+    assert updated_disc.metadata.artist is None
+    assert updated_disc.metadata.album == "Album"
+    assert updated_disc.metadata.track == "Track"
+
+
 def test_edit_with_no_changes():
     original_disc = Disc(uri="uri:123", metadata=DiscMetadata(artist="Artist"), option=DiscOption())
     repo = MockRepo(Library(discs={"tag:noop": original_disc}))

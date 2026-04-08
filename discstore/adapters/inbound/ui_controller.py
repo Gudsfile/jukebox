@@ -83,6 +83,7 @@ class UIController(APIController):
             list_discs,
             remove_disc,
             edit_disc,
+            get_disc,
             get_current_tag_status,
             settings_service,
             sonos_service,

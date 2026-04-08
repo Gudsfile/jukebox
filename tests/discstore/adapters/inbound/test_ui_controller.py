@@ -157,9 +157,11 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/settings/{setting_path}", ("POST",)) in route_index
     assert ("/api/ui/settings/{setting_path}/reset", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("POST",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("PATCH",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("DELETE",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
-    assert ("/api/v1/disc", ("POST",)) in route_index
-    assert ("/api/v1/disc", ("DELETE",)) in route_index
 
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/")
     page = route.endpoint()[0]
