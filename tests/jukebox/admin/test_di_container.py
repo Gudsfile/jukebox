@@ -35,7 +35,6 @@ def test_build_settings_service_maps_cli_overrides(command, expected_overrides):
     service = build_settings_service(
         library="/custom/library.json",
         command=command,
-        logger_warning=MagicMock(),
     )
 
     assert isinstance(service, SettingsServiceImpl)
@@ -51,7 +50,6 @@ def test_build_admin_services_builds_peer_settings_and_sonos_services(mocker):
     services = build_admin_services(
         library="/custom/library.json",
         command=SettingsShowCommand(type="settings_show"),
-        logger_warning=MagicMock(),
     )
 
     assert isinstance(services, AdminServices)

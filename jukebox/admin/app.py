@@ -1,4 +1,3 @@
-import logging
 import traceback
 from typing import Annotated, Optional
 
@@ -38,8 +37,6 @@ from .commands import (
 )
 from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
 
-LOGGER = logging.getLogger("jukebox-admin")
-
 
 class AdminCliState:
     def __init__(self, library: Optional[str], verbose: bool):
@@ -67,14 +64,12 @@ def _run_command(ctx: typer.Context, command: object) -> None:
         services = build_admin_services(
             library=state.library,
             command=command,
-            logger_warning=LOGGER.warning,
         )
         try:
             if is_settings_command(command):
                 execute_settings_command(
                     command=command,
                     settings_service=services.settings,
-                    source_command="jukebox-admin",
                 )
             elif is_sonos_command(command):
                 execute_sonos_command(
@@ -123,7 +118,6 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
         settings_service = build_settings_service(
             library=state.library,
             command=command,
-            logger_warning=LOGGER.warning,
         )
         try:
             execute_library_command(

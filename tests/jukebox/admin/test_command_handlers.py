@@ -52,7 +52,6 @@ def test_execute_settings_command_renders_human_readable_persisted_settings():
     execute_settings_command(
         command=SettingsShowCommand(type="settings_show"),
         settings_service=settings_service,
-        source_command="jukebox-admin",
         stdout_fn=stdout_fn,
     )
 
@@ -94,58 +93,11 @@ def test_execute_settings_command_preserves_json_payloads(command, service_metho
     execute_settings_command(
         command=command,
         settings_service=settings_service,
-        source_command="jukebox-admin",
         stdout_fn=stdout_fn,
     )
 
     getattr(settings_service, service_method).assert_called_once_with(*service_args)
     stdout_fn.assert_called_once_with(json.dumps(payload, indent=2))
-
-
-def test_execute_settings_command_writes_discstore_deprecation_warning_to_stderr():
-    settings_service = MagicMock()
-    settings_service.get_effective_settings_view.return_value = {
-        "settings": {
-            "paths": {"library_path": "~/.config/jukebox/library.json"},
-            "admin": {"api": {"port": 8000}, "ui": {"port": 8000}},
-            "jukebox": {
-                "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
-                "runtime": {"loop_interval_seconds": 0.1},
-                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
-                "player": {"type": "dryrun", "sonos": {"selected_group": None}},
-            },
-        },
-        "provenance": {
-            "paths": {"library_path": "default"},
-            "admin": {"api": {"port": "default"}, "ui": {"port": "default"}},
-            "jukebox": {
-                "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
-                "runtime": {"loop_interval_seconds": "default"},
-                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
-                "player": {"type": "default", "sonos": {"selected_group": "default"}},
-            },
-        },
-        "derived": {
-            "paths": {"expanded_library_path": "/tmp/library.json", "current_tag_path": "/tmp/current-tag.txt"}
-        },
-        "settings_metadata": {},
-    }
-    stdout_fn = MagicMock()
-    stderr_fn = MagicMock()
-
-    execute_settings_command(
-        command=SettingsShowCommand(type="settings_show", effective=True, json_output=True),
-        settings_service=settings_service,
-        source_command="discstore",
-        library="/tmp/custom library.json",
-        stdout_fn=stdout_fn,
-        stderr_fn=stderr_fn,
-    )
-
-    stderr_message = stderr_fn.call_args.args[0]
-    assert "deprecated" in stderr_message
-    assert "`jukebox-admin --library '/tmp/custom library.json' settings show --effective --json`" in stderr_message
-    stdout_fn.assert_called_once()
 
 
 def test_execute_sonos_command_lists_visible_sonos_speakers():
@@ -559,9 +511,9 @@ def test_execute_server_command_rewrites_controller_dependency_failures(mocker, 
     target_builder = build_api_app if builder_name == "build_api_app" else build_ui_app
     target_builder.side_effect = ModuleNotFoundError(
         optional_extra_dependency_message(
-            subject="The legacy controller module",
+            subject="The controller module",
             extra_name=extra_name,
-            source_command=f"discstore {extra_name}",
+            source_command=f"jukebox-admin {extra_name}",
         )
     )
 

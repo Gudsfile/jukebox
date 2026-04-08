@@ -1,6 +1,5 @@
 import json
 import os
-from unittest.mock import MagicMock
 
 import pytest
 
@@ -96,14 +95,12 @@ def test_settings_service_rejects_conflicting_sonos_target_env_vars(tmp_path):
         json.dumps({"schema_version": 1, "jukebox": {"player": {"type": "sonos"}}}),
         encoding="utf-8",
     )
-    warning = MagicMock()
-
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setenv("JUKEBOX_SONOS_HOST", "192.168.1.20")
         monkeypatch.setenv("JUKEBOX_SONOS_NAME", "Living Room")
         service = SettingsService(
             repository=FileSettingsRepository(str(settings_path)),
-            env_overrides=build_environment_settings_overrides(warning),
+            env_overrides=build_environment_settings_overrides(),
         )
 
     with pytest.raises(InvalidSettingsError, match="manual_host and manual_name are mutually exclusive"):

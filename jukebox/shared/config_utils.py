@@ -1,7 +1,6 @@
 import argparse
 import os
 from importlib.metadata import PackageNotFoundError, version
-from typing import Callable, Optional
 
 
 def get_package_version(package_name: str = "gukebox") -> str:
@@ -9,18 +8,6 @@ def get_package_version(package_name: str = "gukebox") -> str:
         return version(package_name)
     except PackageNotFoundError:
         return "unknown"
-
-
-def get_deprecated_env_with_warning(
-    new_var: str,
-    deprecated_var: str,
-    default: Optional[str],
-    logger_warning: Callable[[str], None],
-) -> Optional[str]:
-    deprecated_value = os.environ.get(deprecated_var)
-    if deprecated_value:
-        logger_warning(f"The {deprecated_var} environment variable is deprecated, use {new_var} instead.")
-    return os.environ.get(new_var, deprecated_value or default)
 
 
 def get_current_tag_path(library_path: str) -> str:
