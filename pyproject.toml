@@ -88,5 +88,4 @@ module-root = ""
 [project.scripts]
 gukebox = "jukebox.app:main"
 jukebox = "jukebox.app:main"
-discstore = "discstore.app:main"
 jukebox-admin = "jukebox.admin.app:main"
