@@ -12,22 +12,22 @@ def test_parse_config_without_overrides():
     assert config == JukeboxCliConfig()
 
 
-@patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-host", "192.168.1.50"])
+@patch("sys.argv", ["jukebox", "sonos", "pn532", "--sonos-host", "192.168.1.50"])
 def test_parse_config_with_player_reader_and_host_overrides():
     config = parse_config()
 
     assert config.player == "sonos"
-    assert config.reader == "nfc"
+    assert config.reader == "pn532"
     assert config.sonos_host == "192.168.1.50"
     assert config.sonos_name is None
 
 
-@patch("sys.argv", ["jukebox", "sonos", "nfc", "--sonos-name", "Living Room"])
+@patch("sys.argv", ["jukebox", "sonos", "pn532", "--sonos-name", "Living Room"])
 def test_parse_config_with_sonos_name_override():
     config = parse_config()
 
     assert config.player == "sonos"
-    assert config.reader == "nfc"
+    assert config.reader == "pn532"
     assert config.sonos_host is None
     assert config.sonos_name == "Living Room"
 
@@ -60,21 +60,21 @@ def test_parse_config_allows_partial_type_overrides(capsys):
     )
 
 
-@patch("sys.argv", ["jukebox", "--reader", "nfc"])
+@patch("sys.argv", ["jukebox", "--reader", "pn532"])
 def test_parse_config_allows_reader_only_override_flag(capsys):
     config = parse_config()
 
     assert config.player is None
-    assert config.reader == "nfc"
+    assert config.reader == "pn532"
     assert capsys.readouterr().err == ""
 
 
-@patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--reader", "nfc"])
+@patch("sys.argv", ["jukebox", "dryrun", "dryrun", "--reader", "pn532"])
 def test_parse_config_reader_flag_overrides_positional_reader(capsys):
     config = parse_config()
 
     assert config.player == "dryrun"
-    assert config.reader == "nfc"
+    assert config.reader == "pn532"
     assert (
         capsys.readouterr().err.strip()
         == "warning: positional player/reader arguments are deprecated; use --player/--reader instead"

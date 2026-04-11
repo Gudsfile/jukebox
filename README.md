@@ -161,7 +161,7 @@ Start the jukebox with the `jukebox` command (show help message with `--help`)
 jukebox PLAYER_TO_USE READER_TO_USE
 ```
 
-🎉 With choosing the `sonos` player and `nfc` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
+🎉 With choosing the `sonos` player and `pn532` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
 
 Optional Parameters
 
@@ -184,7 +184,7 @@ Expected syntax: `tag_id` or `tag_id duration_seconds`.
 - duration_seconds: a non-negative number of seconds used to simulate how long the tag remains in place. Fractional values are allowed.
 Complete example: `your:tag:uid 2.5`
 
-**NFC** (`nfc`)
+**NFC Pn532** (`pn532`)
 Read an NFC tag and get its UID.
 This project works with an NFC reader like the **PN532** and NFC tags like the **NTAG2xx**.
 It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT).
