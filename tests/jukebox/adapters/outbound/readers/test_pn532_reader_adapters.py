@@ -30,10 +30,10 @@ def test_dependencies_import_failure(mocker):
     with pytest.raises(ModuleNotFoundError) as err:
         import jukebox.adapters.outbound.readers.pn532_reader_adapter  # noqa: F401
 
-    assert "The `pn532` reader requires the optional `nfc` dependencies." in str(err.value)
-    assert "pip install 'gukebox[nfc]'" in str(err.value)
-    assert "uv sync --extra nfc" in str(err.value)
-    assert "uv run --extra nfc jukebox ..." in str(err.value)
+    assert "The `pn532` reader requires the optional `pn532` dependencies." in str(err.value)
+    assert "pip install 'gukebox[pn532]'" in str(err.value)
+    assert "uv sync --extra pn532" in str(err.value)
+    assert "uv run --extra pn532 jukebox ..." in str(err.value)
 
 
 # Note: Pn532ReaderAdapter tests would require hardware mocking (PN532_SPI)

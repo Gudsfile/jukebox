@@ -49,7 +49,7 @@ Install the package from [PyPI](https://pypi.org/project/gukebox/).
 > The package name is `gukebox` with `g` instead of a `j` (due to a name already taken).
 
 > [!NOTE]
-> The `nfc` extra is optional but required for NFC reading, [check compatibility](#readers).
+> The `pn532` extra is optional but required for NFC reading, [check compatibility](#readers).
 
 ### Recommended installation
 
@@ -74,7 +74,7 @@ source jukebox/bin/activate
 
 3. Install `gukebox` into the virtual environment:
 ```shell
-pip install "gukebox[nfc]"
+pip install "gukebox[pn532]"
 ```
 
 > [!IMPORTANT]
