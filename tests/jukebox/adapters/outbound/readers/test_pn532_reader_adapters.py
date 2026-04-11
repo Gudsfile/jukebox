@@ -17,24 +17,24 @@ def mock_pn532_lib_installed():
 
 
 def test_parse_raw_uid(mock_pn532_lib_installed):
-    from jukebox.adapters.outbound.readers.nfc_reader_adapter import parse_raw_uid
+    from jukebox.adapters.outbound.readers.pn532_reader_adapter import parse_raw_uid
 
     raw_uid = bytearray(b"\x04\xf2=v\x8fa\x80")
     assert parse_raw_uid(raw_uid) == "04:f2:3d:76:8f:61:80"
 
 
 def test_dependencies_import_failure(mocker):
-    sys.modules.pop("jukebox.adapters.outbound.readers.nfc_reader_adapter", None)
+    sys.modules.pop("jukebox.adapters.outbound.readers.pn532_reader_adapter", None)
     mocker.patch.dict("sys.modules", {"pn532": None})
 
     with pytest.raises(ModuleNotFoundError) as err:
-        import jukebox.adapters.outbound.readers.nfc_reader_adapter  # noqa: F401
+        import jukebox.adapters.outbound.readers.pn532_reader_adapter  # noqa: F401
 
-    assert "The `nfc` reader requires the optional `nfc` dependencies." in str(err.value)
+    assert "The `pn532` reader requires the optional `nfc` dependencies." in str(err.value)
     assert "pip install 'gukebox[nfc]'" in str(err.value)
     assert "uv sync --extra nfc" in str(err.value)
     assert "uv run --extra nfc jukebox ..." in str(err.value)
 
 
-# Note: NfcReaderAdapter tests would require hardware mocking (PN532_SPI)
+# Note: Pn532ReaderAdapter tests would require hardware mocking (PN532_SPI)
 # which is complex and not critical since it's a thin wrapper.

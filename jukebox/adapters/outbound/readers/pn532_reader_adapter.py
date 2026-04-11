@@ -9,7 +9,7 @@ from jukebox.shared.dependency_messages import optional_extra_dependency_message
 try:
     from pn532 import PN532_SPI
 except ModuleNotFoundError as err:
-    raise ModuleNotFoundError(optional_extra_dependency_message("The `nfc` reader", "nfc", "jukebox ...")) from err
+    raise ModuleNotFoundError(optional_extra_dependency_message("The `pn532` reader", "nfc", "jukebox ...")) from err
 
 from jukebox.domain.ports import ReaderPort
 from jukebox.shared.timing import DEFAULT_NFC_READ_TIMEOUT_SECONDS
@@ -25,13 +25,13 @@ def spi_active():
     return any(dev.startswith("spidev") for dev in os.listdir("/dev"))
 
 
-class NfcReaderAdapter(ReaderPort):
-    """Adapter for NFC reader implementing ReaderPort."""
+class Pn532ReaderAdapter(ReaderPort):
+    """Adapter for Pn532 NFC reader implementing ReaderPort."""
 
     def __init__(self, read_timeout_seconds: float = DEFAULT_NFC_READ_TIMEOUT_SECONDS):
         if not spi_active():
             error_message = (
-                "The SPI interface is not enabled. Please enable it to use the NFC reader."
+                "The SPI interface is not enabled. Please enable it to use the PN532 NFC reader."
                 "You can enable SPI using `sudo raspi-config` then navigate to: Interface Options > SPI > Enable > Yes."
             )
             LOGGER.error(error_message)

@@ -16,12 +16,12 @@ class TestBuildJukebox:
     @patch("jukebox.di_container.SonosPlayerAdapter")
     @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_with_sonos_and_nfc(self, mock_library, mock_current_tag, mock_player, mocker):
-        mock_nfc_instance = MagicMock()
-        mock_nfc_class = MagicMock(return_value=mock_nfc_instance)
+    def test_build_jukebox_with_sonos_and_pn532(self, mock_library, mock_current_tag, mock_player, mocker):
+        mock_pn532_instance = MagicMock()
+        mock_pn532_class = MagicMock(return_value=mock_pn532_instance)
         mocker.patch.dict(
             "sys.modules",
-            {"jukebox.adapters.outbound.readers.nfc_reader_adapter": MagicMock(NfcReaderAdapter=mock_nfc_class)},
+            {"jukebox.adapters.outbound.readers.pn532_reader_adapter": MagicMock(Pn532ReaderAdapter=mock_pn532_class)},
         )
 
         config = ResolvedJukeboxRuntimeConfig(
@@ -45,8 +45,8 @@ class TestBuildJukebox:
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
         mock_player.assert_called_once_with(host="192.168.1.100", name=None, group=config.sonos_group)
-        mock_nfc_class.assert_called_once_with(read_timeout_seconds=0.25)
-        assert reader == mock_nfc_instance
+        mock_pn532_class.assert_called_once_with(read_timeout_seconds=0.25)
+        assert reader == mock_pn532_instance
         assert handle_tag_event is not None
 
     @patch("jukebox.di_container.SonosPlayerAdapter")
