@@ -17,7 +17,7 @@ This file provides guidance to AI coding agents when working with code in this r
 uv sync                   # base installation (always safe)
 
 # Install optional extras (EXPLICIT ONLY — do not guess)
-uv sync --extra nfc       # enable NFC tag reading in jukebox (requires compatible hardware)
+uv sync --extra pn532     # enable NFC tag reading in jukebox (requires compatible hardware)
 uv sync --extra api       # enable REST API for discstore
 uv sync --extra ui        # enable Web UI for discstore
 
