@@ -152,7 +152,7 @@ class PN532_SPI(PN532):
         self._spi.writebytes(bytearray([0x00])) #pylint: disable=no-member
         time.sleep(1)
 
-    def _wait_ready(self, timeout=1):
+    def _wait_ready(self, timeout=1.0):
         """Poll PN532 if status byte is ready, up to `timeout` seconds"""
         status = bytearray([reverse_bit(_SPI_STATREAD), 0])
         timestamp = time.monotonic()
