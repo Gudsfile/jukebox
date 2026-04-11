@@ -165,13 +165,13 @@ SETTINGS = {
         requires_restart=True,
         choices=(
             SettingChoice(value="dryrun", label="Dry Run"),
-            SettingChoice(value="nfc", label="NFC"),
+            SettingChoice(value="pn532", label="Pn532 NFC"),
         ),
     ),
-    "jukebox.reader.nfc.read_timeout_seconds": SettingDefinition(
-        path="jukebox.reader.nfc.read_timeout_seconds",
-        label="NFC Read Timeout",
-        description="Timeout in seconds for each NFC poll attempt.",
+    "jukebox.reader.pn532.read_timeout_seconds": SettingDefinition(
+        path="jukebox.reader.pn532.read_timeout_seconds",
+        label="Pn532 NFC Read Timeout",
+        description="Timeout in seconds for each Pn532 NFC poll attempt.",
         field_type="number",
         section="reader",
         requires_restart=True,

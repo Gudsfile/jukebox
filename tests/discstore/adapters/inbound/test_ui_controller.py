@@ -57,7 +57,7 @@ def build_controller():
             "jukebox": {
                 "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                 "runtime": {"loop_interval_seconds": 0.1},
-                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                 "player": {
                     "type": "dryrun",
                     "sonos": {
@@ -78,7 +78,7 @@ def build_controller():
             "jukebox": {
                 "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                 "runtime": {"loop_interval_seconds": "default"},
-                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                 "player": {
                     "type": "default",
                     "sonos": {
@@ -292,7 +292,7 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     assert select_field.initial == "dryrun"
     assert select_field.options == [
         {"value": "dryrun", "label": "Dry Run"},
-        {"value": "nfc", "label": "NFC"},
+        {"value": "pn532", "label": "Pn532 NFC"},
     ]
 
     text_page = route.endpoint("admin.ui.port")[0]
@@ -420,7 +420,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
             "jukebox": {
                 "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                 "runtime": {"loop_interval_seconds": 0.1},
-                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                 "player": {
                     "type": "dryrun",
                     "sonos": {
@@ -435,7 +435,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
             "jukebox": {
                 "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                 "runtime": {"loop_interval_seconds": "default"},
-                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                 "player": {
                     "type": "default",
                     "sonos": {

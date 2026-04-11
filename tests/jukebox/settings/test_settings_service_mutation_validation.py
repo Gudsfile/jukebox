@@ -50,7 +50,7 @@ def test_settings_service_set_rejects_invalid_reader_timeout_without_writing(tmp
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
-        service.set_persisted_value("jukebox.reader.nfc.read_timeout_seconds", "0")
+        service.set_persisted_value("jukebox.reader.pn532.read_timeout_seconds", "0")
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
@@ -233,8 +233,8 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
                 "schema_version": 1,
                 "jukebox": {
                     "reader": {
-                        "type": "nfc",
-                        "nfc": {"read_timeout_seconds": 0.2},
+                        "type": "pn532",
+                        "pn532": {"read_timeout_seconds": 0.2},
                     }
                 },
             }
@@ -250,7 +250,7 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
         "jukebox": {
             "reader": {
                 "type": "dryrun",
-                "nfc": {"read_timeout_seconds": 0.2},
+                "pn532": {"read_timeout_seconds": 0.2},
             }
         },
     }
@@ -258,23 +258,23 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
 
     runtime_config = service.resolve_jukebox_runtime()
     assert runtime_config.reader_type == "dryrun"
-    assert runtime_config.nfc_read_timeout_seconds == 0.2
+    assert runtime_config.pn532_read_timeout_seconds == 0.2
 
-    nfc_result = service.set_persisted_value("jukebox.reader.type", "nfc")
+    pn532_result = service.set_persisted_value("jukebox.reader.type", "pn532")
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
         "jukebox": {
             "reader": {
-                "type": "nfc",
-                "nfc": {"read_timeout_seconds": 0.2},
+                "type": "pn532",
+                "pn532": {"read_timeout_seconds": 0.2},
             }
         },
     }
-    assert nfc_result["updated_paths"] == ["jukebox.reader.type"]
+    assert pn532_result["updated_paths"] == ["jukebox.reader.type"]
     runtime_config = service.resolve_jukebox_runtime()
-    assert runtime_config.reader_type == "nfc"
-    assert runtime_config.nfc_read_timeout_seconds == 0.2
+    assert runtime_config.reader_type == "pn532"
+    assert runtime_config.pn532_read_timeout_seconds == 0.2
 
 
 def test_settings_service_patch_rejects_malformed_inactive_reader_branch_transactionally(tmp_path):
@@ -286,7 +286,7 @@ def test_settings_service_patch_rejects_malformed_inactive_reader_branch_transac
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
     with pytest.raises(InvalidSettingsError, match="Unsupported settings path for write"):
-        service.patch_persisted_settings({"jukebox": {"reader": {"nfc": {"unexpected": "value"}}}})
+        service.patch_persisted_settings({"jukebox": {"reader": {"pn532": {"unexpected": "value"}}}})
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,

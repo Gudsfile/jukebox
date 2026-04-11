@@ -32,11 +32,11 @@ class TestBuildJukebox:
             sonos_group=build_resolved_sonos_group_runtime(
                 speakers=[("speaker-1", "Living Room", "192.168.1.100", "household-1")]
             ),
-            reader_type="nfc",
+            reader_type="pn532",
             pause_duration_seconds=50,
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
-            nfc_read_timeout_seconds=0.25,
+            pn532_read_timeout_seconds=0.25,
             verbose=False,
         )
 
@@ -64,7 +64,7 @@ class TestBuildJukebox:
             pause_duration_seconds=50,
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
-            nfc_read_timeout_seconds=0.25,
+            pn532_read_timeout_seconds=0.25,
             verbose=False,
         )
 
@@ -92,7 +92,7 @@ class TestBuildJukebox:
             pause_duration_seconds=50,
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
-            nfc_read_timeout_seconds=0.25,
+            pn532_read_timeout_seconds=0.25,
             verbose=False,
         )
 
@@ -119,7 +119,7 @@ class TestBuildJukebox:
             pause_duration_seconds=100,
             pause_delay_seconds=5,
             loop_interval_seconds=0.1,
-            nfc_read_timeout_seconds=0.1,
+            pn532_read_timeout_seconds=0.1,
             verbose=False,
         )
 
@@ -149,7 +149,7 @@ class TestBuildJukebox:
             pause_duration_seconds=200,
             pause_delay_seconds=0.2,
             loop_interval_seconds=0.1,
-            nfc_read_timeout_seconds=0.1,
+            pn532_read_timeout_seconds=0.1,
             verbose=False,
         )
 

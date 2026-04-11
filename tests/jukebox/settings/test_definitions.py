@@ -14,7 +14,7 @@ def test_build_settings_metadata_tree_includes_field_choices():
 
     assert reader_type_metadata["choices"] == [
         {"value": "dryrun", "label": "Dry Run"},
-        {"value": "nfc", "label": "NFC"},
+        {"value": "pn532", "label": "Pn532 NFC"},
     ]
     assert player_type_metadata["choices"] == [
         {"value": "dryrun", "label": "Dry Run"},
@@ -48,7 +48,7 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "dryrun",
                         "sonos": {
@@ -69,7 +69,7 @@ def test_build_editable_setting_displays_flattens_values_and_collapses_object_pr
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "default",
                         "sonos": {
@@ -124,7 +124,7 @@ def test_build_editable_setting_displays_marks_mixed_object_provenance():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "dryrun",
                         "sonos": {
@@ -145,7 +145,7 @@ def test_build_editable_setting_displays_marks_mixed_object_provenance():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "default",
                         "sonos": {
