@@ -153,8 +153,8 @@ def test_patch_settings_updates_reader_settings():
             "schema_version": 1,
             "jukebox": {
                 "reader": {
-                    "type": "nfc",
-                    "nfc": {"read_timeout_seconds": 0.2},
+                    "type": "pn532",
+                    "pn532": {"read_timeout_seconds": 0.2},
                 }
             },
         }
@@ -170,7 +170,7 @@ def test_patch_settings_updates_reader_settings():
     )
 
     response = route.endpoint(
-        SettingsPatchInput(root={"jukebox": {"reader": {"type": "nfc", "nfc": {"read_timeout_seconds": 0.2}}}})
+        SettingsPatchInput(root={"jukebox": {"reader": {"type": "pn532", "pn532": {"read_timeout_seconds": 0.2}}}})
     )
 
     assert response == {
@@ -178,14 +178,14 @@ def test_patch_settings_updates_reader_settings():
             "schema_version": 1,
             "jukebox": {
                 "reader": {
-                    "type": "nfc",
-                    "nfc": {"read_timeout_seconds": 0.2},
+                    "type": "pn532",
+                    "pn532": {"read_timeout_seconds": 0.2},
                 }
             },
         }
     }
     settings_service.patch_persisted_settings.assert_called_once_with(
-        {"jukebox": {"reader": {"type": "nfc", "nfc": {"read_timeout_seconds": 0.2}}}}
+        {"jukebox": {"reader": {"type": "pn532", "pn532": {"read_timeout_seconds": 0.2}}}}
     )
 
 
@@ -369,7 +369,7 @@ def test_reset_settings_removes_selected_group_override():
 def test_reset_settings_removes_reader_override():
     settings_service = MagicMock()
     settings_service.reset_persisted_value.return_value = {
-        "persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}
+        "persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "pn532"}}}
     }
     controller = APIController(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), settings_service)
     route = cast(
@@ -381,10 +381,10 @@ def test_reset_settings_removes_reader_override():
         ),
     )
 
-    response = route.endpoint(SettingsResetInput(path="jukebox.reader.nfc.read_timeout_seconds"))
+    response = route.endpoint(SettingsResetInput(path="jukebox.reader.pn532.read_timeout_seconds"))
 
-    assert response == {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}}
-    settings_service.reset_persisted_value.assert_called_once_with("jukebox.reader.nfc.read_timeout_seconds")
+    assert response == {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "pn532"}}}}
+    settings_service.reset_persisted_value.assert_called_once_with("jukebox.reader.pn532.read_timeout_seconds")
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

@@ -51,11 +51,11 @@ def app_mocks(mocker):
         SettingsSetCommand(
             type="settings_set",
             dotted_path="jukebox.reader.type",
-            value="nfc",
+            value="pn532",
         ),
         SettingsSetCommand(
             type="settings_set",
-            dotted_path="jukebox.reader.nfc.read_timeout_seconds",
+            dotted_path="jukebox.reader.pn532.read_timeout_seconds",
             value="0.2",
         ),
         SettingsSetCommand(
@@ -70,7 +70,7 @@ def app_mocks(mocker):
         ),
         SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port"),
         SettingsResetCommand(type="settings_reset", dotted_path="jukebox.runtime.loop_interval_seconds"),
-        SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
+        SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.pn532.read_timeout_seconds"),
         SettingsResetCommand(type="settings_reset", dotted_path="jukebox.player.sonos.selected_group"),
         SettingsResetCommand(type="settings_reset", dotted_path="admin"),
     ],

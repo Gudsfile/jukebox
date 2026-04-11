@@ -23,10 +23,10 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
     else:
         raise ValueError(f"Unknown player type: {config.player_type}")
 
-    if config.reader_type == "nfc":
-        from jukebox.adapters.outbound.readers.nfc_reader_adapter import NfcReaderAdapter
+    if config.reader_type == "pn532":
+        from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
 
-        reader = NfcReaderAdapter(read_timeout_seconds=config.nfc_read_timeout_seconds)
+        reader = Pn532ReaderAdapter(read_timeout_seconds=config.pn532_read_timeout_seconds)
     elif config.reader_type == "dryrun":
         reader = DryrunReaderAdapter()
     else:

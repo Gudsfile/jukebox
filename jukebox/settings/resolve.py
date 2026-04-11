@@ -116,7 +116,7 @@ class SettingsService:
                 pause_duration_seconds=effective_settings.jukebox.playback.pause_duration_seconds,
                 pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
                 loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
-                nfc_read_timeout_seconds=effective_settings.jukebox.reader.nfc.read_timeout_seconds,
+                pn532_read_timeout_seconds=effective_settings.jukebox.reader.pn532.read_timeout_seconds,
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:

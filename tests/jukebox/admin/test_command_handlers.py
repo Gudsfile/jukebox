@@ -46,7 +46,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                     "jukebox": {
                         "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                         "runtime": {"loop_interval_seconds": 0.1},
-                        "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                        "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                         "player": {
                             "type": "sonos",
                             "sonos": {
@@ -67,7 +67,7 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
                     "jukebox": {
                         "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                         "runtime": {"loop_interval_seconds": "default"},
-                        "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                        "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                         "player": {
                             "type": "file",
                             "sonos": {"selected_group": "file"},
@@ -130,11 +130,11 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             SettingsSetCommand(
                 type="settings_set",
                 dotted_path="jukebox.reader.type",
-                value="nfc",
+                value="pn532",
             ),
             "set_persisted_value",
-            ("jukebox.reader.type", "nfc"),
-            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "nfc"}}}},
+            ("jukebox.reader.type", "pn532"),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"type": "pn532"}}}},
             [
                 "Settings command completed.",
                 "Restart Required: no",
@@ -143,12 +143,12 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
         (
             SettingsSetCommand(
                 type="settings_set",
-                dotted_path="jukebox.reader.nfc.read_timeout_seconds",
+                dotted_path="jukebox.reader.pn532.read_timeout_seconds",
                 value="0.2",
             ),
             "set_persisted_value",
-            ("jukebox.reader.nfc.read_timeout_seconds", "0.2"),
-            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {"read_timeout_seconds": 0.2}}}}},
+            ("jukebox.reader.pn532.read_timeout_seconds", "0.2"),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"pn532": {"read_timeout_seconds": 0.2}}}}},
             [
                 "Settings command completed.",
                 "Restart Required: no",
@@ -227,10 +227,10 @@ def test_execute_admin_command_renders_human_readable_persisted_settings():
             ],
         ),
         (
-            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.nfc.read_timeout_seconds"),
+            SettingsResetCommand(type="settings_reset", dotted_path="jukebox.reader.pn532.read_timeout_seconds"),
             "reset_persisted_value",
-            ("jukebox.reader.nfc.read_timeout_seconds",),
-            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"nfc": {}}}}},
+            ("jukebox.reader.pn532.read_timeout_seconds",),
+            {"persisted": {"schema_version": 1, "jukebox": {"reader": {"pn532": {}}}}},
             [
                 "Settings command completed.",
                 "Restart Required: no",
@@ -338,7 +338,7 @@ def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_
             "jukebox": {
                 "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                 "runtime": {"loop_interval_seconds": 0.1},
-                "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                 "player": {"type": "dryrun", "sonos": {"selected_group": None}},
             },
         },
@@ -348,7 +348,7 @@ def test_execute_admin_command_writes_discstore_settings_deprecation_warning_to_
             "jukebox": {
                 "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                 "runtime": {"loop_interval_seconds": "default"},
-                "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                 "player": {"type": "default", "sonos": {"selected_group": "default"}},
             },
         },
