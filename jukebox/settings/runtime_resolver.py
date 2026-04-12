@@ -1,3 +1,4 @@
+import os
 from typing import Optional, Tuple
 
 from pydantic import ValidationError
@@ -6,14 +7,14 @@ from jukebox.sonos.service import SonosService
 
 from .entities import AppSettings, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
 from .errors import InvalidSettingsError
-from .resolve import SettingsService, _expand_path, _format_invalid_settings_message
+from .service_protocols import RuntimeSettingsService
 from .validation_rules import validate_settings_rules
 
 ActiveSonosTarget = Tuple[Optional[str], Optional[str], Optional[ResolvedSonosGroupRuntime]]
 
 
 class JukeboxRuntimeResolver:
-    def __init__(self, settings_service: SettingsService, sonos_service: SonosService):
+    def __init__(self, settings_service: RuntimeSettingsService, sonos_service: SonosService):
         self.settings_service = settings_service
         self.sonos_service = sonos_service
 
@@ -25,7 +26,7 @@ class JukeboxRuntimeResolver:
             # Runtime-only invariants belong on the resolved runtime config so
             # admin/settings inspection can still work with incomplete jukebox settings.
             return ResolvedJukeboxRuntimeConfig(
-                library_path=_expand_path(effective_settings.paths.library_path),
+                library_path=os.path.abspath(os.path.expanduser(effective_settings.paths.library_path)),
                 player_type=effective_settings.jukebox.player.type,
                 sonos_host=sonos_host,
                 sonos_name=sonos_name,
@@ -38,13 +39,7 @@ class JukeboxRuntimeResolver:
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:
-            raise InvalidSettingsError(
-                _format_invalid_settings_message(
-                    str(err),
-                    self.settings_service.env_overrides,
-                    self.settings_service.cli_overrides,
-                )
-            ) from err
+            raise InvalidSettingsError(self.settings_service.format_invalid_settings_error(str(err))) from err
 
     def _resolve_active_sonos_target(self, effective_settings: AppSettings) -> ActiveSonosTarget:
         player_settings = effective_settings.jukebox.player

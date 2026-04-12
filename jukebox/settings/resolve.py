@@ -74,6 +74,9 @@ class SettingsService:
     def get_effective_settings(self) -> AppSettings:
         return self._resolve_effective_settings()
 
+    def format_invalid_settings_error(self, error: str) -> str:
+        return _format_invalid_settings_message(error, self.env_overrides, self.cli_overrides)
+
     def get_effective_settings_view(self) -> JsonObject:
         effective_settings = self.get_effective_settings()
         effective_data = effective_settings.model_dump(mode="python")

@@ -1,22 +1,29 @@
+from dataclasses import dataclass
 from typing import Any, Optional, Protocol
 
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
     SonosDiscoveryPort,
-    SonosDiscoverySnapshot,
     sort_sonos_speakers,
 )
 
 
+@dataclass(frozen=True)
+class _SonosDiscoverySnapshot:
+    speakers: list[DiscoveredSonosSpeaker]
+    retry_hosts_by_uid: dict[str, list[str]]
+    normalization_errors: list[str]
+
+
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def discover_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        snapshot = self.discover_runtime_snapshot()
+        snapshot = self._discover_runtime_snapshot()
         speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
         for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
             for host in hosts:
                 try:
-                    recovered = self.resolve_speaker_by_host(expected_uid, host)
+                    recovered = self._resolve_speaker_by_host(expected_uid, host)
                 except ValueError:
                     continue
 
@@ -32,7 +39,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             )
         return recovered_speakers
 
-    def discover_runtime_snapshot(self) -> SonosDiscoverySnapshot:
+    def _discover_runtime_snapshot(self) -> _SonosDiscoverySnapshot:
         import soco
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException
@@ -44,7 +51,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
 
         if not discovered:
-            return SonosDiscoverySnapshot(
+            return _SonosDiscoverySnapshot(
                 speakers=[],
                 retry_hosts_by_uid={},
                 normalization_errors=[],
@@ -75,13 +82,13 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             existing = speakers_by_uid.get(normalized.uid)
             speakers_by_uid[normalized.uid] = self._choose_preferred(existing, normalized)
 
-        return SonosDiscoverySnapshot(
+        return _SonosDiscoverySnapshot(
             speakers=sort_sonos_speakers(list(speakers_by_uid.values())),
             retry_hosts_by_uid={uid: sorted(hosts) for uid, hosts in sorted(retry_hosts_by_uid.items())},
             normalization_errors=normalization_errors,
         )
 
-    def resolve_speaker_by_host(self, expected_uid: str, host: str) -> DiscoveredSonosSpeaker:
+    def _resolve_speaker_by_host(self, expected_uid: str, host: str) -> DiscoveredSonosSpeaker:
         from requests.exceptions import RequestException
         from soco import SoCo
         from soco.exceptions import SoCoException, SoCoUPnPException

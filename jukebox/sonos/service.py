@@ -29,48 +29,27 @@ class DefaultSonosService:
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> ResolvedSonosGroupRuntime:
-        snapshot = self.discovery.discover_runtime_snapshot()
-        available_speakers = {speaker.uid: speaker for speaker in snapshot.speakers}
+        available_speakers = {speaker.uid: speaker for speaker in self.discovery.discover_speakers()}
         resolved_members = []
         missing_member_uids = []
-        coordinator_resolution_error = None
 
         for saved_member in selected_group.members:
             resolved_speaker = available_speakers.get(saved_member.uid)
-            runtime_member = self._build_runtime_speaker(resolved_speaker) if resolved_speaker is not None else None
-            member_resolution_error = None
-
-            if runtime_member is None:
-                host_errors = []
-                for host in snapshot.retry_hosts_by_uid.get(saved_member.uid, []):
-                    try:
-                        resolved_speaker = self.discovery.resolve_speaker_by_host(saved_member.uid, host)
-                        runtime_member = self._build_runtime_speaker(resolved_speaker)
-                        break
-                    except ValueError as err:
-                        host_errors.append(f"{saved_member.uid} via {host}: {err}")
-
-                if runtime_member is None and host_errors:
-                    member_resolution_error = "; ".join(host_errors)
-                elif runtime_member is None:
-                    member_resolution_error = f"{saved_member.uid}: not found on network"
-
-            if runtime_member is None:
+            if resolved_speaker is None:
                 if saved_member.uid == selected_group.coordinator_uid:
-                    coordinator_resolution_error = member_resolution_error
-                else:
-                    missing_member_uids.append(saved_member.uid)
+                    raise ValueError(
+                        f"Unable to resolve saved Sonos coordinator: {saved_member.uid}: not found on network"
+                    )
+                missing_member_uids.append(saved_member.uid)
                 continue
 
-            resolved_members.append(runtime_member)
+            resolved_members.append(self._build_runtime_speaker(resolved_speaker))
 
         coordinator = next(
             (member for member in resolved_members if member.uid == selected_group.coordinator_uid),
             None,
         )
         if coordinator is None:
-            if coordinator_resolution_error is not None:
-                raise ValueError(f"Unable to resolve saved Sonos coordinator: {coordinator_resolution_error}")
             raise ValueError("Saved Sonos coordinator did not resolve to one of the selected_group members")
 
         household_ids = {member.household_id for member in resolved_members}

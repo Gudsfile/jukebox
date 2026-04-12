@@ -1,6 +1,6 @@
 from typing import Protocol
 
-from .entities import ResolvedAdminRuntimeConfig
+from .entities import AppSettings, ResolvedAdminRuntimeConfig
 from .types import JsonObject
 
 
@@ -10,7 +10,13 @@ class ReadOnlySettingsService(Protocol):
     def get_effective_settings_view(self) -> JsonObject: ...
 
 
-class SettingsService(ReadOnlySettingsService, Protocol):
+class RuntimeSettingsService(Protocol):
+    def get_effective_settings(self) -> AppSettings: ...
+
+    def format_invalid_settings_error(self, error: str) -> str: ...
+
+
+class SettingsService(ReadOnlySettingsService, RuntimeSettingsService, Protocol):
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject: ...
 
     def reset_persisted_value(self, dotted_path: str) -> JsonObject: ...
