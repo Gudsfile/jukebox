@@ -2,11 +2,14 @@ import logging
 
 from jukebox.adapters.inbound.cli_controller import CLIController
 from jukebox.adapters.inbound.config import JukeboxCliConfig, parse_config
+from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.di_container import build_jukebox
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
+from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.shared.logger import set_logger
+from jukebox.sonos.service import DefaultSonosService
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -52,13 +55,18 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
     )
 
 
+def _build_runtime_resolver(settings_service: SettingsService) -> JukeboxRuntimeResolver:
+    return JukeboxRuntimeResolver(settings_service, DefaultSonosService(SoCoSonosDiscoveryAdapter()))
+
+
 def main():
     config = parse_config()
     set_logger("jukebox", config.verbose)
 
     try:
         settings_service = _build_settings_service(config)
-        runtime_config = settings_service.resolve_jukebox_runtime(verbose=config.verbose)
+        runtime_resolver = _build_runtime_resolver(settings_service)
+        runtime_config = runtime_resolver.resolve(verbose=config.verbose)
         reader, handle_tag_event = build_jukebox(runtime_config)
     except SettingsError as err:
         raise SystemExit(str(err)) from err

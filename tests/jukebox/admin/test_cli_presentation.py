@@ -2,6 +2,7 @@ from jukebox.admin.cli_presentation import (
     build_discstore_settings_deprecation_warning,
     render_cli_error,
     render_settings_output,
+    render_sonos_speakers_output,
 )
 from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 from jukebox.settings.errors import (
@@ -9,6 +10,7 @@ from jukebox.settings.errors import (
     MalformedSettingsFileError,
     UnsupportedSettingsVersionError,
 )
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():
@@ -267,6 +269,34 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
         "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: mixed; restart required)"
     ) in rendered
+
+
+def test_render_sonos_speakers_output_is_stable_and_human_readable():
+    rendered = render_sonos_speakers_output(
+        [
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-1",
+                is_visible=True,
+            ),
+            DiscoveredSonosSpeaker(
+                uid="speaker-2",
+                name="Kitchen",
+                host="192.168.1.40",
+                household_id="household-1",
+                is_visible=True,
+            ),
+        ]
+    )
+
+    assert "1. Kitchen   192.168.1.30   speaker-1" in rendered
+    assert "2. Kitchen   192.168.1.40   speaker-2" in rendered
+
+
+def test_render_sonos_speakers_output_handles_empty_results():
+    assert render_sonos_speakers_output([]) == "No visible Sonos speakers found."
 
 
 def test_render_settings_output_json_mode_preserves_payload_shape():
