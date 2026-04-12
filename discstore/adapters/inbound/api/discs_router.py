@@ -37,8 +37,7 @@ def build_discs_router(
     def create_disc_route(tag_id: str, disc: DiscInput) -> Disc:
         try:
             new_disc = Disc(**disc.model_dump())
-            add_disc.execute(tag_id, new_disc)
-            return new_disc
+            return add_disc.execute(tag_id, new_disc)
         except ValueError as value_err:
             raise HTTPException(status_code=409, detail=str(value_err))
         except Exception as err:
@@ -55,8 +54,7 @@ def build_discs_router(
             if disc_patch.option is not None:
                 option = DiscOption(**disc_patch.option.model_dump(exclude_unset=True, exclude_none=True))
 
-            edit_disc.execute(tag_id, disc_patch.uri, metadata, option)
-            return get_disc.execute(tag_id)
+            return edit_disc.execute(tag_id, disc_patch.uri, metadata, option)
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:

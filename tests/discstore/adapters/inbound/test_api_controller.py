@@ -225,6 +225,11 @@ def test_get_disc_returns_404_when_missing():
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_create_disc_returns_created_disc_payload():
     add_disc = MagicMock()
+    add_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(shuffle=True),
+    )
     controller = build_controller(add_disc=add_disc)
     route = get_route(controller, "/api/v1/discs/{tag_id}", "POST")
     request = DiscInput(
@@ -259,13 +264,12 @@ def test_create_disc_returns_409_when_tag_exists():
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_disc_partially_updates_existing_disc():
     edit_disc = MagicMock()
-    get_disc = MagicMock()
-    get_disc.execute.return_value = Disc(
+    edit_disc.execute.return_value = Disc(
         uri="/music/song.mp3",
         metadata=DiscMetadata(artist="Artist", album="Album", track="Updated Track"),
         option=DiscOption(shuffle=False),
     )
-    controller = build_controller(edit_disc=edit_disc, get_disc=get_disc)
+    controller = build_controller(edit_disc=edit_disc)
     route = get_route(controller, "/api/v1/discs/{tag_id}", "PATCH")
 
     response = route.endpoint(
@@ -284,7 +288,6 @@ def test_patch_disc_partially_updates_existing_disc():
         DiscMetadata(track="Updated Track"),
         DiscOption(shuffle=False),
     )
-    get_disc.execute.assert_called_once_with("tag-123")
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
