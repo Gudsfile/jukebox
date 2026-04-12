@@ -1,7 +1,7 @@
 import json
 import re
 import shlex
-from typing import Dict, Iterable, List, Optional, Tuple, cast
+from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -12,6 +12,7 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 
@@ -21,19 +22,20 @@ _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
 
 def render_settings_output(
     command: object,
-    payload: JsonObject,
+    payload: Mapping[str, object],
 ) -> str:
     if isinstance(command, SettingsShowCommand):
         if command.json_output:
             return json.dumps(payload, indent=2)
+        settings_payload = cast(JsonObject, payload)
         if command.effective:
-            return _render_effective_settings(payload)
-        return _render_persisted_settings(payload)
+            return _render_effective_settings(settings_payload)
+        return _render_persisted_settings(settings_payload)
 
     if isinstance(command, (SettingsSetCommand, SettingsResetCommand)):
         if command.json_output:
             return json.dumps(payload, indent=2)
-        return _render_write_result(payload)
+        return _render_write_result(cast(JsonObject, payload))
 
     raise TypeError("Unsupported settings command")
 
@@ -50,6 +52,25 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     if verbose and str(err) and str(err) != message:
         return "{}\n\nDetails: {}".format(message, str(err))
     return message
+
+
+def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
+    if not speakers:
+        return "No visible Sonos speakers found."
+
+    name_width = max(len(speaker.name) for speaker in speakers)
+    host_width = max(len(speaker.host) for speaker in speakers)
+    return "\n".join(
+        "{index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
+            index=index,
+            name=speaker.name,
+            name_width=name_width,
+            host=speaker.host,
+            host_width=host_width,
+            uid=speaker.uid,
+        )
+        for index, speaker in enumerate(speakers, start=1)
+    )
 
 
 def _render_persisted_settings(payload: JsonObject) -> str:

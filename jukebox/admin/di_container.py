@@ -8,13 +8,16 @@ from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatu
 from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
+from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.config_utils import get_current_tag_path
+from jukebox.sonos.service import DefaultSonosService, SonosService
 
 from .commands import ApiCommand, UiCommand
+from .services import AdminServices
 
 
 def build_settings_service(
@@ -40,7 +43,21 @@ def build_settings_service(
     )
 
 
-def build_admin_api_app(library_path: str, settings_service: SettingsService):
+def build_admin_services(
+    library: Optional[str],
+    command: Optional[object],
+    logger_warning: Callable[[str], None],
+) -> AdminServices:
+    sonos_service = build_sonos_service()
+    settings_service = build_settings_service(
+        library=library,
+        command=command,
+        logger_warning=logger_warning,
+    )
+    return AdminServices(settings=settings_service, sonos=sonos_service)
+
+
+def build_admin_api_app(library_path: str, services: AdminServices):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
 
@@ -52,11 +69,12 @@ def build_admin_api_app(library_path: str, settings_service: SettingsService):
         RemoveDisc(repository),
         EditDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
-        settings_service,
+        services.settings,
+        services.sonos,
     )
 
 
-def build_admin_ui_app(library_path: str, settings_service: SettingsService):
+def build_admin_ui_app(library_path: str, services: AdminServices):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
 
@@ -69,5 +87,10 @@ def build_admin_ui_app(library_path: str, settings_service: SettingsService):
         EditDisc(repository),
         GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
-        settings_service,
+        services.settings,
+        services.sonos,
     )
+
+
+def build_sonos_service() -> SonosService:
+    return DefaultSonosService(SoCoSonosDiscoveryAdapter())

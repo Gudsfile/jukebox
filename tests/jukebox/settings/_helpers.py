@@ -4,6 +4,8 @@ from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
 )
+from jukebox.settings.resolve import SettingsService
+from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.settings.types import JsonObject, JsonValue
 
 
@@ -43,7 +45,7 @@ def build_resolved_sonos_group_runtime(
     )
 
 
-class StubSonosGroupResolver:
+class StubSonosService:
     def __init__(
         self,
         resolved_group: Optional[ResolvedSonosGroupRuntime] = None,
@@ -59,3 +61,17 @@ class StubSonosGroupResolver:
             raise self.error
         assert self.resolved_group is not None
         return self.resolved_group
+
+    def list_available_speakers(self):
+        return []
+
+
+def resolve_jukebox_runtime(
+    settings_service: SettingsService,
+    sonos_service: Optional[StubSonosService] = None,
+    verbose: bool = False,
+):
+    if sonos_service is None:
+        sonos_service = StubSonosService(error=AssertionError("sonos_service should not be called"))
+
+    return JukeboxRuntimeResolver(settings_service, sonos_service).resolve(verbose=verbose)
