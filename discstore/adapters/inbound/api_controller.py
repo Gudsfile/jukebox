@@ -6,21 +6,23 @@ from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 try:
     from fastapi import FastAPI, HTTPException
+
+    from discstore.adapters.inbound.api.current_tag_router import build_current_tag_router
+    from discstore.adapters.inbound.api.discs_router import build_discs_router
+    from discstore.adapters.inbound.api.models import (
+        CurrentTagStatusOutput,
+        DiscInput,
+        DiscOutput,
+        SettingsPatchInput,
+        SettingsResetInput,
+    )
+    from discstore.adapters.inbound.api.settings_router import build_settings_router
 except ModuleNotFoundError as e:
+    if e.name != "fastapi":
+        raise
     raise ModuleNotFoundError(
         optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")
     ) from e
-
-from discstore.adapters.inbound.api import (
-    CurrentTagStatusOutput,
-    DiscInput,
-    DiscOutput,
-    SettingsPatchInput,
-    SettingsResetInput,
-    build_current_tag_router,
-    build_discs_router,
-    build_settings_router,
-)
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
