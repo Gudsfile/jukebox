@@ -13,6 +13,7 @@ from jukebox.settings.errors import (
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 
@@ -71,6 +72,39 @@ def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
         )
         for index, speaker in enumerate(speakers, start=1)
     )
+
+
+def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
+    return "{} ({})".format(speaker.name, speaker.host)
+
+
+def render_sonos_selection_saved_output(result: SonosSelectionResult) -> str:
+    return "\n".join(
+        [
+            "Selected Sonos speaker: {}".format(result.speaker.name),
+            "UID: {}".format(result.speaker.uid),
+            result.settings_message,
+        ]
+    )
+
+
+def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
+    lines = ["Selected Sonos Speaker", ""]
+
+    if status.selected_group is None:
+        lines.append("- Status: not selected")
+        return "\n".join(lines)
+
+    lines.append("- UID: {}".format(status.selected_group.coordinator_uid))
+    lines.append("- Status: {}".format(status.availability.status))
+
+    speaker = status.availability.speaker
+    if speaker is not None:
+        lines.append("- Name: {}".format(speaker.name))
+        lines.append("- Host: {}".format(speaker.host))
+        lines.append("- Household: {}".format(speaker.household_id))
+
+    return "\n".join(lines)
 
 
 def _render_persisted_settings(payload: JsonObject) -> str:
