@@ -83,3 +83,9 @@ sudo raspi-config
 | --- | --- | --- |
 | `jukebox.reader.type` | Persists the reader choice across restarts | `pn532` |
 | `jukebox.reader.pn532.read_timeout_seconds` | Timeout in seconds for each NFC poll attempt (must be > 0) | `0.1` |
+
+## Another reader?
+
+The best way to contribute is to add support for the reader yourself. We’d be happy to review your pull request.
+
+If you’re unsure how to proceed, feel free [to open an issue](https://github.com/Gudsfile/jukebox/issues/new) describing the reader you’d like to support, someone may be able to guide you.

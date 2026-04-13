@@ -89,3 +89,9 @@ Short version: `CLI host/name > env host/name > persisted selected_group`, then 
 
 > [!TIP]
 > `manual_host` and `manual_name` cannot be set via `jukebox-admin settings set` (they are not in the editable definitions). Use CLI flags or environment variables for process-local host/name overrides.
+
+## Another player?
+
+The best way to contribute is to add support for the player yourself. We’d be happy to review your pull request.
+
+If you’re unsure how to proceed, feel free [to open an issue](https://github.com/Gudsfile/jukebox/issues/new) describing the player you’d like to support, someone may be able to guide you.
