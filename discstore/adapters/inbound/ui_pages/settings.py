@@ -8,6 +8,7 @@ from fastui import AnyComponent
 from fastui import components as c
 from fastui.components.forms import FormFieldInput, FormFieldSelect, FormFieldTextarea
 from fastui.events import GoToEvent, PageEvent
+from fastui.forms import SelectOption
 
 from jukebox.settings.definitions import (
     EditableSettingDisplay,
@@ -16,7 +17,7 @@ from jukebox.settings.definitions import (
 )
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.settings.types import JsonObject
+from jukebox.settings.types import JsonObject, JsonValue
 
 _MISSING = object()
 
@@ -283,16 +284,17 @@ class SettingsUIPageBuilder:
             field_description = f"{field_description} Takes effect after restart."
 
         if setting.choices:
+            options: list[SelectOption] = [
+                {
+                    "value": choice.value,
+                    "label": choice.label,
+                }
+                for choice in setting.choices
+            ]
             form_field = FormFieldSelect(
                 name="value",
                 title=setting.label,
-                options=[
-                    {
-                        "value": choice.value,
-                        "label": choice.label,
-                    }
-                    for choice in setting.choices
-                ],
+                options=options,
                 initial=None if initial_value is None else str(initial_value),
                 description=field_description,
                 required=True,
@@ -412,7 +414,7 @@ class SettingsUIPageBuilder:
 
         if definition.field_type == "integer":
             try:
-                value: object = int(raw_value)
+                value: JsonValue = int(raw_value)
             except ValueError as err:
                 raise ValueError("Enter a valid integer.") from err
         elif definition.field_type == "number":
@@ -425,7 +427,7 @@ class SettingsUIPageBuilder:
                 value = None
                 return self.build_dotted_patch(setting_path, value)
             try:
-                value = json.loads(raw_value)
+                value = cast(JsonValue, json.loads(raw_value))
             except json.JSONDecodeError as err:
                 raise ValueError("Enter valid JSON.") from err
             if not isinstance(value, dict):
@@ -435,7 +437,7 @@ class SettingsUIPageBuilder:
 
         return self.build_dotted_patch(setting_path, value)
 
-    def build_dotted_patch(self, dotted_path: str, value: object) -> JsonObject:
+    def build_dotted_patch(self, dotted_path: str, value: JsonValue) -> JsonObject:
         patch: JsonObject = {}
         cursor = patch
         parts = dotted_path.split(".")
