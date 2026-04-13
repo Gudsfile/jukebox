@@ -32,6 +32,7 @@ jobs:
   test-and-lint:
     name: Run Tests & Linting
     runs-on: ubuntu-latest
+    environment: dev
     if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'no-ci')
 
     strategy:
