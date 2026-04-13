@@ -24,6 +24,7 @@ jobs:
   build-and-publish:
     name: Build & Publish to PyPI
     runs-on: ubuntu-latest
+    environment: prod
     outputs:
       is_stable: ${{ steps.check-stable.outputs.is_stable }}
     if: |
