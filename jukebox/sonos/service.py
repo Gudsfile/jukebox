@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Optional, Protocol
+from typing import Optional, Protocol
 
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
@@ -43,12 +43,9 @@ class DefaultSonosService:
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> InspectedSelectedSonosGroup:
-        snapshot = self.discovery.discover_runtime_snapshot()
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=snapshot.speakers,
-            retry_hosts_by_uid=snapshot.retry_hosts_by_uid,
-            resolve_speaker_by_host=self.discovery.resolve_speaker_by_host,
+            speakers=self.discovery.discover_speakers(),
         )
 
     def resolve_selected_group(
@@ -85,36 +82,16 @@ class DefaultSonosService:
 def _inspect_selected_group(
     selected_group: SelectedSonosGroupSettings,
     speakers: list[DiscoveredSonosSpeaker],
-    retry_hosts_by_uid: dict[str, list[str]],
-    resolve_speaker_by_host: Callable[[str, str], DiscoveredSonosSpeaker],
 ) -> InspectedSelectedSonosGroup:
     available_speakers = {speaker.uid: speaker for speaker in speakers}
     resolved_members = []
     missing_member_uids = []
-    coordinator_resolution_error = None
 
     for saved_member in selected_group.members:
         resolved_speaker = available_speakers.get(saved_member.uid)
-        member_resolution_error = None
 
         if resolved_speaker is None:
-            host_errors = []
-            for host in retry_hosts_by_uid.get(saved_member.uid, []):
-                try:
-                    resolved_speaker = resolve_speaker_by_host(saved_member.uid, host)
-                    break
-                except ValueError as err:
-                    host_errors.append(f"{saved_member.uid} via {host}: {err}")
-
-            if resolved_speaker is None and host_errors:
-                member_resolution_error = "; ".join(host_errors)
-            elif resolved_speaker is None:
-                member_resolution_error = f"{saved_member.uid}: not found on network"
-
-        if resolved_speaker is None:
-            if saved_member.uid == selected_group.coordinator_uid:
-                coordinator_resolution_error = member_resolution_error
-            else:
+            if saved_member.uid != selected_group.coordinator_uid:
                 missing_member_uids.append(saved_member.uid)
             continue
 
@@ -125,15 +102,13 @@ def _inspect_selected_group(
         None,
     )
     if coordinator is None:
-        if coordinator_resolution_error is not None:
-            error_message = f"Unable to resolve saved Sonos coordinator: {coordinator_resolution_error}"
-        else:
-            error_message = "Saved Sonos coordinator did not resolve to one of the selected_group members"
         return InspectedSelectedSonosGroup(
             coordinator=None,
             resolved_members=resolved_members,
             missing_member_uids=missing_member_uids,
-            error_message=error_message,
+            error_message="Unable to resolve saved Sonos coordinator: {}: not found on network".format(
+                selected_group.coordinator_uid
+            ),
         )
 
     household_ids = {member.household_id for member in resolved_members}
