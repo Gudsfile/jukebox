@@ -66,6 +66,7 @@ extend-exclude = ["pn532/"]
 extend-select = [
     "SIM",
     "I",
+    "UP032",
 ]
 
 [tool.ty.src]

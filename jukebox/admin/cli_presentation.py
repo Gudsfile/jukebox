@@ -44,14 +44,14 @@ def render_settings_output(
 def build_discstore_settings_deprecation_warning(command: object, library: Optional[str] = None) -> str:
     return (
         "Warning: `discstore settings ...` is deprecated and will be removed in a future release. "
-        "Use {} instead.".format(_build_equivalent_jukebox_admin_command(command, library=library))
+        f"Use {_build_equivalent_jukebox_admin_command(command, library=library)} instead."
     )
 
 
 def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     message = _render_cli_error_message(err)
     if verbose and str(err) and str(err) != message:
-        return "{}\n\nDetails: {}".format(message, str(err))
+        return f"{message}\n\nDetails: {str(err)}"
     return message
 
 
@@ -108,7 +108,7 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
 
 
 def _render_persisted_settings(payload: JsonObject) -> str:
-    lines = ["Persisted Settings", "Schema Version: {}".format(payload.get("schema_version", "unknown"))]
+    lines = ["Persisted Settings", f"Schema Version: {payload.get('schema_version', 'unknown')}"]
     entries = list(_collect_persisted_entries(payload))
 
     if not entries:
@@ -124,7 +124,7 @@ def _render_persisted_settings(payload: JsonObject) -> str:
         lines.append("")
         lines.append(_format_section_title(section))
         for dotted_path, value in section_entries:
-            lines.append("- {}: {}".format(_format_entry_label(dotted_path), _format_value(dotted_path, value)))
+            lines.append(f"- {_format_entry_label(dotted_path)}: {_format_value(dotted_path, value)}")
 
     return "\n".join(lines)
 
@@ -152,14 +152,9 @@ def _render_effective_settings(payload: JsonObject) -> str:
                 value = None
             provenance_label = lookup_provenance_label(provenance, definition.path)
             lines.append(
-                "- {}: {}{}".format(
-                    _format_entry_label(definition.path),
-                    _format_value(definition.path, value),
-                    _format_effective_suffix(
-                        provenance_label,
-                        definition.requires_restart,
-                    ),
-                )
+                f"- {_format_entry_label(definition.path)}: "
+                f"{_format_value(definition.path, value)}"
+                f"{_format_effective_suffix(provenance_label, definition.requires_restart)}"
             )
             rendered_paths.add(definition.path)
 
@@ -170,14 +165,9 @@ def _render_effective_settings(payload: JsonObject) -> str:
             definition = get_setting_definition(dotted_path)
             provenance_label = lookup_provenance_label(provenance, dotted_path)
             lines.append(
-                "- {}: {}{}".format(
-                    _format_entry_label(dotted_path),
-                    _format_value(dotted_path, value),
-                    _format_effective_suffix(
-                        provenance_label,
-                        definition.requires_restart if definition is not None else False,
-                    ),
-                )
+                f"- {_format_entry_label(dotted_path)}: "
+                f"{_format_value(dotted_path, value)}"
+                f"{_format_effective_suffix(provenance_label, definition.requires_restart if definition is not None else False)}"
             )
 
     derived_entries = list(_collect_generic_entries(derived, prefix="derived"))
@@ -185,7 +175,7 @@ def _render_effective_settings(payload: JsonObject) -> str:
         lines.append("")
         lines.append("Derived")
         for dotted_path, value in derived_entries:
-            lines.append("- {}: {}".format(_format_entry_label(dotted_path), _format_value(dotted_path, value)))
+            lines.append(f"- {_format_entry_label(dotted_path)}: {_format_value(dotted_path, value)}")
 
     return "\n".join(lines)
 
@@ -203,26 +193,26 @@ def _render_write_result(payload: JsonObject) -> str:
         lines.append("Changed Paths")
         for dotted_path in updated_paths:
             if isinstance(dotted_path, str):
-                lines.append("- {}".format(_format_entry_label(dotted_path)))
+                lines.append(f"- {_format_entry_label(dotted_path)}")
 
     lines.append("")
-    lines.append("Restart Required: {}".format("yes" if restart_required else "no"))
+    lines.append(f"Restart Required: {'yes' if restart_required else 'no'}")
 
     if isinstance(restart_required_paths, list) and restart_required_paths:
         lines.append("")
         lines.append("Restart-Required Paths")
         for dotted_path in restart_required_paths:
             if isinstance(dotted_path, str):
-                lines.append("- {}".format(_format_entry_label(dotted_path)))
+                lines.append(f"- {_format_entry_label(dotted_path)}")
 
     return "\n".join(lines)
 
 
 def _format_effective_suffix(provenance: str, requires_restart: bool) -> str:
-    suffix_parts = ["source: {}".format(provenance)]
+    suffix_parts = [f"source: {provenance}"]
     if requires_restart:
         suffix_parts.append("restart required")
-    return " ({})".format("; ".join(suffix_parts))
+    return f" ({'; '.join(suffix_parts)})"
 
 
 def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
@@ -230,7 +220,7 @@ def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -
         if key == "schema_version":
             continue
 
-        dotted_path = "{}.{}".format(prefix, key) if prefix else key
+        dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
             for child_entry in _collect_persisted_entries(value, dotted_path):
                 yield child_entry
@@ -241,7 +231,7 @@ def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -
 
 def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
-        dotted_path = "{}.{}".format(prefix, key)
+        dotted_path = f"{prefix}.{key}"
         if isinstance(value, dict):
             for child_entry in _collect_generic_entries(value, dotted_path):
                 yield child_entry
@@ -251,7 +241,7 @@ def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[st
 
 def _collect_leaf_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
-        dotted_path = "{}.{}".format(prefix, key) if prefix else key
+        dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
             for child_entry in _collect_leaf_entries(value, dotted_path):
                 yield child_entry
@@ -295,7 +285,7 @@ def _format_entry_label(dotted_path: str) -> str:
     definition = get_setting_definition(dotted_path)
     if definition is None:
         return dotted_path
-    return "{} [{}]".format(definition.label, dotted_path)
+    return f"{definition.label} [{dotted_path}]"
 
 
 def _format_value(dotted_path: str, value: object) -> str:
@@ -341,7 +331,7 @@ def _format_selected_group(value: object) -> str:
     if not member_uids:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
-    return "{} (coordinator); members: {}".format(coordinator_uid, ", ".join(member_uids))
+    return f"{coordinator_uid} (coordinator); members: {', '.join(member_uids)}"
 
 
 def _build_equivalent_jukebox_admin_command(command: object, library: Optional[str] = None) -> str:
@@ -373,18 +363,18 @@ def _build_equivalent_jukebox_admin_command(command: object, library: Optional[s
 
 
 def _format_shell_command(args: List[str]) -> str:
-    return "`{}`".format(" ".join(shlex.quote(arg) for arg in args))
+    return f"`{' '.join(shlex.quote(arg) for arg in args)}`"
 
 
 def _render_cli_error_message(err: BaseException) -> str:
     if isinstance(err, MalformedSettingsFileError):
         filepath = _extract_quoted_path(str(err))
         if filepath is not None:
-            return "Malformed settings file at '{}'. Fix the JSON syntax and try again.".format(filepath)
+            return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
         return "Malformed settings file. Fix the JSON syntax and try again."
 
     if isinstance(err, UnsupportedSettingsVersionError):
-        return "Unsupported settings file version. {}".format(str(err))
+        return f"Unsupported settings file version. {str(err)}"
 
     if isinstance(err, InvalidSettingsError):
         return _render_invalid_settings_error(err)
@@ -407,30 +397,30 @@ def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
         dotted_path = _extract_quoted_path(message)
         if dotted_path is not None:
             return (
-                "Unsupported settings path: '{}'. Use `jukebox-admin settings show --effective --json` "
+                f"Unsupported settings path: '{dotted_path}'. Use `jukebox-admin settings show --effective --json` "
                 "to inspect supported editable paths."
-            ).format(dotted_path)
+            )
         return "Unsupported settings path."
 
     if message.startswith("Settings value for '"):
         dotted_path = _extract_quoted_path(message)
         if "must be valid JSON" in message:
-            return "Invalid value for '{}'. Pass a JSON object or `null`.".format(dotted_path or "setting")
+            return f"Invalid value for '{dotted_path or 'setting'}'. Pass a JSON object or `null`."
         if "must be a JSON object or null" in message:
-            return "Invalid value for '{}'. Expected a JSON object or `null`.".format(dotted_path or "setting")
+            return f"Invalid value for '{dotted_path or 'setting'}'. Expected a JSON object or `null`."
 
     if message.startswith("Invalid settings update:"):
-        return "Settings update rejected: {}".format(_extract_compact_detail(message))
+        return f"Settings update rejected: {_extract_compact_detail(message)}"
 
     if message.startswith("Invalid settings file at '"):
         filepath = _extract_quoted_path(message)
         detail = _extract_compact_detail(message)
         if filepath is not None:
-            return "Persisted settings are invalid at '{}': {}".format(filepath, detail)
-        return "Persisted settings are invalid: {}".format(detail)
+            return f"Persisted settings are invalid at '{filepath}': {detail}"
+        return f"Persisted settings are invalid: {detail}"
 
     if message.startswith("Invalid effective settings"):
-        return "Effective settings are invalid: {}".format(_extract_compact_detail(message))
+        return f"Effective settings are invalid: {_extract_compact_detail(message)}"
 
     return message
 
@@ -441,14 +431,10 @@ def _render_system_exit_message(message: str) -> str:
 
     if extra_name_match is not None:
         extra_name = extra_name_match.group(1)
-        install_hint = "Run `uv sync --extra {}` to install them.".format(extra_name)
+        install_hint = f"Run `uv sync --extra {extra_name}` to install them."
         if command_match is not None:
-            install_hint = "{} Or run `uv run --extra {} {}`.".format(
-                install_hint,
-                extra_name,
-                command_match.group(1),
-            )
-        return "Optional `{}` dependencies are not installed. {}".format(extra_name, install_hint)
+            install_hint = f"{install_hint} Or run `uv run --extra {extra_name} {command_match.group(1)}`."
+        return f"Optional `{extra_name}` dependencies are not installed. {install_hint}"
 
     return message
 
@@ -475,7 +461,7 @@ def _extract_compact_detail(message: str) -> str:
             pending_location = line
             continue
 
-        paired_details.append("{}: {}".format(pending_location, line))
+        paired_details.append(f"{pending_location}: {line}")
         pending_location = None
 
     if paired_details:
