@@ -288,7 +288,7 @@ class PN532:
         # Return frame data.
         return response[offset+2:offset+2+frame_len]
 
-    def call_function(self, command, response_length=0, params=None, timeout=1):
+    def call_function(self, command, response_length=0, params=None, timeout=1.0):
         """Send specified command to the PN532 and expect up to response_length
         bytes back in a response.  Note that less than the expected bytes might
         be returned!  Params can optionally specify an array of bytes to send as
@@ -344,7 +344,7 @@ class PN532:
         # check the command was executed as expected.
         self.call_function(_COMMAND_SAMCONFIGURATION, params=[0x01, 0x14, 0x01])
 
-    def read_passive_target(self, card_baud=_MIFARE_ISO14443A, timeout=1):
+    def read_passive_target(self, card_baud=_MIFARE_ISO14443A, timeout=1.0):
         """Wait for a MiFare card to be available and return its UID when found.
         Will wait up to timeout seconds and return None if no card is found,
         otherwise a bytearray with the UID of the found card is returned.

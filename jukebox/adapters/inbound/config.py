@@ -16,7 +16,7 @@ class JukeboxCliConfig(BaseModel):
     library: Optional[str] = None
     verbose: bool = False
     player: Optional[Literal["dryrun", "sonos"]] = None
-    reader: Optional[Literal["dryrun", "nfc"]] = None
+    reader: Optional[Literal["dryrun", "pn532"]] = None
     sonos_host: Optional[str] = None
     sonos_name: Optional[str] = None
     pause_duration_seconds: Optional[int] = None
@@ -40,7 +40,7 @@ def parse_config() -> JukeboxCliConfig:
     add_version_arg(parser)
 
     parser.add_argument("positional_player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
-    parser.add_argument("positional_reader", nargs="?", choices=["dryrun", "nfc"], help="override the reader type")
+    parser.add_argument("positional_reader", nargs="?", choices=["dryrun", "pn532"], help="override the reader type")
 
     parser.add_argument(
         "--player",
@@ -50,7 +50,7 @@ def parse_config() -> JukeboxCliConfig:
     )
     parser.add_argument(
         "--reader",
-        choices=["dryrun", "nfc"],
+        choices=["dryrun", "pn532"],
         default=None,
         help="override the reader type without providing both positional type arguments",
     )

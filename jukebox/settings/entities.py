@@ -66,13 +66,13 @@ class PlayerSettings(PersistedPlayerSettings):
     sonos: SonosPlayerSettings = Field(default_factory=SonosPlayerSettings)
 
 
-class NfcReaderSettings(StrictModel):
+class Pn532ReaderSettings(StrictModel):
     read_timeout_seconds: float = Field(default=0.1, gt=0)
 
 
 class ReaderSettings(StrictModel):
-    type: Literal["dryrun", "nfc"] = "dryrun"
-    nfc: NfcReaderSettings = Field(default_factory=NfcReaderSettings)
+    type: Literal["dryrun", "pn532"] = "dryrun"
+    pn532: Pn532ReaderSettings = Field(default_factory=Pn532ReaderSettings)
 
 
 class PlaybackSettings(StrictModel):
@@ -146,13 +146,13 @@ class SparsePlayerSettings(SparsePersistedPlayerSettings):
     sonos: Optional[SparseSonosPlayerSettings] = None
 
 
-class SparseNfcReaderSettings(StrictModel):
+class SparsePn532ReaderSettings(StrictModel):
     read_timeout_seconds: Optional[float] = None
 
 
 class SparseReaderSettings(StrictModel):
-    type: Optional[Literal["dryrun", "nfc"]] = None
-    nfc: Optional[SparseNfcReaderSettings] = None
+    type: Optional[Literal["dryrun", "pn532"]] = None
+    pn532: Optional[SparsePn532ReaderSettings] = None
 
 
 class SparsePlaybackSettings(StrictModel):
@@ -247,11 +247,11 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     sonos_host: Optional[str] = None
     sonos_name: Optional[str] = None
     sonos_group: Optional[ResolvedSonosGroupRuntime] = None
-    reader_type: Literal["dryrun", "nfc"]
+    reader_type: Literal["dryrun", "pn532"]
     pause_duration_seconds: int
     pause_delay_seconds: float
     loop_interval_seconds: float
-    nfc_read_timeout_seconds: float
+    pn532_read_timeout_seconds: float
     verbose: bool = False
 
     @model_validator(mode="after")

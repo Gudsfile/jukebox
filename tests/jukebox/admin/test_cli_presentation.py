@@ -14,6 +14,7 @@ from jukebox.settings.errors import (
     MalformedSettingsFileError,
     UnsupportedSettingsVersionError,
 )
+from jukebox.settings.types import JsonObject
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionAvailability, SonosSelectionResult, SonosSelectionStatus
 
@@ -78,7 +79,7 @@ def test_render_settings_output_effective_includes_manual_sonos_targets():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "sonos",
                         "sonos": {
@@ -95,7 +96,7 @@ def test_render_settings_output_effective_includes_manual_sonos_targets():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "file",
                         "sonos": {
@@ -125,7 +126,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "sonos",
                         "sonos": {
@@ -146,7 +147,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "file",
                         "sonos": {
@@ -178,7 +179,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "sonos",
                         "sonos": {
@@ -199,7 +200,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "default",
                         "sonos": {
@@ -232,7 +233,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": 900, "pause_delay_seconds": 0.25},
                     "runtime": {"loop_interval_seconds": 0.1},
-                    "reader": {"type": "dryrun", "nfc": {"read_timeout_seconds": 0.1}},
+                    "reader": {"type": "dryrun", "pn532": {"read_timeout_seconds": 0.1}},
                     "player": {
                         "type": "sonos",
                         "sonos": {
@@ -253,7 +254,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
                 "jukebox": {
                     "playback": {"pause_duration_seconds": "default", "pause_delay_seconds": "default"},
                     "runtime": {"loop_interval_seconds": "default"},
-                    "reader": {"type": "default", "nfc": {"read_timeout_seconds": "default"}},
+                    "reader": {"type": "default", "pn532": {"read_timeout_seconds": "default"}},
                     "player": {
                         "type": "default",
                         "sonos": {
@@ -386,7 +387,7 @@ def test_render_settings_output_json_mode_preserves_payload_shape():
         value="9000",
         json_output=True,
     )
-    payload = {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
+    payload: JsonObject = {"persisted": {"schema_version": 1, "admin": {"api": {"port": 9000}}}}
 
     assert (
         render_settings_output(command, payload)

@@ -192,8 +192,8 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
                         },
                     },
                     "reader": {
-                        "type": "nfc",
-                        "nfc": {"read_timeout_seconds": 0.2},
+                        "type": "pn532",
+                        "pn532": {"read_timeout_seconds": 0.2},
                     },
                     "playback": {
                         "pause_duration_seconds": 600,
@@ -216,7 +216,7 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
         "jukebox.playback.pause_duration_seconds",
         "jukebox.player.sonos.selected_group",
         "jukebox.player.type",
-        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.pn532.read_timeout_seconds",
         "jukebox.reader.type",
         "jukebox.runtime.loop_interval_seconds",
     ]
@@ -227,7 +227,7 @@ def test_settings_service_reset_jukebox_resets_editable_player_reader_and_timing
     assert runtime_config.pause_duration_seconds == 900
     assert runtime_config.pause_delay_seconds == 0.25
     assert runtime_config.loop_interval_seconds == 0.1
-    assert runtime_config.nfc_read_timeout_seconds == 0.1
+    assert runtime_config.pn532_read_timeout_seconds == 0.1
 
 
 def test_settings_service_patch_updates_library_path_and_derived_current_tag_path(tmp_path):
@@ -379,8 +379,8 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
         {
             "jukebox": {
                 "reader": {
-                    "type": "nfc",
-                    "nfc": {"read_timeout_seconds": 0.2},
+                    "type": "pn532",
+                    "pn532": {"read_timeout_seconds": 0.2},
                 }
             }
         }
@@ -390,14 +390,14 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
         "schema_version": 1,
         "jukebox": {
             "reader": {
-                "type": "nfc",
-                "nfc": {"read_timeout_seconds": 0.2},
+                "type": "pn532",
+                "pn532": {"read_timeout_seconds": 0.2},
             }
         },
     }
     effective_view = lookup_json_object(result, "effective")
-    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "type") == "nfc"
-    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "nfc", "read_timeout_seconds") == 0.2
+    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "type") == "pn532"
+    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "pn532", "read_timeout_seconds") == 0.2
     assert lookup_json_value(effective_view, "provenance", "jukebox", "reader", "type") == "file"
     assert (
         lookup_json_value(
@@ -405,7 +405,7 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
             "provenance",
             "jukebox",
             "reader",
-            "nfc",
+            "pn532",
             "read_timeout_seconds",
         )
         == "file"
@@ -417,25 +417,25 @@ def test_settings_service_patch_updates_reader_settings_and_reports_restart(tmp_
             "settings_metadata",
             "jukebox",
             "reader",
-            "nfc",
+            "pn532",
             "read_timeout_seconds",
             "requires_restart",
         )
         is True
     )
     assert result["updated_paths"] == [
-        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.pn532.read_timeout_seconds",
         "jukebox.reader.type",
     ]
     assert result["restart_required_paths"] == [
-        "jukebox.reader.nfc.read_timeout_seconds",
+        "jukebox.reader.pn532.read_timeout_seconds",
         "jukebox.reader.type",
     ]
     assert result["message"] == "Settings saved. Changes take effect after restart."
 
     runtime_config = resolve_jukebox_runtime(service)
-    assert runtime_config.reader_type == "nfc"
-    assert runtime_config.nfc_read_timeout_seconds == 0.2
+    assert runtime_config.reader_type == "pn532"
+    assert runtime_config.pn532_read_timeout_seconds == 0.2
 
 
 def test_settings_service_set_selected_group_from_json_string(tmp_path):
@@ -618,8 +618,8 @@ def test_settings_service_reset_removes_only_requested_reader_override(tmp_path)
                 "schema_version": 1,
                 "jukebox": {
                     "reader": {
-                        "type": "nfc",
-                        "nfc": {"read_timeout_seconds": 0.2},
+                        "type": "pn532",
+                        "pn532": {"read_timeout_seconds": 0.2},
                     }
                 },
             }
@@ -628,13 +628,13 @@ def test_settings_service_reset_removes_only_requested_reader_override(tmp_path)
     )
     service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
 
-    result = service.reset_persisted_value("jukebox.reader.nfc.read_timeout_seconds")
+    result = service.reset_persisted_value("jukebox.reader.pn532.read_timeout_seconds")
 
     assert json.loads(settings_path.read_text(encoding="utf-8")) == {
         "schema_version": 1,
         "jukebox": {
             "reader": {
-                "type": "nfc",
+                "type": "pn532",
             }
         },
     }
@@ -642,15 +642,15 @@ def test_settings_service_reset_removes_only_requested_reader_override(tmp_path)
         "schema_version": 1,
         "jukebox": {
             "reader": {
-                "type": "nfc",
+                "type": "pn532",
             }
         },
     }
-    assert result["updated_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
-    assert result["restart_required_paths"] == ["jukebox.reader.nfc.read_timeout_seconds"]
+    assert result["updated_paths"] == ["jukebox.reader.pn532.read_timeout_seconds"]
+    assert result["restart_required_paths"] == ["jukebox.reader.pn532.read_timeout_seconds"]
     runtime_config = resolve_jukebox_runtime(service)
-    assert runtime_config.reader_type == "nfc"
-    assert runtime_config.nfc_read_timeout_seconds == 0.1
+    assert runtime_config.reader_type == "pn532"
+    assert runtime_config.pn532_read_timeout_seconds == 0.1
 
 
 def test_settings_service_reset_removes_only_requested_selected_group_override(tmp_path):
