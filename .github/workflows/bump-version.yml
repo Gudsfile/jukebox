@@ -28,6 +28,7 @@ jobs:
   bump:
     name: Bump Version
     runs-on: ubuntu-latest
+    environment: prod
     outputs:
       version: ${{ steps.version.outputs.version }}
 
