@@ -58,6 +58,11 @@ class LibraryUIPageBuilder:
                 class_name="d-flex flex-wrap gap-2",
                 components=[
                     c.Button(text="➕ Add a new disc", on_click=GoToEvent(url="/discs/new")),
+                    c.Button(
+                        text="🔊 Sonos Speakers",
+                        on_click=GoToEvent(url="/sonos"),
+                        class_name="btn btn-secondary",
+                    ),
                     c.Button(text="⚙️ Settings", on_click=GoToEvent(url="/settings"), class_name="btn btn-secondary"),
                 ],
             ),

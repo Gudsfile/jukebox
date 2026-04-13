@@ -36,9 +36,6 @@ class StubSettingsService:
     def get_effective_settings(self) -> AppSettings:
         raise AssertionError("get_effective_settings should not be called in this test")
 
-    def format_invalid_settings_error(self, error: str) -> str:
-        raise AssertionError("format_invalid_settings_error should not be called in this test")
-
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
         raise AssertionError("set_persisted_value should not be called in this test")
 
@@ -51,6 +48,9 @@ class StubSettingsService:
 
     def resolve_admin_runtime(self, verbose: bool = False) -> ResolvedAdminRuntimeConfig:
         raise AssertionError("resolve_admin_runtime should not be called in this test")
+
+    def format_invalid_settings_error(self, error: str) -> str:
+        raise AssertionError("format_invalid_settings_error should not be called in this test")
 
 
 def test_get_selected_group_returns_none_when_not_persisted():
