@@ -1,42 +1,49 @@
-from typing import Any, Dict, Optional, cast
+from typing import Optional
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel
 
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
 try:
-    from fastapi import FastAPI, HTTPException, Response
+    from fastapi import FastAPI, HTTPException
+
+    from discstore.adapters.inbound.api.current_tag_router import build_current_tag_router
+    from discstore.adapters.inbound.api.discs_router import build_discs_router
+    from discstore.adapters.inbound.api.models import (
+        CurrentTagStatusOutput,
+        DiscInput,
+        DiscOutput,
+        SettingsPatchInput,
+        SettingsResetInput,
+    )
+    from discstore.adapters.inbound.api.settings_router import build_settings_router
 except ModuleNotFoundError as e:
+    if e.name != "fastapi":
+        raise
     raise ModuleNotFoundError(
         optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")
     ) from e
-
-from discstore.domain.entities import CurrentTagStatus, Disc
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
-from jukebox.settings.errors import SettingsError
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.settings.types import JsonObject
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from jukebox.sonos.selection import GetSonosSelectionStatus, PlanSonosSelection, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
-
-class DiscInput(Disc):
-    pass
-
-
-class DiscOutput(Disc):
-    pass
-
-
-class CurrentTagStatusOutput(CurrentTagStatus):
-    pass
+__all__ = [
+    "APIController",
+    "CurrentTagStatusOutput",
+    "DiscInput",
+    "DiscOutput",
+    "SettingsPatchInput",
+    "SettingsResetInput",
+    "SonosSelectionInput",
+]
 
 
 class SonosSpeakerOutput(DiscoveredSonosSpeaker):
@@ -68,14 +75,6 @@ class SonosSelectionUpdateOutput(BaseModel):
     restart_required: bool
 
 
-class SettingsResetInput(BaseModel):
-    path: str
-
-
-class SettingsPatchInput(RootModel[Dict[str, Any]]):
-    pass
-
-
 class APIController:
     def __init__(
         self,
@@ -103,21 +102,16 @@ class APIController:
         self.register_routes()
 
     def register_routes(self):
-        @self.app.get("/api/v1/discs", response_model=Dict[str, DiscOutput])
-        def list_discs():
-            return self.list_discs.execute()
-
-        @self.app.get(
-            "/api/v1/current-tag",
-            response_model=CurrentTagStatusOutput,
-            responses={204: {"description": "No current tag"}},
+        self.app.include_router(
+            build_discs_router(
+                add_disc=self.add_disc,
+                list_discs=self.list_discs,
+                remove_disc=self.remove_disc,
+                edit_disc=self.edit_disc,
+            )
         )
-        def get_current_tag():
-            current_tag_status = self.get_current_tag_status.execute()
-            if current_tag_status is None:
-                return Response(status_code=204)
-
-            return CurrentTagStatusOutput(**current_tag_status.model_dump())
+        self.app.include_router(build_current_tag_router(self.get_current_tag_status))
+        self.app.include_router(build_settings_router(self.settings_service))
 
         @self.app.get("/api/v1/sonos/speakers", response_model=list[SonosSpeakerOutput])
         def get_sonos_speakers():
@@ -168,59 +162,5 @@ class APIController:
                 raise HTTPException(status_code=400, detail=str(err))
             except HTTPException:
                 raise
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.get("/api/v1/settings")
-        def get_settings():
-            try:
-                return self.settings_service.get_persisted_settings_view()
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.get("/api/v1/settings/effective")
-        def get_effective_settings():
-            try:
-                return self.settings_service.get_effective_settings_view()
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.patch("/api/v1/settings")
-        def patch_settings(patch: SettingsPatchInput):
-            try:
-                return self.settings_service.patch_persisted_settings(cast(JsonObject, patch.root))
-            except SettingsError as err:
-                raise HTTPException(status_code=400, detail=str(err))
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.post("/api/v1/settings/reset")
-        def reset_settings(payload: SettingsResetInput):
-            try:
-                return self.settings_service.reset_persisted_value(payload.path)
-            except SettingsError as err:
-                raise HTTPException(status_code=400, detail=str(err))
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.post("/api/v1/disc", status_code=201)
-        def add_or_edit_disc(tag_id: str, disc: DiscInput):
-            try:
-                self.add_disc.execute(tag_id, Disc(**disc.model_dump()))
-                return {"message": "Disc added"}
-            except ValueError:
-                new_disc = Disc(**disc.model_dump())
-                self.edit_disc.execute(tag_id, new_disc.uri, new_disc.metadata, new_disc.option)
-                return {"message": "Disc edited"}
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.delete("/api/v1/disc", status_code=200)
-        def remove_disc(tag_id: str):
-            try:
-                self.remove_disc.execute(tag_id)
-                return {"message": "Disc removed"}
-            except ValueError as value_err:
-                raise HTTPException(status_code=404, detail=str(value_err))
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
