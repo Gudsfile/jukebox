@@ -12,8 +12,8 @@ try:
     from discstore.adapters.inbound.api.models import (
         CurrentTagStatusOutput,
         DiscInput,
-        DiscPatchInput,
         DiscOutput,
+        DiscPatchInput,
         SettingsPatchInput,
         SettingsResetInput,
     )
