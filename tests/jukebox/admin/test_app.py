@@ -1,6 +1,7 @@
 from unittest.mock import ANY, MagicMock
 
 import pytest
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
 from discstore.commands import (
@@ -72,8 +73,13 @@ def app_mocks(mocker):
         ),
         (["sonos", "list"], SonosListCommand(type="sonos_list"), "execute_sonos_command"),
         (
-            ["sonos", "select", "--uids", "speaker-1"],
-            SonosSelectCommand(type="sonos_select", uids=["speaker-1"]),
+            ["sonos", "select", "--uids", "speaker-1,speaker-2", "--coordinator", "speaker-2"],
+            SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
+            "execute_sonos_command",
+        ),
+        (
+            ["sonos", "select", "--uids", "speaker-1", "--uids", "speaker-2", "--coordinator", "speaker-2"],
+            SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
             "execute_sonos_command",
         ),
         (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
@@ -111,6 +117,7 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
             sonos_service=services.sonos,
             settings_service=services.settings,
             speaker_prompt_fn=ANY,
+            coordinator_prompt_fn=ANY,
         )
         app_mocks.execute_settings_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()
@@ -184,6 +191,20 @@ def test_jukebox_admin_preserves_os_errors(app_mocks):
     assert result.exit_code == 1
     assert "[Errno 13] Permission denied: '/tmp/settings.json'" in result.output
     assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
+def test_jukebox_admin_rejects_coordinator_without_uids(app_mocks):
+    result = runner.invoke(app, ["sonos", "select", "--coordinator", "speaker-2"])
+
+    assert result.exit_code == 1
+    assert "--coordinator requires --uids" in result.output
+    app_mocks.build_admin_services.assert_not_called()
+    app_mocks.execute_sonos_command.assert_not_called()
+
+
+def test_sonos_select_command_rejects_coordinator_without_uids():
+    with pytest.raises(ValidationError, match="--coordinator requires --uids"):
+        SonosSelectCommand(type="sonos_select", coordinator="speaker-2")
 
 
 @pytest.mark.parametrize(

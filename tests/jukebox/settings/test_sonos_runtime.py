@@ -66,6 +66,31 @@ def test_default_sonos_service_marks_unreachable_non_coordinator_missing():
     assert resolved_group.missing_member_uids == ["speaker-2"]
 
 
+def test_default_sonos_service_inspect_selected_group_matches_runtime_for_mixed_households():
+    service = DefaultSonosService(
+        StubDiscovery(
+            [
+                build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+                build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
+            ]
+        )
+    )
+    selected_group = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-2",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+        ],
+    )
+
+    inspection = service.inspect_selected_group(selected_group)
+
+    assert inspection.error_message == "Resolved Sonos group members must belong to the same household"
+
+    with pytest.raises(ValueError, match="same household"):
+        service.resolve_selected_group(selected_group)
+
+
 def test_default_sonos_service_rejects_unreachable_coordinator():
     service = DefaultSonosService(
         StubDiscovery([build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")])

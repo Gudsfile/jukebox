@@ -1,6 +1,6 @@
 import importlib.util
 import sys
-from typing import cast
+from typing import Dict, List, Tuple, cast
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -21,6 +21,48 @@ if FASTAPI_INSTALLED:
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
     from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+    from jukebox.sonos.service import InspectedSelectedSonosGroup
+
+
+InvalidUidPayloadCase = Tuple[Dict[str, object], List[object], str]
+
+
+INVALID_UID_PAYLOAD_CASES: List[InvalidUidPayloadCase] = [
+    ({"uids": []}, [], "`uids` must include at least one UID."),
+    ({"uids": ["speaker-1", "speaker-1"]}, [], "`uids` must not contain duplicate UIDs."),
+]
+
+if FASTAPI_INSTALLED:
+    INVALID_UID_PAYLOAD_CASES.append(
+        (
+            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
+            [
+                DiscoveredSonosSpeaker(
+                    uid="speaker-1",
+                    name="Kitchen",
+                    host="192.168.1.30",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+                DiscoveredSonosSpeaker(
+                    uid="speaker-2",
+                    name="Living Room",
+                    host="192.168.1.31",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+            ],
+            "Selected Sonos coordinator must be one of the selected speakers: ",
+        )
+    )
+else:
+    INVALID_UID_PAYLOAD_CASES.append(
+        (
+            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
+            [],
+            "Selected Sonos coordinator must be one of the selected speakers: ",
+        )
+    )
 
 
 def build_controller(
@@ -37,6 +79,21 @@ def build_controller(
         get_current_tag_status or MagicMock(),
         settings_service or MagicMock(),
         sonos_service or MagicMock(),
+    )
+
+
+def build_inspected_group(
+    resolved_members,
+    coordinator_uid,
+    missing_member_uids=None,
+    error_message=None,
+):
+    coordinator = next((member for member in resolved_members if member.uid == coordinator_uid), None)
+    return InspectedSelectedSonosGroup(
+        coordinator=coordinator,
+        resolved_members=list(resolved_members),
+        missing_member_uids=list(missing_member_uids or []),
+        error_message=error_message,
     )
 
 
@@ -174,10 +231,10 @@ def test_get_sonos_selection_returns_not_selected_without_discovery():
         "selected_group": None,
         "availability": {
             "status": "not_selected",
-            "speaker": None,
+            "members": [],
         },
     }
-    sonos_service.list_available_speakers.assert_not_called()
+    sonos_service.inspect_selected_group.assert_not_called()
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
@@ -189,23 +246,33 @@ def test_get_sonos_selection_returns_available_saved_selection():
             "player": {
                 "sonos": {
                     "selected_group": {
-                        "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1"}],
+                        "coordinator_uid": "speaker-2",
+                        "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }
                 }
             }
         },
     }
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = [
-        DiscoveredSonosSpeaker(
-            uid="speaker-1",
-            name="Kitchen",
-            host="192.168.1.30",
-            household_id="household-1",
-            is_visible=True,
-        )
-    ]
+    sonos_service.inspect_selected_group.return_value = build_inspected_group(
+        resolved_members=[
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-1",
+                is_visible=True,
+            ),
+            DiscoveredSonosSpeaker(
+                uid="speaker-2",
+                name="Living Room",
+                host="192.168.1.31",
+                household_id="household-1",
+                is_visible=True,
+            ),
+        ],
+        coordinator_uid="speaker-2",
+    )
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
@@ -216,24 +283,41 @@ def test_get_sonos_selection_returns_available_saved_selection():
 
     assert response.model_dump() == {
         "selected_group": {
-            "coordinator_uid": "speaker-1",
-            "members": [{"uid": "speaker-1"}],
+            "coordinator_uid": "speaker-2",
+            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
             "status": "available",
-            "speaker": {
-                "uid": "speaker-1",
-                "name": "Kitchen",
-                "host": "192.168.1.30",
-                "household_id": "household-1",
-                "is_visible": True,
-            },
+            "members": [
+                {
+                    "uid": "speaker-1",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-1",
+                        "name": "Kitchen",
+                        "host": "192.168.1.30",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+                {
+                    "uid": "speaker-2",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-2",
+                        "name": "Living Room",
+                        "host": "192.168.1.31",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+            ],
         },
     }
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_get_sonos_selection_returns_unavailable_saved_selection():
+def test_get_sonos_selection_returns_partially_available_saved_selection():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {
         "schema_version": 1,
@@ -242,14 +326,26 @@ def test_get_sonos_selection_returns_unavailable_saved_selection():
                 "sonos": {
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
-                        "members": [{"uid": "speaker-1"}],
+                        "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }
                 }
             }
         },
     }
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = []
+    sonos_service.inspect_selected_group.return_value = build_inspected_group(
+        resolved_members=[
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-1",
+                is_visible=True,
+            )
+        ],
+        coordinator_uid="speaker-1",
+        missing_member_uids=["speaker-2"],
+    )
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
@@ -261,11 +357,95 @@ def test_get_sonos_selection_returns_unavailable_saved_selection():
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-1",
-            "members": [{"uid": "speaker-1"}],
+            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+        },
+        "availability": {
+            "status": "partial",
+            "members": [
+                {
+                    "uid": "speaker-1",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-1",
+                        "name": "Kitchen",
+                        "host": "192.168.1.30",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+                {
+                    "uid": "speaker-2",
+                    "status": "unavailable",
+                    "speaker": None,
+                },
+            ],
+        },
+    }
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinator_is_missing():
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "coordinator_uid": "speaker-2",
+                        "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+                    }
+                }
+            }
+        },
+    }
+    sonos_service = MagicMock()
+    sonos_service.inspect_selected_group.return_value = build_inspected_group(
+        resolved_members=[
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-1",
+                is_visible=True,
+            )
+        ],
+        coordinator_uid="speaker-2",
+        error_message="Unable to resolve saved Sonos coordinator: speaker-2: not found on network",
+    )
+    controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+    )
+
+    response = route.endpoint()
+
+    assert response.model_dump() == {
+        "selected_group": {
+            "coordinator_uid": "speaker-2",
+            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
             "status": "unavailable",
-            "speaker": None,
+            "members": [
+                {
+                    "uid": "speaker-1",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-1",
+                        "name": "Kitchen",
+                        "host": "192.168.1.30",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+                {
+                    "uid": "speaker-2",
+                    "status": "unavailable",
+                    "speaker": None,
+                },
+            ],
         },
     }
 
@@ -287,7 +467,7 @@ def test_get_sonos_selection_returns_502_on_discovery_failure():
         },
     }
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+    sonos_service.inspect_selected_group.side_effect = SonosDiscoveryError(
         "Failed to discover Sonos speakers: network unavailable"
     )
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
@@ -304,7 +484,7 @@ def test_get_sonos_selection_returns_502_on_discovery_failure():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_put_sonos_selection_persists_single_speaker_selection():
+def test_put_sonos_selection_persists_multi_speaker_selection():
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.return_value = {
         "message": "Settings saved. Changes take effect after restart.",
@@ -318,7 +498,14 @@ def test_put_sonos_selection_persists_single_speaker_selection():
             host="192.168.1.30",
             household_id="household-1",
             is_visible=True,
-        )
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Living Room",
+            host="192.168.1.31",
+            household_id="household-1",
+            is_visible=True,
+        ),
     ]
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
@@ -330,22 +517,39 @@ def test_put_sonos_selection_persists_single_speaker_selection():
         ),
     )
 
-    response = route.endpoint(SonosSelectionInput(uids=["speaker-1"]))
+    response = route.endpoint(SonosSelectionInput(uids=["speaker-1", "speaker-2"], coordinator_uid="speaker-2"))
 
     assert response.model_dump() == {
         "selected_group": {
-            "coordinator_uid": "speaker-1",
-            "members": [{"uid": "speaker-1"}],
+            "coordinator_uid": "speaker-2",
+            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
             "status": "available",
-            "speaker": {
-                "uid": "speaker-1",
-                "name": "Kitchen",
-                "host": "192.168.1.30",
-                "household_id": "household-1",
-                "is_visible": True,
-            },
+            "members": [
+                {
+                    "uid": "speaker-1",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-1",
+                        "name": "Kitchen",
+                        "host": "192.168.1.30",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+                {
+                    "uid": "speaker-2",
+                    "status": "available",
+                    "speaker": {
+                        "uid": "speaker-2",
+                        "name": "Living Room",
+                        "host": "192.168.1.31",
+                        "household_id": "household-1",
+                        "is_visible": True,
+                    },
+                },
+            ],
         },
         "message": "Settings saved. Changes take effect after restart.",
         "restart_required": True,
@@ -357,8 +561,8 @@ def test_put_sonos_selection_persists_single_speaker_selection():
                     "type": "sonos",
                     "sonos": {
                         "selected_group": {
-                            "coordinator_uid": "speaker-1",
-                            "members": [{"uid": "speaker-1"}],
+                            "coordinator_uid": "speaker-2",
+                            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                         }
                     },
                 }
@@ -368,10 +572,14 @@ def test_put_sonos_selection_persists_single_speaker_selection():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-@pytest.mark.parametrize("uids", [[], ["speaker-1", "speaker-2"]])
-def test_put_sonos_selection_rejects_non_single_uid_payloads(uids):
+@pytest.mark.parametrize(
+    ("payload_data", "available_speakers", "detail"),
+    INVALID_UID_PAYLOAD_CASES,
+)
+def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, available_speakers, detail):
     settings_service = MagicMock()
     sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = available_speakers
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
@@ -383,10 +591,10 @@ def test_put_sonos_selection_rejects_non_single_uid_payloads(uids):
     )
 
     with pytest.raises(HTTPException) as err:
-        route.endpoint(SonosSelectionInput(uids=uids))
+        route.endpoint(SonosSelectionInput(**payload_data))
 
     assert err.value.status_code == 400
-    assert err.value.detail == "`uids` must contain exactly one UID in this phase."
+    assert err.value.detail == detail
     settings_service.patch_persisted_settings.assert_not_called()
 
 
@@ -409,7 +617,7 @@ def test_put_sonos_selection_rejects_unknown_uid():
         route.endpoint(SonosSelectionInput(uids=["speaker-9"]))
 
     assert err.value.status_code == 400
-    assert err.value.detail == "Selected Sonos speaker is not currently discoverable: speaker-9"
+    assert err.value.detail == "Selected Sonos speakers are not currently discoverable: speaker-9"
     settings_service.patch_persisted_settings.assert_not_called()
 
 
