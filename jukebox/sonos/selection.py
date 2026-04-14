@@ -78,7 +78,7 @@ class PlanSonosSelection:
             if selected_uid not in {speaker.uid for speaker in available_speakers}:
                 return SonosSelectionPlan(
                     status="invalid_request",
-                    error_message="Selected Sonos speaker is not currently discoverable: {}".format(selected_uid),
+                    error_message=f"Selected Sonos speaker is not currently discoverable: {selected_uid}",
                 )
             return SonosSelectionPlan(status="resolved", selected_uid=selected_uid)
 
@@ -103,7 +103,7 @@ class SaveSonosSelection:
         speakers_by_uid = {speaker.uid: speaker for speaker in self.sonos_service.list_available_speakers()}
         speaker = speakers_by_uid.get(uid)
         if speaker is None:
-            raise ValueError("Selected Sonos speaker is not currently discoverable: {}".format(uid))
+            raise ValueError(f"Selected Sonos speaker is not currently discoverable: {uid}")
 
         selected_group = SelectedSonosGroupSettings(
             coordinator_uid=uid,
