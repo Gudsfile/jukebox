@@ -50,7 +50,7 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
 
     return SettingsService(
         repository=FileSettingsRepository(),
-        env_overrides=build_environment_settings_overrides(LOGGER.warning),
+        env_overrides=build_environment_settings_overrides(),
         cli_overrides=cli_overrides,
     )
 

@@ -1,4 +1,4 @@
-from typing import Callable, Optional
+from typing import Optional
 
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from discstore.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
@@ -23,7 +23,6 @@ from .services import AdminServices
 def build_settings_service(
     library: Optional[str],
     command: Optional[object],
-    logger_warning: Callable[[str], None],
 ) -> SettingsService:
     cli_overrides = {}
 
@@ -38,7 +37,7 @@ def build_settings_service(
 
     return SettingsServiceImpl(
         repository=FileSettingsRepository(),
-        env_overrides=build_environment_settings_overrides(logger_warning),
+        env_overrides=build_environment_settings_overrides(),
         cli_overrides=cli_overrides,
     )
 
@@ -46,13 +45,11 @@ def build_settings_service(
 def build_admin_services(
     library: Optional[str],
     command: Optional[object],
-    logger_warning: Callable[[str], None],
 ) -> AdminServices:
     sonos_service = build_sonos_service()
     settings_service = build_settings_service(
         library=library,
         command=command,
-        logger_warning=logger_warning,
     )
     return AdminServices(settings=settings_service, sonos=sonos_service)
 

@@ -1,11 +1,11 @@
 import copy
 import json
 import os
-from typing import Callable, Optional, Union, cast
+from typing import Optional, Union, cast
 
 from pydantic import ValidationError
 
-from jukebox.shared.config_utils import get_current_tag_path, get_deprecated_env_with_warning
+from jukebox.shared.config_utils import get_current_tag_path
 
 from .definitions import (
     build_settings_metadata_tree,
@@ -29,24 +29,14 @@ from .validation_rules import validate_settings_rules
 _MISSING = object()
 
 
-def build_environment_settings_overrides(logger_warning: Callable[[str], None]) -> JsonObject:
+def build_environment_settings_overrides() -> JsonObject:
     overrides = {}
 
-    library_path = get_deprecated_env_with_warning(
-        "JUKEBOX_LIBRARY_PATH",
-        "LIBRARY_PATH",
-        None,
-        logger_warning,
-    )
+    library_path = os.environ.get("JUKEBOX_LIBRARY_PATH")
     if library_path is not None:
         overrides.setdefault("paths", {})["library_path"] = library_path
 
-    sonos_host = get_deprecated_env_with_warning(
-        "JUKEBOX_SONOS_HOST",
-        "SONOS_HOST",
-        None,
-        logger_warning,
-    )
+    sonos_host = os.environ.get("JUKEBOX_SONOS_HOST")
     sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
     if sonos_host is not None or sonos_name is not None:
         sonos_overrides = overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})

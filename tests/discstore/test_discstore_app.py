@@ -1,4 +1,4 @@
-from unittest.mock import ANY, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -72,7 +72,6 @@ def test_main_delegates_admin_commands_by_category(app_mocks, command, executor_
     app_mocks.build_admin_services.assert_called_once_with(
         library="fake_library_path",
         command=command,
-        logger_warning=ANY,
     )
 
     if executor_name == "execute_settings_command":

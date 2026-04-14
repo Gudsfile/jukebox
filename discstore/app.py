@@ -30,7 +30,6 @@ def _build_settings_service(config: DiscStoreConfig):
     return build_admin_settings_service(
         library=config.library,
         command=config.command,
-        logger_warning=LOGGER.warning,
     )
 
 
@@ -42,7 +41,6 @@ def main():
             services = build_admin_services(
                 library=config.library,
                 command=config.command,
-                logger_warning=LOGGER.warning,
             )
             try:
                 if is_settings_command(config.command):
