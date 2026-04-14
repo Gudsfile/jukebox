@@ -315,7 +315,12 @@ def test_patch_current_tag_disc_partially_updates_existing_disc():
     controller = build_controller(get_current_tag_status=get_current_tag_status, edit_disc=edit_disc, get_disc=get_disc)
     route = get_route(controller, "/api/v1/current-tag/disc", "PATCH")
 
-    response = route.endpoint(DiscPatchInput(metadata={"track": "Updated Track"}, option={"shuffle": False}))
+    response = route.endpoint(
+        DiscPatchInput(
+            metadata=DiscPatchMetadataInput(track="Updated Track"),
+            option=DiscPatchOptionInput(shuffle=False),
+        )
+    )
 
     assert response.model_dump() == {
         "tag_id": "tag-123",
