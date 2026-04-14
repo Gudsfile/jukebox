@@ -6,7 +6,7 @@ from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSon
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.selection import GetSonosSelectionStatus, PlanSonosSelection, SaveSonosSelection
+from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
 from .cli_presentation import (
@@ -120,19 +120,13 @@ def execute_sonos_command(
         if settings_service is None:
             raise TypeError("settings_service is required for Sonos select commands")
 
-        plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-            requested_uids=command.uids,
-            coordinator_uid=command.coordinator,
-        )
-        if plan.status in {"invalid_request", "none_available"}:
-            raise RuntimeError(str(plan.error_message))
-
-        selected_uids = list(plan.selected_uids)
-        coordinator_uid = plan.coordinator_uid
-        if plan.status == "needs_choice":
+        if command.uids is None:
+            available_speakers = sonos_service.list_available_speakers()
+            if not available_speakers:
+                raise RuntimeError("No visible Sonos speakers found.")
             if speaker_prompt_fn is None:
                 raise RuntimeError("Interactive Sonos speaker selection is not available in this context.")
-            prompt_result = speaker_prompt_fn(plan.speakers)
+            prompt_result = speaker_prompt_fn(available_speakers)
             if prompt_result is None:
                 return
             selected_uids = list(prompt_result)
@@ -143,23 +137,14 @@ def execute_sonos_command(
             else:
                 if coordinator_prompt_fn is None:
                     raise RuntimeError("Interactive Sonos coordinator selection is not available in this context.")
-                speakers_by_uid = {speaker.uid: speaker for speaker in plan.speakers}
+                speakers_by_uid = {speaker.uid: speaker for speaker in available_speakers}
                 selected_speakers = [speakers_by_uid[uid] for uid in selected_uids if uid in speakers_by_uid]
                 coordinator_uid = coordinator_prompt_fn(selected_speakers)
                 if coordinator_uid is None:
                     return
-
-            plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-                requested_uids=selected_uids,
-                coordinator_uid=coordinator_uid,
-            )
-            if plan.status != "resolved" or plan.coordinator_uid is None:
-                raise RuntimeError(str(plan.error_message or "No Sonos speaker selection was made."))
-            selected_uids = list(plan.selected_uids)
-            coordinator_uid = plan.coordinator_uid
-
-        if not selected_uids or coordinator_uid is None:
-            raise RuntimeError("No Sonos speaker selection was made.")
+        else:
+            selected_uids = list(command.uids)
+            coordinator_uid = command.coordinator
 
         try:
             result = SaveSonosSelection(

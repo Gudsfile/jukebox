@@ -474,9 +474,9 @@ def test_execute_sonos_command_selects_requested_uid_and_renders_success():
     assert "Members: Kitchen [speaker-1]" in rendered_output
 
 
-def test_execute_sonos_command_selects_single_discovered_speaker_without_prompt():
+def test_execute_sonos_command_prompts_for_single_discovered_speaker():
     stdout_fn = MagicMock()
-    prompt_fn = MagicMock()
+    prompt_fn = MagicMock(return_value=["speaker-1"])
     coordinator_prompt_fn = MagicMock()
     sonos_service = MagicMock()
     settings_service = MagicMock()
@@ -500,9 +500,30 @@ def test_execute_sonos_command_selects_single_discovered_speaker_without_prompt(
         stdout_fn=stdout_fn,
     )
 
-    prompt_fn.assert_not_called()
+    prompt_fn.assert_called_once_with(sonos_service.list_available_speakers.return_value)
     coordinator_prompt_fn.assert_not_called()
     settings_service.patch_persisted_settings.assert_called_once()
+
+
+def test_execute_sonos_command_reports_no_visible_speakers_before_prompting():
+    prompt_fn = MagicMock()
+    coordinator_prompt_fn = MagicMock()
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = []
+
+    with pytest.raises(RuntimeError, match="No visible Sonos speakers found."):
+        execute_sonos_command(
+            command=SonosSelectCommand(type="sonos_select"),
+            sonos_service=sonos_service,
+            settings_service=settings_service,
+            speaker_prompt_fn=prompt_fn,
+            coordinator_prompt_fn=coordinator_prompt_fn,
+        )
+
+    prompt_fn.assert_not_called()
+    coordinator_prompt_fn.assert_not_called()
+    settings_service.patch_persisted_settings.assert_not_called()
 
 
 def test_execute_sonos_command_uses_prompts_for_multi_speaker_selection():

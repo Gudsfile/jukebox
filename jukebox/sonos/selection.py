@@ -35,12 +35,6 @@ class SonosSelectionStatus(StrictModel):
     selected_group: Optional[SelectedSonosGroupSettings] = None
     availability: SonosSelectionAvailability
 
-    @property
-    def selected_uid(self) -> Optional[str]:
-        if self.selected_group is None:
-            return None
-        return self.selected_group.coordinator_uid
-
 
 class SonosSelectionResult(StrictModel):
     coordinator: DiscoveredSonosSpeaker
@@ -59,59 +53,6 @@ class SelectedSonosGroupRepository(Protocol):
     def get_selected_group(self) -> Optional[SelectedSonosGroupSettings]: ...
 
     def save_selected_group(self, selected_group: SelectedSonosGroupSettings) -> SaveSelectedSonosGroupResult: ...
-
-
-class SonosSelectionPlan(StrictModel):
-    status: Literal["resolved", "needs_choice", "invalid_request", "none_available"]
-    selected_uids: list[str] = []
-    coordinator_uid: Optional[str] = None
-    speakers: list[DiscoveredSonosSpeaker] = []
-    error_message: Optional[str] = None
-
-    @property
-    def selected_uid(self) -> Optional[str]:
-        return self.coordinator_uid
-
-
-class PlanSonosSelection:
-    def __init__(self, sonos_service: SonosService):
-        self.sonos_service = sonos_service
-
-    def execute(
-        self,
-        requested_uids: Optional[list[str]] = None,
-        coordinator_uid: Optional[str] = None,
-    ) -> SonosSelectionPlan:
-        available_speakers = self.sonos_service.list_available_speakers()
-        if requested_uids is not None:
-            try:
-                validated_group = _validate_selection_request(
-                    available_speakers=available_speakers,
-                    requested_uids=requested_uids,
-                    coordinator_uid=coordinator_uid,
-                )
-            except ValueError as err:
-                return SonosSelectionPlan(status="invalid_request", error_message=str(err))
-            return SonosSelectionPlan(
-                status="resolved",
-                selected_uids=validated_group.selected_uids,
-                coordinator_uid=validated_group.coordinator_uid,
-            )
-
-        if not available_speakers:
-            return SonosSelectionPlan(
-                status="none_available",
-                error_message="No visible Sonos speakers found.",
-            )
-
-        if len(available_speakers) == 1:
-            return SonosSelectionPlan(
-                status="resolved",
-                selected_uids=[available_speakers[0].uid],
-                coordinator_uid=available_speakers[0].uid,
-            )
-
-        return SonosSelectionPlan(status="needs_choice", speakers=available_speakers)
 
 
 class SaveSonosSelection:
@@ -215,9 +156,7 @@ def _validate_selection_request(
 
     resolved_coordinator_uid = requested_uids[0] if coordinator_uid is None else coordinator_uid
     if resolved_coordinator_uid not in requested_uids:
-        raise ValueError(
-            "Selected Sonos coordinator must be one of the selected speakers: {}".format(resolved_coordinator_uid)
-        )
+        raise ValueError(f"Selected Sonos coordinator must be one of the selected speakers: {resolved_coordinator_uid}")
 
     household_ids = {speakers_by_uid[uid].household_id for uid in requested_uids}
     if len(household_ids) != 1:

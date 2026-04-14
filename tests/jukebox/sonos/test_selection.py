@@ -6,7 +6,6 @@ from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosS
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import (
     GetSonosSelectionStatus,
-    PlanSonosSelection,
     SaveSelectedSonosGroupResult,
     SaveSonosSelection,
 )
@@ -38,37 +37,33 @@ def build_inspected_group(
     )
 
 
-def test_plan_sonos_selection_resolves_requested_group_and_defaults_coordinator():
+def test_save_sonos_selection_defaults_coordinator_to_first_selected_uid():
+    selected_group_repository = MagicMock()
+    selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult(
+        message="Settings saved. Changes take effect after restart."
+    )
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
     ]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-        requested_uids=["speaker-1", "speaker-2"],
+    result = SaveSonosSelection(
+        selected_group_repository=selected_group_repository,
+        sonos_service=sonos_service,
+    ).execute(["speaker-1", "speaker-2"])
+
+    assert result.coordinator.uid == "speaker-1"
+    assert [member.uid for member in result.members] == ["speaker-1", "speaker-2"]
+    selected_group_repository.save_selected_group.assert_called_once_with(
+        SelectedSonosGroupSettings(
+            coordinator_uid="speaker-1",
+            members=[
+                SelectedSonosSpeakerSettings(uid="speaker-1"),
+                SelectedSonosSpeakerSettings(uid="speaker-2"),
+            ],
+        )
     )
-
-    assert plan.status == "resolved"
-    assert plan.selected_uids == ["speaker-1", "speaker-2"]
-    assert plan.coordinator_uid == "speaker-1"
-
-
-def test_plan_sonos_selection_resolves_requested_group_with_explicit_coordinator():
-    sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = [
-        build_speaker(uid="speaker-1"),
-        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
-    ]
-
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-        requested_uids=["speaker-1", "speaker-2"],
-        coordinator_uid="speaker-2",
-    )
-
-    assert plan.status == "resolved"
-    assert plan.selected_uids == ["speaker-1", "speaker-2"]
-    assert plan.coordinator_uid == "speaker-2"
 
 
 def test_save_sonos_selection_persists_multi_member_selected_group_and_player_type():
@@ -107,16 +102,6 @@ def test_save_sonos_selection_persists_multi_member_selected_group_and_player_ty
     )
 
 
-def test_plan_sonos_selection_rejects_unknown_uid():
-    sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = [build_speaker()]
-
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(requested_uids=["speaker-9"])
-
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "Selected Sonos speakers are not currently discoverable: speaker-9"
-
-
 def test_save_sonos_selection_rejects_unknown_uid_without_writing():
     selected_group_repository = MagicMock()
     sonos_service = MagicMock()
@@ -131,106 +116,83 @@ def test_save_sonos_selection_rejects_unknown_uid_without_writing():
     selected_group_repository.save_selected_group.assert_not_called()
 
 
-def test_plan_sonos_selection_rejects_empty_uid_input():
+def test_save_sonos_selection_rejects_empty_uid_input():
+    selected_group_repository = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [build_speaker()]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(requested_uids=[])
+    with pytest.raises(ValueError, match="`uids` must include at least one UID."):
+        SaveSonosSelection(
+            selected_group_repository=selected_group_repository,
+            sonos_service=sonos_service,
+        ).execute([])
 
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "`uids` must include at least one UID."
+    selected_group_repository.save_selected_group.assert_not_called()
 
 
-def test_plan_sonos_selection_rejects_duplicate_uids():
+def test_save_sonos_selection_rejects_duplicate_uids():
+    selected_group_repository = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [build_speaker()]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(requested_uids=["speaker-1", "speaker-1"])
+    with pytest.raises(ValueError, match="`uids` must not contain duplicate UIDs."):
+        SaveSonosSelection(
+            selected_group_repository=selected_group_repository,
+            sonos_service=sonos_service,
+        ).execute(["speaker-1", "speaker-1"])
 
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "`uids` must not contain duplicate UIDs."
+    selected_group_repository.save_selected_group.assert_not_called()
 
 
-def test_plan_sonos_selection_rejects_explicit_coordinator_outside_selected_group():
+def test_save_sonos_selection_rejects_explicit_coordinator_outside_selected_group():
+    selected_group_repository = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
     ]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-        requested_uids=["speaker-1"],
-        coordinator_uid="speaker-2",
-    )
+    with pytest.raises(ValueError, match="Selected Sonos coordinator must be one of the selected speakers: speaker-2"):
+        SaveSonosSelection(
+            selected_group_repository=selected_group_repository,
+            sonos_service=sonos_service,
+        ).execute(["speaker-1"], coordinator_uid="speaker-2")
 
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "Selected Sonos coordinator must be one of the selected speakers: speaker-2"
+    selected_group_repository.save_selected_group.assert_not_called()
 
 
-def test_plan_sonos_selection_rejects_blank_coordinator_uid():
+def test_save_sonos_selection_rejects_blank_coordinator_uid():
+    selected_group_repository = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
     ]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-        requested_uids=["speaker-1", "speaker-2"],
-        coordinator_uid="",
-    )
+    with pytest.raises(ValueError, match="Selected Sonos coordinator must be one of the selected speakers: "):
+        SaveSonosSelection(
+            selected_group_repository=selected_group_repository,
+            sonos_service=sonos_service,
+        ).execute(["speaker-1", "speaker-2"], coordinator_uid="")
 
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "Selected Sonos coordinator must be one of the selected speakers: "
+    selected_group_repository.save_selected_group.assert_not_called()
 
 
-def test_plan_sonos_selection_rejects_mixed_household_input():
+def test_save_sonos_selection_rejects_mixed_household_input():
+    selected_group_repository = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.return_value = [
         build_speaker(uid="speaker-1", household_id="household-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-2"),
     ]
 
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute(
-        requested_uids=["speaker-1", "speaker-2"],
-    )
+    with pytest.raises(ValueError, match="Selected Sonos speakers must belong to the same household."):
+        SaveSonosSelection(
+            selected_group_repository=selected_group_repository,
+            sonos_service=sonos_service,
+        ).execute(["speaker-1", "speaker-2"])
 
-    assert plan.status == "invalid_request"
-    assert plan.error_message == "Selected Sonos speakers must belong to the same household."
-
-
-def test_plan_sonos_selection_auto_selects_only_visible_speaker():
-    sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = [build_speaker()]
-
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute()
-
-    assert plan.status == "resolved"
-    assert plan.selected_uids == ["speaker-1"]
-    assert plan.coordinator_uid == "speaker-1"
-
-
-def test_plan_sonos_selection_requires_choice_when_multiple_speakers_available():
-    sonos_service = MagicMock()
-    available_speakers = [
-        build_speaker(uid="speaker-1"),
-        build_speaker(uid="speaker-2", host="192.168.1.31"),
-    ]
-    sonos_service.list_available_speakers.return_value = available_speakers
-
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute()
-
-    assert plan.status == "needs_choice"
-    assert plan.speakers == available_speakers
-
-
-def test_plan_sonos_selection_reports_none_available_when_no_speakers_found():
-    sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = []
-
-    plan = PlanSonosSelection(sonos_service=sonos_service).execute()
-
-    assert plan.status == "none_available"
-    assert plan.error_message == "No visible Sonos speakers found."
+    selected_group_repository.save_selected_group.assert_not_called()
 
 
 def test_get_sonos_selection_status_reports_not_selected_without_discovery():
@@ -272,7 +234,8 @@ def test_get_sonos_selection_status_reports_available_multi_speaker_selection():
         sonos_service=sonos_service,
     ).execute()
 
-    assert status.selected_uid == "speaker-2"
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-2"
     assert status.availability.status == "available"
     assert [member.status for member in status.availability.members] == ["available", "available"]
     assert status.availability.members[1].speaker is not None
@@ -300,7 +263,8 @@ def test_get_sonos_selection_status_reports_partially_available_selection():
         sonos_service=sonos_service,
     ).execute()
 
-    assert status.selected_uid == "speaker-1"
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-1"
     assert status.availability.status == "partial"
     assert [member.status for member in status.availability.members] == ["available", "unavailable"]
 
@@ -326,7 +290,8 @@ def test_get_sonos_selection_status_reports_unavailable_selection_when_coordinat
         sonos_service=sonos_service,
     ).execute()
 
-    assert status.selected_uid == "speaker-2"
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-2"
     assert status.availability.status == "unavailable"
     assert [member.status for member in status.availability.members] == ["available", "unavailable"]
 
@@ -355,7 +320,8 @@ def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_hous
         sonos_service=sonos_service,
     ).execute()
 
-    assert status.selected_uid == "speaker-1"
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-1"
     assert status.availability.status == "unavailable"
     assert [member.status for member in status.availability.members] == ["available", "available"]
 
@@ -386,6 +352,7 @@ def test_get_sonos_selection_status_reports_unavailable_when_partial_group_spans
         sonos_service=sonos_service,
     ).execute()
 
-    assert status.selected_uid == "speaker-1"
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-1"
     assert status.availability.status == "unavailable"
     assert [member.status for member in status.availability.members] == ["available", "available", "unavailable"]
