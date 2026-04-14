@@ -1,6 +1,7 @@
 from typing import Optional
 
 from jukebox.settings.entities import (
+    AppSettings,
     ResolvedAdminRuntimeConfig,
     SelectedSonosGroupSettings,
     SelectedSonosSpeakerSettings,
@@ -31,6 +32,12 @@ class StubSettingsService:
 
     def get_effective_settings_view(self) -> JsonObject:
         raise AssertionError("get_effective_settings_view should not be called in this test")
+
+    def get_effective_settings(self) -> AppSettings:
+        raise AssertionError("get_effective_settings should not be called in this test")
+
+    def format_invalid_settings_error(self, error: str) -> str:
+        raise AssertionError("format_invalid_settings_error should not be called in this test")
 
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
         raise AssertionError("set_persisted_value should not be called in this test")
