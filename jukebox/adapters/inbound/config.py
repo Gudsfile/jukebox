@@ -1,10 +1,5 @@
 import argparse
-from typing import Optional
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 

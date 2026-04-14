@@ -1,10 +1,5 @@
 from enum import Enum
-from typing import Optional, Union
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal, Optional, Union
 
 from pydantic import BaseModel, model_validator
 

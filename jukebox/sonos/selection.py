@@ -1,9 +1,4 @@
-from typing import Optional, Protocol
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal, Optional, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
