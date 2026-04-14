@@ -30,6 +30,7 @@ class DiscPatchInput(BaseModel):
     metadata: Optional[DiscPatchMetadataInput] = None
     option: Optional[DiscPatchOptionInput] = None
 
+
 class CurrentTagStatusOutput(CurrentTagStatus):
     pass
 
