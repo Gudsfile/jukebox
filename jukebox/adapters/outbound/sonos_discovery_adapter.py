@@ -153,10 +153,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
             return (
                 None,
-                "{}: {}".format(
-                    _safe_speaker_identifier(speaker),
-                    err,
-                ),
+                f"{_safe_speaker_identifier(speaker)}: {err}",
             )
 
 

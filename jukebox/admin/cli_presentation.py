@@ -75,14 +75,14 @@ def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
 
 
 def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
-    return "{} ({})".format(speaker.name, speaker.host)
+    return f"{speaker.name} ({speaker.host})"
 
 
 def render_sonos_selection_saved_output(result: SonosSelectionResult) -> str:
     return "\n".join(
         [
-            "Selected Sonos speaker: {}".format(result.speaker.name),
-            "UID: {}".format(result.speaker.uid),
+            f"Selected Sonos speaker: {result.speaker.name}",
+            f"UID: {result.speaker.uid}",
             result.settings_message,
         ]
     )
@@ -95,14 +95,14 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
         lines.append("- Status: not selected")
         return "\n".join(lines)
 
-    lines.append("- UID: {}".format(status.selected_group.coordinator_uid))
-    lines.append("- Status: {}".format(status.availability.status))
+    lines.append(f"- UID: {status.selected_group.coordinator_uid}")
+    lines.append(f"- Status: {status.availability.status}")
 
     speaker = status.availability.speaker
     if speaker is not None:
-        lines.append("- Name: {}".format(speaker.name))
-        lines.append("- Host: {}".format(speaker.host))
-        lines.append("- Household: {}".format(speaker.household_id))
+        lines.append(f"- Name: {speaker.name}")
+        lines.append(f"- Host: {speaker.host}")
+        lines.append(f"- Household: {speaker.household_id}")
 
     return "\n".join(lines)
 
