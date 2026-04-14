@@ -1,6 +1,7 @@
 from discstore.adapters.inbound.api.current_tag_router import build_current_tag_router
 from discstore.adapters.inbound.api.discs_router import build_discs_router
 from discstore.adapters.inbound.api.models import (
+    CurrentTagDiscOutput,
     CurrentTagStatusOutput,
     DiscInput,
     DiscOutput,
@@ -11,6 +12,7 @@ from discstore.adapters.inbound.api.models import (
 from discstore.adapters.inbound.api.settings_router import build_settings_router
 
 __all__ = [
+    "CurrentTagDiscOutput",
     "CurrentTagStatusOutput",
     "DiscInput",
     "DiscOutput",
