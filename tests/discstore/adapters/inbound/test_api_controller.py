@@ -24,6 +24,44 @@ if FASTAPI_INSTALLED:
     from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
+INVALID_UID_PAYLOAD_CASES = [
+    ({"uids": []}, [], "`uids` must include at least one UID."),
+    ({"uids": ["speaker-1", "speaker-1"]}, [], "`uids` must not contain duplicate UIDs."),
+]
+
+if FASTAPI_INSTALLED:
+    INVALID_UID_PAYLOAD_CASES.append(
+        (
+            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
+            [
+                DiscoveredSonosSpeaker(
+                    uid="speaker-1",
+                    name="Kitchen",
+                    host="192.168.1.30",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+                DiscoveredSonosSpeaker(
+                    uid="speaker-2",
+                    name="Living Room",
+                    host="192.168.1.31",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+            ],
+            "Selected Sonos coordinator must be one of the selected speakers: ",
+        )
+    )
+else:
+    INVALID_UID_PAYLOAD_CASES.append(
+        (
+            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
+            [],
+            "Selected Sonos coordinator must be one of the selected speakers: ",
+        )
+    )
+
+
 def build_controller(
     *,
     get_current_tag_status=None,
@@ -533,30 +571,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 @pytest.mark.parametrize(
     ("payload_data", "available_speakers", "detail"),
-    [
-        ({"uids": []}, [], "`uids` must include at least one UID."),
-        ({"uids": ["speaker-1", "speaker-1"]}, [], "`uids` must not contain duplicate UIDs."),
-        (
-            {"uids": ["speaker-1", "speaker-2"], "coordinator_uid": ""},
-            [
-                DiscoveredSonosSpeaker(
-                    uid="speaker-1",
-                    name="Kitchen",
-                    host="192.168.1.30",
-                    household_id="household-1",
-                    is_visible=True,
-                ),
-                DiscoveredSonosSpeaker(
-                    uid="speaker-2",
-                    name="Living Room",
-                    host="192.168.1.31",
-                    household_id="household-1",
-                    is_visible=True,
-                ),
-            ],
-            "Selected Sonos coordinator must be one of the selected speakers: ",
-        ),
-    ],
+    INVALID_UID_PAYLOAD_CASES,
 )
 def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, available_speakers, detail):
     settings_service = MagicMock()
