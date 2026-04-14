@@ -79,12 +79,12 @@ def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
 
 
 def render_sonos_selection_saved_output(result: SonosSelectionResult) -> str:
-    member_labels = ", ".join("{} [{}]".format(member.name, member.uid) for member in result.members)
+    member_labels = ", ".join(f"{member.name} [{member.uid}]" for member in result.members)
     return "\n".join(
         [
             "Selected Sonos group saved.",
-            "Coordinator: {} [{}]".format(result.coordinator.name, result.coordinator.uid),
-            "Members: {}".format(member_labels),
+            f"Coordinator: {result.coordinator.name} [{result.coordinator.uid}]",
+            f"Members: {member_labels}",
             result.settings_message,
         ]
     )
@@ -107,10 +107,10 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
         None,
     )
     if coordinator_speaker is None:
-        lines.append("- Coordinator UID: {}".format(status.selected_group.coordinator_uid))
+        lines.append(f"- Coordinator UID: {status.selected_group.coordinator_uid}")
     else:
-        lines.append("- Coordinator: {} [{}]".format(coordinator_speaker.name, coordinator_speaker.uid))
-    lines.append("- Status: {}".format(status_label))
+        lines.append(f"- Coordinator: {coordinator_speaker.name} [{coordinator_speaker.uid}]")
+    lines.append(f"- Status: {status_label}")
     lines.append("- Members:")
 
     name_width = max(

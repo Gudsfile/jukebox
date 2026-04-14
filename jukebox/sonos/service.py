@@ -106,9 +106,7 @@ def _inspect_selected_group(
             coordinator=None,
             resolved_members=resolved_members,
             missing_member_uids=missing_member_uids,
-            error_message="Unable to resolve saved Sonos coordinator: {}: not found on network".format(
-                selected_group.coordinator_uid
-            ),
+            error_message=f"Unable to resolve saved Sonos coordinator: {selected_group.coordinator_uid}: not found on network",
         )
 
     household_ids = {member.household_id for member in resolved_members}
