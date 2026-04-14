@@ -11,12 +11,16 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import (
-        APIController,
+    from discstore.adapters.inbound.api.models import (
         DiscInput,
         DiscPatchInput,
+        DiscPatchMetadataInput,
+        DiscPatchOptionInput,
         SettingsPatchInput,
         SettingsResetInput,
+    )
+    from discstore.adapters.inbound.api_controller import (
+        APIController,
         SonosSelectionInput,
     )
     from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
@@ -274,7 +278,10 @@ def test_patch_disc_partially_updates_existing_disc():
 
     response = route.endpoint(
         "tag-123",
-        DiscPatchInput(metadata={"track": "Updated Track"}, option={"shuffle": False}),
+        DiscPatchInput(
+            metadata=DiscPatchMetadataInput(track="Updated Track"),
+            option=DiscPatchOptionInput(shuffle=False),
+        ),
     )
 
     assert response.model_dump() == {
