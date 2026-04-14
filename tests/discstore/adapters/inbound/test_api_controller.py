@@ -11,13 +11,19 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api_controller import (
-        APIController,
+    from discstore.adapters.inbound.api.models import (
+        DiscInput,
+        DiscPatchInput,
+        DiscPatchMetadataInput,
+        DiscPatchOptionInput,
         SettingsPatchInput,
         SettingsResetInput,
+    )
+    from discstore.adapters.inbound.api_controller import (
+        APIController,
         SonosSelectionInput,
     )
-    from discstore.domain.entities import CurrentTagStatus
+    from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
     from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
@@ -67,18 +73,35 @@ else:
 
 def build_controller(
     *,
+    get_disc=None,
     get_current_tag_status=None,
     settings_service=None,
     sonos_service=None,
+    add_disc=None,
+    list_discs=None,
+    remove_disc=None,
+    edit_disc=None,
 ):
     return APIController(
-        MagicMock(),
-        MagicMock(),
-        MagicMock(),
-        MagicMock(),
-        get_current_tag_status or MagicMock(),
-        settings_service or MagicMock(),
-        sonos_service or MagicMock(),
+        add_disc if add_disc is not None else MagicMock(),
+        list_discs if list_discs is not None else MagicMock(),
+        remove_disc if remove_disc is not None else MagicMock(),
+        edit_disc if edit_disc is not None else MagicMock(),
+        get_disc if get_disc is not None else MagicMock(),
+        get_current_tag_status if get_current_tag_status is not None else MagicMock(),
+        settings_service if settings_service is not None else MagicMock(),
+        sonos_service if sonos_service is not None else MagicMock(),
+    )
+
+
+def get_route(controller, path, method):
+    return cast(
+        APIRoute,
+        next(
+            route
+            for route in controller.app.routes
+            if getattr(route, "path", None) == path and method in getattr(route, "methods", set())
+        ),
     )
 
 
@@ -145,6 +168,174 @@ def test_get_current_tag_returns_no_content_when_absent():
     assert response.status_code == 204
     assert response.body == b""
     get_current_tag_status.execute.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_disc_routes_register_explicit_crud_paths():
+    controller = build_controller()
+
+    route_index = {
+        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
+        for route in controller.app.routes
+        if hasattr(route, "path")
+    }
+
+    assert ("/api/v1/discs", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("GET",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("POST",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("PATCH",)) in route_index
+    assert ("/api/v1/discs/{tag_id}", ("DELETE",)) in route_index
+    assert ("/api/v1/disc", ("POST",)) not in route_index
+    assert ("/api/v1/disc", ("DELETE",)) not in route_index
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_disc_returns_disc_payload():
+    get_disc = MagicMock()
+    get_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(shuffle=True),
+    )
+    controller = build_controller(get_disc=get_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "GET")
+
+    response = route.endpoint("tag-123")
+
+    assert route.response_model is not None
+    assert route.response_model.__name__ == "DiscOutput"
+    assert response.model_dump() == {
+        "uri": "/music/song.mp3",
+        "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
+        "option": {"shuffle": True, "is_test": False},
+    }
+    get_disc.execute.assert_called_once_with("tag-123")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_disc_returns_404_when_missing():
+    get_disc = MagicMock()
+    get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing'")
+    controller = build_controller(get_disc=get_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "GET")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint("missing")
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag not found: tag_id='missing'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_create_disc_returns_created_disc_payload():
+    add_disc = MagicMock()
+    add_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(shuffle=True),
+    )
+    controller = build_controller(add_disc=add_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "POST")
+    request = DiscInput(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+        option=DiscOption(shuffle=True),
+    )
+
+    response = route.endpoint("tag-123", request)
+
+    assert response.model_dump() == request.model_dump()
+    add_disc.execute.assert_called_once_with("tag-123", Disc(**request.model_dump()))
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_create_disc_returns_409_when_tag_exists():
+    add_disc = MagicMock()
+    add_disc.execute.side_effect = ValueError("Already existing tag: tag_id='tag-123'")
+    controller = build_controller(add_disc=add_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "POST")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint(
+            "tag-123",
+            DiscInput(uri="/music/song.mp3", metadata=DiscMetadata(artist="Artist"), option=DiscOption()),
+        )
+
+    assert err.value.status_code == 409
+    assert err.value.detail == "Already existing tag: tag_id='tag-123'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_partially_updates_existing_disc():
+    edit_disc = MagicMock()
+    edit_disc.execute.return_value = Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Artist", album="Album", track="Updated Track"),
+        option=DiscOption(shuffle=False),
+    )
+    controller = build_controller(edit_disc=edit_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "PATCH")
+
+    response = route.endpoint(
+        "tag-123",
+        DiscPatchInput(
+            metadata=DiscPatchMetadataInput(track="Updated Track"),
+            option=DiscPatchOptionInput(shuffle=False),
+        ),
+    )
+
+    assert response.model_dump() == {
+        "uri": "/music/song.mp3",
+        "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
+        "option": {"shuffle": False, "is_test": False},
+    }
+    edit_disc.execute.assert_called_once_with(
+        "tag-123",
+        None,
+        DiscMetadata(track="Updated Track"),
+        DiscOption(shuffle=False),
+    )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_returns_404_when_missing():
+    edit_disc = MagicMock()
+    edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing'")
+    controller = build_controller(edit_disc=edit_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "PATCH")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint("missing", DiscPatchInput(uri="/music/new-song.mp3"))
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag does not exist: tag_id='missing'"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_delete_disc_returns_no_content():
+    remove_disc = MagicMock()
+    controller = build_controller(remove_disc=remove_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "DELETE")
+
+    response = route.endpoint("tag-123")
+
+    assert response.status_code == 204
+    assert response.body == b""
+    remove_disc.execute.assert_called_once_with("tag-123")
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_delete_disc_returns_404_when_missing():
+    remove_disc = MagicMock()
+    remove_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing'")
+    controller = build_controller(remove_disc=remove_disc)
+    route = get_route(controller, "/api/v1/discs/{tag_id}", "DELETE")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint("missing")
+
+    assert err.value.status_code == 404
+    assert err.value.detail == "Tag does not exist: tag_id='missing'"
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

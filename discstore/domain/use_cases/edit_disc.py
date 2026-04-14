@@ -14,7 +14,7 @@ class EditDisc:
         uri: Optional[str] = None,
         metadata: Optional[DiscMetadata] = None,
         option: Optional[DiscOption] = None,
-    ) -> None:
+    ) -> Disc:
         current_disc = self.repository.get_disc(tag_id)
         if current_disc is None:
             raise ValueError(f"Tag does not exist: tag_id='{tag_id}'")
@@ -37,3 +37,4 @@ class EditDisc:
 
         updated_disc = Disc(uri=new_uri, metadata=new_metadata, option=new_option)
         self.repository.update_disc(tag_id, updated_disc)
+        return updated_disc

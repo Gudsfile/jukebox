@@ -13,6 +13,7 @@ try:
         CurrentTagStatusOutput,
         DiscInput,
         DiscOutput,
+        DiscPatchInput,
         SettingsPatchInput,
         SettingsResetInput,
     )
@@ -26,6 +27,7 @@ except ModuleNotFoundError as e:
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
 from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
+from discstore.domain.use_cases.get_disc import GetDisc
 from discstore.domain.use_cases.list_discs import ListDiscs
 from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
@@ -40,6 +42,7 @@ __all__ = [
     "CurrentTagStatusOutput",
     "DiscInput",
     "DiscOutput",
+    "DiscPatchInput",
     "SettingsPatchInput",
     "SettingsResetInput",
     "SonosSelectionInput",
@@ -89,6 +92,7 @@ class APIController:
         list_discs: ListDiscs,
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
+        get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
         settings_service: SettingsService,
         sonos_service: SonosService,
@@ -97,6 +101,7 @@ class APIController:
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
+        self.get_disc = get_disc
         self.get_current_tag_status = get_current_tag_status
         self.settings_service = settings_service
         self.sonos_service = sonos_service
@@ -115,6 +120,7 @@ class APIController:
                 list_discs=self.list_discs,
                 remove_disc=self.remove_disc,
                 edit_disc=self.edit_disc,
+                get_disc=self.get_disc,
             )
         )
         self.app.include_router(build_current_tag_router(self.get_current_tag_status))
