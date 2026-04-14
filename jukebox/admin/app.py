@@ -315,7 +315,10 @@ def sonos_select(
         Optional[list[str]],
         typer.Option(
             "--uids",
-            help="comma-separated Sonos speaker UIDs to persist as the selected group; may be repeated",
+            help=(
+                "comma-separated Sonos speaker UIDs to persist as the selected group; may be repeated; "
+                "first UID is used as coordinator if --coordinator is omitted"
+            ),
         ),
     ] = None,
     coordinator: Annotated[

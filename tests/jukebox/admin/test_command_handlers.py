@@ -512,7 +512,7 @@ def test_execute_sonos_command_uses_prompts_for_multi_speaker_selection():
     sonos_service = MagicMock()
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
-    sonos_service.list_available_speakers.return_value = [
+    available_speakers = [
         DiscoveredSonosSpeaker(
             uid="speaker-1",
             name="Kitchen",
@@ -527,7 +527,16 @@ def test_execute_sonos_command_uses_prompts_for_multi_speaker_selection():
             household_id="household-1",
             is_visible=True,
         ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-3",
+            name="Bedroom",
+            host="192.168.1.32",
+            household_id="household-1",
+            is_visible=True,
+        ),
     ]
+    sonos_service.list_available_speakers.return_value = available_speakers
+    selected_speakers = available_speakers[:2]
 
     execute_sonos_command(
         command=SonosSelectCommand(type="sonos_select"),
@@ -538,8 +547,8 @@ def test_execute_sonos_command_uses_prompts_for_multi_speaker_selection():
         stdout_fn=stdout_fn,
     )
 
-    prompt_fn.assert_called_once_with(sonos_service.list_available_speakers.return_value)
-    coordinator_prompt_fn.assert_called_once_with(sonos_service.list_available_speakers.return_value)
+    prompt_fn.assert_called_once_with(available_speakers)
+    coordinator_prompt_fn.assert_called_once_with(selected_speakers)
     settings_service.patch_persisted_settings.assert_called_once()
     assert "speaker-2" in stdout_fn.call_args.args[0]
 
