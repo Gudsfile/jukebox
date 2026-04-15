@@ -176,6 +176,15 @@ SETTINGS = {
         section="reader",
         requires_restart=True,
     ),
+    "jukebox.reader.pn532.protocol": SettingDefinition(
+        path="jukebox.reader.pn532.protocol",
+        label="PN532 protocol",
+        description="Communication interface used to talk to the PN532 chip.",
+        field_type="string",
+        section="reader",
+        requires_restart=True,
+        choices=(SettingChoice(value="spi", label="SPI"),),
+    ),
     "jukebox.reader.pn532.spi.reset": SettingDefinition(
         path="jukebox.reader.pn532.spi.reset",
         label="PN532 SPI Reset Pin",
