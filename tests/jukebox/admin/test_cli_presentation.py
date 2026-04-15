@@ -1,5 +1,4 @@
 from jukebox.admin.cli_presentation import (
-    build_discstore_settings_deprecation_warning,
     build_sonos_speaker_choice_label,
     render_cli_error,
     render_settings_output,
@@ -518,38 +517,6 @@ def test_render_settings_output_json_mode_preserves_payload_shape():
         render_settings_output(command, payload)
         == '{\n  "persisted": {\n    "schema_version": 1,\n    "admin": {\n      "api": {\n        "port": 9000\n      }\n    }\n  }\n}'
     )
-
-
-def test_build_discstore_settings_deprecation_warning_points_to_equivalent_command():
-    warning = build_discstore_settings_deprecation_warning(
-        SettingsShowCommand(type="settings_show", effective=True, json_output=True)
-    )
-
-    assert "deprecated" in warning
-    assert "`jukebox-admin settings show --effective --json`" in warning
-
-
-def test_build_discstore_settings_deprecation_warning_shell_quotes_settings_values():
-    warning = build_discstore_settings_deprecation_warning(
-        SettingsSetCommand(
-            type="settings_set",
-            dotted_path="jukebox.player.sonos.selected_group",
-            value='{"coordinator_uid": "speaker-1"}',
-        )
-    )
-
-    assert (
-        '`jukebox-admin settings set jukebox.player.sonos.selected_group \'{"coordinator_uid": "speaker-1"}\'`'
-    ) in warning
-
-
-def test_build_discstore_settings_deprecation_warning_preserves_library_override():
-    warning = build_discstore_settings_deprecation_warning(
-        SettingsShowCommand(type="settings_show", effective=True),
-        library="/tmp/custom library.json",
-    )
-
-    assert "`jukebox-admin --library '/tmp/custom library.json' settings show --effective`" in warning
 
 
 def test_render_cli_error_for_unsupported_settings_path_is_actionable():

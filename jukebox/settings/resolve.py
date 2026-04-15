@@ -134,7 +134,7 @@ class SettingsService:
 
     def _resolve_effective_settings(self) -> AppSettings:
         # This layer only validates the merged shared settings shape. It must not
-        # enforce app-specific runtime requirements for callers like discstore.
+        # enforce app-specific runtime requirements for callers.
         persisted_data = self.repository.load_persisted_settings_data()
         defaults_data = AppSettings().model_dump(mode="python")
 

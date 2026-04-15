@@ -7,7 +7,6 @@ This file provides guidance to AI coding agents when working with code in this r
 **Jukebox** is an NFC-based music player system. It uses NFC tags to trigger playback on speakers. The repo contains three modules:
 
 - **jukebox** — Main music player app (reads NFC tags, controls playback)
-- **discstore** — Library management tool (manages the tag → music URI mapping)
 - **pn532** — NFC reader library (excluded from linting/type-checking)
 
 ## Commands
@@ -18,8 +17,8 @@ uv sync                   # base installation (always safe)
 
 # Install optional extras (EXPLICIT ONLY — do not guess)
 uv sync --extra pn532     # enable NFC tag reading in jukebox (requires compatible hardware)
-uv sync --extra api       # enable REST API for discstore
-uv sync --extra ui        # enable Web UI for discstore
+uv sync --extra api       # enable REST API
+uv sync --extra ui        # enable Web UI
 
 # NEVER use:
 # uv sync --all-extras
@@ -33,9 +32,9 @@ uv sync --extra ui        # enable Web UI for discstore
 
 # Run
 uv run jukebox PLAYER READER
-uv run discstore --help
-uv run --extra api discstore api     # REST API server
-uv run --extra ui discstore ui       # Web UI
+uv run jukebox-admin --help
+uv run --extra api jukebox-admin api     # REST API server
+uv run --extra ui jukebox-admin ui       # Web UI
 
 # Format, lint, test, typecheck
 uv run ruff format          # auto-format code
@@ -55,7 +54,7 @@ uv run --extra ui pytest
 
 ## Architecture
 
-Both `jukebox` and `discstore` follow **Hexagonal Architecture** (Ports & Adapters):
+`jukebox` follows **Hexagonal Architecture** (Ports & Adapters):
 
 ```
 <module>/
@@ -77,9 +76,6 @@ The state machine lives in `DetermineAction` and `HandleTagEvent`.
 
 - `Disc` — music item with URI, metadata (artist, album, etc.), and playback options (shuffle, is_test)
 - `Library` — collection of `Disc` associated with a `tag_id`
-
-**Discstore:**
-See `discstore/domain/entities/` for data models and `discstore/domain/use_cases/` for business logic.
 
 ### Dependency Injection
 

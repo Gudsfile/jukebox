@@ -16,7 +16,7 @@ try:
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
     raise ModuleNotFoundError(
-        optional_extra_dependency_message("The `ui_controller` module", "ui", "discstore ui")
+        optional_extra_dependency_message("The `ui_controller` module", "ui", "jukebox-admin ui")
     ) from e
 
 from pydantic import BaseModel, Field
@@ -289,7 +289,7 @@ class UIController(APIController):
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
             del path
-            return HTMLResponse(prebuilt_html(title="DiscStore for Jukebox", api_root_url="/api/ui"))
+            return HTMLResponse(prebuilt_html(title="Jukebox Admin", api_root_url="/api/ui"))
 
     def _build_success_response(self, toast_event_name: str) -> list[AnyComponent]:
         return [

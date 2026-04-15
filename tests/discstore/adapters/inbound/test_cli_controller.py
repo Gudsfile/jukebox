@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from discstore.adapters.inbound.cli_controller import CLIController
-from discstore.adapters.inbound.config import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
+from discstore.commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
 from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
 

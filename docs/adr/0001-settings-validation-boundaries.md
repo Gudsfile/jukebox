@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Deprecated
+
+Reason: `discstore` has been replaced by `jukebox-admin`, which is located in the `jukebox` module.
 
 ## Context
 
