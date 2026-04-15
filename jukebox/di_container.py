@@ -26,7 +26,12 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
     if config.reader_type == "pn532":
         from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
 
-        reader = Pn532ReaderAdapter(read_timeout_seconds=config.pn532_read_timeout_seconds)
+        reader = Pn532ReaderAdapter(
+            read_timeout_seconds=config.pn532_read_timeout_seconds,
+            spi_reset=config.pn532_spi_reset,
+            spi_cs=config.pn532_spi_cs,
+            spi_irq=config.pn532_spi_irq,
+        )
     elif config.reader_type == "dryrun":
         reader = DryrunReaderAdapter()
     else:

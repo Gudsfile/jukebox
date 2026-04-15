@@ -176,6 +176,30 @@ SETTINGS = {
         section="reader",
         requires_restart=True,
     ),
+    "jukebox.reader.pn532.spi.reset": SettingDefinition(
+        path="jukebox.reader.pn532.spi.reset",
+        label="PN532 SPI Reset Pin",
+        description="GPIO BCM pin number for the PN532 reset line.",
+        field_type="integer",
+        section="reader",
+        requires_restart=True,
+    ),
+    "jukebox.reader.pn532.spi.cs": SettingDefinition(
+        path="jukebox.reader.pn532.spi.cs",
+        label="PN532 SPI Chip Select Pin",
+        description="GPIO BCM pin number for the PN532 chip select line.",
+        field_type="integer",
+        section="reader",
+        requires_restart=True,
+    ),
+    "jukebox.reader.pn532.spi.irq": SettingDefinition(
+        path="jukebox.reader.pn532.spi.irq",
+        label="PN532 SPI IRQ Pin",
+        description="GPIO BCM pin number for the PN532 IRQ line, or null if unused.",
+        field_type="integer",
+        section="reader",
+        requires_restart=True,
+    ),
 }
 
 
