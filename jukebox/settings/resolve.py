@@ -5,6 +5,7 @@ from typing import Optional, Union, cast
 
 from pydantic import ValidationError
 
+from jukebox.pn532.profiles import resolve_spi_pins
 from jukebox.shared.config_utils import get_current_tag_path
 
 from .definitions import (
@@ -84,7 +85,8 @@ class SettingsService:
                 "paths": {
                     "expanded_library_path": _expand_path(effective_settings.paths.library_path),
                     "current_tag_path": get_current_tag_path(effective_settings.paths.library_path),
-                }
+                },
+                **_derive_pn532(effective_settings),
             },
             "settings_metadata": build_settings_metadata_tree(),
         }
@@ -231,6 +233,22 @@ def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_
 
 def _expand_path(path: str) -> str:
     return os.path.abspath(os.path.expanduser(path))
+
+
+def _derive_pn532(effective_settings: AppSettings) -> JsonObject:
+    pn532 = effective_settings.jukebox.reader.pn532
+    resolved = resolve_spi_pins(pn532.board_profile, pn532.spi.reset, pn532.spi.cs, pn532.spi.irq)
+    return {
+        "reader": {
+            "pn532": {
+                "spi": {
+                    "reset": resolved.reset,
+                    "cs": resolved.cs,
+                    "irq": resolved.irq,
+                }
+            }
+        }
+    }
 
 
 def _build_provenance_tree(
