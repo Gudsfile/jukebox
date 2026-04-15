@@ -1,9 +1,4 @@
-from typing import Any, Optional, get_args, get_origin
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Any, Literal, Optional, get_args, get_origin
 
 from pydantic import BaseModel
 

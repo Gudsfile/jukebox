@@ -98,7 +98,6 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
     app_mocks.build_admin_services.assert_called_once_with(
         library="/custom/library.json",
         command=expected_command,
-        logger_warning=ANY,
     )
     executor = getattr(app_mocks, executor_name)
     assert executor.call_count == 1

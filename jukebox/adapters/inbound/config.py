@@ -1,11 +1,5 @@
 import argparse
-import sys
-from typing import Optional
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel
 
@@ -39,20 +33,17 @@ def parse_config() -> JukeboxCliConfig:
     add_verbose_arg(parser)
     add_version_arg(parser)
 
-    parser.add_argument("positional_player", nargs="?", choices=["dryrun", "sonos"], help="override the player type")
-    parser.add_argument("positional_reader", nargs="?", choices=["dryrun", "pn532"], help="override the reader type")
-
     parser.add_argument(
         "--player",
         choices=["dryrun", "sonos"],
         default=None,
-        help="override the player type without providing both positional type arguments",
+        help="override the player type for this process",
     )
     parser.add_argument(
         "--reader",
         choices=["dryrun", "pn532"],
         default=None,
-        help="override the reader type without providing both positional type arguments",
+        help="override the reader type for this process",
     )
 
     sonos_target_group = parser.add_mutually_exclusive_group()
@@ -82,17 +73,11 @@ def parse_config() -> JukeboxCliConfig:
 
     args = parser.parse_args()
 
-    if args.positional_player is not None or args.positional_reader is not None:
-        print(
-            "warning: positional player/reader arguments are deprecated; use --player/--reader instead",
-            file=sys.stderr,
-        )
-
     return JukeboxCliConfig(
         library=args.library,
         verbose=args.verbose,
-        player=args.player or args.positional_player,
-        reader=args.reader or args.positional_reader,
+        player=args.player,
+        reader=args.reader,
         sonos_host=args.sonos_host,
         sonos_name=args.sonos_name,
         pause_duration_seconds=args.pause_duration,
