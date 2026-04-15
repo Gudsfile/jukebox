@@ -92,8 +92,8 @@ def build_current_tag_router(
 
         try:
             new_disc = Disc(**disc.model_dump())
-            add_disc.execute(current_tag_status.tag_id, new_disc)
-            return build_current_tag_disc_output(current_tag_status.tag_id, new_disc)
+            created_disc = add_disc.execute(current_tag_status.tag_id, new_disc)
+            return build_current_tag_disc_output(current_tag_status.tag_id, created_disc)
         except ValueError as value_err:
             raise HTTPException(status_code=409, detail=str(value_err))
         except Exception as err:
@@ -127,8 +127,8 @@ def build_current_tag_router(
             if disc_patch.option is not None:
                 option = DiscOption(**disc_patch.option.model_dump(exclude_unset=True, exclude_none=True))
 
-            edit_disc.execute(current_tag_status.tag_id, disc_patch.uri, metadata, option)
-            return build_current_tag_disc_output(current_tag_status.tag_id, get_disc.execute(current_tag_status.tag_id))
+            updated_disc = edit_disc.execute(current_tag_status.tag_id, disc_patch.uri, metadata, option)
+            return build_current_tag_disc_output(current_tag_status.tag_id, updated_disc)
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:

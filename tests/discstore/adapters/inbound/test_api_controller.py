@@ -253,13 +253,14 @@ def test_create_current_tag_disc_returns_created_disc_payload():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=False)
     add_disc = MagicMock()
-    controller = build_controller(get_current_tag_status=get_current_tag_status, add_disc=add_disc)
-    route = get_route(controller, "/api/v1/current-tag/disc", "POST")
     request = DiscInput(
         uri="/music/song.mp3",
         metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
         option=DiscOption(shuffle=True),
     )
+    add_disc.execute.return_value = Disc(**request.model_dump())
+    controller = build_controller(get_current_tag_status=get_current_tag_status, add_disc=add_disc)
+    route = get_route(controller, "/api/v1/current-tag/disc", "POST")
 
     response = route.endpoint(request)
 
@@ -306,13 +307,12 @@ def test_patch_current_tag_disc_partially_updates_existing_disc():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
     edit_disc = MagicMock()
-    get_disc = MagicMock()
-    get_disc.execute.return_value = Disc(
+    edit_disc.execute.return_value = Disc(
         uri="/music/song.mp3",
         metadata=DiscMetadata(artist="Artist", album="Album", track="Updated Track"),
         option=DiscOption(shuffle=False),
     )
-    controller = build_controller(get_current_tag_status=get_current_tag_status, edit_disc=edit_disc, get_disc=get_disc)
+    controller = build_controller(get_current_tag_status=get_current_tag_status, edit_disc=edit_disc)
     route = get_route(controller, "/api/v1/current-tag/disc", "PATCH")
 
     response = route.endpoint(
@@ -336,7 +336,6 @@ def test_patch_current_tag_disc_partially_updates_existing_disc():
         DiscMetadata(track="Updated Track"),
         DiscOption(shuffle=False),
     )
-    get_disc.execute.assert_called_once_with("tag-123")
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
