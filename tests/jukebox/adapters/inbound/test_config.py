@@ -62,6 +62,24 @@ def test_parse_config_rejects_sonos_host_and_name_together():
         parse_config()
 
 
+@patch("sys.argv", ["jukebox", "--pn532-spi-reset", "25", "--pn532-spi-cs", "8", "--pn532-spi-irq", "24"])
+def test_parse_config_with_pn532_spi_pin_overrides():
+    config = parse_config()
+
+    assert config.pn532_spi_reset == 25
+    assert config.pn532_spi_cs == 8
+    assert config.pn532_spi_irq == 24
+
+
+@patch("sys.argv", ["jukebox"])
+def test_parse_config_pn532_overrides_default_to_none():
+    config = parse_config()
+
+    assert config.pn532_spi_reset is None
+    assert config.pn532_spi_cs is None
+    assert config.pn532_spi_irq is None
+
+
 @pytest.mark.parametrize("subcommand", ["settings", "api", "ui", "library"])
 def test_parse_config_rejects_admin_subcommands(subcommand):
     with patch("sys.argv", ["jukebox", subcommand]), pytest.raises(SystemExit) as err:

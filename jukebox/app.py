@@ -48,6 +48,21 @@ def _build_settings_service(config: JukeboxCliConfig) -> SettingsService:
             config.pause_delay_seconds
         )
 
+    if config.pn532_spi_reset is not None:
+        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
+            "reset"
+        ] = config.pn532_spi_reset
+
+    if config.pn532_spi_cs is not None:
+        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
+            "cs"
+        ] = config.pn532_spi_cs
+
+    if config.pn532_spi_irq is not None:
+        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
+            "irq"
+        ] = config.pn532_spi_irq
+
     return SettingsService(
         repository=FileSettingsRepository(),
         env_overrides=build_environment_settings_overrides(),

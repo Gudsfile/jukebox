@@ -301,3 +301,31 @@ def test_effective_view_derived_spi_pins_reflect_explicit_override(tmp_path):
 
     assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "reset") == 24  # override
     assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "cs") == 4  # profile default
+
+
+def test_settings_service_applies_board_profile_cli_override_at_runtime(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        cli_overrides={"jukebox": {"reader": {"pn532": {"board_profile": "hiletgo_v3"}}}},
+    )
+
+    runtime_config = resolve_jukebox_runtime(service)
+
+    assert runtime_config.pn532_board_profile == "hiletgo_v3"
+    assert runtime_config.pn532_spi_cs == 8  # hiletgo_v3 default
+
+
+def test_settings_service_applies_spi_pin_cli_override_at_runtime(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+    service = SettingsService(
+        repository=FileSettingsRepository(str(settings_path)),
+        cli_overrides={"jukebox": {"reader": {"pn532": {"spi": {"reset": 24}}}}},
+    )
+
+    runtime_config = resolve_jukebox_runtime(service)
+
+    assert runtime_config.pn532_spi_reset == 24  # cli override
+    assert runtime_config.pn532_spi_cs == 4  # waveshare_hat default (default profile)
