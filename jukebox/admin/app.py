@@ -42,6 +42,8 @@ from .commands import (
     is_sonos_command,
 )
 from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
+from .pn532_command_handlers import execute_pn532_command
+from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand, is_pn532_command
 from .sonos_households import GroupedSonosHousehold
 
 
@@ -88,6 +90,15 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                     coordinator_prompt_fn=_prompt_for_sonos_group_coordinator,
                     status_fn=_emit_cli_status,
                 )
+            elif is_pn532_command(command):
+                execute_pn532_command(
+                    command=command,
+                    settings_service=services.settings,
+                    profile_prompt_fn=_prompt_for_pn532_profile,
+                    protocol_prompt_fn=_prompt_for_pn532_protocol,
+                    pin_prompt_fn=_prompt_for_pn532_pin,
+                    stdout_fn=typer.echo,
+                )
             else:
                 execute_server_command(
                     verbose=state.verbose,
@@ -98,6 +109,8 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                     source_command="jukebox-admin",
                 )
         except RuntimeError as err:
+            if state.verbose:
+                raise
             typer.echo(str(err), err=True)
             raise typer.Exit(code=1)
     except SystemExit as err:
@@ -109,6 +122,9 @@ def _run_command(ctx: typer.Context, command: object) -> None:
         raise
     except SettingsError as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        raise typer.Exit(code=1)
+    except ModuleNotFoundError as err:
+        typer.echo(str(err), err=True)
         raise typer.Exit(code=1)
     except OSError as err:
         typer.echo(str(err), err=True)
@@ -195,6 +211,38 @@ def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold
         return None
 
 
+def _prompt_for_pn532_profile(profiles: list[str]) -> Optional[str]:
+    import questionary
+
+    try:
+        return questionary.select("Select a PN532 board profile", choices=profiles).ask()
+    except KeyboardInterrupt:
+        return None
+
+
+def _prompt_for_pn532_protocol(protocols: list[str], default: str) -> Optional[str]:
+    import questionary
+
+    try:
+        return questionary.select("Select a PN532 protocol", choices=protocols, default=default).ask()
+
+    except KeyboardInterrupt:
+        return None
+
+
+def _prompt_for_pn532_pin(pin_name: str, default: Optional[int]) -> Optional[str]:
+    import questionary
+
+    default_str = str(default) if default is not None else ""
+    try:
+        return questionary.text(
+            f"SPI {pin_name} pin (GPIO number, leave blank to clear):",
+            default=default_str,
+        ).ask()
+    except KeyboardInterrupt:
+        return None
+
+
 def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
     import questionary
 
@@ -223,9 +271,11 @@ app = typer.Typer(help="Admin CLI for jukebox")
 settings_app = typer.Typer(help="Inspect and manage application settings")
 library_app = typer.Typer(help="Manage the library")
 sonos_app = typer.Typer(help="Inspect Sonos speakers and manage the saved Sonos selection")
+pn532_app = typer.Typer(help="Inspect and debug the PN532 NFC reader")
 app.add_typer(settings_app, name="settings")
 app.add_typer(library_app, name="library")
 app.add_typer(sonos_app, name="sonos")
+app.add_typer(pn532_app, name="pn532")
 
 
 @app.callback()
@@ -377,6 +427,33 @@ def sonos_select(
 @sonos_app.command("show")
 def sonos_show(ctx: typer.Context) -> None:
     _run_command(ctx, SonosShowCommand(type="sonos_show"))
+
+
+@pn532_app.command("profiles")
+def pn532_profiles(ctx: typer.Context) -> None:
+    """List available board profiles and their default GPIO pins."""
+    _run_command(ctx, Pn532ProfilesCommand(type="pn532_profiles"))
+
+
+@pn532_app.command("select")
+def pn532_select(
+    ctx: typer.Context,
+    profile: Annotated[
+        Optional[str],
+        typer.Option(
+            "--profile",
+            help="board profile to persist (waveshare_hat, hiletgo_v3, custom)",
+        ),
+    ] = None,
+) -> None:
+    """Select a board profile and persist it to settings."""
+    _run_command(ctx, Pn532SelectCommand(type="pn532_select", profile=profile))
+
+
+@pn532_app.command("probe")
+def pn532_probe(ctx: typer.Context) -> None:
+    """Verify the PN532 is connected, show firmware version and attempt one tag read."""
+    _run_command(ctx, Pn532ProbeCommand(type="pn532_probe"))
 
 
 @library_app.command("add")

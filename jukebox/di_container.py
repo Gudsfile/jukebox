@@ -29,7 +29,8 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
 
         if config.pn532_protocol == "spi":
             conn = config.pn532_connection
-            assert isinstance(conn, SpiConnectionParams)
+            if not isinstance(conn, SpiConnectionParams):
+                raise ValueError(f"Expected SpiConnectionParams for protocol 'spi', got {type(conn).__name__}")
             reader = Pn532ReaderAdapter(
                 read_timeout_seconds=config.pn532_read_timeout_seconds,
                 spi_reset=conn.reset,
