@@ -37,6 +37,7 @@ class JsonLibraryAdapter(LibraryRepository):
 
     def _write_library(self, library: Library) -> None:
         directory = os.path.dirname(self.filepath) or "."
+        os.makedirs(directory, exist_ok=True)
         temp_fd, temp_path = tempfile.mkstemp(dir=directory, prefix=".library-", suffix=".json")
 
         try:
