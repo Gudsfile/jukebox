@@ -90,13 +90,11 @@ class StubSonosService:
             missing_member_uids=list(self.resolved_group.missing_member_uids),
         )
 
-    def list_available_speakers(self):
+    def list_network_speakers(self):
         return []
 
-    def list_selectable_speakers(self):
-        return []
-
-    def list_selectable_households(self):
+    def list_household_speakers(self, household_id):
+        del household_id
         return []
 
 

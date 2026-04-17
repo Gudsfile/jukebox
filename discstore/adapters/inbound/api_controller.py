@@ -139,7 +139,7 @@ class APIController:
         @self.app.get("/api/v1/sonos/speakers", response_model=list[SonosSpeakerOutput])
         def get_sonos_speakers():
             try:
-                return self.sonos_service.list_available_speakers()
+                return self.sonos_service.list_network_speakers()
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:

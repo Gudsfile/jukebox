@@ -9,6 +9,7 @@ from jukebox.admin.cli_presentation import (
     render_sonos_speakers_output,
 )
 from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
+from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.settings.errors import (
     InvalidSettingsError,
@@ -23,7 +24,6 @@ from jukebox.sonos.selection import (
     SonosSelectionResult,
     SonosSelectionStatus,
 )
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():
@@ -287,7 +287,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
 def test_render_sonos_speakers_output_is_stable_and_human_readable():
     rendered = render_sonos_speakers_output(
         [
-            DiscoveredSonosHousehold(
+            GroupedSonosHousehold(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(
@@ -321,7 +321,7 @@ def test_render_sonos_speakers_output_handles_empty_results():
 def test_build_sonos_household_choice_label_includes_household_and_speaker_list():
     assert (
         build_sonos_household_choice_label(
-            DiscoveredSonosHousehold(
+            GroupedSonosHousehold(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(

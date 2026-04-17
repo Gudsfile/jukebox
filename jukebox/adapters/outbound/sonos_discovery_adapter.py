@@ -1,16 +1,11 @@
-import select
-import socket
-import struct
-import time
 from dataclasses import dataclass
-from textwrap import dedent
 from typing import Any, Optional, Protocol
 
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
     SonosDiscoveryPort,
-    SonosDiscoveryRequest,
+    SonosDiscoveryScope,
     sort_sonos_speakers,
 )
 
@@ -25,9 +20,9 @@ class _SonosDiscoverySnapshot:
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def discover_speakers(
         self,
-        request: Optional[SonosDiscoveryRequest] = None,
+        scope: Optional[SonosDiscoveryScope] = None,
     ) -> list[DiscoveredSonosSpeaker]:
-        snapshot = self._discover_runtime_snapshot(request=request)
+        snapshot = self._discover_runtime_snapshot(scope=scope)
         speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
         for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
             for host in hosts:
@@ -50,48 +45,33 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
 
     def _discover_runtime_snapshot(
         self,
-        request: Optional[SonosDiscoveryRequest] = None,
+        scope: Optional[SonosDiscoveryScope] = None,
     ) -> _SonosDiscoverySnapshot:
         import soco
+        import soco.discovery
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException
         from urllib3.exceptions import HTTPError
 
-        resolved_request = request or SonosDiscoveryRequest.current_household()
+        resolved_scope = scope or SonosDiscoveryScope.all_network()
         try:
-            if resolved_request.mode == "target_household":
-                discovered = soco.discover(household_id=resolved_request.household_id)
+            if resolved_scope.mode == "household":
+                discovered = soco.discovery.scan_network_by_household_id(
+                    resolved_scope.household_id,
+                    include_invisible=True,
+                )
             else:
-                discovered = soco.discover()
+                discovered = soco.discovery.scan_network(
+                    include_invisible=True,
+                    multi_household=True,
+                )
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
 
         discovered = set(discovered or set())
         normalization_errors = []
-        responder_hosts = set()
-        if resolved_request.mode != "current_household" or not discovered:
-            try:
-                responder_hosts = self._discover_responder_hosts()
-            except OSError as err:
-                if not discovered:
-                    raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
-                normalization_errors.append(f"Failed to inspect Sonos SSDP responders: {err}")
-
         available_speakers = set(discovered)
         for speaker in list(discovered):
-            try:
-                available_speakers.update(speaker.all_zones)
-            except Exception:
-                available_speakers.add(speaker)
-
-        for host in sorted(responder_hosts):
-            try:
-                speaker = soco.SoCo(host)
-            except (HTTPError, OSError, RequestException, RuntimeError, SoCoException) as err:
-                normalization_errors.append(f"{host}: {err}")
-                continue
-
-            available_speakers.add(speaker)
             try:
                 available_speakers.update(speaker.all_zones)
             except Exception:
@@ -118,7 +98,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                         retry_hosts_by_uid.setdefault(expected_uid, set()).add(host)
                 continue
 
-            if not _matches_discovery_request(normalized, resolved_request):
+            if not _matches_discovery_scope(normalized, resolved_scope):
                 continue
 
             existing = speakers_by_uid.get(normalized.uid)
@@ -129,72 +109,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             retry_hosts_by_uid={uid: sorted(hosts) for uid, hosts in sorted(retry_hosts_by_uid.items())},
             normalization_errors=normalization_errors,
         )
-
-    @staticmethod
-    def _discover_responder_hosts(timeout: float = 1.0) -> set[str]:
-        try:
-            from importlib import import_module
-
-            soco_discovery = import_module("soco.discovery")
-        except ImportError:
-            return set()
-
-        responder_hosts = set()
-        interface_addresses = soco_discovery._find_ipv4_addresses()
-        if not interface_addresses:
-            return responder_hosts
-
-        payload = dedent(
-            """\
-            M-SEARCH * HTTP/1.1
-            HOST: 239.255.255.250:1900
-            MAN: "ssdp:discover"
-            MX: 1
-            ST: urn:schemas-upnp-org:device:ZonePlayer:1
-            """
-        ).encode("utf-8")
-
-        sockets = []
-        try:
-            for address in interface_addresses:
-                sock = None
-                try:
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-                    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, struct.pack("B", 4))
-                    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(address))
-                except OSError:
-                    if sock is not None:
-                        sock.close()
-                    continue
-                sockets.append(sock)
-
-            for _ in range(3):
-                for sock in list(sockets):
-                    try:
-                        sock.sendto(payload, ("239.255.255.250", 1900))
-                    except OSError:
-                        sockets.remove(sock)
-                        sock.close()
-
-            deadline = time.time() + timeout
-            while sockets and time.time() < deadline:
-                readable, _, _ = select.select(sockets, [], [], min(0.1, max(deadline - time.time(), 0.0)))
-                if not readable:
-                    continue
-
-                for sock in readable:
-                    try:
-                        data, addr = sock.recvfrom(1024)
-                    except OSError:
-                        continue
-                    if b"Sonos" not in data:
-                        continue
-                    responder_hosts.add(addr[0])
-        finally:
-            for sock in sockets:
-                sock.close()
-
-        return responder_hosts
 
     def _resolve_speaker_by_host(self, expected_uid: str, host: str) -> DiscoveredSonosSpeaker:
         from requests.exceptions import RequestException
@@ -273,13 +187,13 @@ class _SonosSpeakerLike(Protocol):
     all_zones: set[Any]
 
 
-def _matches_discovery_request(
+def _matches_discovery_scope(
     speaker: DiscoveredSonosSpeaker,
-    request: SonosDiscoveryRequest,
+    scope: SonosDiscoveryScope,
 ) -> bool:
-    if request.mode != "target_household":
+    if scope.mode != "household":
         return True
-    return speaker.household_id == request.household_id
+    return speaker.household_id == scope.household_id
 
 
 def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:

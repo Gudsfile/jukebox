@@ -1,8 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
-from pydantic import BaseModel, ConfigDict
-
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
@@ -12,17 +10,15 @@ from jukebox.settings.entities import (
 from .discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryPort,
-    SonosDiscoveryRequest,
+    SonosDiscoveryScope,
     sort_sonos_speakers,
 )
 
 
 class SonosService(Protocol):
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+    def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
-    def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
-
-    def list_selectable_households(self) -> list["DiscoveredSonosHousehold"]: ...
+    def list_household_speakers(self, household_id: str) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
@@ -43,25 +39,15 @@ class InspectedSelectedSonosGroup:
     error_message: Optional[str] = None
 
 
-class DiscoveredSonosHousehold(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    household_id: str
-    speakers: list[DiscoveredSonosSpeaker]
-
-
 class DefaultSonosService:
     def __init__(self, discovery: SonosDiscoveryPort):
         self.discovery = discovery
 
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(SonosDiscoveryRequest.current_household())
+    def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]:
+        return self._list_visible_speakers(SonosDiscoveryScope.all_network())
 
-    def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(SonosDiscoveryRequest.all_households())
-
-    def list_selectable_households(self) -> list[DiscoveredSonosHousehold]:
-        return _group_sonos_speakers_by_household(self.list_selectable_speakers())
+    def list_household_speakers(self, household_id: str) -> list[DiscoveredSonosSpeaker]:
+        return self._list_visible_speakers(SonosDiscoveryScope.household(household_id))
 
     def inspect_selected_group(
         self,
@@ -69,7 +55,7 @@ class DefaultSonosService:
     ) -> InspectedSelectedSonosGroup:
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self._discover_speakers_for_selected_group(selected_group),
+            speakers=self.list_network_speakers(),
         )
 
     def resolve_selected_group(
@@ -102,49 +88,10 @@ class DefaultSonosService:
             household_id=speaker.household_id,
         )
 
-    def _list_visible_speakers(self, request: SonosDiscoveryRequest) -> list[DiscoveredSonosSpeaker]:
+    def _list_visible_speakers(self, scope: SonosDiscoveryScope) -> list[DiscoveredSonosSpeaker]:
         return sort_sonos_speakers(
-            [speaker for speaker in self.discovery.discover_speakers(request) if speaker.is_visible]
+            [speaker for speaker in self.discovery.discover_speakers(scope) if speaker.is_visible]
         )
-
-    def _discover_speakers_for_selected_group(
-        self,
-        selected_group: SelectedSonosGroupSettings,
-    ) -> list[DiscoveredSonosSpeaker]:
-        current_household_speakers = self.discovery.discover_speakers(SonosDiscoveryRequest.current_household())
-        if _contains_selected_group_members(current_household_speakers, selected_group):
-            return current_household_speakers
-        return self.discovery.discover_speakers(SonosDiscoveryRequest.all_households())
-
-
-def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosHousehold]:
-    speakers_by_household = {}
-    for speaker in sort_sonos_speakers(speakers):
-        speakers_by_household.setdefault(speaker.household_id, []).append(speaker)
-
-    households = [
-        DiscoveredSonosHousehold(
-            household_id=household_id,
-            speakers=members,
-        )
-        for household_id, members in speakers_by_household.items()
-    ]
-    return sorted(
-        households,
-        key=lambda household: (
-            household.speakers[0].name if household.speakers else "",
-            household.speakers[0].host if household.speakers else "",
-            household.household_id,
-        ),
-    )
-
-
-def _contains_selected_group_members(
-    speakers: list[DiscoveredSonosSpeaker],
-    selected_group: SelectedSonosGroupSettings,
-) -> bool:
-    available_uids = {speaker.uid for speaker in speakers}
-    return all(member.uid in available_uids for member in selected_group.members)
 
 
 def _inspect_selected_group(

@@ -26,8 +26,8 @@ from jukebox.admin.commands import (
     SonosShowCommand,
     UiCommand,
 )
+from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 runner = CliRunner()
 
@@ -229,7 +229,7 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
 
     result = _prompt_for_sonos_household_selection(
         [
-            DiscoveredSonosHousehold(
+            GroupedSonosHousehold(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(

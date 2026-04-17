@@ -17,40 +17,36 @@ class SonosDiscoveryError(RuntimeError, ValueError):
     pass
 
 
-class SonosDiscoveryRequest(BaseModel):
+class SonosDiscoveryScope(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    mode: Literal["current_household", "all_households", "target_household"] = "current_household"
+    mode: Literal["all_network", "household"] = "all_network"
     household_id: Optional[str] = None
 
     @model_validator(mode="after")
-    def validate_request(self):
-        if self.mode == "target_household":
+    def validate_scope(self):
+        if self.mode == "household":
             if not self.household_id:
-                raise ValueError("target_household discovery requires household_id")
+                raise ValueError("household discovery requires household_id")
             return self
 
         if self.household_id is not None:
-            raise ValueError("household_id is only valid for target_household discovery")
+            raise ValueError("household_id is only valid for household-scoped discovery")
         return self
 
     @classmethod
-    def current_household(cls) -> "SonosDiscoveryRequest":
-        return cls(mode="current_household")
+    def all_network(cls) -> "SonosDiscoveryScope":
+        return cls(mode="all_network")
 
     @classmethod
-    def all_households(cls) -> "SonosDiscoveryRequest":
-        return cls(mode="all_households")
-
-    @classmethod
-    def target_household(cls, household_id: str) -> "SonosDiscoveryRequest":
-        return cls(mode="target_household", household_id=household_id)
+    def household(cls, household_id: str) -> "SonosDiscoveryScope":
+        return cls(mode="household", household_id=household_id)
 
 
 class SonosDiscoveryPort(Protocol):
     def discover_speakers(
         self,
-        request: Optional[SonosDiscoveryRequest] = None,
+        scope: Optional[SonosDiscoveryScope] = None,
     ) -> list[DiscoveredSonosSpeaker]: ...
 
 

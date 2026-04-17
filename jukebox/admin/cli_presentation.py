@@ -14,9 +14,9 @@ from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
+from .sonos_households import GroupedSonosHousehold
 
 _SECTION_ORDER = ("paths", "admin", "playback", "reader", "player", "other")
 _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
@@ -49,7 +49,7 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     return message
 
 
-def render_sonos_speakers_output(households: list[DiscoveredSonosHousehold]) -> str:
+def render_sonos_speakers_output(households: list[GroupedSonosHousehold]) -> str:
     if not households:
         return "No visible Sonos speakers found."
 
@@ -74,7 +74,7 @@ def render_sonos_speakers_output(households: list[DiscoveredSonosHousehold]) -> 
     return "\n".join(lines[:-1])
 
 
-def build_sonos_household_choice_label(household: DiscoveredSonosHousehold) -> str:
+def build_sonos_household_choice_label(household: GroupedSonosHousehold) -> str:
     speaker_count = len(household.speakers)
     suffix = "speaker" if speaker_count == 1 else "speakers"
     return f"{household.household_id} ({speaker_count} {suffix})"

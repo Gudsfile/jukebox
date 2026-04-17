@@ -20,7 +20,6 @@ from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .cli_presentation import (
     build_sonos_household_choice_label,
@@ -42,6 +41,7 @@ from .commands import (
     is_sonos_command,
 )
 from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
+from .sonos_households import GroupedSonosHousehold
 
 
 class AdminCliState:
@@ -174,7 +174,7 @@ def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) 
         return None
 
 
-def _prompt_for_sonos_household_selection(households: list[DiscoveredSonosHousehold]) -> Optional[str]:
+def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold]) -> Optional[str]:
     import questionary
 
     try:
