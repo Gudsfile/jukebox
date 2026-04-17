@@ -62,6 +62,7 @@ def test_save_sonos_selection_defaults_coordinator_to_first_selected_uid():
                 SelectedSonosSpeakerSettings(uid="speaker-1"),
                 SelectedSonosSpeakerSettings(uid="speaker-2"),
             ],
+            household_id="household-1",
         )
     )
     sonos_service.list_selectable_speakers.assert_called_once_with()
@@ -91,6 +92,7 @@ def test_save_sonos_selection_persists_multi_member_selected_group_and_player_ty
             SelectedSonosSpeakerSettings(uid="speaker-1"),
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
+        household_id="household-1",
     )
     selected_group_repository.save_selected_group.assert_called_once_with(
         SelectedSonosGroupSettings(
@@ -99,6 +101,7 @@ def test_save_sonos_selection_persists_multi_member_selected_group_and_player_ty
                 SelectedSonosSpeakerSettings(uid="speaker-1"),
                 SelectedSonosSpeakerSettings(uid="speaker-2"),
             ],
+            household_id="household-1",
         )
     )
 

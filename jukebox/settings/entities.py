@@ -1,7 +1,7 @@
 import os
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
@@ -24,6 +24,7 @@ class SelectedSonosSpeakerSettings(StrictModel):
 class SelectedSonosGroupSettings(StrictModel):
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
+    household_id: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_group_shape(self):
@@ -37,7 +38,18 @@ class SelectedSonosGroupSettings(StrictModel):
         if self.coordinator_uid not in member_uids:
             raise ValueError("selected_group.coordinator_uid must match a member uid")
 
+        if self.household_id is not None and not self.household_id:
+            raise ValueError("selected_group.household_id must not be blank")
+
         return self
+
+    @model_serializer(mode="wrap")
+    def serialize_group(self, handler):
+        payload = handler(self)
+        payload.pop("household_id", None)
+        if self.household_id is not None:
+            payload["household_id"] = self.household_id
+        return payload
 
 
 class PersistedSonosPlayerSettings(StrictModel):
@@ -133,6 +145,7 @@ class SparseSelectedSonosSpeakerSettings(StrictModel):
 class SparseSelectedSonosGroupSettings(StrictModel):
     coordinator_uid: Optional[str] = None
     members: Optional[list[SparseSelectedSonosSpeakerSettings]] = None
+    household_id: Optional[str] = None
 
 
 class SparsePersistedSonosPlayerSettings(StrictModel):

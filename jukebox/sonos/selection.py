@@ -72,6 +72,7 @@ class SaveSonosSelection:
         selected_group = SelectedSonosGroupSettings(
             coordinator_uid=validated_group.coordinator_uid,
             members=[SelectedSonosSpeakerSettings(uid=uid) for uid in validated_group.selected_uids],
+            household_id=validated_group.household_id,
         )
         members = [speakers_by_uid[uid] for uid in validated_group.selected_uids]
         coordinator = speakers_by_uid[validated_group.coordinator_uid]
@@ -137,6 +138,7 @@ class GetSonosSelectionStatus:
 class _ValidatedSonosSelectionRequest(StrictModel):
     selected_uids: list[str]
     coordinator_uid: str
+    household_id: str
 
 
 def _validate_selection_request(
@@ -174,4 +176,5 @@ def _validate_selection_request(
     return _ValidatedSonosSelectionRequest(
         selected_uids=list(requested_uids),
         coordinator_uid=resolved_coordinator_uid,
+        household_id=next(iter(household_ids)),
     )

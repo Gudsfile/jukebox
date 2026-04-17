@@ -9,7 +9,12 @@ from jukebox.settings.entities import (
     SelectedSonosGroupSettings,
 )
 
-from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryPort, sort_sonos_speakers
+from .discovery import (
+    DiscoveredSonosSpeaker,
+    SonosDiscoveryPort,
+    SonosDiscoveryRequest,
+    sort_sonos_speakers,
+)
 
 
 class DiscoveredSonosHousehold(BaseModel):
@@ -72,10 +77,10 @@ class DefaultSonosService:
         self.discovery = discovery
 
     def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(include_other_households=False)
+        return self._list_visible_speakers(SonosDiscoveryRequest.current_household())
 
     def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(include_other_households=True)
+        return self._list_visible_speakers(SonosDiscoveryRequest.all_households())
 
     def list_selectable_households(self) -> list[DiscoveredSonosHousehold]:
         return group_sonos_speakers_by_household(self.list_selectable_speakers())
@@ -86,7 +91,7 @@ class DefaultSonosService:
     ) -> InspectedSelectedSonosGroup:
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self.discovery.discover_speakers(),
+            speakers=self.discovery.discover_speakers(_build_selected_group_discovery_request(selected_group)),
         )
 
     def resolve_selected_group(
@@ -119,14 +124,16 @@ class DefaultSonosService:
             household_id=speaker.household_id,
         )
 
-    def _list_visible_speakers(self, include_other_households: bool) -> list[DiscoveredSonosSpeaker]:
+    def _list_visible_speakers(self, request: SonosDiscoveryRequest) -> list[DiscoveredSonosSpeaker]:
         return sort_sonos_speakers(
-            [
-                speaker
-                for speaker in self.discovery.discover_speakers(include_other_households=include_other_households)
-                if speaker.is_visible
-            ]
+            [speaker for speaker in self.discovery.discover_speakers(request) if speaker.is_visible]
         )
+
+
+def _build_selected_group_discovery_request(selected_group: SelectedSonosGroupSettings) -> SonosDiscoveryRequest:
+    if selected_group.household_id is not None:
+        return SonosDiscoveryRequest.target_household(selected_group.household_id)
+    return SonosDiscoveryRequest.all_households()
 
 
 def _inspect_selected_group(

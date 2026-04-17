@@ -10,6 +10,7 @@ from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
     SonosDiscoveryPort,
+    SonosDiscoveryRequest,
     sort_sonos_speakers,
 )
 
@@ -22,8 +23,11 @@ class _SonosDiscoverySnapshot:
 
 
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
-    def discover_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]:
-        snapshot = self._discover_runtime_snapshot(include_other_households=include_other_households)
+    def discover_speakers(
+        self,
+        request: Optional[SonosDiscoveryRequest] = None,
+    ) -> list[DiscoveredSonosSpeaker]:
+        snapshot = self._discover_runtime_snapshot(request=request)
         speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
         for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
             for host in hosts:
@@ -44,21 +48,28 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             )
         return recovered_speakers
 
-    def _discover_runtime_snapshot(self, include_other_households: bool = False) -> _SonosDiscoverySnapshot:
+    def _discover_runtime_snapshot(
+        self,
+        request: Optional[SonosDiscoveryRequest] = None,
+    ) -> _SonosDiscoverySnapshot:
         import soco
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException
         from urllib3.exceptions import HTTPError
 
+        resolved_request = request or SonosDiscoveryRequest.current_household()
         try:
-            discovered = soco.discover()
+            if resolved_request.mode == "target_household":
+                discovered = soco.discover(household_id=resolved_request.household_id)
+            else:
+                discovered = soco.discover()
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
 
         discovered = set(discovered or set())
         normalization_errors = []
         responder_hosts = set()
-        if include_other_households or not discovered:
+        if resolved_request.mode != "current_household" or not discovered:
             try:
                 responder_hosts = self._discover_responder_hosts()
             except OSError as err:
@@ -105,6 +116,9 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                     host = _safe_speaker_host(speaker)
                     if host is not None:
                         retry_hosts_by_uid.setdefault(expected_uid, set()).add(host)
+                continue
+
+            if not _matches_discovery_request(normalized, resolved_request):
                 continue
 
             existing = speakers_by_uid.get(normalized.uid)
@@ -257,6 +271,15 @@ class _SonosSpeakerLike(Protocol):
     ip_address: str
     household_id: str
     all_zones: set[Any]
+
+
+def _matches_discovery_request(
+    speaker: DiscoveredSonosSpeaker,
+    request: SonosDiscoveryRequest,
+) -> bool:
+    if request.mode != "target_household":
+        return True
+    return speaker.household_id == request.household_id
 
 
 def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:

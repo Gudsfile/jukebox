@@ -4,7 +4,7 @@ from types import ModuleType
 import pytest
 
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
-from jukebox.sonos.discovery import SonosDiscoveryError
+from jukebox.sonos.discovery import SonosDiscoveryError, SonosDiscoveryRequest
 
 
 class FakeSpeaker:
@@ -78,6 +78,7 @@ def test_soco_sonos_discovery_adapter_preserves_visibility_flag(mocker):
 
 def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_found(mocker):
     mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: set()))
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_responder_hosts", return_value=set())
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
 
@@ -121,13 +122,43 @@ def test_soco_sonos_discovery_adapter_aggregates_multiple_households_from_respon
         return_value={"192.168.1.20", "192.168.1.30"},
     )
 
-    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(include_other_households=True)
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(SonosDiscoveryRequest.all_households())
 
     assert [(speaker.name, speaker.household_id) for speaker in speakers] == [
         ("Bar", "household-2"),
         ("Kitchen", "household-1"),
         ("Living Room", "household-1"),
     ]
+
+
+def test_soco_sonos_discovery_adapter_filters_to_target_household(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    bar = FakeSpeaker("speaker-3", "Bar", "192.168.1.20", "household-2")
+    bar.all_zones = {bar}
+
+    def discover(*args, **kwargs):
+        assert kwargs == {"household_id": "household-2"}
+        return set()
+
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=discover,
+            soco_constructor=lambda host: {
+                "192.168.1.20": bar,
+                "192.168.1.30": kitchen,
+            }[host],
+        ),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_responder_hosts",
+        return_value={"192.168.1.20", "192.168.1.30"},
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(SonosDiscoveryRequest.target_household("household-2"))
+
+    assert [(speaker.uid, speaker.household_id) for speaker in speakers] == [("speaker-3", "household-2")]
 
 
 def test_soco_sonos_discovery_adapter_uses_responder_hosts_when_soco_discover_returns_empty(mocker):

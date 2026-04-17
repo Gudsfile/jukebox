@@ -92,6 +92,7 @@ def test_save_selected_group_persists_through_settings_service():
     selected_group = SelectedSonosGroupSettings(
         coordinator_uid="speaker-1",
         members=[SelectedSonosSpeakerSettings(uid="speaker-1")],
+        household_id="household-1",
     )
 
     result = repository.save_selected_group(selected_group)
@@ -104,6 +105,7 @@ def test_save_selected_group_persists_through_settings_service():
                     "selected_group": {
                         "coordinator_uid": "speaker-1",
                         "members": [{"uid": "speaker-1"}],
+                        "household_id": "household-1",
                     }
                 },
             }

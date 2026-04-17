@@ -1119,6 +1119,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
         "selected_group": {
             "coordinator_uid": "speaker-2",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+            "household_id": "household-1",
         },
         "availability": {
             "status": "available",
@@ -1159,6 +1160,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
                         "selected_group": {
                             "coordinator_uid": "speaker-2",
                             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+                            "household_id": "household-1",
                         }
                     },
                 }
