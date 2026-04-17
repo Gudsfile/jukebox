@@ -222,14 +222,10 @@ class SonosUIPageBuilder:
         speakers_by_uid = {speaker.uid: speaker for speaker in speakers}
         coordinator = speakers_by_uid.get(selected_group.coordinator_uid)
         coordinator_label = (
-            "{} [{}]".format(coordinator.name, coordinator.uid)
-            if coordinator is not None
-            else selected_group.coordinator_uid
+            f"{coordinator.name} [{coordinator.uid}]" if coordinator is not None else selected_group.coordinator_uid
         )
         member_labels = [
-            "{} [{}]".format(speakers_by_uid[member.uid].name, member.uid)
-            if member.uid in speakers_by_uid
-            else member.uid
+            f"{speakers_by_uid[member.uid].name} [{member.uid}]" if member.uid in speakers_by_uid else member.uid
             for member in selected_group.members
         ]
 
@@ -487,13 +483,13 @@ class SonosUIPageBuilder:
 
     @staticmethod
     def _build_speaker_option_label(speaker: DiscoveredSonosSpeaker) -> str:
-        return "{} ({})".format(speaker.name, speaker.host)
+        return f"{speaker.name} ({speaker.host})"
 
     @staticmethod
     def _format_status_member(member) -> str:
         if member.speaker is not None:
-            return "{} [{}]".format(member.speaker.name, member.uid)
-        return "{} [unavailable]".format(member.uid)
+            return f"{member.speaker.name} [{member.uid}]"
+        return f"{member.uid} [unavailable]"
 
     @staticmethod
     def _format_saved_coordinator(status: SonosSelectionStatus) -> str:
@@ -502,5 +498,5 @@ class SonosUIPageBuilder:
 
         for member in status.availability.members:
             if member.uid == status.selected_group.coordinator_uid and member.speaker is not None:
-                return "{} [{}]".format(member.speaker.name, member.uid)
+                return f"{member.speaker.name} [{member.uid}]"
         return status.selected_group.coordinator_uid

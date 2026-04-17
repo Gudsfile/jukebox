@@ -374,7 +374,7 @@ class UIController(APIController):
         if speaker is None:
             return message
 
-        return "{}{} [{}]".format(prefix, speaker.name, speaker.uid)
+        return f"{prefix}{speaker.name} [{speaker.uid}]"
 
     def _build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
         return self.library_pages.build_index_page_components(toast=toast)
