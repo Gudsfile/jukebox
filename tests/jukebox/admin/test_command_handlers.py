@@ -82,6 +82,7 @@ def test_execute_settings_command_renders_human_readable_persisted_settings():
                             "type": "sonos",
                             "sonos": {
                                 "selected_group": {
+                                    "household_id": "household-1",
                                     "coordinator_uid": "speaker-2",
                                     "members": [
                                         {"uid": "speaker-1"},
@@ -118,7 +119,7 @@ def test_execute_settings_command_renders_human_readable_persisted_settings():
                 "Paths",
                 "Library Path [paths.library_path]: ~/.config/jukebox/library.json (source: default; restart required)",
                 "Admin API Port [admin.api.port]: 8000 (source: file; restart required)",
-                "Selected Sonos Group [jukebox.player.sonos.selected_group]: speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)",
+                "Selected Sonos Group [jukebox.player.sonos.selected_group]: speaker-2 (coordinator); household: household-1; members: speaker-1, speaker-2 (source: file; restart required)",
                 "Derived",
                 "derived.paths.current_tag_path: /Users/test/.config/jukebox/current-tag.txt",
             ],
@@ -771,6 +772,7 @@ def test_execute_sonos_command_show_renders_saved_selection_status():
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-1",
                         "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }

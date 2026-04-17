@@ -31,6 +31,11 @@ def build_fake_soco_module(scan_network, soco_constructor=None, discover=None):
         discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
     )
     setattr(fake_soco, "discovery", fake_discovery)
+    setattr(
+        fake_soco,
+        "discover",
+        discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
+    )
 
     fake_exceptions = ModuleType("soco.exceptions")
 
@@ -179,6 +184,56 @@ def test_soco_sonos_discovery_adapter_recovers_stale_discovered_speaker_by_host(
             "is_visible": True,
         }
     ]
+
+
+def test_soco_sonos_discovery_adapter_recovers_stale_household_speaker_by_host(mocker):
+    household_id = "household-1"
+
+    class StaleDiscoveredSpeaker:
+        ip_address = "192.168.1.20"
+        household_id = "household-1"
+        is_visible = True
+
+        def __init__(self):
+            self.all_zones = {self}
+
+        @property
+        def uid(self):
+            return "speaker-1"
+
+        @property
+        def player_name(self):
+            raise OSError("stale topology")
+
+        def __hash__(self):
+            return hash((self.uid, self.ip_address))
+
+    healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", household_id)
+    discover = mocker.Mock(return_value={StaleDiscoveredSpeaker()})
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            scan_network=lambda **kwargs: set(),
+            discover=discover,
+            soco_constructor=lambda host: {"192.168.1.20": healthy_speaker}[host],
+        ),
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_household_speakers(household_id)
+
+    assert [speaker.model_dump() for speaker in speakers] == [
+        {
+            "uid": "speaker-1",
+            "name": "Living Room",
+            "host": "192.168.1.20",
+            "household_id": household_id,
+            "is_visible": True,
+        }
+    ]
+    discover.assert_called_once_with(
+        include_invisible=True,
+        household_id=household_id,
+    )
 
 
 def test_soco_sonos_discovery_adapter_ignores_mismatched_host_retry_results(mocker):

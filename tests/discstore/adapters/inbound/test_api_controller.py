@@ -742,6 +742,7 @@ def test_get_sonos_selection_returns_available_saved_selection():
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-2",
                         "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }
@@ -779,6 +780,7 @@ def test_get_sonos_selection_returns_available_saved_selection():
 
     assert response.model_dump() == {
         "selected_group": {
+            "household_id": "household-1",
             "coordinator_uid": "speaker-2",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
@@ -821,6 +823,7 @@ def test_get_sonos_selection_returns_partially_available_saved_selection():
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-1",
                         "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }
@@ -852,6 +855,7 @@ def test_get_sonos_selection_returns_partially_available_saved_selection():
 
     assert response.model_dump() == {
         "selected_group": {
+            "household_id": "household-1",
             "coordinator_uid": "speaker-1",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
@@ -888,6 +892,7 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-2",
                         "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                     }
@@ -919,6 +924,7 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
 
     assert response.model_dump() == {
         "selected_group": {
+            "household_id": "household-1",
             "coordinator_uid": "speaker-2",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
@@ -955,6 +961,7 @@ def test_get_sonos_selection_returns_502_on_discovery_failure():
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-1",
                         "members": [{"uid": "speaker-1"}],
                     }
@@ -1017,6 +1024,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
 
     assert response.model_dump() == {
         "selected_group": {
+            "household_id": "household-1",
             "coordinator_uid": "speaker-2",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
@@ -1057,6 +1065,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
                     "type": "sonos",
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-2",
                             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                         }

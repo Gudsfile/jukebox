@@ -37,6 +37,7 @@ def test_render_settings_output_persisted_groups_overrides_by_section():
                 "player": {
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-2",
                             "members": [
                                 {"uid": "speaker-1"},
@@ -58,7 +59,7 @@ def test_render_settings_output_persisted_groups_overrides_by_section():
     assert "Player" in rendered
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "speaker-2 (coordinator); members: speaker-1, speaker-2"
+        "speaker-2 (coordinator); household: household-1; members: speaker-1, speaker-2"
     ) in rendered
 
 
@@ -138,6 +139,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
                         "type": "sonos",
                         "sonos": {
                             "selected_group": {
+                                "household_id": "household-1",
                                 "coordinator_uid": "speaker-2",
                                 "members": [
                                     {"uid": "speaker-1"},
@@ -170,7 +172,7 @@ def test_render_settings_output_effective_treats_selected_group_as_atomic():
 
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)"
+        "speaker-2 (coordinator); household: household-1; members: speaker-1, speaker-2 (source: file; restart required)"
     ) in rendered
     assert "jukebox.player.sonos.selected_group.coordinator_uid" not in rendered
     assert "jukebox.player.sonos.selected_group.members" not in rendered
@@ -191,6 +193,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
                         "type": "sonos",
                         "sonos": {
                             "selected_group": {
+                                "household_id": "household-1",
                                 "coordinator_uid": "speaker-2",
                                 "members": [
                                     {"uid": "speaker-1"},
@@ -226,7 +229,7 @@ def test_render_settings_output_effective_collapses_nested_selected_group_proven
 
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: file; restart required)"
+        "speaker-2 (coordinator); household: household-1; members: speaker-1, speaker-2 (source: file; restart required)"
     ) in rendered
 
 
@@ -245,6 +248,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
                         "type": "sonos",
                         "sonos": {
                             "selected_group": {
+                                "household_id": "household-1",
                                 "coordinator_uid": "speaker-2",
                                 "members": [
                                     {"uid": "speaker-1"},
@@ -280,7 +284,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
 
     assert (
         "Selected Sonos Group [jukebox.player.sonos.selected_group]: "
-        "speaker-2 (coordinator); members: speaker-1, speaker-2 (source: mixed; restart required)"
+        "speaker-2 (coordinator); household: household-1; members: speaker-1, speaker-2 (source: mixed; restart required)"
     ) in rendered
 
 
@@ -387,6 +391,7 @@ def test_render_sonos_selection_saved_output_is_human_readable():
                 ),
             ],
             selected_group=SelectedSonosGroupSettings(
+                household_id="household-1",
                 coordinator_uid="speaker-1",
                 members=[
                     SelectedSonosSpeakerSettings(uid="speaker-1"),
@@ -418,6 +423,7 @@ def test_render_sonos_selection_status_output_for_available_selection():
     rendered = render_sonos_selection_status_output(
         SonosSelectionStatus(
             selected_group=SelectedSonosGroupSettings(
+                household_id="household-1",
                 coordinator_uid="speaker-1",
                 members=[
                     SelectedSonosSpeakerSettings(uid="speaker-1"),
@@ -467,6 +473,7 @@ def test_render_sonos_selection_status_output_for_partially_available_selection(
     rendered = render_sonos_selection_status_output(
         SonosSelectionStatus(
             selected_group=SelectedSonosGroupSettings(
+                household_id="household-1",
                 coordinator_uid="speaker-1",
                 members=[
                     SelectedSonosSpeakerSettings(uid="speaker-1"),
@@ -508,6 +515,7 @@ def test_render_sonos_selection_status_output_falls_back_to_coordinator_uid_when
     rendered = render_sonos_selection_status_output(
         SonosSelectionStatus(
             selected_group=SelectedSonosGroupSettings(
+                household_id="household-1",
                 coordinator_uid="speaker-1",
                 members=[
                     SelectedSonosSpeakerSettings(uid="speaker-1"),

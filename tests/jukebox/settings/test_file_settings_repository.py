@@ -86,6 +86,45 @@ def test_repository_rejects_legacy_selected_group_fields(tmp_path):
         repository.load_persisted_settings_data()
 
 
+def test_repository_accepts_selected_group_household_id(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "player": {
+                        "sonos": {
+                            "selected_group": {
+                                "household_id": "household-1",
+                                "coordinator_uid": "speaker-1",
+                                "members": [{"uid": "speaker-1"}],
+                            }
+                        }
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    repository = FileSettingsRepository(str(settings_path))
+
+    assert repository.load_persisted_settings_data() == {
+        "schema_version": 1,
+        "jukebox": {
+            "player": {
+                "sonos": {
+                    "selected_group": {
+                        "household_id": "household-1",
+                        "coordinator_uid": "speaker-1",
+                        "members": [{"uid": "speaker-1"}],
+                    }
+                }
+            }
+        },
+    }
+
+
 def test_repository_migrates_missing_schema_version(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(json.dumps({"paths": {"library_path": "~/custom-library.json"}}), encoding="utf-8")

@@ -356,6 +356,7 @@ def _format_selected_group(value: object) -> str:
         return str(value)
 
     selected_group = cast(Dict[str, object], value)
+    household_id = selected_group.get("household_id")
     members = selected_group.get("members")
     coordinator_uid = selected_group.get("coordinator_uid")
     if not isinstance(members, list) or not isinstance(coordinator_uid, str):
@@ -373,8 +374,8 @@ def _format_selected_group(value: object) -> str:
 
     if not member_uids:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
-
-    return f"{coordinator_uid} (coordinator); members: {', '.join(member_uids)}"
+    household_label = f"; household: {household_id}" if isinstance(household_id, str) else ""
+    return f"{coordinator_uid} (coordinator){household_label}; members: {', '.join(member_uids)}"
 
 
 def _render_cli_error_message(err: BaseException) -> str:

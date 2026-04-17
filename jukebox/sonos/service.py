@@ -49,7 +49,7 @@ class DefaultSonosService:
     ) -> InspectedSelectedSonosGroup:
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self.list_network_speakers(),
+            speakers=self._list_selected_group_speakers(selected_group),
         )
 
     def resolve_selected_group(
@@ -85,6 +85,14 @@ class DefaultSonosService:
     @staticmethod
     def _filter_visible_speakers(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosSpeaker]:
         return sort_sonos_speakers([speaker for speaker in speakers if speaker.is_visible])
+
+    def _list_selected_group_speakers(
+        self,
+        selected_group: SelectedSonosGroupSettings,
+    ) -> list[DiscoveredSonosSpeaker]:
+        if selected_group.household_id is None:
+            return self.list_network_speakers()
+        return sort_sonos_speakers(self.discovery.discover_household_speakers(selected_group.household_id))
 
 
 def _inspect_selected_group(

@@ -70,6 +70,7 @@ class SaveSonosSelection:
         )
         speakers_by_uid = {speaker.uid: speaker for speaker in available_speakers}
         selected_group = SelectedSonosGroupSettings(
+            household_id=validated_group.household_id,
             coordinator_uid=validated_group.coordinator_uid,
             members=[SelectedSonosSpeakerSettings(uid=uid) for uid in validated_group.selected_uids],
         )
@@ -137,6 +138,7 @@ class GetSonosSelectionStatus:
 class _ValidatedSonosSelectionRequest(StrictModel):
     selected_uids: list[str]
     coordinator_uid: str
+    household_id: str
 
 
 def _validate_selection_request(
@@ -170,8 +172,10 @@ def _validate_selection_request(
     household_ids = {speakers_by_uid[uid].household_id for uid in requested_uids}
     if len(household_ids) != 1:
         raise ValueError("Selected Sonos speakers must belong to the same household.")
+    resolved_household_id = next(iter(household_ids))
 
     return _ValidatedSonosSelectionRequest(
         selected_uids=list(requested_uids),
         coordinator_uid=resolved_coordinator_uid,
+        household_id=resolved_household_id,
     )

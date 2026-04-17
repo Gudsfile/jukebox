@@ -19,6 +19,15 @@ class _SonosDiscoverySnapshot:
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def discover_speakers(self) -> list[DiscoveredSonosSpeaker]:
         snapshot = self._discover_network_snapshot()
+        return self._recover_snapshot_speakers(snapshot)
+
+    def discover_household_speakers(self, household_id: str) -> list[DiscoveredSonosSpeaker]:
+        snapshot = self._discover_household_snapshot(household_id)
+        return sort_sonos_speakers(
+            [speaker for speaker in self._recover_snapshot_speakers(snapshot) if speaker.household_id == household_id]
+        )
+
+    def _recover_snapshot_speakers(self, snapshot: _SonosDiscoverySnapshot) -> list[DiscoveredSonosSpeaker]:
         speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
         for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
             for host in hosts:
@@ -55,6 +64,27 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
         return self._normalize_snapshot(set(discovered or set()))
+
+    def _discover_household_snapshot(self, household_id: str) -> _SonosDiscoverySnapshot:
+        import soco
+        from requests.exceptions import RequestException
+        from soco.exceptions import SoCoException
+        from urllib3.exceptions import HTTPError
+
+        try:
+            discovered = soco.discover(
+                include_invisible=True,
+                household_id=household_id,
+            )
+        except (HTTPError, OSError, RequestException, SoCoException) as err:
+            raise SonosDiscoveryError(f"Failed to discover Sonos household `{household_id}`: {err}") from err
+
+        snapshot = self._normalize_snapshot(set(discovered or set()))
+        return _SonosDiscoverySnapshot(
+            speakers=[speaker for speaker in snapshot.speakers if speaker.household_id == household_id],
+            retry_hosts_by_uid=snapshot.retry_hosts_by_uid,
+            normalization_errors=snapshot.normalization_errors,
+        )
 
     def _normalize_snapshot(self, discovered: set[Any]) -> _SonosDiscoverySnapshot:
         normalization_errors = []
