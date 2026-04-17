@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
+from pydantic import BaseModel, ConfigDict
+
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
@@ -19,6 +21,8 @@ class SonosService(Protocol):
     def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
     def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+
+    def list_selectable_households(self) -> list["DiscoveredSonosHousehold"]: ...
 
     def inspect_selected_group(
         self,
@@ -39,6 +43,13 @@ class InspectedSelectedSonosGroup:
     error_message: Optional[str] = None
 
 
+class DiscoveredSonosHousehold(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    household_id: str
+    speakers: list[DiscoveredSonosSpeaker]
+
+
 class DefaultSonosService:
     def __init__(self, discovery: SonosDiscoveryPort):
         self.discovery = discovery
@@ -48,6 +59,9 @@ class DefaultSonosService:
 
     def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]:
         return self._list_visible_speakers(SonosDiscoveryRequest.all_households())
+
+    def list_selectable_households(self) -> list[DiscoveredSonosHousehold]:
+        return _group_sonos_speakers_by_household(self.list_selectable_speakers())
 
     def inspect_selected_group(
         self,
@@ -98,6 +112,28 @@ def _build_selected_group_discovery_request(selected_group: SelectedSonosGroupSe
     if selected_group.household_id is not None:
         return SonosDiscoveryRequest.target_household(selected_group.household_id)
     return SonosDiscoveryRequest.all_households()
+
+
+def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosHousehold]:
+    speakers_by_household = {}
+    for speaker in sort_sonos_speakers(speakers):
+        speakers_by_household.setdefault(speaker.household_id, []).append(speaker)
+
+    households = [
+        DiscoveredSonosHousehold(
+            household_id=household_id,
+            speakers=members,
+        )
+        for household_id, members in speakers_by_household.items()
+    ]
+    return sorted(
+        households,
+        key=lambda household: (
+            household.speakers[0].name if household.speakers else "",
+            household.speakers[0].host if household.speakers else "",
+            household.household_id,
+        ),
+    )
 
 
 def _inspect_selected_group(

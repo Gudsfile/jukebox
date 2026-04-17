@@ -34,7 +34,7 @@ from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError, sort_sonos_speakers
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
@@ -153,7 +153,13 @@ class APIController:
         @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
         def get_sonos_households():
             try:
-                return _group_sonos_speakers_by_household(self.sonos_service.list_selectable_speakers())
+                return [
+                    SonosHouseholdOutput(
+                        household_id=household.household_id,
+                        speakers=[SonosSpeakerOutput(**speaker.model_dump()) for speaker in household.speakers],
+                    )
+                    for household in self.sonos_service.list_selectable_households()
+                ]
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
@@ -202,25 +208,3 @@ class APIController:
                 raise
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-
-def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[SonosHouseholdOutput]:
-    speakers_by_household = {}
-    for speaker in sort_sonos_speakers(speakers):
-        speakers_by_household.setdefault(speaker.household_id, []).append(SonosSpeakerOutput(**speaker.model_dump()))
-
-    households = [
-        SonosHouseholdOutput(
-            household_id=household_id,
-            speakers=members,
-        )
-        for household_id, members in speakers_by_household.items()
-    ]
-    return sorted(
-        households,
-        key=lambda household: (
-            household.speakers[0].name if household.speakers else "",
-            household.speakers[0].host if household.speakers else "",
-            household.household_id,
-        ),
-    )

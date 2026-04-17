@@ -96,6 +96,9 @@ class StubSonosService:
     def list_selectable_speakers(self):
         return []
 
+    def list_selectable_households(self):
+        return []
+
 
 def resolve_jukebox_runtime(
     settings_service: SettingsService,

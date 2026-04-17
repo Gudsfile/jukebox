@@ -3,7 +3,6 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from jukebox.admin.cli_presentation import SonosHouseholdChoice
 from jukebox.admin.command_handlers import (
     execute_server_command,
     execute_settings_command,
@@ -23,7 +22,7 @@ from jukebox.admin.services import AdminServices
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
-from jukebox.sonos.service import InspectedSelectedSonosGroup
+from jukebox.sonos.service import DiscoveredSonosHousehold, InspectedSelectedSonosGroup
 
 
 def build_services():
@@ -353,21 +352,26 @@ def test_execute_settings_command_preserves_json_payloads(command, service_metho
 def test_execute_sonos_command_lists_visible_sonos_speakers():
     stdout_fn = MagicMock()
     sonos_service = MagicMock()
-    sonos_service.list_selectable_speakers.return_value = [
-        DiscoveredSonosSpeaker(
-            uid="speaker-1",
-            name="Kitchen",
-            host="192.168.1.30",
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(
             household_id="household-1",
-            is_visible=True,
-        ),
-        DiscoveredSonosSpeaker(
-            uid="speaker-2",
-            name="Living Room",
-            host="192.168.1.40",
-            household_id="household-1",
-            is_visible=True,
-        ),
+            speakers=[
+                DiscoveredSonosSpeaker(
+                    uid="speaker-1",
+                    name="Kitchen",
+                    host="192.168.1.30",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+                DiscoveredSonosSpeaker(
+                    uid="speaker-2",
+                    name="Living Room",
+                    host="192.168.1.40",
+                    household_id="household-1",
+                    is_visible=True,
+                ),
+            ],
+        )
     ]
 
     execute_sonos_command(
@@ -376,7 +380,7 @@ def test_execute_sonos_command_lists_visible_sonos_speakers():
         stdout_fn=stdout_fn,
     )
 
-    sonos_service.list_selectable_speakers.assert_called_once_with()
+    sonos_service.list_selectable_households.assert_called_once_with()
     rendered_output = stdout_fn.call_args.args[0]
     assert "Household: household-1" in rendered_output
     assert "1. Kitchen" in rendered_output
@@ -385,7 +389,7 @@ def test_execute_sonos_command_lists_visible_sonos_speakers():
 
 def test_execute_sonos_command_preserves_sonos_discovery_failures():
     sonos_service = MagicMock()
-    sonos_service.list_selectable_speakers.side_effect = SonosDiscoveryError(
+    sonos_service.list_selectable_households.side_effect = SonosDiscoveryError(
         "Failed to discover Sonos speakers: network unavailable"
     )
 
@@ -444,6 +448,9 @@ def test_execute_sonos_command_prompts_for_single_discovered_speaker():
             is_visible=True,
         )
     ]
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(household_id="household-1", speakers=available_speakers)
+    ]
     sonos_service.list_selectable_speakers.return_value = available_speakers
 
     execute_sonos_command(
@@ -460,7 +467,8 @@ def test_execute_sonos_command_prompts_for_single_discovered_speaker():
     prompt_fn.assert_called_once_with(available_speakers)
     coordinator_prompt_fn.assert_not_called()
     settings_service.patch_persisted_settings.assert_called_once()
-    assert sonos_service.list_selectable_speakers.call_count == 2
+    sonos_service.list_selectable_households.assert_called_once_with()
+    sonos_service.list_selectable_speakers.assert_called_once_with()
 
 
 def test_execute_sonos_command_reports_no_visible_speakers_before_prompting():
@@ -469,7 +477,7 @@ def test_execute_sonos_command_reports_no_visible_speakers_before_prompting():
     coordinator_prompt_fn = MagicMock()
     sonos_service = MagicMock()
     settings_service = MagicMock()
-    sonos_service.list_selectable_speakers.return_value = []
+    sonos_service.list_selectable_households.return_value = []
 
     with pytest.raises(RuntimeError, match="No visible Sonos speakers found."):
         execute_sonos_command(
@@ -519,16 +527,17 @@ def test_execute_sonos_command_uses_household_and_speaker_prompts_for_multi_hous
         ),
     ]
     available_households = [
-        SonosHouseholdChoice(
+        DiscoveredSonosHousehold(
             household_id="household-1",
             speakers=[available_speakers[0]],
         ),
-        SonosHouseholdChoice(
+        DiscoveredSonosHousehold(
             household_id="household-2",
             speakers=available_speakers[1:],
         ),
     ]
     selected_speakers = available_speakers[1:]
+    sonos_service.list_selectable_households.return_value = available_households
     sonos_service.list_selectable_speakers.return_value = available_speakers
 
     execute_sonos_command(
@@ -546,7 +555,8 @@ def test_execute_sonos_command_uses_household_and_speaker_prompts_for_multi_hous
     coordinator_prompt_fn.assert_called_once_with(selected_speakers)
     settings_service.patch_persisted_settings.assert_called_once()
     assert "speaker-2" in stdout_fn.call_args.args[0]
-    assert sonos_service.list_selectable_speakers.call_count == 2
+    sonos_service.list_selectable_households.assert_called_once_with()
+    sonos_service.list_selectable_speakers.assert_called_once_with()
 
 
 def test_execute_sonos_command_cancel_does_not_write_settings():
@@ -572,7 +582,9 @@ def test_execute_sonos_command_cancel_does_not_write_settings():
             is_visible=True,
         ),
     ]
-    sonos_service.list_selectable_speakers.return_value = available_speakers
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(household_id="household-1", speakers=available_speakers)
+    ]
 
     execute_sonos_command(
         command=SonosSelectCommand(type="sonos_select"),
@@ -611,7 +623,9 @@ def test_execute_sonos_command_rejects_empty_interactive_member_selection():
             is_visible=True,
         ),
     ]
-    sonos_service.list_selectable_speakers.return_value = available_speakers
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(household_id="household-1", speakers=available_speakers)
+    ]
 
     with pytest.raises(RuntimeError, match="At least one Sonos speaker must be selected"):
         execute_sonos_command(
@@ -650,7 +664,9 @@ def test_execute_sonos_command_cancelled_coordinator_prompt_does_not_write_setti
             is_visible=True,
         ),
     ]
-    sonos_service.list_selectable_speakers.return_value = available_speakers
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(household_id="household-1", speakers=available_speakers)
+    ]
 
     execute_sonos_command(
         command=SonosSelectCommand(type="sonos_select"),
@@ -690,6 +706,10 @@ def test_execute_sonos_command_uses_requested_household_without_prompting():
             is_visible=True,
         ),
     ]
+    sonos_service.list_selectable_households.return_value = [
+        DiscoveredSonosHousehold(household_id="household-2", speakers=[available_speakers[0]]),
+        DiscoveredSonosHousehold(household_id="household-1", speakers=[available_speakers[1]]),
+    ]
     sonos_service.list_selectable_speakers.return_value = available_speakers
 
     execute_sonos_command(
@@ -705,7 +725,8 @@ def test_execute_sonos_command_uses_requested_household_without_prompting():
     household_prompt_fn.assert_not_called()
     prompt_fn.assert_called_once_with([available_speakers[0]])
     settings_service.patch_persisted_settings.assert_called_once()
-    assert sonos_service.list_selectable_speakers.call_count == 2
+    sonos_service.list_selectable_households.assert_called_once_with()
+    sonos_service.list_selectable_speakers.assert_called_once_with()
 
 
 def test_execute_sonos_command_show_renders_saved_selection_status():

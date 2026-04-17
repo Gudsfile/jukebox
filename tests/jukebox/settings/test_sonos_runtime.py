@@ -62,9 +62,10 @@ def test_default_sonos_service_lists_selectable_households():
     )
     service = DefaultSonosService(discovery)
 
-    speakers = service.list_selectable_speakers()
+    households = service.list_selectable_households()
 
-    assert [speaker.uid for speaker in speakers] == ["speaker-3", "speaker-1", "speaker-2"]
+    assert [household.household_id for household in households] == ["household-1", "household-2"]
+    assert [speaker.uid for speaker in households[1].speakers] == ["speaker-1", "speaker-2"]
     assert discovery.requests == [SonosDiscoveryRequest.all_households()]
 
 
