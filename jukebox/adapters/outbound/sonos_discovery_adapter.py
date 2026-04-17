@@ -50,6 +50,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             discovered = soco.discovery.scan_network(
                 include_invisible=True,
                 multi_household=True,
+                min_netmask=0,
             )
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
