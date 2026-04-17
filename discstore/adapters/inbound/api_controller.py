@@ -34,7 +34,12 @@ from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+from jukebox.sonos.discovery import (
+    DiscoveredSonosHousehold,
+    DiscoveredSonosSpeaker,
+    SonosDiscoveryError,
+    group_sonos_speakers_by_household,
+)
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
@@ -53,6 +58,10 @@ __all__ = [
 
 class SonosSpeakerOutput(DiscoveredSonosSpeaker):
     pass
+
+
+class SonosHouseholdOutput(DiscoveredSonosHousehold):
+    speakers: list[SonosSpeakerOutput]
 
 
 class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
@@ -140,6 +149,15 @@ class APIController:
         def get_sonos_speakers():
             try:
                 return self.sonos_service.list_available_speakers()
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
+        def get_sonos_households():
+            try:
+                return group_sonos_speakers_by_household(self.sonos_service.list_available_speakers())
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:

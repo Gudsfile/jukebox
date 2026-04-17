@@ -21,6 +21,7 @@ class SonosSelectCommand(BaseModel):
     type: Literal["sonos_select"]
     uids: Optional[list[str]] = None
     coordinator: Optional[str] = None
+    household: Optional[str] = None
 
     @model_validator(mode="after")
     def validate_coordinator_requires_uids(self):

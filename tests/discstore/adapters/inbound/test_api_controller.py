@@ -691,6 +691,96 @@ def test_get_sonos_speakers_returns_empty_results():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_households_groups_visible_speakers_by_household():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-2",
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Living Room",
+            host="192.168.1.31",
+            household_id="household-2",
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-3",
+            name="Bar",
+            host="192.168.1.20",
+            household_id="household-1",
+            is_visible=True,
+        ),
+    ]
+    controller = build_controller(sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/households"),
+    )
+
+    response = route.endpoint()
+
+    assert route.response_model is not None
+    assert [household.model_dump() for household in response] == [
+        {
+            "household_id": "household-1",
+            "speakers": [
+                {
+                    "uid": "speaker-3",
+                    "name": "Bar",
+                    "host": "192.168.1.20",
+                    "household_id": "household-1",
+                    "is_visible": True,
+                }
+            ],
+        },
+        {
+            "household_id": "household-2",
+            "speakers": [
+                {
+                    "uid": "speaker-1",
+                    "name": "Kitchen",
+                    "host": "192.168.1.30",
+                    "household_id": "household-2",
+                    "is_visible": True,
+                },
+                {
+                    "uid": "speaker-2",
+                    "name": "Living Room",
+                    "host": "192.168.1.31",
+                    "household_id": "household-2",
+                    "is_visible": True,
+                },
+            ],
+        },
+    ]
+    sonos_service.list_available_speakers.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_sonos_households_returns_502_on_discovery_failure():
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+        "Failed to discover Sonos speakers: network unavailable"
+    )
+    controller = build_controller(sonos_service=sonos_service)
+    route = cast(
+        APIRoute,
+        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/households"),
+    )
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint()
+
+    assert err.value.status_code == 502
+    assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_speakers_returns_502_on_discovery_failure():
     sonos_service = MagicMock()
     sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(

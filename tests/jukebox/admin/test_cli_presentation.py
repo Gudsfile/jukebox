@@ -1,4 +1,6 @@
 from jukebox.admin.cli_presentation import (
+    build_discstore_settings_deprecation_warning,
+    build_sonos_household_choice_label,
     build_sonos_speaker_choice_label,
     render_cli_error,
     render_settings_output,
@@ -14,7 +16,7 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.settings.types import JsonObject
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
 from jukebox.sonos.selection import (
     SonosSelectionAvailability,
     SonosSelectionMemberAvailability,
@@ -284,29 +286,62 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
 def test_render_sonos_speakers_output_is_stable_and_human_readable():
     rendered = render_sonos_speakers_output(
         [
-            DiscoveredSonosSpeaker(
-                uid="speaker-1",
-                name="Kitchen",
-                host="192.168.1.30",
+            DiscoveredSonosHousehold(
                 household_id="household-1",
-                is_visible=True,
-            ),
-            DiscoveredSonosSpeaker(
-                uid="speaker-2",
-                name="Kitchen",
-                host="192.168.1.40",
-                household_id="household-1",
-                is_visible=True,
+                speakers=[
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-1",
+                        name="Kitchen",
+                        host="192.168.1.30",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-2",
+                        name="Kitchen",
+                        host="192.168.1.40",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                ],
             ),
         ]
     )
 
+    assert "Household: household-1" in rendered
     assert "1. Kitchen   192.168.1.30   speaker-1" in rendered
     assert "2. Kitchen   192.168.1.40   speaker-2" in rendered
 
 
 def test_render_sonos_speakers_output_handles_empty_results():
     assert render_sonos_speakers_output([]) == "No visible Sonos speakers found."
+
+
+def test_build_sonos_household_choice_label_includes_household_and_speaker_list():
+    assert (
+        build_sonos_household_choice_label(
+            DiscoveredSonosHousehold(
+                household_id="household-1",
+                speakers=[
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-1",
+                        name="Kitchen",
+                        host="192.168.1.30",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-2",
+                        name="Living Room",
+                        host="192.168.1.31",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                ],
+            )
+        )
+        == "household-1 (2 speakers)"
+    )
 
 
 def test_build_sonos_speaker_choice_label_includes_host_for_disambiguation():
@@ -420,6 +455,7 @@ def test_render_sonos_selection_status_output_for_available_selection():
 
     assert "Selected Sonos Group" in rendered
     assert "- Coordinator: Kitchen [speaker-1]" in rendered
+    assert "- Household: household-1" in rendered
     assert "- Status: available" in rendered
     assert "speaker-1" in rendered
     assert "speaker-2" in rendered
@@ -462,6 +498,7 @@ def test_render_sonos_selection_status_output_for_partially_available_selection(
 
     assert "- Status: partially available" in rendered
     assert "- Coordinator: Kitchen [speaker-1]" in rendered
+    assert "- Household: household-1" in rendered
     assert "speaker-2" in rendered
     assert "unavailable" in rendered
 

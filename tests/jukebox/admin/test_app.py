@@ -1,3 +1,4 @@
+from types import ModuleType
 from unittest.mock import ANY, MagicMock
 
 import pytest
@@ -14,7 +15,7 @@ from discstore.commands import (
     CliSearchCommand,
     InteractiveCliCommand,
 )
-from jukebox.admin.app import app
+from jukebox.admin.app import _prompt_for_sonos_household_selection, app
 from jukebox.admin.commands import (
     ApiCommand,
     SettingsResetCommand,
@@ -25,6 +26,7 @@ from jukebox.admin.commands import (
     SonosShowCommand,
     UiCommand,
 )
+from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
 
 runner = CliRunner()
 
@@ -82,6 +84,11 @@ def app_mocks(mocker):
             SonosSelectCommand(type="sonos_select", uids=["speaker-1", "speaker-2"], coordinator="speaker-2"),
             "execute_sonos_command",
         ),
+        (
+            ["sonos", "select", "--household", "household-1"],
+            SonosSelectCommand(type="sonos_select", household="household-1"),
+            "execute_sonos_command",
+        ),
         (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
         (["api", "--port", "9000"], ApiCommand(type="api", port=9000), "execute_server_command"),
         (["ui", "--port", "9100"], UiCommand(type="ui", port=9100), "execute_server_command"),
@@ -114,6 +121,7 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
             command=expected_command,
             sonos_service=services.sonos,
             settings_service=services.settings,
+            household_prompt_fn=ANY,
             speaker_prompt_fn=ANY,
             coordinator_prompt_fn=ANY,
         )
@@ -203,6 +211,51 @@ def test_jukebox_admin_rejects_coordinator_without_uids(app_mocks):
 def test_sonos_select_command_rejects_coordinator_without_uids():
     with pytest.raises(ValidationError, match="--coordinator requires --uids"):
         SonosSelectCommand(type="sonos_select", coordinator="speaker-2")
+
+
+def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_labels(mocker, capsys):
+    fake_questionary = ModuleType("questionary")
+    select = MagicMock(return_value=MagicMock(ask=MagicMock(return_value="household-1")))
+
+    class FakeChoice:
+        def __init__(self, title, value):
+            self.title = title
+            self.value = value
+
+    setattr(fake_questionary, "select", select)
+    setattr(fake_questionary, "Choice", FakeChoice)
+    mocker.patch.dict("sys.modules", {"questionary": fake_questionary})
+
+    result = _prompt_for_sonos_household_selection(
+        [
+            DiscoveredSonosHousehold(
+                household_id="household-1",
+                speakers=[
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-1",
+                        name="Kitchen",
+                        host="192.168.1.30",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-2",
+                        name="Living Room",
+                        host="192.168.1.31",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                ],
+            )
+        ]
+    )
+
+    captured = capsys.readouterr()
+    assert "Household: household-1" in captured.out
+    assert "1. Kitchen" in captured.out
+    assert "2. Living Room" in captured.out
+    assert result == "household-1"
+    assert [choice.title for choice in select.call_args.kwargs["choices"]] == ["household-1 (2 speakers)"]
 
 
 @pytest.mark.parametrize(

@@ -83,6 +83,66 @@ def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_fo
     assert speakers == []
 
 
+def test_soco_sonos_discovery_adapter_aggregates_multiple_households_from_responder_hosts(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    living_room = FakeSpeaker("speaker-2", "Living Room", "192.168.1.31", "household-1")
+    bar = FakeSpeaker("speaker-3", "Bar", "192.168.1.20", "household-2")
+    kitchen.all_zones = {kitchen, living_room}
+    bar.all_zones = {bar}
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: {kitchen},
+            soco_constructor=lambda host: {
+                "192.168.1.20": bar,
+                "192.168.1.30": kitchen,
+            }[host],
+        ),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_responder_hosts",
+        return_value={"192.168.1.20", "192.168.1.30"},
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [(speaker.name, speaker.household_id) for speaker in speakers] == [
+        ("Bar", "household-2"),
+        ("Kitchen", "household-1"),
+        ("Living Room", "household-1"),
+    ]
+
+
+def test_soco_sonos_discovery_adapter_uses_responder_hosts_when_soco_discover_returns_empty(mocker):
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    living_room.all_zones = {living_room}
+    mocker.patch.dict(
+        "sys.modules",
+        build_fake_soco_module(
+            discover=lambda: set(),
+            soco_constructor=lambda host: {"192.168.1.20": living_room}[host],
+        ),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_responder_hosts",
+        return_value={"192.168.1.20"},
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.model_dump() for speaker in speakers] == [
+        {
+            "uid": "speaker-1",
+            "name": "Living Room",
+            "host": "192.168.1.20",
+            "household_id": "household-1",
+            "is_visible": True,
+        }
+    ]
+
+
 def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 

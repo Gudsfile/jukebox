@@ -11,7 +11,7 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
@@ -47,23 +47,35 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     return message
 
 
-def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
-    if not speakers:
+def render_sonos_speakers_output(households: list[DiscoveredSonosHousehold]) -> str:
+    if not households:
         return "No visible Sonos speakers found."
 
-    name_width = max(len(speaker.name) for speaker in speakers)
-    host_width = max(len(speaker.host) for speaker in speakers)
-    return "\n".join(
-        "{index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
-            index=index,
-            name=speaker.name,
-            name_width=name_width,
-            host=speaker.host,
-            host_width=host_width,
-            uid=speaker.uid,
-        )
-        for index, speaker in enumerate(speakers, start=1)
-    )
+    all_speakers = [speaker for household in households for speaker in household.speakers]
+    name_width = max(len(speaker.name) for speaker in all_speakers)
+    host_width = max(len(speaker.host) for speaker in all_speakers)
+    lines = []
+    for household in households:
+        lines.append(f"Household: {household.household_id}")
+        for index, speaker in enumerate(household.speakers, start=1):
+            lines.append(
+                "  {index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
+                    index=index,
+                    name=speaker.name,
+                    name_width=name_width,
+                    host=speaker.host,
+                    host_width=host_width,
+                    uid=speaker.uid,
+                )
+            )
+        lines.append("")
+    return "\n".join(lines[:-1])
+
+
+def build_sonos_household_choice_label(household: DiscoveredSonosHousehold) -> str:
+    speaker_count = len(household.speakers)
+    suffix = "speaker" if speaker_count == 1 else "speakers"
+    return f"{household.household_id} ({speaker_count} {suffix})"
 
 
 def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
@@ -102,6 +114,7 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
         lines.append(f"- Coordinator UID: {status.selected_group.coordinator_uid}")
     else:
         lines.append(f"- Coordinator: {coordinator_speaker.name} [{coordinator_speaker.uid}]")
+        lines.append(f"- Household: {coordinator_speaker.household_id}")
     lines.append(f"- Status: {status_label}")
     lines.append("- Members:")
 
