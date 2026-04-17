@@ -6,18 +6,16 @@ from jukebox.sonos.service import DefaultSonosService
 
 
 class StubDiscovery:
-    def __init__(self, speakers):
+    def __init__(self, speakers, all_household_speakers=None):
         self.speakers = speakers
+        self.all_household_speakers = all_household_speakers
         self.requests = []
-        self.resolve_group_members_calls = []
 
     def discover_speakers(self, request=None):
         resolved_request = request or SonosDiscoveryRequest.current_household()
         self.requests.append(resolved_request)
-        return list(self.speakers)
-
-    def resolve_group_members(self, selected_group):
-        self.resolve_group_members_calls.append(selected_group)
+        if resolved_request == SonosDiscoveryRequest.all_households() and self.all_household_speakers is not None:
+            return list(self.all_household_speakers)
         return list(self.speakers)
 
 
@@ -53,8 +51,7 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.coordinator.host == "192.168.1.40"
     assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
     assert resolved_group.missing_member_uids == []
-    assert discovery.resolve_group_members_calls == [selected_group]
-    assert discovery.requests == []
+    assert discovery.requests == [SonosDiscoveryRequest.current_household()]
 
 
 def test_default_sonos_service_lists_selectable_households():
@@ -74,8 +71,11 @@ def test_default_sonos_service_lists_selectable_households():
     assert discovery.requests == [SonosDiscoveryRequest.all_households()]
 
 
-def test_default_sonos_service_uses_discovery_port_for_saved_group_resolution():
-    discovery = StubDiscovery([build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2")])
+def test_default_sonos_service_falls_back_to_all_households_for_saved_group_resolution():
+    discovery = StubDiscovery(
+        [build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")],
+        all_household_speakers=[build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2")],
+    )
     service = DefaultSonosService(discovery)
     selected_group = SelectedSonosGroupSettings(
         coordinator_uid="speaker-2",
@@ -85,8 +85,10 @@ def test_default_sonos_service_uses_discovery_port_for_saved_group_resolution():
     resolved_group = service.resolve_selected_group(selected_group)
 
     assert resolved_group.coordinator.uid == "speaker-2"
-    assert discovery.resolve_group_members_calls == [selected_group]
-    assert discovery.requests == []
+    assert discovery.requests == [
+        SonosDiscoveryRequest.current_household(),
+        SonosDiscoveryRequest.all_households(),
+    ]
 
 
 def test_default_sonos_service_marks_unreachable_non_coordinator_missing():

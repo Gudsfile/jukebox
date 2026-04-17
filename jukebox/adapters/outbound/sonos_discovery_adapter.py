@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from textwrap import dedent
 from typing import Any, Optional, Protocol
 
-from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
@@ -48,15 +47,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 f"{snapshot.normalization_errors[0]}"
             )
         return recovered_speakers
-
-    def resolve_group_members(
-        self,
-        selected_group: SelectedSonosGroupSettings,
-    ) -> list[DiscoveredSonosSpeaker]:
-        current_household_speakers = self.discover_speakers(SonosDiscoveryRequest.current_household())
-        if _contains_selected_group_members(current_household_speakers, selected_group):
-            return current_household_speakers
-        return self.discover_speakers(SonosDiscoveryRequest.all_households())
 
     def _discover_runtime_snapshot(
         self,
@@ -290,14 +280,6 @@ def _matches_discovery_request(
     if request.mode != "target_household":
         return True
     return speaker.household_id == request.household_id
-
-
-def _contains_selected_group_members(
-    speakers: list[DiscoveredSonosSpeaker],
-    selected_group: SelectedSonosGroupSettings,
-) -> bool:
-    available_uids = {speaker.uid for speaker in speakers}
-    return all(member.uid in available_uids for member in selected_group.members)
 
 
 def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:

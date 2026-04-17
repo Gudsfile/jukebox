@@ -69,7 +69,7 @@ class DefaultSonosService:
     ) -> InspectedSelectedSonosGroup:
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self.discovery.resolve_group_members(selected_group),
+            speakers=self._discover_speakers_for_selected_group(selected_group),
         )
 
     def resolve_selected_group(
@@ -107,6 +107,15 @@ class DefaultSonosService:
             [speaker for speaker in self.discovery.discover_speakers(request) if speaker.is_visible]
         )
 
+    def _discover_speakers_for_selected_group(
+        self,
+        selected_group: SelectedSonosGroupSettings,
+    ) -> list[DiscoveredSonosSpeaker]:
+        current_household_speakers = self.discovery.discover_speakers(SonosDiscoveryRequest.current_household())
+        if _contains_selected_group_members(current_household_speakers, selected_group):
+            return current_household_speakers
+        return self.discovery.discover_speakers(SonosDiscoveryRequest.all_households())
+
 
 def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosHousehold]:
     speakers_by_household = {}
@@ -128,6 +137,14 @@ def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -
             household.household_id,
         ),
     )
+
+
+def _contains_selected_group_members(
+    speakers: list[DiscoveredSonosSpeaker],
+    selected_group: SelectedSonosGroupSettings,
+) -> bool:
+    available_uids = {speaker.uid for speaker in speakers}
+    return all(member.uid in available_uids for member in selected_group.members)
 
 
 def _inspect_selected_group(
