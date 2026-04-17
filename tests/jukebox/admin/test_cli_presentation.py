@@ -1,7 +1,9 @@
 from jukebox.admin.cli_presentation import (
+    SonosHouseholdChoice,
     build_discstore_settings_deprecation_warning,
     build_sonos_household_choice_label,
     build_sonos_speaker_choice_label,
+    group_sonos_speakers_by_household,
     render_cli_error,
     render_settings_output,
     render_sonos_selection_saved_output,
@@ -23,7 +25,6 @@ from jukebox.sonos.selection import (
     SonosSelectionResult,
     SonosSelectionStatus,
 )
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():
@@ -287,7 +288,7 @@ def test_render_settings_output_effective_reports_mixed_nested_provenance():
 def test_render_sonos_speakers_output_is_stable_and_human_readable():
     rendered = render_sonos_speakers_output(
         [
-            DiscoveredSonosHousehold(
+            SonosHouseholdChoice(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(
@@ -321,7 +322,7 @@ def test_render_sonos_speakers_output_handles_empty_results():
 def test_build_sonos_household_choice_label_includes_household_and_speaker_list():
     assert (
         build_sonos_household_choice_label(
-            DiscoveredSonosHousehold(
+            SonosHouseholdChoice(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(
@@ -343,6 +344,37 @@ def test_build_sonos_household_choice_label_includes_household_and_speaker_list(
         )
         == "household-1 (2 speakers)"
     )
+
+
+def test_group_sonos_speakers_by_household_sorts_households_by_group_contents():
+    households = group_sonos_speakers_by_household(
+        [
+            DiscoveredSonosSpeaker(
+                uid="speaker-2",
+                name="Living Room",
+                host="192.168.1.31",
+                household_id="household-2",
+                is_visible=True,
+            ),
+            DiscoveredSonosSpeaker(
+                uid="speaker-3",
+                name="Bar",
+                host="192.168.1.20",
+                household_id="household-1",
+                is_visible=True,
+            ),
+            DiscoveredSonosSpeaker(
+                uid="speaker-1",
+                name="Kitchen",
+                host="192.168.1.30",
+                household_id="household-2",
+                is_visible=True,
+            ),
+        ]
+    )
+
+    assert [household.household_id for household in households] == ["household-1", "household-2"]
+    assert [speaker.uid for speaker in households[1].speakers] == ["speaker-1", "speaker-2"]
 
 
 def test_build_sonos_speaker_choice_label_includes_host_for_disambiguation():

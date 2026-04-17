@@ -28,7 +28,7 @@ class SettingsSelectedSonosGroupRepository(SelectedSonosGroupRepository):
                     "player": {
                         "type": "sonos",
                         "sonos": {
-                            "selected_group": selected_group.model_dump(mode="python"),
+                            "selected_group": _serialize_selected_group(selected_group),
                         },
                     }
                 }
@@ -58,3 +58,13 @@ def _lookup_selected_group(persisted: JsonObject) -> Optional[JsonObject]:
         return None
 
     return selected_group
+
+
+def _serialize_selected_group(selected_group: SelectedSonosGroupSettings) -> JsonObject:
+    payload = {
+        "coordinator_uid": selected_group.coordinator_uid,
+        "members": [{"uid": member.uid} for member in selected_group.members],
+    }
+    if selected_group.household_id is not None:
+        payload["household_id"] = selected_group.household_id
+    return payload

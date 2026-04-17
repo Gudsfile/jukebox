@@ -16,6 +16,7 @@ from discstore.commands import (
     InteractiveCliCommand,
 )
 from jukebox.admin.app import _prompt_for_sonos_household_selection, app
+from jukebox.admin.cli_presentation import SonosHouseholdChoice
 from jukebox.admin.commands import (
     ApiCommand,
     SettingsResetCommand,
@@ -27,7 +28,6 @@ from jukebox.admin.commands import (
     UiCommand,
 )
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 runner = CliRunner()
 
@@ -229,7 +229,7 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
 
     result = _prompt_for_sonos_household_selection(
         [
-            DiscoveredSonosHousehold(
+            SonosHouseholdChoice(
                 household_id="household-1",
                 speakers=[
                     DiscoveredSonosSpeaker(

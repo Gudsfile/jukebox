@@ -27,7 +27,7 @@ if FASTAPI_INSTALLED:
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
     from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
-    from jukebox.sonos.service import DiscoveredSonosHousehold, InspectedSelectedSonosGroup
+    from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
 InvalidUidPayloadCase = Tuple[Dict[str, object], List[object], str]
@@ -693,37 +693,27 @@ def test_get_sonos_speakers_returns_empty_results():
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_households_groups_visible_speakers_by_household():
     sonos_service = MagicMock()
-    sonos_service.list_selectable_households.return_value = [
-        DiscoveredSonosHousehold(
+    sonos_service.list_selectable_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-3",
+            name="Bar",
+            host="192.168.1.20",
             household_id="household-1",
-            speakers=[
-                DiscoveredSonosSpeaker(
-                    uid="speaker-3",
-                    name="Bar",
-                    host="192.168.1.20",
-                    household_id="household-1",
-                    is_visible=True,
-                )
-            ],
+            is_visible=True,
         ),
-        DiscoveredSonosHousehold(
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
             household_id="household-2",
-            speakers=[
-                DiscoveredSonosSpeaker(
-                    uid="speaker-1",
-                    name="Kitchen",
-                    host="192.168.1.30",
-                    household_id="household-2",
-                    is_visible=True,
-                ),
-                DiscoveredSonosSpeaker(
-                    uid="speaker-2",
-                    name="Living Room",
-                    host="192.168.1.31",
-                    household_id="household-2",
-                    is_visible=True,
-                ),
-            ],
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Living Room",
+            host="192.168.1.31",
+            household_id="household-2",
+            is_visible=True,
         ),
     ]
     controller = build_controller(sonos_service=sonos_service)
@@ -768,13 +758,13 @@ def test_get_sonos_households_groups_visible_speakers_by_household():
             ],
         },
     ]
-    sonos_service.list_selectable_households.assert_called_once_with()
+    sonos_service.list_selectable_speakers.assert_called_once_with()
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_households_returns_502_on_discovery_failure():
     sonos_service = MagicMock()
-    sonos_service.list_selectable_households.side_effect = SonosDiscoveryError(
+    sonos_service.list_selectable_speakers.side_effect = SonosDiscoveryError(
         "Failed to discover Sonos speakers: network unavailable"
     )
     controller = build_controller(sonos_service=sonos_service)
@@ -880,6 +870,7 @@ def test_get_sonos_selection_returns_available_saved_selection():
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-2",
+            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
@@ -953,6 +944,7 @@ def test_get_sonos_selection_returns_partially_available_saved_selection():
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-1",
+            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
@@ -1020,6 +1012,7 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-2",
+            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {

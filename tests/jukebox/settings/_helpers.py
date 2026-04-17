@@ -8,7 +8,7 @@ from jukebox.settings.resolve import SettingsService
 from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import InspectedSelectedSonosGroup, group_sonos_speakers_by_household
+from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
 def lookup_json_value(root: JsonObject, *path: str) -> JsonValue:
@@ -95,9 +95,6 @@ class StubSonosService:
 
     def list_selectable_speakers(self):
         return []
-
-    def list_selectable_households(self):
-        return group_sonos_speakers_by_household(self.list_selectable_speakers())
 
 
 def resolve_jukebox_runtime(

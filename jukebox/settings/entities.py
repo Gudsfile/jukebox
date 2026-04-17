@@ -1,7 +1,7 @@
 import os
 from typing import Literal, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
@@ -42,14 +42,6 @@ class SelectedSonosGroupSettings(StrictModel):
             raise ValueError("selected_group.household_id must not be blank")
 
         return self
-
-    @model_serializer(mode="wrap")
-    def serialize_group(self, handler):
-        payload = handler(self)
-        payload.pop("household_id", None)
-        if self.household_id is not None:
-            payload["household_id"] = self.household_id
-        return payload
 
 
 class PersistedSonosPlayerSettings(StrictModel):

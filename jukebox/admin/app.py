@@ -20,9 +20,9 @@ from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .cli_presentation import (
+    SonosHouseholdChoice,
     build_sonos_household_choice_label,
     build_sonos_speaker_choice_label,
     render_cli_error,
@@ -174,7 +174,7 @@ def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) 
         return None
 
 
-def _prompt_for_sonos_household_selection(households: list[DiscoveredSonosHousehold]) -> Optional[str]:
+def _prompt_for_sonos_household_selection(households: list[SonosHouseholdChoice]) -> Optional[str]:
     import questionary
 
     try:

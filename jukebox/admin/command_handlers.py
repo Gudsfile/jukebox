@@ -6,9 +6,12 @@ from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
-from jukebox.sonos.service import DiscoveredSonosHousehold, SonosService
+from jukebox.sonos.service import SonosService
 
 from .cli_presentation import (
+    SonosHouseholdChoice,
+    build_discstore_settings_deprecation_warning,
+    group_sonos_speakers_by_household,
     render_settings_output,
     render_sonos_selection_saved_output,
     render_sonos_selection_status_output,
@@ -97,13 +100,13 @@ def execute_sonos_command(
     command: object,
     sonos_service: SonosService,
     settings_service: Optional[SettingsService] = None,
-    household_prompt_fn: Optional[Callable[[list[DiscoveredSonosHousehold]], Optional[str]]] = None,
+    household_prompt_fn: Optional[Callable[[list[SonosHouseholdChoice]], Optional[str]]] = None,
     speaker_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[list[str]]]] = None,
     coordinator_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[str]]] = None,
     stdout_fn: Callable[[str], None] = print,
 ) -> None:
     if isinstance(command, SonosListCommand):
-        households = sonos_service.list_selectable_households()
+        households = group_sonos_speakers_by_household(sonos_service.list_selectable_speakers())
         stdout_fn(render_sonos_speakers_output(households))
         return
 
@@ -113,7 +116,7 @@ def execute_sonos_command(
 
         selected_household_id = command.household
         if command.uids is None:
-            available_households = sonos_service.list_selectable_households()
+            available_households = group_sonos_speakers_by_household(sonos_service.list_selectable_speakers())
             if not available_households:
                 raise RuntimeError("No visible Sonos speakers found.")
             selected_household = _select_available_household(
@@ -176,10 +179,10 @@ def execute_sonos_command(
 
 
 def _select_available_household(
-    households: list[DiscoveredSonosHousehold],
+    households: list[SonosHouseholdChoice],
     requested_household_id: Optional[str],
-    household_prompt_fn: Optional[Callable[[list[DiscoveredSonosHousehold]], Optional[str]]],
-) -> Optional[DiscoveredSonosHousehold]:
+    household_prompt_fn: Optional[Callable[[list[SonosHouseholdChoice]], Optional[str]]],
+) -> Optional[SonosHouseholdChoice]:
     if requested_household_id is not None:
         return _get_available_household(households, requested_household_id)
 
@@ -196,9 +199,9 @@ def _select_available_household(
 
 
 def _get_available_household(
-    households: list[DiscoveredSonosHousehold],
+    households: list[SonosHouseholdChoice],
     household_id: str,
-) -> DiscoveredSonosHousehold:
+) -> SonosHouseholdChoice:
     for household in households:
         if household.household_id == household_id:
             return household

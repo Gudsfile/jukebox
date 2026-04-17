@@ -1,5 +1,7 @@
 import json
 import re
+import shlex
+from dataclasses import dataclass
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
@@ -11,14 +13,19 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, sort_sonos_speakers
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
-from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 
 _SECTION_ORDER = ("paths", "admin", "playback", "reader", "player", "other")
 _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
+
+
+@dataclass(frozen=True)
+class SonosHouseholdChoice:
+    household_id: str
+    speakers: list[DiscoveredSonosSpeaker]
 
 
 def render_settings_output(
@@ -48,7 +55,29 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     return message
 
 
-def render_sonos_speakers_output(households: list[DiscoveredSonosHousehold]) -> str:
+def group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[SonosHouseholdChoice]:
+    speakers_by_household = {}
+    for speaker in sort_sonos_speakers(speakers):
+        speakers_by_household.setdefault(speaker.household_id, []).append(speaker)
+
+    households = [
+        SonosHouseholdChoice(
+            household_id=household_id,
+            speakers=members,
+        )
+        for household_id, members in speakers_by_household.items()
+    ]
+    return sorted(
+        households,
+        key=lambda household: (
+            household.speakers[0].name if household.speakers else "",
+            household.speakers[0].host if household.speakers else "",
+            household.household_id,
+        ),
+    )
+
+
+def render_sonos_speakers_output(households: list[SonosHouseholdChoice]) -> str:
     if not households:
         return "No visible Sonos speakers found."
 
@@ -73,7 +102,7 @@ def render_sonos_speakers_output(households: list[DiscoveredSonosHousehold]) -> 
     return "\n".join(lines[:-1])
 
 
-def build_sonos_household_choice_label(household: DiscoveredSonosHousehold) -> str:
+def build_sonos_household_choice_label(household: SonosHouseholdChoice) -> str:
     speaker_count = len(household.speakers)
     suffix = "speaker" if speaker_count == 1 else "speakers"
     return f"{household.household_id} ({speaker_count} {suffix})"
