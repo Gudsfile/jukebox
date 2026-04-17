@@ -10,15 +10,12 @@ from jukebox.settings.entities import (
 from .discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryPort,
-    SonosDiscoveryScope,
     sort_sonos_speakers,
 )
 
 
 class SonosService(Protocol):
     def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
-
-    def list_household_speakers(self, household_id: str) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
@@ -44,10 +41,7 @@ class DefaultSonosService:
         self.discovery = discovery
 
     def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(SonosDiscoveryScope.all_network())
-
-    def list_household_speakers(self, household_id: str) -> list[DiscoveredSonosSpeaker]:
-        return self._list_visible_speakers(SonosDiscoveryScope.household(household_id))
+        return self._filter_visible_speakers(self.discovery.discover_speakers())
 
     def inspect_selected_group(
         self,
@@ -88,10 +82,9 @@ class DefaultSonosService:
             household_id=speaker.household_id,
         )
 
-    def _list_visible_speakers(self, scope: SonosDiscoveryScope) -> list[DiscoveredSonosSpeaker]:
-        return sort_sonos_speakers(
-            [speaker for speaker in self.discovery.discover_speakers(scope) if speaker.is_visible]
-        )
+    @staticmethod
+    def _filter_visible_speakers(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosSpeaker]:
+        return sort_sonos_speakers([speaker for speaker in speakers if speaker.is_visible])
 
 
 def _inspect_selected_group(

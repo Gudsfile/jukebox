@@ -3,7 +3,7 @@ from types import ModuleType
 import pytest
 
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
-from jukebox.sonos.discovery import SonosDiscoveryError, SonosDiscoveryScope
+from jukebox.sonos.discovery import SonosDiscoveryError
 
 
 class FakeSpeaker:
@@ -71,27 +71,10 @@ def test_soco_sonos_discovery_adapter_uses_multi_household_scan_for_network_scop
     scan_network = mocker.Mock(return_value={kitchen, bar})
     mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=scan_network))
 
-    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(SonosDiscoveryScope.all_network())
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
 
     assert [speaker.uid for speaker in speakers] == ["speaker-2", "speaker-1"]
     scan_network.assert_called_once_with(include_invisible=True, multi_household=True)
-
-
-def test_soco_sonos_discovery_adapter_uses_household_scan_for_household_scope(mocker):
-    bar = FakeSpeaker("speaker-2", "Bar", "192.168.1.20", "household-2")
-    scan_network_by_household_id = mocker.Mock(return_value={bar})
-    mocker.patch.dict(
-        "sys.modules",
-        build_fake_soco_module(
-            scan_network=lambda **kwargs: set(),
-            scan_network_by_household_id=scan_network_by_household_id,
-        ),
-    )
-
-    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(SonosDiscoveryScope.household("household-2"))
-
-    assert [speaker.uid for speaker in speakers] == ["speaker-2"]
-    scan_network_by_household_id.assert_called_once_with("household-2", include_invisible=True)
 
 
 def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_found(mocker):

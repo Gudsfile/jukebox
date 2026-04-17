@@ -93,10 +93,6 @@ class StubSonosService:
     def list_network_speakers(self):
         return []
 
-    def list_household_speakers(self, household_id):
-        del household_id
-        return []
-
 
 def resolve_jukebox_runtime(
     settings_service: SettingsService,

@@ -1,21 +1,17 @@
 import pytest
 
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryScope
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.service import DefaultSonosService
 
 
 class StubDiscovery:
-    def __init__(self, network_speakers, household_speakers=None):
+    def __init__(self, network_speakers):
         self.network_speakers = network_speakers
-        self.household_speakers = household_speakers or {}
         self.requests = []
 
-    def discover_speakers(self, scope=None):
-        resolved_scope = scope or SonosDiscoveryScope.all_network()
-        self.requests.append(resolved_scope)
-        if resolved_scope.mode == "household":
-            return list(self.household_speakers.get(resolved_scope.household_id, []))
+    def discover_speakers(self):
+        self.requests.append(("network", None))
         return list(self.network_speakers)
 
 
@@ -51,7 +47,7 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.coordinator.host == "192.168.1.40"
     assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
     assert resolved_group.missing_member_uids == []
-    assert discovery.requests == [SonosDiscoveryScope.all_network()]
+    assert discovery.requests == [("network", None)]
 
 
 def test_default_sonos_service_lists_network_speakers():
@@ -67,22 +63,7 @@ def test_default_sonos_service_lists_network_speakers():
     speakers = service.list_network_speakers()
 
     assert [speaker.uid for speaker in speakers] == ["speaker-3", "speaker-1", "speaker-2"]
-    assert discovery.requests == [SonosDiscoveryScope.all_network()]
-
-
-def test_default_sonos_service_lists_household_speakers():
-    discovery = StubDiscovery(
-        [build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")],
-        household_speakers={
-            "household-2": [build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2")]
-        },
-    )
-    service = DefaultSonosService(discovery)
-
-    speakers = service.list_household_speakers("household-2")
-
-    assert [speaker.uid for speaker in speakers] == ["speaker-2"]
-    assert discovery.requests == [SonosDiscoveryScope.household("household-2")]
+    assert discovery.requests == [("network", None)]
 
 
 def test_default_sonos_service_marks_unreachable_non_coordinator_missing():
