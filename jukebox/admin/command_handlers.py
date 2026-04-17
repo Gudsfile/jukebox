@@ -4,7 +4,7 @@ from typing import Callable, Optional, Protocol
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
-from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker, group_sonos_speakers_by_household
+from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
@@ -103,9 +103,7 @@ def execute_sonos_command(
     stdout_fn: Callable[[str], None] = print,
 ) -> None:
     if isinstance(command, SonosListCommand):
-        households = group_sonos_speakers_by_household(
-            sonos_service.list_available_speakers(include_other_households=True)
-        )
+        households = sonos_service.list_available_households(include_other_households=True)
         stdout_fn(render_sonos_speakers_output(households))
         return
 
@@ -113,10 +111,9 @@ def execute_sonos_command(
         if settings_service is None:
             raise TypeError("settings_service is required for Sonos select commands")
 
+        selected_household_id = command.household
         if command.uids is None:
-            available_households = group_sonos_speakers_by_household(
-                sonos_service.list_available_speakers(include_other_households=True)
-            )
+            available_households = sonos_service.list_available_households(include_other_households=True)
             if not available_households:
                 raise RuntimeError("No visible Sonos speakers found.")
             selected_household = _select_available_household(
@@ -126,6 +123,7 @@ def execute_sonos_command(
             )
             if selected_household is None:
                 return
+            selected_household_id = selected_household.household_id
             available_speakers = selected_household.speakers
             if speaker_prompt_fn is None:
                 raise RuntimeError("Interactive Sonos speaker selection is not available in this context.")
@@ -147,25 +145,18 @@ def execute_sonos_command(
                     return
         else:
             selected_uids = list(command.uids)
-            if command.household is not None:
-                selected_household = _get_available_household(
-                    group_sonos_speakers_by_household(
-                        sonos_service.list_available_speakers(include_other_households=True)
-                    ),
-                    command.household,
-                )
-                selected_speaker_uids = {speaker.uid for speaker in selected_household.speakers}
-                if any(uid not in selected_speaker_uids for uid in selected_uids):
-                    raise RuntimeError(
-                        f"Selected Sonos speakers must belong to household `{selected_household.household_id}`."
-                    )
             coordinator_uid = command.coordinator
 
         try:
             result = SaveSonosSelection(
                 selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
                 sonos_service=sonos_service,
-            ).execute(selected_uids, coordinator_uid=coordinator_uid, include_other_households=True)
+            ).execute(
+                selected_uids,
+                coordinator_uid=coordinator_uid,
+                include_other_households=True,
+                requested_household_id=selected_household_id,
+            )
         except ValueError as err:
             raise RuntimeError(str(err)) from err
         stdout_fn(render_sonos_selection_saved_output(result))

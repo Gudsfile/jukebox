@@ -7,11 +7,22 @@ from jukebox.settings.entities import (
     SelectedSonosGroupSettings,
 )
 
-from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryPort, sort_sonos_speakers
+from .discovery import (
+    DiscoveredSonosHousehold,
+    DiscoveredSonosSpeaker,
+    SonosDiscoveryPort,
+    group_sonos_speakers_by_household,
+    sort_sonos_speakers,
+)
 
 
 class SonosService(Protocol):
     def list_available_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]: ...
+
+    def list_available_households(
+        self,
+        include_other_households: bool = False,
+    ) -> list[DiscoveredSonosHousehold]: ...
 
     def inspect_selected_group(
         self,
@@ -43,6 +54,14 @@ class DefaultSonosService:
                 for speaker in self.discovery.discover_speakers(include_other_households=include_other_households)
                 if speaker.is_visible
             ]
+        )
+
+    def list_available_households(
+        self,
+        include_other_households: bool = False,
+    ) -> list[DiscoveredSonosHousehold]:
+        return group_sonos_speakers_by_household(
+            self.list_available_speakers(include_other_households=include_other_households)
         )
 
     def inspect_selected_group(

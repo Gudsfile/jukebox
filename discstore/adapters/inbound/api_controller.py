@@ -38,7 +38,6 @@ from jukebox.sonos.discovery import (
     DiscoveredSonosHousehold,
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
-    group_sonos_speakers_by_household,
 )
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
@@ -157,9 +156,7 @@ class APIController:
         @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
         def get_sonos_households():
             try:
-                return group_sonos_speakers_by_household(
-                    self.sonos_service.list_available_speakers(include_other_households=True)
-                )
+                return self.sonos_service.list_available_households(include_other_households=True)
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:

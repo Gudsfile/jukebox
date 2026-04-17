@@ -48,6 +48,24 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.missing_member_uids == []
 
 
+def test_default_sonos_service_lists_available_households():
+    service = DefaultSonosService(
+        StubDiscovery(
+            [
+                build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-2"),
+                build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
+                build_discovered_speaker("speaker-3", "Bar", "192.168.1.20", "household-1"),
+            ]
+        )
+    )
+
+    households = service.list_available_households(include_other_households=True)
+
+    assert [household.household_id for household in households] == ["household-1", "household-2"]
+    assert [speaker.uid for speaker in households[0].speakers] == ["speaker-3"]
+    assert [speaker.uid for speaker in households[1].speakers] == ["speaker-1", "speaker-2"]
+
+
 def test_default_sonos_service_marks_unreachable_non_coordinator_missing():
     service = DefaultSonosService(
         StubDiscovery([build_discovered_speaker("speaker-1", "Living Room", "192.168.1.20", "household-1")])
