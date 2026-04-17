@@ -880,7 +880,6 @@ def test_get_sonos_selection_returns_available_saved_selection():
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-2",
-            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
@@ -954,7 +953,6 @@ def test_get_sonos_selection_returns_partially_available_saved_selection():
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-1",
-            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
@@ -1022,7 +1020,6 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
     assert response.model_dump() == {
         "selected_group": {
             "coordinator_uid": "speaker-2",
-            "household_id": None,
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
         },
         "availability": {
@@ -1122,7 +1119,6 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
         "selected_group": {
             "coordinator_uid": "speaker-2",
             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
-            "household_id": "household-1",
         },
         "availability": {
             "status": "available",
@@ -1163,7 +1159,6 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
                         "selected_group": {
                             "coordinator_uid": "speaker-2",
                             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
-                            "household_id": "household-1",
                         }
                     },
                 }

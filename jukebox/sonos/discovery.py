@@ -1,6 +1,9 @@
-from typing import Literal, Optional, Protocol
+from typing import TYPE_CHECKING, Literal, Optional, Protocol
 
 from pydantic import BaseModel, ConfigDict, model_validator
+
+if TYPE_CHECKING:
+    from jukebox.settings.entities import SelectedSonosGroupSettings
 
 
 class DiscoveredSonosSpeaker(BaseModel):
@@ -51,6 +54,11 @@ class SonosDiscoveryPort(Protocol):
     def discover_speakers(
         self,
         request: Optional[SonosDiscoveryRequest] = None,
+    ) -> list[DiscoveredSonosSpeaker]: ...
+
+    def resolve_group_members(
+        self,
+        selected_group: "SelectedSonosGroupSettings",
     ) -> list[DiscoveredSonosSpeaker]: ...
 
 

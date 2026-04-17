@@ -9,10 +9,15 @@ class StubDiscovery:
     def __init__(self, speakers):
         self.speakers = speakers
         self.requests = []
+        self.resolve_group_members_calls = []
 
     def discover_speakers(self, request=None):
         resolved_request = request or SonosDiscoveryRequest.current_household()
         self.requests.append(resolved_request)
+        return list(self.speakers)
+
+    def resolve_group_members(self, selected_group):
+        self.resolve_group_members_calls.append(selected_group)
         return list(self.speakers)
 
 
@@ -40,7 +45,6 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
             SelectedSonosSpeakerSettings(uid="speaker-1"),
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
-        household_id="household-1",
     )
 
     resolved_group = service.resolve_selected_group(selected_group)
@@ -49,7 +53,8 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.coordinator.host == "192.168.1.40"
     assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
     assert resolved_group.missing_member_uids == []
-    assert discovery.requests == [SonosDiscoveryRequest.target_household("household-1")]
+    assert discovery.resolve_group_members_calls == [selected_group]
+    assert discovery.requests == []
 
 
 def test_default_sonos_service_lists_selectable_households():
@@ -69,7 +74,7 @@ def test_default_sonos_service_lists_selectable_households():
     assert discovery.requests == [SonosDiscoveryRequest.all_households()]
 
 
-def test_default_sonos_service_uses_all_households_request_for_legacy_saved_group():
+def test_default_sonos_service_uses_discovery_port_for_saved_group_resolution():
     discovery = StubDiscovery([build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2")])
     service = DefaultSonosService(discovery)
     selected_group = SelectedSonosGroupSettings(
@@ -80,7 +85,8 @@ def test_default_sonos_service_uses_all_households_request_for_legacy_saved_grou
     resolved_group = service.resolve_selected_group(selected_group)
 
     assert resolved_group.coordinator.uid == "speaker-2"
-    assert discovery.requests == [SonosDiscoveryRequest.all_households()]
+    assert discovery.resolve_group_members_calls == [selected_group]
+    assert discovery.requests == []
 
 
 def test_default_sonos_service_marks_unreachable_non_coordinator_missing():

@@ -69,7 +69,7 @@ class DefaultSonosService:
     ) -> InspectedSelectedSonosGroup:
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self.discovery.discover_speakers(_build_selected_group_discovery_request(selected_group)),
+            speakers=self.discovery.resolve_group_members(selected_group),
         )
 
     def resolve_selected_group(
@@ -106,12 +106,6 @@ class DefaultSonosService:
         return sort_sonos_speakers(
             [speaker for speaker in self.discovery.discover_speakers(request) if speaker.is_visible]
         )
-
-
-def _build_selected_group_discovery_request(selected_group: SelectedSonosGroupSettings) -> SonosDiscoveryRequest:
-    if selected_group.household_id is not None:
-        return SonosDiscoveryRequest.target_household(selected_group.household_id)
-    return SonosDiscoveryRequest.all_households()
 
 
 def _group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosHousehold]:
