@@ -55,11 +55,6 @@ class SonosSpeakerOutput(DiscoveredSonosSpeaker):
     pass
 
 
-class SonosHouseholdOutput(BaseModel):
-    household_id: str
-    speakers: list[SonosSpeakerOutput]
-
-
 class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
     pass
 
@@ -145,21 +140,6 @@ class APIController:
         def get_sonos_speakers():
             try:
                 return self.sonos_service.list_available_speakers()
-            except SonosDiscoveryError as err:
-                raise HTTPException(status_code=502, detail=str(err))
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
-
-        @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
-        def get_sonos_households():
-            try:
-                return [
-                    SonosHouseholdOutput(
-                        household_id=household.household_id,
-                        speakers=[SonosSpeakerOutput(**speaker.model_dump()) for speaker in household.speakers],
-                    )
-                    for household in self.sonos_service.list_selectable_households()
-                ]
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
