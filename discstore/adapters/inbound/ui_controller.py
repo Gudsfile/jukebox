@@ -24,6 +24,7 @@ from pydantic import BaseModel, Field
 from discstore.adapters.inbound.api_controller import APIController
 from discstore.adapters.inbound.ui_pages.library import DiscForm, DiscTable, LibraryUIPageBuilder
 from discstore.adapters.inbound.ui_pages.settings import SettingsUIPageBuilder
+from discstore.adapters.inbound.ui_pages.sonos import SonosSelectionForm, SonosUIPageBuilder
 from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
@@ -36,8 +37,11 @@ from jukebox.settings.definitions import (
     get_setting_definition,
 )
 from jukebox.settings.errors import SettingsError
+from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
+from jukebox.sonos.discovery import SonosDiscoveryError
+from jukebox.sonos.selection import SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
 
@@ -63,6 +67,7 @@ class UIController(APIController):
             get_disc=get_disc,
             get_current_tag_status=get_current_tag_status,
         )
+        self.sonos_pages = SonosUIPageBuilder(settings_service=settings_service, sonos_service=sonos_service)
         self.settings_pages = SettingsUIPageBuilder(settings_service=settings_service)
         super().__init__(
             add_disc,
@@ -222,6 +227,65 @@ class UIController(APIController):
         async def reset_setting(setting_path: str) -> list[AnyComponent]:
             return self._reset_setting(setting_path)
 
+        @self.app.get("/api/ui/sonos", response_model=FastUI, response_model_exclude_none=True)
+        def sonos_page(toast: Optional[str] = None, toast_message: Optional[str] = None) -> List[AnyComponent]:
+            return self._build_sonos_page_components(toast=toast, toast_message=toast_message)
+
+        @self.app.get("/api/ui/sonos/edit", response_model=FastUI, response_model_exclude_none=True)
+        def edit_sonos_form(
+            error_message: Optional[str] = None,
+            uids: Optional[List[str]] = None,
+            coordinator_uid: Optional[str] = None,
+        ) -> List[AnyComponent]:
+            field_errors = None
+            if error_message:
+                field_errors = {self._sonos_field_name_for_error(error_message): error_message}
+            return self._build_sonos_edit_page_components(
+                error_message=error_message,
+                field_errors=field_errors,
+                submitted_uids=uids,
+                submitted_coordinator_uid=coordinator_uid,
+            )
+
+        @self.app.post("/api/ui/sonos/edit", response_model=FastUI, response_model_exclude_none=True)
+        async def update_sonos_selection(
+            form: Annotated[SonosSelectionForm, fastui_form(SonosSelectionForm)],
+        ) -> list[AnyComponent]:
+            try:
+                result = SaveSonosSelection(
+                    selected_group_repository=SettingsSelectedSonosGroupRepository(self.settings_service),
+                    sonos_service=self.sonos_service,
+                ).execute(form.uids, coordinator_uid=form.coordinator_uid)
+            except SonosDiscoveryError as err:
+                raise HTTPException(status_code=502, detail=str(err))
+            except SettingsError as err:
+                display_message = self._build_sonos_error_message(str(err), form.coordinator_uid)
+                if self._persisted_sonos_selection_matches(form.uids, form.coordinator_uid):
+                    return self.sonos_pages.build_sonos_success_response(
+                        "Sonos selection saved, but effective settings are still unavailable."
+                    )
+                return self.sonos_pages.build_sonos_edit_error_response(
+                    display_message,
+                    form.uids,
+                    form.coordinator_uid,
+                )
+            except ValueError as err:
+                return self.sonos_pages.build_sonos_edit_error_response(
+                    self._build_sonos_error_message(str(err), form.coordinator_uid),
+                    form.uids,
+                    form.coordinator_uid,
+                )
+            except HTTPException:
+                raise
+            except Exception as err:
+                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+            return self.sonos_pages.build_sonos_success_response(str(result.settings_message))
+
+        @self.app.post("/api/ui/sonos/reset", response_model=FastUI, response_model_exclude_none=True)
+        async def reset_sonos_selection() -> list[AnyComponent]:
+            return self._reset_sonos_selection()
+
         @self.app.get("/{path:path}")
         def html_landing(path: str) -> HTMLResponse:
             del path
@@ -237,6 +301,80 @@ class UIController(APIController):
 
     def _reset_setting(self, setting_path: str) -> list[AnyComponent]:
         return self.settings_pages.reset_setting(setting_path)
+
+    def _build_sonos_page_components(
+        self,
+        toast: Optional[str] = None,
+        toast_message: Optional[str] = None,
+        error_message: Optional[str] = None,
+    ) -> List[AnyComponent]:
+        return self.sonos_pages.build_sonos_page_components(
+            toast=toast,
+            toast_message=toast_message,
+            error_message=error_message,
+        )
+
+    def _build_sonos_edit_page_components(
+        self,
+        error_message: Optional[str] = None,
+        field_errors: Optional[dict[str, str]] = None,
+        submitted_uids: Optional[List[str]] = None,
+        submitted_coordinator_uid: Optional[str] = None,
+    ) -> List[AnyComponent]:
+        return self.sonos_pages.build_sonos_edit_page_components(
+            error_message=error_message,
+            field_errors=field_errors,
+            submitted_uids=submitted_uids,
+            submitted_coordinator_uid=submitted_coordinator_uid,
+        )
+
+    def _reset_sonos_selection(self) -> list[AnyComponent]:
+        selected_group_repository = SettingsSelectedSonosGroupRepository(self.settings_service)
+        try:
+            result = self.settings_service.reset_persisted_value("jukebox.player.sonos.selected_group")
+        except SettingsError as err:
+            if selected_group_repository.get_selected_group() is None:
+                return self.sonos_pages.build_sonos_success_response(
+                    "Sonos selection cleared, but effective settings are still unavailable."
+                )
+            return self._build_sonos_page_components(error_message=str(err))
+        except HTTPException:
+            raise
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+        return self.sonos_pages.build_sonos_success_response(str(result.get("message", "Settings saved.")))
+
+    def _persisted_sonos_selection_matches(self, uids: List[str], coordinator_uid: Optional[str]) -> bool:
+        try:
+            selected_group = SettingsSelectedSonosGroupRepository(self.settings_service).get_selected_group()
+        except Exception:
+            return False
+
+        if selected_group is None:
+            return False
+
+        expected_coordinator_uid = coordinator_uid or (uids[0] if uids else None)
+        return (
+            selected_group.coordinator_uid == expected_coordinator_uid
+            and [member.uid for member in selected_group.members] == uids
+        )
+
+    def _build_sonos_error_message(self, message: str, coordinator_uid: Optional[str]) -> str:
+        prefix = "Selected Sonos coordinator must be one of the selected speakers: "
+        if coordinator_uid is None or not message.startswith(prefix):
+            return message
+
+        try:
+            speakers = self.sonos_service.list_available_speakers()
+        except Exception:
+            return message
+
+        speaker = next((speaker for speaker in speakers if speaker.uid == coordinator_uid), None)
+        if speaker is None:
+            return message
+
+        return f"{prefix}{speaker.name} [{speaker.uid}]"
 
     def _build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
         return self.library_pages.build_index_page_components(toast=toast)
@@ -349,6 +487,12 @@ class UIController(APIController):
 
     def _serialize_current_tag_components(self, components: List[AnyComponent]) -> str:
         return self.library_pages.serialize_current_tag_components(components)
+
+    @staticmethod
+    def _sonos_field_name_for_error(message: str) -> str:
+        if "coordinator" in message:
+            return "coordinator_uid"
+        return "uids"
 
     def _field_validation_error(self, field_name: str, message: str) -> HTTPException:
         return HTTPException(

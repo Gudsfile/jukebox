@@ -7,6 +7,18 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 
+def build_speaker(uid, name, host, household_id):
+    from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+
+    return DiscoveredSonosSpeaker(
+        uid=uid,
+        name=name,
+        host=host,
+        household_id=household_id,
+        is_visible=True,
+    )
+
+
 def test_module_import_failure():
     version_below_py37 = (3, 7, 17, "final", 0)
     with mock.patch("sys.version_info", version_below_py37), pytest.raises(RuntimeError) as err:
@@ -31,6 +43,7 @@ def test_dependencies_import_failure(mocker):
 
 def build_controller():
     from discstore.adapters.inbound.ui_controller import UIController
+    from jukebox.sonos.service import InspectedSelectedSonosGroup
 
     settings_service = MagicMock()
     sonos_service = MagicMock()
@@ -94,6 +107,16 @@ def build_controller():
         "derived": {},
         "change_metadata": {},
     }
+    sonos_service.list_available_speakers.return_value = [
+        build_speaker(uid="speaker-1", name="Kitchen", host="192.168.1.30", household_id="household-1"),
+        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-1"),
+    ]
+    sonos_service.inspect_selected_group.return_value = InspectedSelectedSonosGroup(
+        coordinator=sonos_service.list_available_speakers.return_value[1],
+        resolved_members=list(sonos_service.list_available_speakers.return_value),
+        missing_member_uids=[],
+        error_message=None,
+    )
 
     return UIController(
         add_disc=MagicMock(),
@@ -156,6 +179,10 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert ("/api/ui/settings/{setting_path}/edit", ("GET",)) in route_index
     assert ("/api/ui/settings/{setting_path}", ("POST",)) in route_index
     assert ("/api/ui/settings/{setting_path}/reset", ("POST",)) in route_index
+    assert ("/api/ui/sonos", ("GET",)) in route_index
+    assert ("/api/ui/sonos/edit", ("GET",)) in route_index
+    assert ("/api/ui/sonos/edit", ("POST",)) in route_index
+    assert ("/api/ui/sonos/reset", ("POST",)) in route_index
     assert ("/api/v1/discs", ("GET",)) in route_index
     assert ("/api/v1/discs/{tag_id}", ("GET",)) in route_index
     assert ("/api/v1/discs/{tag_id}", ("POST",)) in route_index
@@ -172,6 +199,11 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
         for component in all_components
         if component.type == "Button" and component.text == "➕ Add a new disc"
     )
+    sonos_button = next(
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "🔊 Sonos Speakers"
+    )
     settings_button = next(
         component for component in all_components if component.type == "Button" and component.text == "⚙️ Settings"
     )
@@ -186,6 +218,8 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert server_load.sse is True
     assert add_button.on_click.type == "go-to"
     assert add_button.on_click.url == "/discs/new"
+    assert sonos_button.on_click.type == "go-to"
+    assert sonos_button.on_click.url == "/sonos"
     assert settings_button.on_click.type == "go-to"
     assert settings_button.on_click.url == "/settings"
     assert edit_button.on_click.type == "go-to"
@@ -261,6 +295,11 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
     assert any(component.type == "Heading" and component.text == "Admin" for component in all_components)
     assert any(component.type == "Heading" and component.text == "Player" for component in all_components)
     assert any(component.type == "Button" and component.text == "Edit ✏️" for component in all_components)
+    manage_speakers_button = next(
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "Manage Speakers 🔊"
+    )
     assert any(component.type == "Paragraph" and component.text == "Persisted override" for component in all_components)
     assert any(component.type == "Paragraph" and component.text == "8100" for component in all_components)
     assert any(component.type == "Paragraph" and component.text == "8000" for component in all_components)
@@ -273,6 +312,8 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
         component.type == "Paragraph" and component.text == "speaker-2 (coordinator); members: speaker-1, speaker-2"
         for component in all_components
     )
+    assert manage_speakers_button.on_click.url == "/sonos"
+    assert "text-nowrap" in manage_speakers_button.class_name
     assert not any(component.type == "Button" and component.text == "Reset" for component in all_components)
     assert page[1].event.name == "toast-settings-success"
 
@@ -343,6 +384,283 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     assert reset_form.method == "POST"
     assert reset_form.footer[0].type == "Button"
     assert reset_form.footer[0].text == "Reset"
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_sonos_page_renders_saved_selection_and_discovered_speakers():
+    controller = build_controller()
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos")
+
+    page = route.endpoint(toast="toast-sonos-success", toast_message="Sonos settings saved.")
+    all_components = list(walk_components(page[0].components))
+
+    assert any(component.type == "Heading" and component.text == "Sonos Speakers" for component in all_components)
+    assert any(component.type == "Heading" and component.text == "Saved selection" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Status: Available" for component in all_components)
+    assert any(
+        component.type == "Paragraph" and component.text == "Coordinator: Living Room [speaker-2]"
+        for component in all_components
+    )
+    assert any(
+        component.type == "Paragraph" and component.text == "Members: Kitchen [speaker-1], Living Room [speaker-2]"
+        for component in all_components
+    )
+    assert any(component.type == "Heading" and component.text == "Discovered speakers" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Kitchen" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Living Room" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Coordinator" for component in all_components)
+    assert any(component.type == "Paragraph" and component.text == "Selected" for component in all_components)
+    assert page[1].event.name == "toast-sonos-success"
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_sonos_edit_page_renders_speaker_and_coordinator_selects():
+    controller = build_controller()
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
+
+    page = route.endpoint()[0]
+    form = next(component for component in walk_components(page.components) if component.type == "Form")
+    speakers_field = form.form_fields[0]
+    coordinator_field = form.form_fields[1]
+
+    assert page.components[0].text == "Edit Sonos Selection"
+    assert not any(
+        component.type == "Heading" and component.text == "Saved selection"
+        for component in walk_components(page.components)
+    )
+    assert any(
+        component.type == "Paragraph" and component.text == "Current saved selection"
+        for component in walk_components(page.components)
+    )
+    assert any(
+        component.type == "Paragraph" and component.text == "Coordinator: Living Room [speaker-2]"
+        for component in walk_components(page.components)
+    )
+    assert speakers_field.type == "FormFieldSelect"
+    assert speakers_field.name == "uids"
+    assert speakers_field.multiple is True
+    assert speakers_field.initial == ["speaker-1", "speaker-2"]
+    assert speakers_field.options == [
+        {"value": "speaker-1", "label": "Kitchen (192.168.1.30)"},
+        {"value": "speaker-2", "label": "Living Room (192.168.1.31)"},
+    ]
+    assert coordinator_field.type == "FormFieldSelect"
+    assert coordinator_field.name == "coordinator_uid"
+    assert coordinator_field.initial == "speaker-2"
+    assert form.submit_url == "/api/ui/sonos/edit"
+    assert form.method == "POST"
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_sonos_selection_saves_and_redirects():
+    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {
+        "message": "Settings saved. Changes take effect after restart."
+    }
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
+    )
+
+    response = await route.endpoint(SonosSelectionForm(uids=["speaker-1", "speaker-2"], coordinator_uid="speaker-2"))
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+                        }
+                    },
+                }
+            }
+        }
+    )
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos?")
+    assert "toast=toast-sonos-success" in response[0].event.url
+    assert "Changes+take+effect+after+restart." in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_sonos_selection_returns_field_error_for_invalid_coordinator():
+    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
+    )
+
+    response = await route.endpoint(SonosSelectionForm(uids=["speaker-1"], coordinator_uid="speaker-2"))
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos/edit?")
+    assert (
+        "error_message=Selected+Sonos+coordinator+must+be+one+of+the+selected+speakers%3A+Living+Room+%5Bspeaker-2%5D"
+        in response[0].event.url
+    )
+    assert "uids=speaker-1" in response[0].event.url
+    assert "coordinator_uid=speaker-2" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values():
+    controller = build_controller()
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
+
+    page = route.endpoint(
+        error_message="Selected Sonos coordinator must be one of the selected speakers: Living Room [speaker-2]",
+        uids=["speaker-1"],
+        coordinator_uid="speaker-2",
+    )[0]
+    all_components = list(walk_components(page.components))
+    form = next(component for component in all_components if component.type == "Form")
+    speakers_field = form.form_fields[0]
+    coordinator_field = form.form_fields[1]
+
+    assert any(
+        component.type == "Paragraph" and component.text == "Selection not saved" for component in all_components
+    )
+    assert any(
+        component.type == "Paragraph"
+        and component.text == "Selected Sonos coordinator must be one of the selected speakers: Living Room [speaker-2]"
+        for component in all_components
+    )
+    assert speakers_field.initial == ["speaker-1"]
+    assert speakers_field.error is None
+    assert coordinator_field.initial == "speaker-2"
+    assert (
+        coordinator_field.error
+        == "Selected Sonos coordinator must be one of the selected speakers: Living Room [speaker-2]"
+    )
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_sonos_selection_saves_single_speaker_selection():
+    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+
+    controller = build_controller()
+    controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
+    )
+
+    response = await route.endpoint(SonosSelectionForm(uids="speaker-1", coordinator_uid="speaker-1"))
+
+    controller.settings_service.patch_persisted_settings.assert_called_once_with(
+        {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-1",
+                            "members": [{"uid": "speaker-1"}],
+                        }
+                    },
+                }
+            }
+        }
+    )
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos?")
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_update_sonos_selection_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
+    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+    from jukebox.settings.errors import InvalidSettingsError
+
+    controller = build_controller()
+
+    def raise_after_persist(patch):
+        del patch
+        controller.settings_service.get_persisted_settings_view.return_value = {
+            "schema_version": 1,
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {
+                        "selected_group": {
+                            "coordinator_uid": "speaker-2",
+                            "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
+                        }
+                    },
+                }
+            },
+        }
+        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+
+    controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
+    )
+
+    response = await route.endpoint(SonosSelectionForm(uids=["speaker-1", "speaker-2"], coordinator_uid="speaker-2"))
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos?")
+    assert "toast=toast-sonos-success" in response[0].event.url
+    assert "effective+settings+are+still+unavailable" in response[0].event.url
+
+
+@pytest.mark.skipif(
+    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
+    reason="FastUI dependencies are not installed",
+)
+@pytest.mark.anyio
+async def test_reset_sonos_selection_calls_service_and_redirects():
+    controller = build_controller()
+    controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/sonos/reset" and "POST" in route.methods
+    )
+
+    response = await route.endpoint()
+
+    controller.settings_service.reset_persisted_value.assert_called_once_with("jukebox.player.sonos.selected_group")
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos?")
+    assert "toast=toast-sonos-success" in response[0].event.url
 
 
 @pytest.mark.skipif(

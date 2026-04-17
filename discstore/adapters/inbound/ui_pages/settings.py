@@ -142,9 +142,13 @@ class SettingsUIPageBuilder:
 
         action_components: list[AnyComponent] = [
             c.Button(
-                text="Edit ✏️",
-                on_click=GoToEvent(url=f"/settings/{setting.path}/edit"),
-                class_name="btn btn-secondary",
+                text="Manage Speakers 🔊" if setting.path == "jukebox.player.sonos.selected_group" else "Edit ✏️",
+                on_click=(
+                    GoToEvent(url="/sonos")
+                    if setting.path == "jukebox.player.sonos.selected_group"
+                    else GoToEvent(url=f"/settings/{setting.path}/edit")
+                ),
+                class_name="btn btn-secondary text-nowrap",
             )
         ]
         row_class_name = "px-3 py-3"
