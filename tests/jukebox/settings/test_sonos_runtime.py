@@ -197,3 +197,32 @@ def test_default_sonos_service_inspects_selected_group_with_invisible_household_
 
     assert [member.uid for member in inspection.resolved_members] == ["speaker-1", "speaker-2"]
     assert [speaker.uid for speaker in listed_speakers] == ["speaker-1"]
+
+
+def test_default_sonos_service_inspects_legacy_selected_group_with_invisible_member():
+    hidden_speaker = DiscoveredSonosSpeaker(
+        uid="speaker-2",
+        name="Living Room Surround",
+        host="192.168.1.31",
+        household_id="household-1",
+        is_visible=False,
+    )
+    discovery = StubDiscovery(
+        [
+            build_discovered_speaker("speaker-1", "Living Room", "192.168.1.30", "household-1"),
+            hidden_speaker,
+        ]
+    )
+    service = DefaultSonosService(discovery)
+    selected_group = SelectedSonosGroupSettings(
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+        ],
+    )
+
+    inspection = service.inspect_selected_group(selected_group)
+
+    assert [member.uid for member in inspection.resolved_members] == ["speaker-1", "speaker-2"]
+    assert discovery.requests == [("network", None)]

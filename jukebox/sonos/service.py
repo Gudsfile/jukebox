@@ -91,7 +91,7 @@ class DefaultSonosService:
         selected_group: SelectedSonosGroupSettings,
     ) -> list[DiscoveredSonosSpeaker]:
         if selected_group.household_id is None:
-            return self.list_network_speakers()
+            return self.discovery.discover_speakers()
         return sort_sonos_speakers(self.discovery.discover_household_speakers(selected_group.household_id))
 
 
