@@ -1,5 +1,5 @@
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 
@@ -375,7 +375,7 @@ def test_execute_sonos_command_lists_visible_sonos_speakers():
         stdout_fn=stdout_fn,
     )
 
-    sonos_service.list_available_speakers.assert_called_once_with()
+    sonos_service.list_available_speakers.assert_called_once_with(include_other_households=True)
     rendered_output = stdout_fn.call_args.args[0]
     assert "Household: household-1" in rendered_output
     assert "1. Kitchen" in rendered_output
@@ -458,6 +458,10 @@ def test_execute_sonos_command_prompts_for_single_discovered_speaker():
     prompt_fn.assert_called_once_with(sonos_service.list_available_speakers.return_value)
     coordinator_prompt_fn.assert_not_called()
     settings_service.patch_persisted_settings.assert_called_once()
+    assert sonos_service.list_available_speakers.call_args_list == [
+        call(include_other_households=True),
+        call(include_other_households=True),
+    ]
 
 
 def test_execute_sonos_command_reports_no_visible_speakers_before_prompting():
@@ -543,6 +547,10 @@ def test_execute_sonos_command_uses_household_and_speaker_prompts_for_multi_hous
     coordinator_prompt_fn.assert_called_once_with(selected_speakers)
     settings_service.patch_persisted_settings.assert_called_once()
     assert "speaker-2" in stdout_fn.call_args.args[0]
+    assert sonos_service.list_available_speakers.call_args_list == [
+        call(include_other_households=True),
+        call(include_other_households=True),
+    ]
 
 
 def test_execute_sonos_command_cancel_does_not_write_settings():
@@ -698,6 +706,10 @@ def test_execute_sonos_command_uses_requested_household_without_prompting():
     household_prompt_fn.assert_not_called()
     prompt_fn.assert_called_once_with([available_speakers[0]])
     settings_service.patch_persisted_settings.assert_called_once()
+    assert sonos_service.list_available_speakers.call_args_list == [
+        call(include_other_households=True),
+        call(include_other_households=True),
+    ]
 
 
 def test_execute_sonos_command_show_renders_saved_selection_status():

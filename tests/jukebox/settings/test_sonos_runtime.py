@@ -9,7 +9,7 @@ class StubDiscovery:
     def __init__(self, speakers):
         self.speakers = speakers
 
-    def discover_speakers(self):
+    def discover_speakers(self, include_other_households=False):
         return list(self.speakers)
 
 

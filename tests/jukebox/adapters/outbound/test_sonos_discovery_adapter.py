@@ -84,6 +84,21 @@ def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_fo
     assert speakers == []
 
 
+def test_soco_sonos_discovery_adapter_skips_responder_scan_on_normal_fast_path(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    mocker.patch.dict("sys.modules", build_fake_soco_module(discover=lambda: {kitchen}))
+    discover_responder_hosts = mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_responder_hosts",
+        return_value={"192.168.1.99"},
+    )
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.uid for speaker in speakers] == ["speaker-1"]
+    discover_responder_hosts.assert_not_called()
+
+
 def test_soco_sonos_discovery_adapter_aggregates_multiple_households_from_responder_hosts(mocker):
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     living_room = FakeSpeaker("speaker-2", "Living Room", "192.168.1.31", "household-1")
@@ -106,7 +121,7 @@ def test_soco_sonos_discovery_adapter_aggregates_multiple_households_from_respon
         return_value={"192.168.1.20", "192.168.1.30"},
     )
 
-    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers(include_other_households=True)
 
     assert [(speaker.name, speaker.household_id) for speaker in speakers] == [
         ("Bar", "household-2"),

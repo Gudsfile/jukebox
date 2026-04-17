@@ -64,6 +64,7 @@ def test_save_sonos_selection_defaults_coordinator_to_first_selected_uid():
             ],
         )
     )
+    sonos_service.list_available_speakers.assert_called_once_with(include_other_households=False)
 
 
 def test_save_sonos_selection_persists_multi_member_selected_group_and_player_type():
@@ -100,6 +101,20 @@ def test_save_sonos_selection_persists_multi_member_selected_group_and_player_ty
             ],
         )
     )
+
+
+def test_save_sonos_selection_can_validate_against_other_households():
+    selected_group_repository = MagicMock()
+    selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult()
+    sonos_service = MagicMock()
+    sonos_service.list_available_speakers.return_value = [build_speaker(uid="speaker-9", household_id="household-2")]
+
+    SaveSonosSelection(
+        selected_group_repository=selected_group_repository,
+        sonos_service=sonos_service,
+    ).execute(["speaker-9"], include_other_households=True)
+
+    sonos_service.list_available_speakers.assert_called_once_with(include_other_households=True)
 
 
 def test_save_sonos_selection_rejects_unknown_uid_without_writing():

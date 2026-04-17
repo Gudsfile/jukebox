@@ -11,7 +11,7 @@ from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryPort, sort_sonos_sp
 
 
 class SonosService(Protocol):
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+    def list_available_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
@@ -36,8 +36,14 @@ class DefaultSonosService:
     def __init__(self, discovery: SonosDiscoveryPort):
         self.discovery = discovery
 
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return sort_sonos_speakers([speaker for speaker in self.discovery.discover_speakers() if speaker.is_visible])
+    def list_available_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]:
+        return sort_sonos_speakers(
+            [
+                speaker
+                for speaker in self.discovery.discover_speakers(include_other_households=include_other_households)
+                if speaker.is_visible
+            ]
+        )
 
     def inspect_selected_group(
         self,

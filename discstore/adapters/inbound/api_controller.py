@@ -157,7 +157,9 @@ class APIController:
         @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
         def get_sonos_households():
             try:
-                return group_sonos_speakers_by_household(self.sonos_service.list_available_speakers())
+                return group_sonos_speakers_by_household(
+                    self.sonos_service.list_available_speakers(include_other_households=True)
+                )
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
@@ -181,7 +183,7 @@ class APIController:
                 result = SaveSonosSelection(
                     SettingsSelectedSonosGroupRepository(self.settings_service),
                     self.sonos_service,
-                ).execute(payload.uids, coordinator_uid=payload.coordinator_uid)
+                ).execute(payload.uids, coordinator_uid=payload.coordinator_uid, include_other_households=True)
                 return SonosSelectionUpdateOutput(
                     selected_group=SelectedSonosGroupOutput(**result.selected_group.model_dump()),
                     availability=SonosSelectionAvailabilityOutput(

@@ -22,8 +22,8 @@ class _SonosDiscoverySnapshot:
 
 
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
-    def discover_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        snapshot = self._discover_runtime_snapshot()
+    def discover_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]:
+        snapshot = self._discover_runtime_snapshot(include_other_households=include_other_households)
         speakers_by_uid = {speaker.uid: speaker for speaker in snapshot.speakers}
         for expected_uid, hosts in snapshot.retry_hosts_by_uid.items():
             for host in hosts:
@@ -44,7 +44,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             )
         return recovered_speakers
 
-    def _discover_runtime_snapshot(self) -> _SonosDiscoverySnapshot:
+    def _discover_runtime_snapshot(self, include_other_households: bool = False) -> _SonosDiscoverySnapshot:
         import soco
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException
@@ -58,12 +58,13 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         discovered = set(discovered or set())
         normalization_errors = []
         responder_hosts = set()
-        try:
-            responder_hosts = self._discover_responder_hosts()
-        except OSError as err:
-            if not discovered:
-                raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
-            normalization_errors.append(f"Failed to inspect Sonos SSDP responders: {err}")
+        if include_other_households or not discovered:
+            try:
+                responder_hosts = self._discover_responder_hosts()
+            except OSError as err:
+                if not discovered:
+                    raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
+                normalization_errors.append(f"Failed to inspect Sonos SSDP responders: {err}")
 
         available_speakers = set(discovered)
         for speaker in list(discovered):

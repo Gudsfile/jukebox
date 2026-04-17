@@ -55,8 +55,15 @@ class SaveSonosSelection:
         self.selected_group_repository = selected_group_repository
         self.sonos_service = sonos_service
 
-    def execute(self, uids: list[str], coordinator_uid: Optional[str] = None) -> SonosSelectionResult:
-        available_speakers = self.sonos_service.list_available_speakers()
+    def execute(
+        self,
+        uids: list[str],
+        coordinator_uid: Optional[str] = None,
+        include_other_households: bool = False,
+    ) -> SonosSelectionResult:
+        available_speakers = self.sonos_service.list_available_speakers(
+            include_other_households=include_other_households
+        )
         validated_group = _validate_selection_request(
             available_speakers=available_speakers,
             requested_uids=uids,

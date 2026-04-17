@@ -25,7 +25,7 @@ class SonosDiscoveryError(RuntimeError, ValueError):
 
 
 class SonosDiscoveryPort(Protocol):
-    def discover_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+    def discover_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]: ...
 
 
 def sort_sonos_speakers(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosSpeaker]:

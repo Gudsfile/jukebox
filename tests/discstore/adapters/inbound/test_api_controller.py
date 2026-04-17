@@ -758,7 +758,7 @@ def test_get_sonos_households_groups_visible_speakers_by_household():
             ],
         },
     ]
-    sonos_service.list_available_speakers.assert_called_once_with()
+    sonos_service.list_available_speakers.assert_called_once_with(include_other_households=True)
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

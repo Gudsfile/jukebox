@@ -103,7 +103,9 @@ def execute_sonos_command(
     stdout_fn: Callable[[str], None] = print,
 ) -> None:
     if isinstance(command, SonosListCommand):
-        households = group_sonos_speakers_by_household(sonos_service.list_available_speakers())
+        households = group_sonos_speakers_by_household(
+            sonos_service.list_available_speakers(include_other_households=True)
+        )
         stdout_fn(render_sonos_speakers_output(households))
         return
 
@@ -112,7 +114,9 @@ def execute_sonos_command(
             raise TypeError("settings_service is required for Sonos select commands")
 
         if command.uids is None:
-            available_households = group_sonos_speakers_by_household(sonos_service.list_available_speakers())
+            available_households = group_sonos_speakers_by_household(
+                sonos_service.list_available_speakers(include_other_households=True)
+            )
             if not available_households:
                 raise RuntimeError("No visible Sonos speakers found.")
             selected_household = _select_available_household(
@@ -145,7 +149,9 @@ def execute_sonos_command(
             selected_uids = list(command.uids)
             if command.household is not None:
                 selected_household = _get_available_household(
-                    group_sonos_speakers_by_household(sonos_service.list_available_speakers()),
+                    group_sonos_speakers_by_household(
+                        sonos_service.list_available_speakers(include_other_households=True)
+                    ),
                     command.household,
                 )
                 selected_speaker_uids = {speaker.uid for speaker in selected_household.speakers}
@@ -159,7 +165,7 @@ def execute_sonos_command(
             result = SaveSonosSelection(
                 selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
                 sonos_service=sonos_service,
-            ).execute(selected_uids, coordinator_uid=coordinator_uid)
+            ).execute(selected_uids, coordinator_uid=coordinator_uid, include_other_households=True)
         except ValueError as err:
             raise RuntimeError(str(err)) from err
         stdout_fn(render_sonos_selection_saved_output(result))
