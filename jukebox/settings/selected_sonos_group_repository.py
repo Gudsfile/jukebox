@@ -19,9 +19,7 @@ class SettingsSelectedSonosGroupRepository(SelectedSonosGroupRepository):
         selected_group_data = _lookup_selected_group(persisted)
         if selected_group_data is None:
             return None
-        normalized_data = dict(selected_group_data)
-        normalized_data.pop("household_id", None)
-        return SelectedSonosGroupSettings.model_validate(normalized_data)
+        return SelectedSonosGroupSettings.model_validate(selected_group_data)
 
     def save_selected_group(self, selected_group: SelectedSonosGroupSettings) -> SaveSelectedSonosGroupResult:
         settings_result = self.settings_service.patch_persisted_settings(

@@ -59,14 +59,12 @@ class SaveSonosSelection:
         self,
         uids: list[str],
         coordinator_uid: Optional[str] = None,
-        requested_household_id: Optional[str] = None,
     ) -> SonosSelectionResult:
         available_speakers = self.sonos_service.list_network_speakers()
         validated_group = _validate_selection_request(
             available_speakers=available_speakers,
             requested_uids=uids,
             coordinator_uid=coordinator_uid,
-            requested_household_id=requested_household_id,
         )
         speakers_by_uid = {speaker.uid: speaker for speaker in available_speakers}
         selected_group = SelectedSonosGroupSettings(
@@ -143,7 +141,6 @@ def _validate_selection_request(
     available_speakers: list[DiscoveredSonosSpeaker],
     requested_uids: list[str],
     coordinator_uid: Optional[str] = None,
-    requested_household_id: Optional[str] = None,
 ) -> _ValidatedSonosSelectionRequest:
     if not requested_uids:
         raise ValueError("`uids` must include at least one UID.")
@@ -152,11 +149,6 @@ def _validate_selection_request(
         raise ValueError("`uids` must not contain duplicate UIDs.")
 
     speakers_by_uid = {speaker.uid: speaker for speaker in available_speakers}
-    if requested_household_id is not None:
-        available_household_ids = {speaker.household_id for speaker in available_speakers}
-        if requested_household_id not in available_household_ids:
-            raise ValueError(f"No visible Sonos speakers found for household `{requested_household_id}`.")
-
     unknown_uids = [uid for uid in requested_uids if uid not in speakers_by_uid]
     if unknown_uids:
         raise ValueError("Selected Sonos speakers are not currently discoverable: {}".format(", ".join(unknown_uids)))
@@ -168,8 +160,6 @@ def _validate_selection_request(
     household_ids = {speakers_by_uid[uid].household_id for uid in requested_uids}
     if len(household_ids) != 1:
         raise ValueError("Selected Sonos speakers must belong to the same household.")
-    if requested_household_id is not None and household_ids != {requested_household_id}:
-        raise ValueError(f"Selected Sonos speakers must belong to household `{requested_household_id}`.")
 
     return _ValidatedSonosSelectionRequest(
         selected_uids=list(requested_uids),

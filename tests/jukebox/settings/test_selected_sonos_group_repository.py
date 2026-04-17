@@ -71,7 +71,6 @@ def test_get_selected_group_loads_saved_group_from_settings_schema():
                         "selected_group": {
                             "coordinator_uid": "speaker-1",
                             "members": [{"uid": "speaker-1"}],
-                            "household_id": "household-1",
                         }
                     }
                 }

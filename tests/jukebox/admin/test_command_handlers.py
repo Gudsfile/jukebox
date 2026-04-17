@@ -708,6 +708,59 @@ def test_execute_sonos_command_uses_requested_household_without_prompting():
     assert sonos_service.list_network_speakers.call_count == 2
 
 
+def test_execute_sonos_command_rejects_scripted_requested_household_mismatch():
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    sonos_service.list_network_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        ),
+        DiscoveredSonosSpeaker(
+            uid="speaker-2",
+            name="Living Room",
+            host="192.168.1.31",
+            household_id="household-2",
+            is_visible=True,
+        ),
+    ]
+
+    with pytest.raises(RuntimeError, match="Selected Sonos speakers must belong to household `household-1`\\."):
+        execute_sonos_command(
+            command=SonosSelectCommand(type="sonos_select", uids=["speaker-2"], household="household-1"),
+            sonos_service=sonos_service,
+            settings_service=settings_service,
+        )
+
+    settings_service.patch_persisted_settings.assert_not_called()
+
+
+def test_execute_sonos_command_rejects_unknown_scripted_requested_household():
+    sonos_service = MagicMock()
+    settings_service = MagicMock()
+    sonos_service.list_network_speakers.return_value = [
+        DiscoveredSonosSpeaker(
+            uid="speaker-1",
+            name="Kitchen",
+            host="192.168.1.30",
+            household_id="household-1",
+            is_visible=True,
+        )
+    ]
+
+    with pytest.raises(RuntimeError, match="No visible Sonos speakers found for household `household-9`\\."):
+        execute_sonos_command(
+            command=SonosSelectCommand(type="sonos_select", uids=["speaker-1"], household="household-9"),
+            sonos_service=sonos_service,
+            settings_service=settings_service,
+        )
+
+    settings_service.patch_persisted_settings.assert_not_called()
+
+
 def test_execute_sonos_command_show_renders_saved_selection_status():
     stdout_fn = MagicMock()
     sonos_service = MagicMock()
