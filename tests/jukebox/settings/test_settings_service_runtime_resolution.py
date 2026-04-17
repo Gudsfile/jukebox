@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
@@ -220,9 +221,11 @@ def test_runtime_resolver_applies_board_profile_defaults_to_spi_pins(tmp_path):
     runtime_config = resolve_jukebox_runtime(service)
 
     # waveshare_hat defaults: reset=20, cs=4, irq=None
-    assert runtime_config.pn532_spi_reset == 20
-    assert runtime_config.pn532_spi_cs == 4
-    assert runtime_config.pn532_spi_irq is None
+    assert runtime_config.pn532_protocol == "spi"
+    assert isinstance(runtime_config.pn532_connection, SpiConnectionParams)
+    assert runtime_config.pn532_connection.reset == 20
+    assert runtime_config.pn532_connection.cs == 4
+    assert runtime_config.pn532_connection.irq is None
 
 
 def test_runtime_resolver_spi_pin_override_wins_over_board_profile_default(tmp_path):
@@ -248,8 +251,10 @@ def test_runtime_resolver_spi_pin_override_wins_over_board_profile_default(tmp_p
 
     runtime_config = resolve_jukebox_runtime(service)
 
-    assert runtime_config.pn532_spi_reset == 24  # override
-    assert runtime_config.pn532_spi_cs == 4  # profile default
+    assert runtime_config.pn532_protocol == "spi"
+    assert isinstance(runtime_config.pn532_connection, SpiConnectionParams)
+    assert runtime_config.pn532_connection.reset == 24  # override
+    assert runtime_config.pn532_connection.cs == 4  # profile default
 
 
 def test_effective_view_derives_spi_pins_from_board_profile(tmp_path):
@@ -314,7 +319,9 @@ def test_settings_service_applies_board_profile_cli_override_at_runtime(tmp_path
     runtime_config = resolve_jukebox_runtime(service)
 
     assert runtime_config.pn532_board_profile == "hiletgo_v3"
-    assert runtime_config.pn532_spi_cs == 8  # hiletgo_v3 default
+    assert runtime_config.pn532_protocol == "spi"
+    assert isinstance(runtime_config.pn532_connection, SpiConnectionParams)
+    assert runtime_config.pn532_connection.cs == 8  # hiletgo_v3 default
 
 
 def test_settings_service_applies_spi_pin_cli_override_at_runtime(tmp_path):
@@ -327,5 +334,7 @@ def test_settings_service_applies_spi_pin_cli_override_at_runtime(tmp_path):
 
     runtime_config = resolve_jukebox_runtime(service)
 
-    assert runtime_config.pn532_spi_reset == 24  # cli override
-    assert runtime_config.pn532_spi_cs == 4  # waveshare_hat default (default profile)
+    assert runtime_config.pn532_protocol == "spi"
+    assert isinstance(runtime_config.pn532_connection, SpiConnectionParams)
+    assert runtime_config.pn532_connection.reset == 24  # cli override
+    assert runtime_config.pn532_connection.cs == 4  # waveshare_hat default (default profile)

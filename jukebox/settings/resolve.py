@@ -5,7 +5,7 @@ from typing import Optional, Union, cast
 
 from pydantic import ValidationError
 
-from jukebox.pn532.profiles import resolve_spi_pins
+from jukebox.pn532.profiles import SpiConnectionParams, resolve_connection_params
 from jukebox.shared.config_utils import get_current_tag_path
 
 from .definitions import (
@@ -237,7 +237,8 @@ def _expand_path(path: str) -> str:
 
 def _derive_pn532(effective_settings: AppSettings) -> JsonObject:
     pn532 = effective_settings.jukebox.reader.pn532
-    resolved = resolve_spi_pins(pn532.board_profile, pn532.spi.reset, pn532.spi.cs, pn532.spi.irq)
+    overrides = SpiConnectionParams(reset=pn532.spi.reset, cs=pn532.spi.cs, irq=pn532.spi.irq)
+    resolved = resolve_connection_params(pn532.board_profile, overrides)
     return {
         "reader": {
             "pn532": {

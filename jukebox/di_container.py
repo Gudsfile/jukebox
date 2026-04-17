@@ -25,13 +25,16 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
 
     if config.reader_type == "pn532":
         from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
+        from jukebox.pn532.profiles import SpiConnectionParams
 
         if config.pn532_protocol == "spi":
+            conn = config.pn532_connection
+            assert isinstance(conn, SpiConnectionParams)
             reader = Pn532ReaderAdapter(
                 read_timeout_seconds=config.pn532_read_timeout_seconds,
-                spi_reset=config.pn532_spi_reset,
-                spi_cs=config.pn532_spi_cs,
-                spi_irq=config.pn532_spi_irq,
+                spi_reset=conn.reset,
+                spi_cs=conn.cs,
+                spi_irq=conn.irq,
             )
         else:
             raise ValueError(f"Unsupported PN532 protocol: {config.pn532_protocol}")

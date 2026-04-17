@@ -4,6 +4,7 @@ import pytest
 
 from jukebox import app
 from jukebox.adapters.inbound.config import JukeboxCliConfig
+from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
@@ -37,9 +38,7 @@ def test_main_uses_resolved_runtime_config(app_mocks):
         loop_interval_seconds=0.5,
         pn532_read_timeout_seconds=0.1,
         pn532_board_profile="waveshare_hat",
-        pn532_spi_reset=20,
-        pn532_spi_cs=4,
-        pn532_spi_irq=None,
+        pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
         verbose=True,
     )
     settings_service = MagicMock()
@@ -82,9 +81,7 @@ def test_main_exits_on_build_jukebox_settings_error(app_mocks):
         loop_interval_seconds=0.5,
         pn532_read_timeout_seconds=0.1,
         pn532_board_profile="waveshare_hat",
-        pn532_spi_reset=20,
-        pn532_spi_cs=4,
-        pn532_spi_irq=None,
+        pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
         verbose=True,
     )
     settings_service = MagicMock()

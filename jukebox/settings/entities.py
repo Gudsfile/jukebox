@@ -3,6 +3,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.shared.timing import MIN_PAUSE_DELAY_SECONDS
 
 from .runtime_validation import validate_resolved_jukebox_runtime_rules
@@ -272,9 +273,7 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     pn532_read_timeout_seconds: float
     pn532_board_profile: Literal["waveshare_hat", "hiletgo_v3", "custom"]
     pn532_protocol: Literal["spi"] = "spi"
-    pn532_spi_reset: Optional[int]
-    pn532_spi_cs: Optional[int]
-    pn532_spi_irq: Optional[int]
+    pn532_connection: SpiConnectionParams
     verbose: bool = False
 
     @model_validator(mode="after")

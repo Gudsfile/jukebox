@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, patch
 
 from jukebox.di_container import build_jukebox
+from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.shared.config_utils import get_current_tag_path
 from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
@@ -38,9 +39,7 @@ class TestBuildJukebox:
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
             pn532_board_profile="waveshare_hat",
-            pn532_spi_reset=20,
-            pn532_spi_cs=4,
-            pn532_spi_irq=None,
+            pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
 
@@ -75,9 +74,7 @@ class TestBuildJukebox:
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
             pn532_board_profile="waveshare_hat",
-            pn532_spi_reset=20,
-            pn532_spi_cs=4,
-            pn532_spi_irq=None,
+            pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
 
@@ -107,9 +104,7 @@ class TestBuildJukebox:
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
             pn532_board_profile="waveshare_hat",
-            pn532_spi_reset=20,
-            pn532_spi_cs=4,
-            pn532_spi_irq=None,
+            pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
 
@@ -138,9 +133,7 @@ class TestBuildJukebox:
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.1,
             pn532_board_profile="waveshare_hat",
-            pn532_spi_reset=20,
-            pn532_spi_cs=4,
-            pn532_spi_irq=None,
+            pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
 
@@ -172,9 +165,7 @@ class TestBuildJukebox:
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.1,
             pn532_board_profile="waveshare_hat",
-            pn532_spi_reset=20,
-            pn532_spi_cs=4,
-            pn532_spi_irq=None,
+            pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
 
