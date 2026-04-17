@@ -354,7 +354,11 @@ def _build_updated_persisted_settings(
             _delete_dotted_path(persisted_after, dotted_path)
             continue
 
-        _set_dotted_path(persisted_after, dotted_path, _get_dotted_path(validated_data, dotted_path))
+        _set_dotted_path(
+            persisted_after,
+            dotted_path,
+            _normalize_persisted_setting_value(dotted_path, _get_dotted_path(validated_data, dotted_path)),
+        )
 
     persisted_after["schema_version"] = validated_data["schema_version"]
     return persisted_after
@@ -395,6 +399,19 @@ def _set_dotted_path(data: JsonObject, dotted_path: str, value: JsonValue) -> No
         current = child
 
     current[parts[-1]] = copy.deepcopy(value)
+
+
+def _normalize_persisted_setting_value(dotted_path: str, value: JsonValue) -> JsonValue:
+    if dotted_path != "jukebox.player.sonos.selected_group" or value is None:
+        return value
+
+    if not isinstance(value, dict):
+        return value
+
+    normalized = copy.deepcopy(value)
+    if normalized.get("household_id") is None:
+        normalized.pop("household_id", None)
+    return cast(JsonValue, normalized)
 
 
 def _parse_raw_setting_value(dotted_path: str, raw_value: str) -> JsonValue:
