@@ -1,7 +1,8 @@
 # Jukebox \[gukebox\]
 
-[![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
-[![gukebox last version](https://img.shields.io/pypi/v/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
+![rpi](https://img.shields.io/badge/-Zero%202W%20%7C%203%20%7C%205-C51A4A?logo=raspberry-pi&label=RPi&logoColor=C51A4A&labcolor=C51A4A)
+[![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg?logo=python)](https://pypi.python.org/pypi/gukebox)
+[![gukebox last version](https://img.shields.io/pypi/v/gukebox.svg?logo=pypi)](https://pypi.python.org/pypi/gukebox)
 [![license](https://img.shields.io/pypi/l/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
 [![actions status](https://github.com/gudsfile/jukebox/actions/workflows/python.yml/badge.svg)](https://github.com/gudsfile/jukebox/actions)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
@@ -26,10 +27,9 @@
 
 - [Install](#install)
 - [First steps](#first-steps)
-  - [Discstore](#manage-the-library-with-the-discstore)
 - [Usage](#usage)
-  - [Readers](#readers)
-  - [Players](#players)
+- [Readers](#readers)
+- [Players](#players)
 - [The library file](#the-library-file)
 - [Developer setup](#developer-setup)
 
@@ -158,16 +158,18 @@ Take a look at `library.example.json` and the [The library file](#the-library-fi
 Start the jukebox with the `jukebox` command (show help message with `--help`)
 
 ```shell
-jukebox PLAYER_TO_USE READER_TO_USE
+jukebox --player PLAYER --reader READER
 ```
 
 🎉 With choosing the `sonos` player and `pn532` reader, by approaching a NFC tag stored in the `library.json` file, you should hear the associated music begins.
 
-Optional Parameters
+**Optional Parameters**
 
 | Parameter | Description |
 | --- | --- |
 | `--help` | Show help message. |
+| `--player PLAYER` | Player to use (`sonos`, `dryrun`). |
+| `--reader READER` | Reader to use (`pn532`, `dryrun`). |
 | `--library` | Path to the library file, default: `~/.config/jukebox/library.json`. |
 | `--pause-delay SECONDS` | Grace period before pausing when the NFC tag is removed. Fractional values such as `0.5` or `0.2` are supported, with a minimum of `0.2` seconds to avoid pausing on brief missed reads. Default: 0.25 seconds. |
 | `--pause-duration SECONDS` | Maximum duration of a pause before resetting the queue. Default: 900 seconds (15 minutes). |
@@ -176,34 +178,23 @@ Optional Parameters
 
 ### Readers
 
-**Dry run** (`dryrun`)
-Read a text entry.
-Allows you to simulate reading an NFC tag by writting the tag id in the console.
-Expected syntax: `tag_id` or `tag_id duration_seconds`.
-- tag_id: the full identifier of the tag, in the format required by the system
-- duration_seconds: a non-negative number of seconds used to simulate how long the tag remains in place. Fractional values are allowed.
-Complete example: `your:tag:uid 2.5`
+| Name | Description |
+| --- | --- |
+| Dry Run (`dryrun`) | Simulates NFC tag reading via stdin. Input format: `tag_id` or `tag_id duration_seconds`. |
+| Pn532 NFC (`pn532`) | Reads physical NFC tags. Works with a **PN532** reader and **NTAG2xx** tags. Requires the `pn532` extra and SPI enabled on the Raspberry Pi. |
 
-**NFC Pn532** (`pn532`)
-Read an NFC tag and get its UID.
-This project works with an NFC reader like the **PN532** and NFC tags like the **NTAG2xx**.
-It is configured according to the [Waveshare PN532 wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT).
-Don't forget to enable the SPI interface using the command `sudo raspi-config`, then go to: `Interface Options > SPI > Enable > Yes`.
+> [!NOTE]
+> See [docs/readers.md](docs/readers.md) for full setup, hardware requirements, and settings reference.
 
 ### Players
 
-**Dry run** (`dryrun`)
-Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.).
+| Name | Description |
+| --- | --- |
+| Dry Run (`dryrun`) | Displays the events that a real speaker would have performed (`playing …`, `pause`, etc.). |
+| Sonos (`sonos`) | [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo) Plays music through a Sonos speaker. Select by IP (`--sonos-host`), by name (`--sonos-name`), or let it auto-discover. |
 
-**Sonos** (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
-Play music through a Sonos speaker.
-Three ways to select the speaker (mutually exclusive):
-
-| Option | CLI flag | Environment variable | Behaviour |
-| --- | --- | --- | --- |
-| By IP | `--sonos-host 192.168.0.x` | `JUKEBOX_SONOS_HOST` | Connect directly, no discovery |
-| By name | `--sonos-name "Living Room"` | `JUKEBOX_SONOS_NAME` | Discover, then filter by name (case-sensitive) |
-| Auto | *(omit both)* | *(omit both)* | Discover, pick the first speaker alphabetically |
+> [!NOTE]
+> See [docs/players.md](docs/players.md) for the full configuration reference.
 
 ## The library file
 
@@ -283,9 +274,7 @@ uv sync
 
 Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
 
-If needed, set `JUKEBOX_SONOS_HOST` (IP) or `JUKEBOX_SONOS_NAME` (speaker name) to select your Sonos speaker (see [Players](#players)).
-If neither is set, the jukebox will auto-discover a speaker on the network.
-To do this you can use a `.env` file and `uv run --env-file .env <command to run>`.
+If needed, you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
 
 Create a `library.json` file and complete it with the desired NFC tags and CDs.
@@ -296,7 +285,7 @@ Take a look at `library.example.json` and the [The library file](#the-library-fi
 Start the jukebox with `uv` and use `--help` to show help message
 
 ```shell
-uv run jukebox PLAYER_TO_USE READER_TO_USE
+uv run jukebox --player PLAYER_TO_USE --reader READER_TO_USE
 ```
 
 Start the discstore `uv` and use `--help` to show help message
@@ -325,7 +314,7 @@ uv run --extra api discstore api
 uv run --extra ui discstore ui
 ```
 
-Other commands are available:
+### Development commands
 
 | Command | Description |
 | --- | --- |
