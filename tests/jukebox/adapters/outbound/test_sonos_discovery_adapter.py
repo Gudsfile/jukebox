@@ -1,3 +1,4 @@
+import socket
 from types import ModuleType
 
 import pytest
@@ -141,6 +142,68 @@ def test_soco_sonos_discovery_adapter_uses_responder_hosts_when_soco_discover_re
             "is_visible": True,
         }
     ]
+
+
+def test_soco_sonos_discovery_adapter_ignores_unusable_interfaces_during_responder_discovery(mocker):
+    living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
+    living_room.all_zones = {living_room}
+    fake_modules = build_fake_soco_module(
+        discover=lambda: set(),
+        soco_constructor=lambda host: {"192.168.1.20": living_room}[host],
+    )
+    fake_soco_discovery = ModuleType("soco.discovery")
+    setattr(fake_soco_discovery, "_find_ipv4_addresses", lambda: ["10.0.0.5", "192.168.1.2"])
+    setattr(fake_modules["soco"], "discovery", fake_soco_discovery)
+    fake_modules["soco.discovery"] = fake_soco_discovery
+    mocker.patch.dict("sys.modules", fake_modules)
+
+    class FakeSocket:
+        def __init__(self):
+            self.closed = False
+
+        def setsockopt(self, level, option, value):
+            if option == socket.IP_MULTICAST_IF and value == b"10.0.0.5":
+                raise OSError("bad interface")
+
+        def sendto(self, payload, destination):
+            return None
+
+        def recvfrom(self, bufsize):
+            return (b"HTTP/1.1 200 OK\r\nSERVER: Linux UPnP/1.0 Sonos/80.0-00000\r\n", ("192.168.1.20", 1900))
+
+        def close(self):
+            self.closed = True
+
+    def fake_socket(_family, _type, _proto):
+        sock = FakeSocket()
+        created_sockets.append(sock)
+        return sock
+
+    created_sockets = []
+
+    mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter.socket.inet_aton",
+        side_effect=lambda address: address.encode(),
+    )
+    mocker.patch("jukebox.adapters.outbound.sonos_discovery_adapter.socket.socket", side_effect=fake_socket)
+    mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter.select.select",
+        side_effect=lambda sockets, _write, _err, _timeout: ([sockets[0]], [], []),
+    )
+    mocker.patch("jukebox.adapters.outbound.sonos_discovery_adapter.time.time", side_effect=[0.0, 0.0, 0.0, 1.1])
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.model_dump() for speaker in speakers] == [
+        {
+            "uid": "speaker-1",
+            "name": "Living Room",
+            "host": "192.168.1.20",
+            "household_id": "household-1",
+            "is_visible": True,
+        }
+    ]
+    assert created_sockets[0].closed is True
 
 
 def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
