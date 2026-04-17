@@ -1,28 +1,52 @@
 from dataclasses import dataclass, field
 from typing import Optional, Protocol
 
+from pydantic import BaseModel, ConfigDict
+
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
     SelectedSonosGroupSettings,
 )
 
-from .discovery import (
-    DiscoveredSonosHousehold,
-    DiscoveredSonosSpeaker,
-    SonosDiscoveryPort,
-    group_sonos_speakers_by_household,
-    sort_sonos_speakers,
-)
+from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryPort, sort_sonos_speakers
+
+
+class DiscoveredSonosHousehold(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    household_id: str
+    speakers: list[DiscoveredSonosSpeaker]
+
+
+def group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosHousehold]:
+    speakers_by_household = {}
+    for speaker in sort_sonos_speakers(speakers):
+        speakers_by_household.setdefault(speaker.household_id, []).append(speaker)
+
+    households = [
+        DiscoveredSonosHousehold(
+            household_id=household_id,
+            speakers=members,
+        )
+        for household_id, members in speakers_by_household.items()
+    ]
+    return sorted(
+        households,
+        key=lambda household: (
+            household.speakers[0].name if household.speakers else "",
+            household.speakers[0].host if household.speakers else "",
+            household.household_id,
+        ),
+    )
 
 
 class SonosService(Protocol):
-    def list_available_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]: ...
+    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
-    def list_available_households(
-        self,
-        include_other_households: bool = False,
-    ) -> list[DiscoveredSonosHousehold]: ...
+    def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+
+    def list_selectable_households(self) -> list[DiscoveredSonosHousehold]: ...
 
     def inspect_selected_group(
         self,
@@ -47,22 +71,14 @@ class DefaultSonosService:
     def __init__(self, discovery: SonosDiscoveryPort):
         self.discovery = discovery
 
-    def list_available_speakers(self, include_other_households: bool = False) -> list[DiscoveredSonosSpeaker]:
-        return sort_sonos_speakers(
-            [
-                speaker
-                for speaker in self.discovery.discover_speakers(include_other_households=include_other_households)
-                if speaker.is_visible
-            ]
-        )
+    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]:
+        return self._list_visible_speakers(include_other_households=False)
 
-    def list_available_households(
-        self,
-        include_other_households: bool = False,
-    ) -> list[DiscoveredSonosHousehold]:
-        return group_sonos_speakers_by_household(
-            self.list_available_speakers(include_other_households=include_other_households)
-        )
+    def list_selectable_speakers(self) -> list[DiscoveredSonosSpeaker]:
+        return self._list_visible_speakers(include_other_households=True)
+
+    def list_selectable_households(self) -> list[DiscoveredSonosHousehold]:
+        return group_sonos_speakers_by_household(self.list_selectable_speakers())
 
     def inspect_selected_group(
         self,
@@ -101,6 +117,15 @@ class DefaultSonosService:
             name=speaker.name,
             host=speaker.host,
             household_id=speaker.household_id,
+        )
+
+    def _list_visible_speakers(self, include_other_households: bool) -> list[DiscoveredSonosSpeaker]:
+        return sort_sonos_speakers(
+            [
+                speaker
+                for speaker in self.discovery.discover_speakers(include_other_households=include_other_households)
+                if speaker.is_visible
+            ]
         )
 
 

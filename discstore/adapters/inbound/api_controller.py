@@ -34,13 +34,9 @@ from discstore.domain.use_cases.remove_disc import RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.sonos.discovery import (
-    DiscoveredSonosHousehold,
-    DiscoveredSonosSpeaker,
-    SonosDiscoveryError,
-)
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
-from jukebox.sonos.service import SonosService
+from jukebox.sonos.service import DiscoveredSonosHousehold, SonosService
 
 __all__ = [
     "APIController",
@@ -156,7 +152,7 @@ class APIController:
         @self.app.get("/api/v1/sonos/households", response_model=list[SonosHouseholdOutput])
         def get_sonos_households():
             try:
-                return self.sonos_service.list_available_households(include_other_households=True)
+                return self.sonos_service.list_selectable_households()
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
@@ -180,7 +176,7 @@ class APIController:
                 result = SaveSonosSelection(
                     SettingsSelectedSonosGroupRepository(self.settings_service),
                     self.sonos_service,
-                ).execute(payload.uids, coordinator_uid=payload.coordinator_uid, include_other_households=True)
+                ).execute(payload.uids, coordinator_uid=payload.coordinator_uid)
                 return SonosSelectionUpdateOutput(
                     selected_group=SelectedSonosGroupOutput(**result.selected_group.model_dump()),
                     availability=SonosSelectionAvailabilityOutput(

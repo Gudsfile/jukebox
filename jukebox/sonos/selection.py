@@ -59,12 +59,9 @@ class SaveSonosSelection:
         self,
         uids: list[str],
         coordinator_uid: Optional[str] = None,
-        include_other_households: bool = False,
         requested_household_id: Optional[str] = None,
     ) -> SonosSelectionResult:
-        available_speakers = self.sonos_service.list_available_speakers(
-            include_other_households=include_other_households
-        )
+        available_speakers = self.sonos_service.list_selectable_speakers()
         validated_group = _validate_selection_request(
             available_speakers=available_speakers,
             requested_uids=uids,

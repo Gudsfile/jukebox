@@ -26,7 +26,8 @@ from jukebox.admin.commands import (
     SonosShowCommand,
     UiCommand,
 )
-from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.service import DiscoveredSonosHousehold
 
 runner = CliRunner()
 

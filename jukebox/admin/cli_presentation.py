@@ -11,8 +11,9 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
-from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
+from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
 

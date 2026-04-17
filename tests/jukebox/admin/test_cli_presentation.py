@@ -16,13 +16,14 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.settings.types import JsonObject
-from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import (
     SonosSelectionAvailability,
     SonosSelectionMemberAvailability,
     SonosSelectionResult,
     SonosSelectionStatus,
 )
+from jukebox.sonos.service import DiscoveredSonosHousehold
 
 
 def test_render_settings_output_persisted_groups_overrides_by_section():

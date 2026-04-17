@@ -48,7 +48,7 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.missing_member_uids == []
 
 
-def test_default_sonos_service_lists_available_households():
+def test_default_sonos_service_lists_selectable_households():
     service = DefaultSonosService(
         StubDiscovery(
             [
@@ -59,7 +59,7 @@ def test_default_sonos_service_lists_available_households():
         )
     )
 
-    households = service.list_available_households(include_other_households=True)
+    households = service.list_selectable_households()
 
     assert [household.household_id for household in households] == ["household-1", "household-2"]
     assert [speaker.uid for speaker in households[0].speakers] == ["speaker-3"]

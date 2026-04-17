@@ -19,7 +19,8 @@ from discstore.di_container import build_cli_controller, build_interactive_cli_c
 from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
-from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.service import DiscoveredSonosHousehold
 
 from .cli_presentation import (
     build_sonos_household_choice_label,

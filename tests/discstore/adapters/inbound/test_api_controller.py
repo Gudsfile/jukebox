@@ -26,8 +26,8 @@ if FASTAPI_INSTALLED:
     from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
     from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
-    from jukebox.sonos.discovery import DiscoveredSonosHousehold, DiscoveredSonosSpeaker, SonosDiscoveryError
-    from jukebox.sonos.service import InspectedSelectedSonosGroup
+    from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
+    from jukebox.sonos.service import DiscoveredSonosHousehold, InspectedSelectedSonosGroup
 
 
 InvalidUidPayloadCase = Tuple[Dict[str, object], List[object], str]
@@ -693,7 +693,7 @@ def test_get_sonos_speakers_returns_empty_results():
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_households_groups_visible_speakers_by_household():
     sonos_service = MagicMock()
-    sonos_service.list_available_households.return_value = [
+    sonos_service.list_selectable_households.return_value = [
         DiscoveredSonosHousehold(
             household_id="household-1",
             speakers=[
@@ -768,13 +768,13 @@ def test_get_sonos_households_groups_visible_speakers_by_household():
             ],
         },
     ]
-    sonos_service.list_available_households.assert_called_once_with(include_other_households=True)
+    sonos_service.list_selectable_households.assert_called_once_with()
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_households_returns_502_on_discovery_failure():
     sonos_service = MagicMock()
-    sonos_service.list_available_households.side_effect = SonosDiscoveryError(
+    sonos_service.list_selectable_households.side_effect = SonosDiscoveryError(
         "Failed to discover Sonos speakers: network unavailable"
     )
     controller = build_controller(sonos_service=sonos_service)
@@ -1087,7 +1087,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
         "restart_required": True,
     }
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = [
+    sonos_service.list_selectable_speakers.return_value = [
         DiscoveredSonosSpeaker(
             uid="speaker-1",
             name="Kitchen",
@@ -1175,7 +1175,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
 def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, available_speakers, detail):
     settings_service = MagicMock()
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = available_speakers
+    sonos_service.list_selectable_speakers.return_value = available_speakers
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
@@ -1198,7 +1198,7 @@ def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, availabl
 def test_put_sonos_selection_rejects_unknown_uid():
     settings_service = MagicMock()
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.return_value = []
+    sonos_service.list_selectable_speakers.return_value = []
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
@@ -1221,7 +1221,7 @@ def test_put_sonos_selection_rejects_unknown_uid():
 def test_put_sonos_selection_returns_502_on_discovery_failure():
     settings_service = MagicMock()
     sonos_service = MagicMock()
-    sonos_service.list_available_speakers.side_effect = SonosDiscoveryError(
+    sonos_service.list_selectable_speakers.side_effect = SonosDiscoveryError(
         "Failed to discover Sonos speakers: network unavailable"
     )
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
