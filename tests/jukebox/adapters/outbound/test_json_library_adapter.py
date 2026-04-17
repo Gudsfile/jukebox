@@ -48,6 +48,16 @@ def test_list_discs_returns_empty_when_file_does_not_exist(tmp_path):
     assert adapter.list_discs() == {}
 
 
+def test_add_disc_creates_parent_directory_when_it_does_not_exist(tmp_path):
+    filepath = tmp_path / "nested" / "dir" / "library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+
+    adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
+
+    assert filepath.exists()
+    assert adapter.get_disc("new-tag") is not None
+
+
 def test_list_discs_returns_empty_when_json_is_corrupted(tmp_path):
     filepath = tmp_path / "library.json"
     filepath.write_text("{invalid json content", encoding="utf-8")
