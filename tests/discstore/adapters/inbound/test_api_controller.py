@@ -130,7 +130,7 @@ def test_dependencies_import_failure(mocker):
     assert "The `api_controller` module requires the optional `api` dependencies." in str(err.value)
     assert "pip install 'gukebox[api]'" in str(err.value)
     assert "uv sync --extra api" in str(err.value)
-    assert "uv run --extra api discstore api" in str(err.value)
+    assert "uv run --extra api jukebox-admin api" in str(err.value)
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

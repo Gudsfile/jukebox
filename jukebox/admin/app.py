@@ -70,7 +70,6 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                 execute_settings_command(
                     command=command,
                     settings_service=services.settings,
-                    source_command="jukebox-admin",
                 )
             elif is_sonos_command(command):
                 execute_sonos_command(

@@ -1,4 +1,3 @@
-import sys
 from importlib import import_module
 from typing import Callable, Optional, Protocol
 
@@ -10,7 +9,6 @@ from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
 from .cli_presentation import (
-    build_discstore_settings_deprecation_warning,
     render_settings_output,
     render_sonos_selection_saved_output,
     render_sonos_selection_status_output,
@@ -71,17 +69,8 @@ def _build_server_app(
 def execute_settings_command(
     command: object,
     settings_service: SettingsService,
-    source_command: str,
-    library: Optional[str] = None,
     stdout_fn: Callable[[str], None] = print,
-    stderr_fn: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
 ) -> None:
-    if source_command == "discstore" and isinstance(
-        command,
-        (SettingsShowCommand, SettingsSetCommand, SettingsResetCommand),
-    ):
-        stderr_fn(build_discstore_settings_deprecation_warning(command, library=library))
-
     if isinstance(command, SettingsShowCommand):
         payload = (
             settings_service.get_effective_settings_view()

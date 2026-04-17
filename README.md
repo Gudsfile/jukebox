@@ -13,7 +13,7 @@
 
 🚧 At the moment:
 
-- NFC tags - CDs must be pre-populated in a JSON file (`discstore` included with `jukebox` may be of help to you)
+- NFC tags - CDs must be pre-populated in a JSON file (`jukebox-admin` included with `jukebox` may be of help to you)
 - supports many music providers (Spotify, Apple Music, etc.), just add the URIs to the JSON file
 - only works with Sonos speakers (there is a "dryrun" player for development), but code is designed to **add new ones**
 - **as soon as** the NFC tag is removed, the music pauses, then resumes when the NFC tag is replaced
@@ -103,18 +103,18 @@ uv sync
 
 ## First steps
 
-Initialize the library file with `discstore` or manually create it at `~/.config/jukebox/library.json`.
+Initialize the library file with `jukebox-admin` or manually create it at `~/.config/jukebox/library.json`.
 
-### Manage the library with the discstore
+### Manage the library with the Admin CLI
 
 To associate an URI with an NFC tag:
 
 ```shell
-discstore add tag_id --uri /path/to/media.mp3
+jukebox-admin library add tag_id --uri /path/to/media.mp3
 ```
 or to pull the `tag_id` currently on the reader:
 ```shell
-discstore add --from-current --uri /path/to/media.mp3
+jukebox-admin library add --from-current --uri /path/to/media.mp3
 ```
 
 Other commands are available, use `--help` to see them.
@@ -145,8 +145,6 @@ When running from this repository with `uv`, include the extra on the command as
 uv run --extra api jukebox-admin api
 uv run --extra ui jukebox-admin ui
 ```
-
-`discstore settings ...`, `discstore api`, and `discstore ui` remain available as compatibility commands, but `jukebox-admin` is the preferred CLI for admin flows.
 
 ### Manage the library manually
 
@@ -200,7 +198,7 @@ jukebox --player PLAYER --reader READER
 
 The `library.json` file is a JSON file that contains the artists, albums and tags.
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
-And the `discstore` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `discstore --help`).
+And the `jukebox-admin library` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `jukebox-admin --help`).
 
 By default, this file should be placed at `~/.config/jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
 
@@ -288,11 +286,6 @@ Start the jukebox with `uv` and use `--help` to show help message
 uv run jukebox --player PLAYER_TO_USE --reader READER_TO_USE
 ```
 
-Start the discstore `uv` and use `--help` to show help message
-```shell
-uv run discstore --help
-```
-
 Use `jukebox-admin` for admin commands:
 
 ```shell
@@ -304,14 +297,6 @@ For the server-backed admin commands, include the matching extra:
 ```shell
 uv run --extra api jukebox-admin api
 uv run --extra ui jukebox-admin ui
-```
-
-Legacy compatibility commands remain available during the transition:
-
-```shell
-uv run discstore settings show
-uv run --extra api discstore api
-uv run --extra ui discstore ui
 ```
 
 ### Development commands

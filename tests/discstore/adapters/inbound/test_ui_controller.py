@@ -38,7 +38,7 @@ def test_dependencies_import_failure(mocker):
     assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)
     assert "pip install 'gukebox[ui]'" in str(err.value)
     assert "uv sync --extra ui" in str(err.value)
-    assert "uv run --extra ui discstore ui" in str(err.value)
+    assert "uv run --extra ui jukebox-admin ui" in str(err.value)
 
 
 def build_controller():

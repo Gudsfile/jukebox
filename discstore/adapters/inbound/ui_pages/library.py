@@ -47,7 +47,7 @@ class LibraryUIPageBuilder:
         ]
 
         components: list[AnyComponent] = [
-            c.Heading(text="DiscStore for Jukebox", level=1),
+            c.Heading(text="Jukebox Admin", level=1),
             c.Paragraph(text=f"📀 {len(discs)} disc(s) in library"),
             c.ServerLoad(
                 path="/current-tag-banner/events",

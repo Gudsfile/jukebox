@@ -1,6 +1,5 @@
 import json
 import re
-import shlex
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
@@ -39,13 +38,6 @@ def render_settings_output(
         return _render_write_result(cast(JsonObject, payload))
 
     raise TypeError("Unsupported settings command")
-
-
-def build_discstore_settings_deprecation_warning(command: object, library: Optional[str] = None) -> str:
-    return (
-        "Warning: `discstore settings ...` is deprecated and will be removed in a future release. "
-        f"Use {_build_equivalent_jukebox_admin_command(command, library=library)} instead."
-    )
 
 
 def render_cli_error(err: BaseException, verbose: bool = False) -> str:
@@ -368,38 +360,6 @@ def _format_selected_group(value: object) -> str:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
 
     return f"{coordinator_uid} (coordinator); members: {', '.join(member_uids)}"
-
-
-def _build_equivalent_jukebox_admin_command(command: object, library: Optional[str] = None) -> str:
-    args = ["jukebox-admin"]
-    if library is not None:
-        args.extend(["--library", library])
-
-    if isinstance(command, SettingsShowCommand):
-        args.extend(["settings", "show"])
-        if command.effective:
-            args.append("--effective")
-        if command.json_output:
-            args.append("--json")
-        return _format_shell_command(args)
-
-    if isinstance(command, SettingsSetCommand):
-        args.extend(["settings", "set", command.dotted_path, command.value])
-        if command.json_output:
-            args.append("--json")
-        return _format_shell_command(args)
-
-    if isinstance(command, SettingsResetCommand):
-        args.extend(["settings", "reset", command.dotted_path])
-        if command.json_output:
-            args.append("--json")
-        return _format_shell_command(args)
-
-    return "`jukebox-admin settings ...`"
-
-
-def _format_shell_command(args: List[str]) -> str:
-    return f"`{' '.join(shlex.quote(arg) for arg in args)}`"
 
 
 def _render_cli_error_message(err: BaseException) -> str:

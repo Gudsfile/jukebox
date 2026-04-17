@@ -23,7 +23,7 @@ except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
     raise ModuleNotFoundError(
-        optional_extra_dependency_message("The `api_controller` module", "api", "discstore api")
+        optional_extra_dependency_message("The `api_controller` module", "api", "jukebox-admin api")
     ) from e
 from discstore.domain.use_cases.add_disc import AddDisc
 from discstore.domain.use_cases.edit_disc import EditDisc
@@ -108,8 +108,8 @@ class APIController:
         self.settings_service = settings_service
         self.sonos_service = sonos_service
         self.app = FastAPI(
-            title="DiscStore API",
-            description="API for managing Jukebox disc library",
+            title="Jukebox Admin API",
+            description="API for managing Jukebox disc library and settings",
             docs_url="/docs",
             redoc_url="/redoc",
         )

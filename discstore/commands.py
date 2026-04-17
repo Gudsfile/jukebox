@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Literal, Optional, Union
+from typing import Literal, Optional
 
 from pydantic import BaseModel, model_validator
 
@@ -57,29 +57,3 @@ class CliSearchCommand(BaseModel):
 
 class InteractiveCliCommand(BaseModel):
     type: Literal["interactive"]
-
-
-LibraryCommand = Union[
-    CliAddCommand,
-    CliListCommand,
-    CliRemoveCommand,
-    CliEditCommand,
-    CliGetCommand,
-    CliSearchCommand,
-    InteractiveCliCommand,
-]
-
-
-def is_library_command(command: object) -> bool:
-    return isinstance(
-        command,
-        (
-            CliAddCommand,
-            CliListCommand,
-            CliRemoveCommand,
-            CliEditCommand,
-            CliGetCommand,
-            CliSearchCommand,
-            InteractiveCliCommand,
-        ),
-    )
