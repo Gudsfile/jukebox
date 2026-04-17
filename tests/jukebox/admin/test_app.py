@@ -125,6 +125,7 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
             household_prompt_fn=ANY,
             speaker_prompt_fn=ANY,
             coordinator_prompt_fn=ANY,
+            status_fn=ANY,
         )
         app_mocks.execute_settings_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()

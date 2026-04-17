@@ -353,6 +353,7 @@ def test_execute_settings_command_preserves_json_payloads(command, service_metho
 
 def test_execute_sonos_command_lists_visible_sonos_speakers():
     stdout_fn = MagicMock()
+    status_fn = MagicMock()
     sonos_service = MagicMock()
     sonos_service.list_network_speakers.return_value = [
         DiscoveredSonosSpeaker(
@@ -375,9 +376,11 @@ def test_execute_sonos_command_lists_visible_sonos_speakers():
         command=SonosListCommand(type="sonos_list"),
         sonos_service=sonos_service,
         stdout_fn=stdout_fn,
+        status_fn=status_fn,
     )
 
     sonos_service.list_network_speakers.assert_called_once_with()
+    status_fn.assert_called_once_with("Discovering Sonos speakers...")
     rendered_output = stdout_fn.call_args.args[0]
     assert "Household: household-1" in rendered_output
     assert "1. Kitchen" in rendered_output
@@ -399,6 +402,7 @@ def test_execute_sonos_command_preserves_sonos_discovery_failures():
 
 def test_execute_sonos_command_selects_requested_uid_and_renders_success():
     stdout_fn = MagicMock()
+    status_fn = MagicMock()
     sonos_service = MagicMock()
     settings_service = MagicMock()
     settings_service.patch_persisted_settings.return_value = {
@@ -419,9 +423,11 @@ def test_execute_sonos_command_selects_requested_uid_and_renders_success():
         sonos_service=sonos_service,
         settings_service=settings_service,
         stdout_fn=stdout_fn,
+        status_fn=status_fn,
     )
 
     settings_service.patch_persisted_settings.assert_called_once()
+    assert [call.args[0] for call in status_fn.call_args_list] == ["Validating Sonos selection..."]
     rendered_output = stdout_fn.call_args.args[0]
     assert "Selected Sonos group saved." in rendered_output
     assert "Coordinator: Kitchen [speaker-1]" in rendered_output
@@ -430,6 +436,7 @@ def test_execute_sonos_command_selects_requested_uid_and_renders_success():
 
 def test_execute_sonos_command_prompts_for_single_discovered_speaker():
     stdout_fn = MagicMock()
+    status_fn = MagicMock()
     household_prompt_fn = MagicMock()
     prompt_fn = MagicMock(return_value=["speaker-1"])
     coordinator_prompt_fn = MagicMock()
@@ -455,6 +462,7 @@ def test_execute_sonos_command_prompts_for_single_discovered_speaker():
         speaker_prompt_fn=prompt_fn,
         coordinator_prompt_fn=coordinator_prompt_fn,
         stdout_fn=stdout_fn,
+        status_fn=status_fn,
     )
 
     household_prompt_fn.assert_not_called()
@@ -462,6 +470,10 @@ def test_execute_sonos_command_prompts_for_single_discovered_speaker():
     coordinator_prompt_fn.assert_not_called()
     settings_service.patch_persisted_settings.assert_called_once()
     assert sonos_service.list_network_speakers.call_count == 2
+    assert [call.args[0] for call in status_fn.call_args_list] == [
+        "Discovering Sonos speakers...",
+        "Validating Sonos selection...",
+    ]
 
 
 def test_execute_sonos_command_reports_no_visible_speakers_before_prompting():

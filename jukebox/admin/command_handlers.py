@@ -103,8 +103,10 @@ def execute_sonos_command(
     speaker_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[list[str]]]] = None,
     coordinator_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[str]]] = None,
     stdout_fn: Callable[[str], None] = print,
+    status_fn: Optional[Callable[[str], None]] = None,
 ) -> None:
     if isinstance(command, SonosListCommand):
+        _emit_status(status_fn, "Discovering Sonos speakers...")
         stdout_fn(
             render_sonos_speakers_output(group_sonos_speakers_by_household(sonos_service.list_network_speakers()))
         )
@@ -116,6 +118,7 @@ def execute_sonos_command(
 
         requested_household_id = command.household
         if command.uids is None:
+            _emit_status(status_fn, "Discovering Sonos speakers...")
             available_households = group_sonos_speakers_by_household(sonos_service.list_network_speakers())
             if not available_households:
                 raise RuntimeError("No visible Sonos speakers found.")
@@ -151,6 +154,7 @@ def execute_sonos_command(
             coordinator_uid = command.coordinator
 
         try:
+            _emit_status(status_fn, "Validating Sonos selection...")
             result = SaveSonosSelection(
                 selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
                 sonos_service=sonos_service,
@@ -176,6 +180,11 @@ def execute_sonos_command(
         return
 
     raise TypeError("Unsupported Sonos command")
+
+
+def _emit_status(status_fn: Optional[Callable[[str], None]], message: str) -> None:
+    if status_fn is not None:
+        status_fn(message)
 
 
 def _select_available_household(

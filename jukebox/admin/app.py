@@ -1,3 +1,4 @@
+import sys
 import traceback
 from typing import Annotated, Optional
 
@@ -85,6 +86,7 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                     household_prompt_fn=_prompt_for_sonos_household_selection,
                     speaker_prompt_fn=_prompt_for_sonos_speaker_selection,
                     coordinator_prompt_fn=_prompt_for_sonos_group_coordinator,
+                    status_fn=_emit_cli_status,
                 )
             else:
                 execute_server_command(
@@ -209,6 +211,12 @@ def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) 
         ).ask()
     except KeyboardInterrupt:
         return None
+
+
+def _emit_cli_status(message: str) -> None:
+    if not sys.stderr.isatty():
+        return
+    typer.echo(message, err=True)
 
 
 app = typer.Typer(help="Admin CLI for jukebox")
