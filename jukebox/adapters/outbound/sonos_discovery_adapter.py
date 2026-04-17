@@ -118,12 +118,14 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     @staticmethod
     def _discover_responder_hosts(timeout: float = 1.0) -> set[str]:
         try:
-            import soco.discovery
+            from importlib import import_module
+
+            soco_discovery = import_module("soco.discovery")
         except ImportError:
             return set()
 
         responder_hosts = set()
-        interface_addresses = soco.discovery._find_ipv4_addresses()
+        interface_addresses = soco_discovery._find_ipv4_addresses()
         if not interface_addresses:
             return responder_hosts
 
