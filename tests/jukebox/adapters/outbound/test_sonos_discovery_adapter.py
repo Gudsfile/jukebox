@@ -1,8 +1,13 @@
 from types import ModuleType
 
+import ifaddr
 import pytest
 
-from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
+from jukebox.adapters.outbound.sonos_discovery_adapter import (
+    SoCoSonosDiscoveryAdapter,
+    _build_private_ipv4_networks_to_scan,
+    _extract_sonos_household_id,
+)
 from jukebox.sonos.discovery import SonosDiscoveryError
 
 
@@ -19,12 +24,13 @@ class FakeSpeaker:
         return hash((self.uid, self.ip_address))
 
 
-def build_fake_soco_module(scan_network, soco_constructor=None, discover=None):
+def build_fake_soco_module(scan_network, soco_constructor=None, discover=None, find_ipv4_addresses=None):
     fake_soco = ModuleType("soco")
     setattr(fake_soco, "SoCo", soco_constructor or (lambda host: None))
 
     fake_discovery = ModuleType("soco.discovery")
     setattr(fake_discovery, "scan_network", scan_network)
+    setattr(fake_discovery, "_find_ipv4_addresses", find_ipv4_addresses or (lambda: {"192.168.1.10"}))
     setattr(
         fake_discovery,
         "discover",
@@ -59,6 +65,7 @@ def test_soco_sonos_discovery_adapter_normalizes_and_sorts_speakers(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.30", "household-1")
     office = FakeSpeaker("speaker-3", "Kitchen", "192.168.1.35", "household-1")
     kitchen.all_zones = {kitchen, living_room, office}
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value={kitchen})
     mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=lambda **kwargs: {kitchen}))
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -70,9 +77,14 @@ def test_soco_sonos_discovery_adapter_normalizes_and_sorts_speakers(mocker):
     ]
 
 
-def test_soco_sonos_discovery_adapter_uses_exhaustive_multi_household_network_scan(mocker):
+def test_soco_sonos_discovery_adapter_uses_multicast_discovery_before_scan_fallback(mocker):
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     bar = FakeSpeaker("speaker-2", "Bar", "192.168.1.20", "household-2")
+    multicast_discovery = mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={kitchen, bar},
+    )
     scan_network = mocker.Mock(return_value={kitchen, bar})
     discover = mocker.Mock()
     mocker.patch.dict(
@@ -83,15 +95,33 @@ def test_soco_sonos_discovery_adapter_uses_exhaustive_multi_household_network_sc
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
 
     assert [speaker.uid for speaker in speakers] == ["speaker-2", "speaker-1"]
-    scan_network.assert_called_once_with(
-        include_invisible=True,
-        multi_household=True,
-        min_netmask=0,
-    )
+    multicast_discovery.assert_called_once_with()
+    scan_network.assert_not_called()
     discover.assert_not_called()
 
 
+def test_soco_sonos_discovery_adapter_falls_back_to_bounded_network_scan(mocker):
+    kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value=set())
+    scan_network = mocker.Mock(return_value={kitchen})
+    mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter._build_private_ipv4_networks_to_scan",
+        return_value=["192.168.4.0/22", "192.168.64.0/24"],
+    )
+    mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=scan_network))
+
+    speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [speaker.uid for speaker in speakers] == ["speaker-1"]
+    scan_network.assert_called_once_with(
+        include_invisible=True,
+        multi_household=True,
+        networks_to_scan=["192.168.4.0/22", "192.168.64.0/24"],
+    )
+
+
 def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_found(mocker):
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value=set())
     mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=lambda **kwargs: set()))
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -101,6 +131,7 @@ def test_soco_sonos_discovery_adapter_returns_empty_list_when_no_speakers_are_fo
 
 def test_soco_sonos_discovery_adapter_preserves_visibility_flag(mocker):
     hidden = FakeSpeaker("speaker-hidden", "Living Room Surround", "192.168.1.99", "household-1", is_visible=False)
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value={hidden})
     mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=lambda **kwargs: {hidden}))
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -113,6 +144,7 @@ def test_soco_sonos_discovery_adapter_deduplicates_by_uid(mocker):
     kitchen = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     kitchen_duplicate = FakeSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
     kitchen.all_zones = {kitchen, kitchen_duplicate}
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value={kitchen})
     mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=lambda **kwargs: {kitchen}))
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -137,6 +169,11 @@ def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     mocker.patch.dict(
         "sys.modules",
         build_fake_soco_module(scan_network=lambda **kwargs: {living_room, StaleSpeaker()}),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={living_room, StaleSpeaker()},
     )
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -171,6 +208,11 @@ def test_soco_sonos_discovery_adapter_recovers_stale_discovered_speaker_by_host(
             scan_network=lambda **kwargs: {StaleDiscoveredSpeaker()},
             soco_constructor=lambda host: {"192.168.1.20": healthy_speaker}[host],
         ),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={StaleDiscoveredSpeaker()},
     )
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
@@ -210,6 +252,10 @@ def test_soco_sonos_discovery_adapter_recovers_stale_household_speaker_by_host(m
 
     healthy_speaker = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", household_id)
     discover = mocker.Mock(return_value={StaleDiscoveredSpeaker()})
+    mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter._build_private_ipv4_networks_to_scan",
+        return_value=["192.168.4.0/22"],
+    )
     mocker.patch.dict(
         "sys.modules",
         build_fake_soco_module(
@@ -233,6 +279,8 @@ def test_soco_sonos_discovery_adapter_recovers_stale_household_speaker_by_host(m
     discover.assert_called_once_with(
         include_invisible=True,
         household_id=household_id,
+        allow_network_scan=True,
+        networks_to_scan=["192.168.4.0/22"],
     )
 
 
@@ -266,6 +314,11 @@ def test_soco_sonos_discovery_adapter_ignores_mismatched_host_retry_results(mock
             soco_constructor=lambda host: {"192.168.1.20": mismatched_speaker}[host],
         ),
     )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={healthy_speaker, StaleDiscoveredSpeaker()},
+    )
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
 
@@ -287,6 +340,11 @@ def test_soco_sonos_discovery_adapter_raises_when_all_discovered_speakers_fail_n
     mocker.patch.dict(
         "sys.modules",
         build_fake_soco_module(scan_network=lambda **kwargs: {UnreachableSpeaker()}),
+    )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={UnreachableSpeaker()},
     )
 
     with pytest.raises(
@@ -314,6 +372,11 @@ def test_soco_sonos_discovery_adapter_keeps_reachable_speakers_when_some_fail_no
         "sys.modules",
         build_fake_soco_module(scan_network=lambda **kwargs: {living_room, UnreachableSpeaker()}),
     )
+    mocker.patch.object(
+        SoCoSonosDiscoveryAdapter,
+        "_discover_multicast_network_speakers",
+        return_value={living_room, UnreachableSpeaker()},
+    )
 
     speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
 
@@ -321,6 +384,7 @@ def test_soco_sonos_discovery_adapter_keeps_reachable_speakers_when_some_fail_no
 
 
 def test_soco_sonos_discovery_adapter_wraps_discovery_errors(mocker):
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value=set())
     mocker.patch.dict(
         "sys.modules",
         build_fake_soco_module(scan_network=lambda **kwargs: (_ for _ in ()).throw(OSError("network unavailable"))),
@@ -328,3 +392,81 @@ def test_soco_sonos_discovery_adapter_wraps_discovery_errors(mocker):
 
     with pytest.raises(SonosDiscoveryError, match="Failed to discover Sonos speakers: network unavailable"):
         SoCoSonosDiscoveryAdapter().discover_speakers()
+
+
+def test_extract_sonos_household_id_returns_none_without_header():
+    assert _extract_sonos_household_id(b"HTTP/1.1 200 OK\r\nSERVER: Sonos\r\n\r\n") is None
+
+
+def test_build_private_ipv4_networks_to_scan_filters_to_private_ipv4_subnets(mocker):
+    adapters = [
+        ifaddr._shared.Adapter(
+            "en0",
+            "en0",
+            [
+                ifaddr.IP("192.168.4.68", 22, "en0"),
+                ifaddr.IP("fe80::1", 64, "en0"),
+            ],
+            index=1,
+        ),
+        ifaddr._shared.Adapter(
+            "bridge100",
+            "bridge100",
+            [ifaddr.IP("192.168.64.1", 24, "bridge100")],
+            index=2,
+        ),
+        ifaddr._shared.Adapter(
+            "lo0",
+            "lo0",
+            [ifaddr.IP("127.0.0.1", 8, "lo0")],
+            index=3,
+        ),
+        ifaddr._shared.Adapter(
+            "utun9",
+            "utun9",
+            [ifaddr.IP("100.90.85.13", 32, "utun9")],
+            index=4,
+        ),
+    ]
+    mocker.patch("ifaddr.get_adapters", return_value=adapters)
+
+    assert _build_private_ipv4_networks_to_scan() == ["192.168.4.0/22", "192.168.64.0/24"]
+
+
+def test_collect_multicast_household_hosts_tracks_one_seed_per_household(mocker):
+    socket_one = mocker.Mock()
+    socket_two = mocker.Mock()
+    socket_one.recvfrom.side_effect = [
+        (
+            b"HTTP/1.1 200 OK\r\nX-RINCON-HOUSEHOLD: Sonos_A\r\n\r\n",
+            ("192.168.1.20", 1900),
+        ),
+        (
+            b"HTTP/1.1 200 OK\r\nX-RINCON-HOUSEHOLD: Sonos_A\r\n\r\n",
+            ("192.168.1.21", 1900),
+        ),
+    ]
+    socket_two.recvfrom.return_value = (
+        b"HTTP/1.1 200 OK\r\nX-RINCON-HOUSEHOLD: Sonos_B\r\n\r\n",
+        ("192.168.1.30", 1900),
+    )
+    select_mock = mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter.select.select",
+        side_effect=[
+            ([socket_one, socket_two], [], []),
+            ([socket_one], [], []),
+            ([], [], []),
+        ],
+    )
+    mocker.patch(
+        "jukebox.adapters.outbound.sonos_discovery_adapter.time.monotonic",
+        side_effect=[0.0, 0.2, 0.4, 1.2],
+    )
+
+    household_hosts = SoCoSonosDiscoveryAdapter()._collect_multicast_household_hosts([socket_one, socket_two])
+
+    assert household_hosts == {
+        "Sonos_A": "192.168.1.20",
+        "Sonos_B": "192.168.1.30",
+    }
+    assert select_mock.call_count == 2

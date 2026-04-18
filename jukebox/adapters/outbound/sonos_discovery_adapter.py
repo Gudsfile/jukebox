@@ -1,3 +1,9 @@
+import ipaddress
+import re
+import select
+import socket
+import struct
+import time
 from dataclasses import dataclass
 from typing import Any, Optional, Protocol
 
@@ -14,6 +20,21 @@ class _SonosDiscoverySnapshot:
     speakers: list[DiscoveredSonosSpeaker]
     retry_hosts_by_uid: dict[str, list[str]]
     normalization_errors: list[str]
+
+
+_SSDP_RESPONSE_TIMEOUT_SECONDS = 1.0
+_SSDP_RESPONSE_POLL_INTERVAL_SECONDS = 0.1
+_SSDP_MULTICAST_GROUP = "239.255.255.250"
+_SSDP_MULTICAST_PORT = 1900
+_HOUSEHOLD_HEADER_RE = re.compile(rb"(?im)^x-rincon-household:\s*([^\r\n]+)")
+_PLAYER_SEARCH = (
+    "M-SEARCH * HTTP/1.1\r\n"
+    f"HOST: {_SSDP_MULTICAST_GROUP}:{_SSDP_MULTICAST_PORT}\r\n"
+    'MAN: "ssdp:discover"\r\n'
+    "MX: 1\r\n"
+    "ST: urn:schemas-upnp-org:device:ZonePlayer:1\r\n"
+    "\r\n"
+).encode("utf-8")
 
 
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
@@ -56,13 +77,19 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         from urllib3.exceptions import HTTPError
 
         try:
-            discovered = soco.discovery.scan_network(
-                include_invisible=True,
-                multi_household=True,
-                min_netmask=0,
-            )
+            discovered = self._discover_multicast_network_speakers()
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
+
+        if not discovered:
+            try:
+                discovered = soco.discovery.scan_network(
+                    include_invisible=True,
+                    multi_household=True,
+                    networks_to_scan=_build_private_ipv4_networks_to_scan(),
+                )
+            except (HTTPError, OSError, RequestException, SoCoException) as err:
+                raise SonosDiscoveryError(f"Failed to discover Sonos speakers: {err}") from err
         return self._normalize_snapshot(set(discovered or set()))
 
     def _discover_household_snapshot(self, household_id: str) -> _SonosDiscoverySnapshot:
@@ -75,6 +102,8 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             discovered = soco.discover(
                 include_invisible=True,
                 household_id=household_id,
+                allow_network_scan=True,
+                networks_to_scan=_build_private_ipv4_networks_to_scan(),
             )
         except (HTTPError, OSError, RequestException, SoCoException) as err:
             raise SonosDiscoveryError(f"Failed to discover Sonos household `{household_id}`: {err}") from err
@@ -85,6 +114,81 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             retry_hosts_by_uid=snapshot.retry_hosts_by_uid,
             normalization_errors=snapshot.normalization_errors,
         )
+
+    def _discover_multicast_network_speakers(self) -> set[Any]:
+        import soco
+        import soco.discovery
+
+        interface_addresses = soco.discovery._find_ipv4_addresses()
+        if not interface_addresses:
+            return set()
+
+        sockets = []
+        for interface_address in interface_addresses:
+            try:
+                multicast_socket = self._create_multicast_socket(interface_address)
+            except OSError:
+                continue
+            sockets.append(multicast_socket)
+
+        if not sockets:
+            return set()
+
+        try:
+            for _ in range(3):
+                for multicast_socket in list(sockets):
+                    try:
+                        multicast_socket.sendto(_PLAYER_SEARCH, (_SSDP_MULTICAST_GROUP, _SSDP_MULTICAST_PORT))
+                    except OSError:
+                        sockets.remove(multicast_socket)
+                        multicast_socket.close()
+
+            if not sockets:
+                return set()
+
+            household_hosts = self._collect_multicast_household_hosts(sockets)
+        finally:
+            for multicast_socket in sockets:
+                multicast_socket.close()
+
+        speakers = set()
+        for host in household_hosts.values():
+            speakers.update(soco.SoCo(host).all_zones)
+        return speakers
+
+    @staticmethod
+    def _create_multicast_socket(interface_address: str) -> socket.socket:
+        multicast_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        multicast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, struct.pack("B", 4))
+        multicast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(interface_address))
+        return multicast_socket
+
+    def _collect_multicast_household_hosts(self, sockets: list[socket.socket]) -> dict[str, str]:
+        deadline = time.monotonic() + _SSDP_RESPONSE_TIMEOUT_SECONDS
+        household_hosts = {}
+
+        while sockets:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+
+            ready_sockets, _, _ = select.select(
+                sockets,
+                [],
+                [],
+                min(remaining, _SSDP_RESPONSE_POLL_INTERVAL_SECONDS),
+            )
+            if not ready_sockets:
+                continue
+
+            for ready_socket in ready_sockets:
+                response, address = ready_socket.recvfrom(1024)
+                household_id = _extract_sonos_household_id(response)
+                if household_id is None:
+                    continue
+                household_hosts.setdefault(household_id, address[0])
+
+        return household_hosts
 
     def _normalize_snapshot(self, discovered: set[Any]) -> _SonosDiscoverySnapshot:
         normalization_errors = []
@@ -231,3 +335,32 @@ def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> Optional[str]:
         return str(getattr(speaker, "uid"))
     except Exception:
         return None
+
+
+def _extract_sonos_household_id(response: bytes) -> Optional[str]:
+    match = _HOUSEHOLD_HEADER_RE.search(response)
+    if match is None:
+        return None
+    return match.group(1).decode("utf-8", "ignore").strip() or None
+
+
+def _build_private_ipv4_networks_to_scan() -> list[str]:
+    import ifaddr
+
+    networks = set()
+    for adapter in ifaddr.get_adapters():
+        for adapter_ip in adapter.ips:
+            try:
+                ipv4_address = ipaddress.IPv4Address(adapter_ip.ip)
+            except Exception:
+                continue
+
+            if adapter_ip.network_prefix >= 32:
+                continue
+
+            ipv4_network = ipaddress.ip_network(f"{ipv4_address}/{adapter_ip.network_prefix}", strict=False)
+            if not ipv4_network.is_private or ipv4_network.is_loopback or ipv4_network.is_link_local:
+                continue
+            networks.add(str(ipv4_network))
+
+    return sorted(networks)
