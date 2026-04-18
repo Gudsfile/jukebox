@@ -65,9 +65,9 @@ class PlayerSettings(PersistedPlayerSettings):
 
 
 class Pn532SpiSettings(StrictModel):
-    reset: Optional[int] = Field(default=20)
-    cs: Optional[int] = Field(default=4)
-    irq: Optional[int] = Field(default=None)
+    reset: Optional[int] = Field(default=20, ge=0)
+    cs: Optional[int] = Field(default=4, ge=0)
+    irq: Optional[int] = Field(default=None, ge=0)
 
 
 class Pn532ReaderSettings(StrictModel):
@@ -153,9 +153,9 @@ class SparsePlayerSettings(SparsePersistedPlayerSettings):
 
 
 class SparsePn532SpiSettings(StrictModel):
-    reset: Optional[int] = None
-    cs: Optional[int] = None
-    irq: Optional[int] = None
+    reset: Optional[int] = Field(default=None, ge=0)
+    cs: Optional[int] = Field(default=None, ge=0)
+    irq: Optional[int] = Field(default=None, ge=0)
 
 
 class SparsePn532ReaderSettings(StrictModel):
