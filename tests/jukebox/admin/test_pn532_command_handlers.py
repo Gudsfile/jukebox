@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from jukebox.admin.pn532_command_handlers import (
+    _parse_pin,
     execute_pn532_command,
     render_pn532_probe_setup_output,
     render_pn532_profiles_output,
@@ -11,6 +12,7 @@ from jukebox.admin.pn532_command_handlers import (
 )
 from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 from jukebox.pn532.profiles import PN532_PROFILES, SpiConnectionParams
+from jukebox.settings.errors import InvalidSettingsError
 
 
 def _make_settings_service(board_profile="waveshare_hat"):
@@ -218,6 +220,45 @@ def test_execute_pn532_command_select_cancel_does_not_write_settings():
 
     service.set_persisted_value.assert_not_called()
     stdout_fn.assert_not_called()
+
+
+def test_execute_pn532_command_select_interactive_invalid_pin_propagates_settings_error():
+    service = MagicMock()
+    service.set_persisted_value.side_effect = InvalidSettingsError("invalid value for spi.cs")
+    profile_prompt_fn = MagicMock(return_value="waveshare_hat")
+    pin_prompt_fn = MagicMock(side_effect=["20", "not_a_number", ""])
+
+    with pytest.raises(InvalidSettingsError):
+        execute_pn532_command(
+            command=Pn532SelectCommand(type="pn532_select"),
+            settings_service=service,
+            profile_prompt_fn=profile_prompt_fn,
+            pin_prompt_fn=pin_prompt_fn,
+        )
+
+
+def test_parse_pin_blank_returns_none():
+    ok, value = _parse_pin("")
+    assert ok is True
+    assert value is None
+
+
+def test_parse_pin_cancel_returns_not_ok():
+    ok, value = _parse_pin(None)
+    assert ok is False
+
+
+def test_parse_pin_valid_input_returns_raw_string():
+    ok, value = _parse_pin("24")
+    assert ok is True
+    assert value == "24"
+
+
+def test_parse_pin_invalid_input_returns_raw_string():
+    # _parse_pin does not validate — type checking is delegated to the settings layer
+    ok, value = _parse_pin("not_a_number")
+    assert ok is True
+    assert value == "not_a_number"
 
 
 def test_render_pn532_select_output_shows_profile_and_pins():

@@ -32,17 +32,13 @@ def _default_build_pn532_reader(
     raise ValueError(f"Unsupported PN532 protocol: {protocol}")
 
 
-def _parse_pin(raw: Optional[str]) -> "tuple[bool, Optional[int]]":
-    """Returns (ok, value). ok=False means the user cancelled the prompt."""
+def _parse_pin(raw: Optional[str]) -> "tuple[bool, Optional[str]]":
+    """Returns (ok, value). ok=False means the user cancelled the prompt.
+    value=None means blank input (reset to profile default)."""
     if raw is None:
         return False, None
     stripped = raw.strip()
-    if not stripped:
-        return True, None
-    try:
-        return True, int(stripped)
-    except ValueError:
-        return True, None
+    return True, stripped if stripped else None
 
 
 def execute_pn532_command(
@@ -90,7 +86,7 @@ def execute_pn532_command(
             )
 
         if pin_prompt_fn is not None:
-            field_values: dict[str, Optional[int]] = {}
+            field_values: dict[str, Optional[str]] = {}
             for f in dataclasses.fields(pin_defaults):
                 default = getattr(pin_defaults, f.name)
                 raw = pin_prompt_fn(f.name, default)
@@ -107,10 +103,16 @@ def execute_pn532_command(
             for f in dataclasses.fields(pin_defaults):
                 path = f"jukebox.reader.pn532.{selected_protocol}.{f.name}"
                 value = field_values[f.name]
-                if value is not None and value != getattr(pin_defaults, f.name):
-                    settings_service.set_persisted_value(path, str(value))
-                else:
+                profile_default = getattr(pin_defaults, f.name)
+                try:
+                    is_default = value is None or int(value) == profile_default
+                except ValueError:
+                    is_default = False
+                if is_default:
                     settings_service.reset_persisted_value(path)
+                else:
+                    assert value is not None
+                    settings_service.set_persisted_value(path, value)
             stdout_fn(render_pn532_configure_output(selected_profile, selected_protocol, pin_defaults, field_values))
         else:
             settings_service.set_persisted_value("jukebox.reader.pn532.board_profile", selected_profile)
