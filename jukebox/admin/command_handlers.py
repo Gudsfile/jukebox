@@ -9,7 +9,6 @@ from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
 from .cli_presentation import (
-    build_discstore_settings_deprecation_warning,
     render_settings_output,
     render_sonos_selection_saved_output,
     render_sonos_selection_status_output,

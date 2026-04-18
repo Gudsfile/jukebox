@@ -510,6 +510,12 @@ def test_extract_sonos_household_id_returns_none_without_header():
 def test_build_private_ipv4_networks_to_scan_filters_to_private_ipv4_subnets(mocker):
     adapters = [
         ifaddr._shared.Adapter(
+            "corp0",
+            "corp0",
+            [ifaddr.IP("10.12.34.56", 16, "corp0")],
+            index=0,
+        ),
+        ifaddr._shared.Adapter(
             "en0",
             "en0",
             [
@@ -539,7 +545,11 @@ def test_build_private_ipv4_networks_to_scan_filters_to_private_ipv4_subnets(moc
     ]
     mocker.patch("ifaddr.get_adapters", return_value=adapters)
 
-    assert _build_private_ipv4_networks_to_scan() == ["192.168.4.0/22", "192.168.64.0/24"]
+    assert _build_private_ipv4_networks_to_scan() == [
+        "10.12.32.0/22",
+        "192.168.4.0/22",
+        "192.168.64.0/24",
+    ]
 
 
 def test_collect_multicast_household_hosts_tracks_all_seed_hosts_per_household(mocker):

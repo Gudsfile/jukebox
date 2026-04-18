@@ -1,6 +1,5 @@
 import json
 import re
-import shlex
 from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path

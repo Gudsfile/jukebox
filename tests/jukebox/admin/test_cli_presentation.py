@@ -1,5 +1,4 @@
 from jukebox.admin.cli_presentation import (
-    build_discstore_settings_deprecation_warning,
     build_sonos_household_choice_label,
     build_sonos_speaker_choice_label,
     render_cli_error,

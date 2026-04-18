@@ -26,6 +26,7 @@ _SSDP_RESPONSE_TIMEOUT_SECONDS = 1.0
 _SSDP_RESPONSE_POLL_INTERVAL_SECONDS = 0.1
 _SSDP_MULTICAST_GROUP = "239.255.255.250"
 _SSDP_MULTICAST_PORT = 1900
+_MAX_SCAN_NETWORK_PREFIX = 22
 _HOUSEHOLD_HEADER_RE = re.compile(rb"(?im)^x-rincon-household:\s*([^\r\n]+)")
 _PLAYER_SEARCH = (
     "M-SEARCH * HTTP/1.1\r\n"
@@ -368,7 +369,11 @@ def _build_private_ipv4_networks_to_scan() -> list[str]:
             if adapter_ip.network_prefix >= 32:
                 continue
 
-            ipv4_network = ipaddress.ip_network(f"{ipv4_address}/{adapter_ip.network_prefix}", strict=False)
+            network_prefix = adapter_ip.network_prefix
+            if network_prefix < _MAX_SCAN_NETWORK_PREFIX:
+                network_prefix = _MAX_SCAN_NETWORK_PREFIX
+
+            ipv4_network = ipaddress.ip_network(f"{ipv4_address}/{network_prefix}", strict=False)
             if not ipv4_network.is_private or ipv4_network.is_loopback or ipv4_network.is_link_local:
                 continue
             networks.add(str(ipv4_network))
