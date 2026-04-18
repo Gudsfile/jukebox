@@ -202,3 +202,102 @@ def test_settings_service_rejects_loop_interval_not_lower_than_pause_delay_at_ru
         match="loop_interval_seconds must be lower than jukebox.playback.pause_delay_seconds",
     ):
         resolve_jukebox_runtime(service)
+
+
+def test_runtime_resolver_applies_board_profile_defaults_to_spi_pins(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {"reader": {"type": "pn532", "pn532": {"board_profile": "waveshare_hat"}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = resolve_jukebox_runtime(service)
+
+    # waveshare_hat defaults: reset=20, cs=4, irq=None
+    assert runtime_config.pn532_spi_reset == 20
+    assert runtime_config.pn532_spi_cs == 4
+    assert runtime_config.pn532_spi_irq is None
+
+
+def test_runtime_resolver_spi_pin_override_wins_over_board_profile_default(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "reader": {
+                        "type": "pn532",
+                        "pn532": {
+                            "board_profile": "waveshare_hat",
+                            "spi": {"reset": 24},
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    runtime_config = resolve_jukebox_runtime(service)
+
+    assert runtime_config.pn532_spi_reset == 24  # override
+    assert runtime_config.pn532_spi_cs == 4  # profile default
+
+
+def test_effective_view_derives_spi_pins_from_board_profile(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {"reader": {"type": "pn532", "pn532": {"board_profile": "waveshare_hat"}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    effective_view = service.get_effective_settings_view()
+
+    # Raw settings show None (no explicit pin set)
+    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "pn532", "spi", "reset") is None
+    assert lookup_json_value(effective_view, "settings", "jukebox", "reader", "pn532", "spi", "cs") is None
+    # Derived section shows profile defaults resolved
+    assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "reset") == 20
+    assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "cs") == 4
+    assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "irq") is None
+
+
+def test_effective_view_derived_spi_pins_reflect_explicit_override(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "jukebox": {
+                    "reader": {
+                        "type": "pn532",
+                        "pn532": {
+                            "board_profile": "waveshare_hat",
+                            "spi": {"reset": 24},
+                        },
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+
+    effective_view = service.get_effective_settings_view()
+
+    assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "reset") == 24  # override
+    assert lookup_json_value(effective_view, "derived", "reader", "pn532", "spi", "cs") == 4  # profile default

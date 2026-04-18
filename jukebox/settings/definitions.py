@@ -176,6 +176,19 @@ SETTINGS = {
         section="reader",
         requires_restart=True,
     ),
+    "jukebox.reader.pn532.board_profile": SettingDefinition(
+        path="jukebox.reader.pn532.board_profile",
+        label="PN532 Board Profile",
+        description="Known board preset. Provides default GPIO pins for the selected module.",
+        field_type="string",
+        section="reader",
+        requires_restart=True,
+        choices=(
+            SettingChoice(value="waveshare_hat", label="WaveShare PN532 NFC HAT"),
+            SettingChoice(value="hiletgo_v3", label="HiLetgo PN532 V3"),
+            SettingChoice(value="custom", label="Custom"),
+        ),
+    ),
     "jukebox.reader.pn532.protocol": SettingDefinition(
         path="jukebox.reader.pn532.protocol",
         label="PN532 protocol",

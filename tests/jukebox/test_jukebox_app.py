@@ -36,6 +36,10 @@ def test_main_uses_resolved_runtime_config(app_mocks):
         pause_delay_seconds=1.0,
         loop_interval_seconds=0.5,
         pn532_read_timeout_seconds=0.1,
+        pn532_board_profile="waveshare_hat",
+        pn532_spi_reset=20,
+        pn532_spi_cs=4,
+        pn532_spi_irq=None,
         verbose=True,
     )
     settings_service = MagicMock()
@@ -77,6 +81,10 @@ def test_main_exits_on_build_jukebox_settings_error(app_mocks):
         pause_delay_seconds=1.0,
         loop_interval_seconds=0.5,
         pn532_read_timeout_seconds=0.1,
+        pn532_board_profile="waveshare_hat",
+        pn532_spi_reset=20,
+        pn532_spi_cs=4,
+        pn532_spi_irq=None,
         verbose=True,
     )
     settings_service = MagicMock()

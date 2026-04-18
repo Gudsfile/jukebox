@@ -1,11 +1,12 @@
 import os
-from typing import Optional, Tuple
+from typing import Any, Optional, Tuple
 
 from pydantic import ValidationError
 
+from jukebox.pn532.profiles import resolve_spi_pins
 from jukebox.sonos.service import SonosService
 
-from .entities import AppSettings, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
+from .entities import AppSettings, Pn532ReaderSettings, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
 from .errors import InvalidSettingsError
 from .service_protocols import RuntimeSettingsService
 from .validation_rules import validate_settings_rules
@@ -36,10 +37,9 @@ class JukeboxRuntimeResolver:
                 pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
                 loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
                 pn532_read_timeout_seconds=effective_settings.jukebox.reader.pn532.read_timeout_seconds,
+                pn532_board_profile=effective_settings.jukebox.reader.pn532.board_profile,
                 pn532_protocol=effective_settings.jukebox.reader.pn532.protocol,
-                pn532_spi_reset=effective_settings.jukebox.reader.pn532.spi.reset,
-                pn532_spi_cs=effective_settings.jukebox.reader.pn532.spi.cs,
-                pn532_spi_irq=effective_settings.jukebox.reader.pn532.spi.irq,
+                **_resolve_pn532_spi_pins(effective_settings.jukebox.reader.pn532),
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:
@@ -61,3 +61,12 @@ class JukeboxRuntimeResolver:
             return resolved_group.coordinator.host, None, resolved_group
 
         return None, None, None
+
+
+def _resolve_pn532_spi_pins(pn532: Pn532ReaderSettings) -> dict[str, Any]:
+    resolved = resolve_spi_pins(pn532.board_profile, pn532.spi.reset, pn532.spi.cs, pn532.spi.irq)
+    return {
+        "pn532_spi_reset": resolved.reset,
+        "pn532_spi_cs": resolved.cs,
+        "pn532_spi_irq": resolved.irq,
+    }

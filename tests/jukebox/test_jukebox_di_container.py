@@ -37,6 +37,10 @@ class TestBuildJukebox:
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
+            pn532_board_profile="waveshare_hat",
+            pn532_spi_reset=20,
+            pn532_spi_cs=4,
+            pn532_spi_irq=None,
             verbose=False,
         )
 
@@ -70,6 +74,10 @@ class TestBuildJukebox:
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
+            pn532_board_profile="waveshare_hat",
+            pn532_spi_reset=20,
+            pn532_spi_cs=4,
+            pn532_spi_irq=None,
             verbose=False,
         )
 
@@ -98,6 +106,10 @@ class TestBuildJukebox:
             pause_delay_seconds=3,
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.25,
+            pn532_board_profile="waveshare_hat",
+            pn532_spi_reset=20,
+            pn532_spi_cs=4,
+            pn532_spi_irq=None,
             verbose=False,
         )
 
@@ -125,6 +137,10 @@ class TestBuildJukebox:
             pause_delay_seconds=5,
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.1,
+            pn532_board_profile="waveshare_hat",
+            pn532_spi_reset=20,
+            pn532_spi_cs=4,
+            pn532_spi_irq=None,
             verbose=False,
         )
 
@@ -155,6 +171,10 @@ class TestBuildJukebox:
             pause_delay_seconds=0.2,
             loop_interval_seconds=0.1,
             pn532_read_timeout_seconds=0.1,
+            pn532_board_profile="waveshare_hat",
+            pn532_spi_reset=20,
+            pn532_spi_cs=4,
+            pn532_spi_irq=None,
             verbose=False,
         )
 
