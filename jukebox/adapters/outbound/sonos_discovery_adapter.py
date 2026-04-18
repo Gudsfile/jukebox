@@ -118,6 +118,9 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     def _discover_multicast_network_speakers(self) -> set[Any]:
         import soco
         import soco.discovery
+        from requests.exceptions import RequestException
+        from soco.exceptions import SoCoException, SoCoUPnPException
+        from urllib3.exceptions import HTTPError
 
         interface_addresses = soco.discovery._find_ipv4_addresses()
         if not interface_addresses:
@@ -152,8 +155,13 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 multicast_socket.close()
 
         speakers = set()
-        for host in household_hosts.values():
-            speakers.update(soco.SoCo(host).all_zones)
+        for hosts in household_hosts.values():
+            for host in hosts:
+                try:
+                    speakers.update(soco.SoCo(host).all_zones)
+                    break
+                except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException):
+                    continue
         return speakers
 
     @staticmethod
@@ -163,7 +171,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         multicast_socket.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_IF, socket.inet_aton(interface_address))
         return multicast_socket
 
-    def _collect_multicast_household_hosts(self, sockets: list[socket.socket]) -> dict[str, str]:
+    def _collect_multicast_household_hosts(self, sockets: list[socket.socket]) -> dict[str, list[str]]:
         deadline = time.monotonic() + _SSDP_RESPONSE_TIMEOUT_SECONDS
         household_hosts = {}
 
@@ -186,7 +194,9 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
                 household_id = _extract_sonos_household_id(response)
                 if household_id is None:
                     continue
-                household_hosts.setdefault(household_id, address[0])
+                hosts = household_hosts.setdefault(household_id, [])
+                if address[0] not in hosts:
+                    hosts.append(address[0])
 
         return household_hosts
 
