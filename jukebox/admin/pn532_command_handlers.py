@@ -9,6 +9,7 @@ from jukebox.pn532.profiles import (
     resolve_connection_params,
 )
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.shared.terminal_ui import table
 
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 
@@ -167,17 +168,20 @@ def render_pn532_probe_setup_output(
 
 
 def render_pn532_profiles_output() -> str:
-    lines = ["Available board profiles:", ""]
-    name_width = max(len(name) for name in PN532_PROFILES)
+    by_protocol: dict[str, list[tuple[str, Any]]] = {}
     for name, profile in PN532_PROFILES.items():
         protocol = profile.default_protocol
-        connection = profile.connections[protocol]
-        fields = "  ".join(
-            f"{f.name}={getattr(connection, f.name) if getattr(connection, f.name) is not None else '-'}"
-            for f in dataclasses.fields(connection)
-        )
-        lines.append(f"  {name:<{name_width}}   protocol={protocol:<4}  {fields}")
-    return "\n".join(lines)
+        by_protocol.setdefault(protocol, []).append((name, profile.connections[protocol]))
+    sections = []
+    for protocol, entries in by_protocol.items():
+        field_names = [f.name for f in dataclasses.fields(entries[0][1])]
+        headers = ["name", *field_names]
+        rows = [
+            [name, *("-" if getattr(conn, f) is None else getattr(conn, f) for f in field_names)]
+            for name, conn in entries
+        ]
+        sections.append(f"Protocol: {protocol}\n\n" + table(headers, rows, indexed=True))
+    return "Available predefined board profiles:\n\n" + "\n\n".join(sections)
 
 
 def render_pn532_select_output(profile: str) -> str:

@@ -287,8 +287,9 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
 
     captured = capsys.readouterr()
     assert "Household: household-1" in captured.out
-    assert "1. Kitchen" in captured.out
-    assert "2. Living Room" in captured.out
+    lines = captured.out.splitlines()
+    assert "1  Kitchen      192.168.1.30  speaker-1" in lines
+    assert "2  Living Room  192.168.1.31  speaker-2" in lines
     assert result == "household-1"
     assert [choice.title for choice in select.call_args.kwargs["choices"]] == ["household-1 (2 speakers)"]
 

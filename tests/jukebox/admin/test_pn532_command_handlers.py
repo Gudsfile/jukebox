@@ -38,14 +38,13 @@ def test_render_pn532_profiles_output_lists_all_profiles():
 
 
 def test_render_pn532_profiles_output_shows_waveshare_hat_pins():
-    output = render_pn532_profiles_output()
-    assert "reset=20" in output
-    assert "cs=4" in output
+    lines = render_pn532_profiles_output().splitlines()
+    assert "1  waveshare_hat  20     4   -  " in lines
 
 
 def test_render_pn532_profiles_output_shows_protocol():
-    output = render_pn532_profiles_output()
-    assert "protocol=spi" in output
+    lines = render_pn532_profiles_output().splitlines()
+    assert lines[2] == "Protocol: spi"
 
 
 def test_render_pn532_profiles_output_shows_custom_as_dashes():

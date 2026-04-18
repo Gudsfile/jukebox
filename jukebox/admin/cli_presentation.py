@@ -11,6 +11,7 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+from jukebox.shared.terminal_ui import table
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
@@ -51,26 +52,12 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
 def render_sonos_speakers_output(households: list[GroupedSonosHousehold]) -> str:
     if not households:
         return "No visible Sonos speakers found."
-
-    all_speakers = [speaker for household in households for speaker in household.speakers]
-    name_width = max(len(speaker.name) for speaker in all_speakers)
-    host_width = max(len(speaker.host) for speaker in all_speakers)
-    lines = []
+    headers = ["name", "host", "uid"]
+    sections = []
     for household in households:
-        lines.append(f"Household: {household.household_id}")
-        for index, speaker in enumerate(household.speakers, start=1):
-            lines.append(
-                "  {index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
-                    index=index,
-                    name=speaker.name,
-                    name_width=name_width,
-                    host=speaker.host,
-                    host_width=host_width,
-                    uid=speaker.uid,
-                )
-            )
-        lines.append("")
-    return "\n".join(lines[:-1])
+        rows = [[s.name, s.host, s.uid] for s in household.speakers]
+        sections.append(f"Household: {household.household_id}\n\n" + table(headers, rows, indexed=True))
+    return "Sonos speakers:\n\n" + "\n\n".join(sections)
 
 
 def build_sonos_household_choice_label(household: GroupedSonosHousehold) -> str:
