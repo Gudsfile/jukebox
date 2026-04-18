@@ -91,14 +91,13 @@ def test_default_sonos_service_marks_unreachable_non_coordinator_missing():
 
 
 def test_default_sonos_service_inspect_selected_group_matches_runtime_for_mixed_households():
-    service = DefaultSonosService(
-        StubDiscovery(
-            [
-                build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
-                build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
-            ]
-        )
+    discovery = StubDiscovery(
+        [
+            build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
+        ]
     )
+    service = DefaultSonosService(discovery)
     selected_group = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-2",
@@ -110,9 +109,10 @@ def test_default_sonos_service_inspect_selected_group_matches_runtime_for_mixed_
 
     inspection = service.inspect_selected_group(selected_group)
 
-    assert inspection.error_message == "Unable to resolve saved Sonos coordinator: speaker-2: not found on network"
+    assert inspection.error_message == "Resolved Sonos group members must belong to the same household"
+    assert discovery.requests == [("household", "household-1"), ("network", None)]
 
-    with pytest.raises(ValueError, match="speaker-2: not found on network"):
+    with pytest.raises(ValueError, match="same household"):
         service.resolve_selected_group(selected_group)
 
 
@@ -134,14 +134,13 @@ def test_default_sonos_service_rejects_unreachable_coordinator():
 
 
 def test_default_sonos_service_rejects_members_from_different_households():
-    service = DefaultSonosService(
-        StubDiscovery(
-            [
-                build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
-                build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
-            ]
-        )
+    discovery = StubDiscovery(
+        [
+            build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
+        ]
     )
+    service = DefaultSonosService(discovery)
     selected_group = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-2",
@@ -151,8 +150,9 @@ def test_default_sonos_service_rejects_members_from_different_households():
         ],
     )
 
-    with pytest.raises(ValueError, match="speaker-2: not found on network"):
+    with pytest.raises(ValueError, match="same household"):
         service.resolve_selected_group(selected_group)
+    assert discovery.requests == [("household", "household-1"), ("network", None)]
 
 
 def test_default_sonos_service_rejects_missing_coordinator_when_discovery_is_empty():
@@ -197,6 +197,30 @@ def test_default_sonos_service_inspects_selected_group_with_invisible_household_
 
     assert [member.uid for member in inspection.resolved_members] == ["speaker-1", "speaker-2"]
     assert [speaker.uid for speaker in listed_speakers] == ["speaker-1"]
+
+
+def test_default_sonos_service_rechecks_network_when_non_coordinator_moves_households():
+    discovery = StubDiscovery(
+        [
+            build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-2"),
+        ]
+    )
+    service = DefaultSonosService(discovery)
+    selected_group = SelectedSonosGroupSettings(
+        household_id="household-1",
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+        ],
+    )
+
+    inspection = service.inspect_selected_group(selected_group)
+
+    assert inspection.error_message == "Resolved Sonos group members must belong to the same household"
+    assert [member.uid for member in inspection.resolved_members] == ["speaker-1", "speaker-2"]
+    assert discovery.requests == [("household", "household-1"), ("network", None)]
 
 
 def test_default_sonos_service_inspects_legacy_selected_group_with_invisible_member():

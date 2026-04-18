@@ -47,9 +47,22 @@ class DefaultSonosService:
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> InspectedSelectedSonosGroup:
+        if selected_group.household_id is None:
+            return _inspect_selected_group(
+                selected_group=selected_group,
+                speakers=self.discovery.discover_speakers(),
+            )
+
+        household_inspection = _inspect_selected_group(
+            selected_group=selected_group,
+            speakers=sort_sonos_speakers(self.discovery.discover_household_speakers(selected_group.household_id)),
+        )
+        if not _inspection_needs_network_fallback(household_inspection, selected_group):
+            return household_inspection
+
         return _inspect_selected_group(
             selected_group=selected_group,
-            speakers=self._list_selected_group_speakers(selected_group),
+            speakers=self.discovery.discover_speakers(),
         )
 
     def resolve_selected_group(
@@ -85,14 +98,6 @@ class DefaultSonosService:
     @staticmethod
     def _filter_visible_speakers(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosSpeaker]:
         return sort_sonos_speakers([speaker for speaker in speakers if speaker.is_visible])
-
-    def _list_selected_group_speakers(
-        self,
-        selected_group: SelectedSonosGroupSettings,
-    ) -> list[DiscoveredSonosSpeaker]:
-        if selected_group.household_id is None:
-            return self.discovery.discover_speakers()
-        return sort_sonos_speakers(self.discovery.discover_household_speakers(selected_group.household_id))
 
 
 def _inspect_selected_group(
@@ -139,3 +144,12 @@ def _inspect_selected_group(
         resolved_members=resolved_members,
         missing_member_uids=missing_member_uids,
     )
+
+
+def _inspection_needs_network_fallback(
+    inspection: InspectedSelectedSonosGroup,
+    selected_group: SelectedSonosGroupSettings,
+) -> bool:
+    if inspection.error_message is not None:
+        return True
+    return len(inspection.resolved_members) != len(selected_group.members)
