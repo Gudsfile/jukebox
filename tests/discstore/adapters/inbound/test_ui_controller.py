@@ -47,6 +47,10 @@ def build_controller():
 
     settings_service = MagicMock()
     sonos_service = MagicMock()
+    available_speakers = [
+        build_speaker(uid="speaker-1", name="Kitchen", host="192.168.1.30", household_id="household-1"),
+        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-1"),
+    ]
     settings_service.get_persisted_settings_view.return_value = {
         "schema_version": 1,
         "admin": {"api": {"port": 8100}, "ui": {"port": 8000}},
@@ -54,6 +58,7 @@ def build_controller():
             "player": {
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-2",
                         "members": [
                             {"uid": "speaker-1"},
@@ -76,6 +81,7 @@ def build_controller():
                     "type": "dryrun",
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-2",
                             "members": [
                                 {"uid": "speaker-1"},
@@ -107,13 +113,11 @@ def build_controller():
         "derived": {},
         "change_metadata": {},
     }
-    sonos_service.list_available_speakers.return_value = [
-        build_speaker(uid="speaker-1", name="Kitchen", host="192.168.1.30", household_id="household-1"),
-        build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-1"),
-    ]
+    sonos_service.list_available_speakers.return_value = available_speakers
+    sonos_service.list_network_speakers.return_value = available_speakers
     sonos_service.inspect_selected_group.return_value = InspectedSelectedSonosGroup(
-        coordinator=sonos_service.list_available_speakers.return_value[1],
-        resolved_members=list(sonos_service.list_available_speakers.return_value),
+        coordinator=available_speakers[1],
+        resolved_members=list(available_speakers),
         missing_member_uids=[],
         error_message=None,
     )
@@ -368,6 +372,7 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     assert object_field.type == "FormFieldTextarea"
     assert object_field.initial == json.dumps(
         {
+            "household_id": "household-1",
             "coordinator_uid": "speaker-2",
             "members": [
                 {"uid": "speaker-1"},
@@ -484,6 +489,7 @@ async def test_update_sonos_selection_saves_and_redirects():
                     "type": "sonos",
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-2",
                             "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}],
                         }
@@ -585,6 +591,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
                     "type": "sonos",
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-1",
                             "members": [{"uid": "speaker-1"}],
                         }
