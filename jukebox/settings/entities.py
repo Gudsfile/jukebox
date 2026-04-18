@@ -64,8 +64,16 @@ class PlayerSettings(PersistedPlayerSettings):
     sonos: SonosPlayerSettings = Field(default_factory=SonosPlayerSettings)
 
 
+class Pn532SpiSettings(StrictModel):
+    reset: Optional[int] = Field(default=20, ge=0)
+    cs: Optional[int] = Field(default=4, ge=0)
+    irq: Optional[int] = Field(default=None, ge=0)
+
+
 class Pn532ReaderSettings(StrictModel):
     read_timeout_seconds: float = Field(default=0.1, gt=0)
+    protocol: Literal["spi"] = "spi"
+    spi: Pn532SpiSettings = Field(default_factory=Pn532SpiSettings)
 
 
 class ReaderSettings(StrictModel):
@@ -144,8 +152,16 @@ class SparsePlayerSettings(SparsePersistedPlayerSettings):
     sonos: Optional[SparseSonosPlayerSettings] = None
 
 
+class SparsePn532SpiSettings(StrictModel):
+    reset: Optional[int] = Field(default=None, ge=0)
+    cs: Optional[int] = Field(default=None, ge=0)
+    irq: Optional[int] = Field(default=None, ge=0)
+
+
 class SparsePn532ReaderSettings(StrictModel):
     read_timeout_seconds: Optional[float] = None
+    protocol: Optional[Literal["spi"]] = None
+    spi: Optional[SparsePn532SpiSettings] = None
 
 
 class SparseReaderSettings(StrictModel):
@@ -250,6 +266,10 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     pause_delay_seconds: float
     loop_interval_seconds: float
     pn532_read_timeout_seconds: float
+    pn532_protocol: Literal["spi"] = "spi"
+    pn532_spi_reset: Optional[int] = 20
+    pn532_spi_cs: Optional[int] = 4
+    pn532_spi_irq: Optional[int] = None
     verbose: bool = False
 
     @model_validator(mode="after")

@@ -45,7 +45,12 @@ class TestBuildJukebox:
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
         mock_player.assert_called_once_with(host="192.168.1.100", name=None, group=config.sonos_group)
-        mock_pn532_class.assert_called_once_with(read_timeout_seconds=0.25)
+        mock_pn532_class.assert_called_once_with(
+            read_timeout_seconds=0.25,
+            spi_reset=20,
+            spi_cs=4,
+            spi_irq=None,
+        )
         assert reader == mock_pn532_instance
         assert handle_tag_event is not None
 

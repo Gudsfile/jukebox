@@ -36,6 +36,10 @@ class JukeboxRuntimeResolver:
                 pause_delay_seconds=effective_settings.jukebox.playback.pause_delay_seconds,
                 loop_interval_seconds=effective_settings.jukebox.runtime.loop_interval_seconds,
                 pn532_read_timeout_seconds=effective_settings.jukebox.reader.pn532.read_timeout_seconds,
+                pn532_protocol=effective_settings.jukebox.reader.pn532.protocol,
+                pn532_spi_reset=effective_settings.jukebox.reader.pn532.spi.reset,
+                pn532_spi_cs=effective_settings.jukebox.reader.pn532.spi.cs,
+                pn532_spi_irq=effective_settings.jukebox.reader.pn532.spi.irq,
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:

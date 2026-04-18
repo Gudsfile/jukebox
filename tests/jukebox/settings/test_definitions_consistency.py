@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional, get_args, get_origin
+from typing import Any, Literal, Optional, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -63,8 +63,7 @@ def _extract_model_type(annotation: Any) -> Optional[type[BaseModel]]:
 
 
 def _strip_none(annotation: Any) -> Any:
-    origin = get_origin(annotation)
-    if origin is None:
+    if get_origin(annotation) is not Union:
         return annotation
 
     args = tuple(arg for arg in get_args(annotation) if arg is not type(None))
