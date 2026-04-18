@@ -50,7 +50,14 @@ def test_resolve_spi_pins_full_override_ignores_profile():
 
 
 def test_resolve_spi_pins_none_override_is_treated_as_no_override():
-    # None means "no override, use profile default" — it does not force the pin to None.
-    # Use the custom profile if you explicitly need a None pin.
+    # None means "no override, use profile default", it does not force the pin to None.
     resolved = resolve_spi_pins("waveshare_hat", reset=None, cs=None, irq=None)
     assert resolved.reset == 20  # profile default, not None
+
+
+def test_resolve_spi_pins_custom_profile_preserves_none_pins():
+    # Use the custom profile to explicitly keep a pin as None.
+    resolved = resolve_spi_pins("custom", reset=None, cs=None, irq=None)
+    assert resolved.reset is None
+    assert resolved.cs is None
+    assert resolved.irq is None

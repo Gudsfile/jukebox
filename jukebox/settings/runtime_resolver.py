@@ -39,9 +39,7 @@ class JukeboxRuntimeResolver:
                 pn532_read_timeout_seconds=effective_settings.jukebox.reader.pn532.read_timeout_seconds,
                 pn532_board_profile=effective_settings.jukebox.reader.pn532.board_profile,
                 pn532_protocol=effective_settings.jukebox.reader.pn532.protocol,
-                pn532_spi_reset=effective_settings.jukebox.reader.pn532.spi.reset,
-                pn532_spi_cs=effective_settings.jukebox.reader.pn532.spi.cs,
-                pn532_spi_irq=effective_settings.jukebox.reader.pn532.spi.irq,
+                **_resolve_pn532_spi_pins(effective_settings.jukebox.reader.pn532),
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:
