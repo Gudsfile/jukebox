@@ -33,15 +33,17 @@
 - [The library file](#the-library-file)
 - [Developer setup](#developer-setup)
 
-## Notes
+## Python Compatibility
 
-Python 3.7 is supported by Jukebox up to version 0.4.1.
+Jukebox 1.0+ requires Python 3.11 or newer.
 
-Python 3.8 is supported by Jukebox up to version 0.5.4.
-
-Python 3.9 and Python 3.10 are supported by Jukebox up to version 0.9.0.
-
-The `ui` extension is only available for Python versions 3.10 and above.
+| Python version | Compatible Jukebox versions | Notes |
+|----------------|-----------------------------|-------|
+| 3.7            | 0.4.0 – 0.4.1               | Legacy |
+| 3.8            | 0.4.0 – 0.5.4               | Legacy |
+| 3.9 – 3.10     | 0.4.0 – 0.9.0 (incl. 1.0.0.dev13) | Legacy |
+| 3.11 – 3.12    | 0.4.0 – latest              | Actively supported |
+| 3.13           | 0.5.3 – latest              | Actively supported (see installation notes) |
 
 ## Install
 
