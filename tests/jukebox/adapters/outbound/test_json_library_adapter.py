@@ -48,16 +48,26 @@ def test_list_discs_returns_empty_when_file_does_not_exist(tmp_path):
     assert adapter.list_discs() == {}
 
 
-def test_add_disc_creates_parent_directory_when_it_does_not_exist(tmp_path):
+def test_add_disc_creates_parent_directory_when_it_does_not_exist(tmp_path, caplog):
     filepath = tmp_path / "nested" / "dir" / "library.json"
     adapter = JsonLibraryAdapter(str(filepath))
 
     assert not filepath.exists()
-
-    adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
+    with caplog.at_level("INFO", logger="discstore"):
+        adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
 
     assert filepath.exists()
     assert adapter.get_disc("new-tag") is not None
+
+
+def test_missing_file_logs_info_message(tmp_path, caplog):
+    filepath = tmp_path / "missing" / "dir" / "missing-library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+
+    with caplog.at_level("WARNING", logger="jukebox"):
+        adapter.list_discs()
+
+    assert "No library file found, starting with an empty library" in caplog.text
 
 
 def test_list_discs_returns_empty_when_json_is_corrupted(tmp_path):
