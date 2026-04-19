@@ -383,8 +383,9 @@ def test_execute_sonos_command_lists_visible_sonos_speakers():
     status_fn.assert_called_once_with("Discovering Sonos speakers...")
     rendered_output = stdout_fn.call_args.args[0]
     assert "Household: household-1" in rendered_output
-    assert "1. Kitchen" in rendered_output
-    assert "speaker-1" in rendered_output
+    lines = rendered_output.splitlines()
+    assert "1  Kitchen      192.168.1.30  speaker-1" in lines
+    assert "2  Living Room  192.168.1.40  speaker-2" in lines
 
 
 def test_execute_sonos_command_preserves_sonos_discovery_failures():

@@ -47,7 +47,12 @@ class Pn532ReaderAdapter(ReaderPort):
         self.read_timeout_seconds = read_timeout_seconds
         ic, ver, rev, support = self.pn532.get_firmware_version()
         LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
+        self._firmware_version: tuple[int, int] = (ver, rev)
         self.pn532.SAM_configuration()
+
+    @property
+    def firmware_version(self) -> tuple[int, int]:
+        return self._firmware_version
 
     def read(self) -> Union[str, None]:
         rawuid = self.pn532.read_passive_target(timeout=self.read_timeout_seconds)

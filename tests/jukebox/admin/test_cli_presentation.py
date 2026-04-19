@@ -313,8 +313,52 @@ def test_render_sonos_speakers_output_is_stable_and_human_readable():
     )
 
     assert "Household: household-1" in rendered
-    assert "1. Kitchen   192.168.1.30   speaker-1" in rendered
-    assert "2. Kitchen   192.168.1.40   speaker-2" in rendered
+    lines = rendered.splitlines()
+    assert "1  Kitchen  192.168.1.30  speaker-1" in lines
+    assert "2  Kitchen  192.168.1.40  speaker-2" in lines
+
+
+def test_render_sonos_speakers_output_shows_each_household_as_section():
+    rendered = render_sonos_speakers_output(
+        [
+            GroupedSonosHousehold(
+                household_id="household-1",
+                speakers=(
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-1",
+                        name="Kitchen",
+                        host="192.168.1.30",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-2",
+                        name="Living Room",
+                        host="192.168.1.31",
+                        household_id="household-1",
+                        is_visible=True,
+                    ),
+                ),
+            ),
+            GroupedSonosHousehold(
+                household_id="household-2",
+                speakers=(
+                    DiscoveredSonosSpeaker(
+                        uid="speaker-3", name="Office", host="192.168.1.50", household_id="household-2", is_visible=True
+                    ),
+                ),
+            ),
+        ]
+    )
+
+    assert "Household: household-1" in rendered
+    assert "Household: household-2" in rendered
+    lines = rendered.splitlines()
+    # household-1: padding based on "Living Room" (longest name in this section)
+    assert "1  Kitchen      192.168.1.30  speaker-1" in lines
+    assert "2  Living Room  192.168.1.31  speaker-2" in lines
+    # household-2: padding based on "Office" only (independent section)
+    assert "1  Office  192.168.1.50  speaker-3" in lines
 
 
 def test_render_sonos_speakers_output_handles_empty_results():

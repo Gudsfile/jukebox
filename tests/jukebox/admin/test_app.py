@@ -26,6 +26,7 @@ from jukebox.admin.commands import (
     SonosShowCommand,
     UiCommand,
 )
+from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
@@ -42,6 +43,7 @@ def app_mocks(mocker):
         execute_sonos_command = mocker.patch("jukebox.admin.app.execute_sonos_command")
         execute_server_command = mocker.patch("jukebox.admin.app.execute_server_command")
         execute_library_command = mocker.patch("jukebox.admin.app.execute_library_command")
+        execute_pn532_command = mocker.patch("jukebox.admin.app.execute_pn532_command")
         build_api_app = mocker.patch("jukebox.admin.app.build_admin_api_app")
         build_ui_app = mocker.patch("jukebox.admin.app.build_admin_ui_app")
         build_cli_controller = mocker.patch("jukebox.admin.app.build_cli_controller")
@@ -91,6 +93,13 @@ def app_mocks(mocker):
             "execute_sonos_command",
         ),
         (["sonos", "show"], SonosShowCommand(type="sonos_show"), "execute_sonos_command"),
+        (["pn532", "profiles"], Pn532ProfilesCommand(type="pn532_profiles"), "execute_pn532_command"),
+        (
+            ["pn532", "select", "--profile", "hiletgo_v3"],
+            Pn532SelectCommand(type="pn532_select", profile="hiletgo_v3"),
+            "execute_pn532_command",
+        ),
+        (["pn532", "probe"], Pn532ProbeCommand(type="pn532_probe"), "execute_pn532_command"),
         (["api", "--port", "9000"], ApiCommand(type="api", port=9000), "execute_server_command"),
         (["ui", "--port", "9100"], UiCommand(type="ui", port=9100), "execute_server_command"),
     ],
@@ -128,6 +137,18 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
             status_fn=ANY,
         )
         app_mocks.execute_settings_command.assert_not_called()
+        app_mocks.execute_server_command.assert_not_called()
+    elif executor_name == "execute_pn532_command":
+        executor.assert_called_once_with(
+            command=expected_command,
+            settings_service=services.settings,
+            profile_prompt_fn=ANY,
+            protocol_prompt_fn=ANY,
+            pin_prompt_fn=ANY,
+            stdout_fn=ANY,
+        )
+        app_mocks.execute_settings_command.assert_not_called()
+        app_mocks.execute_sonos_command.assert_not_called()
         app_mocks.execute_server_command.assert_not_called()
     else:
         executor.assert_called_once_with(
@@ -184,6 +205,18 @@ def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
 
     assert result.exit_code == 1
     assert "No current tag is available." in result.output
+    assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
+
+
+def test_jukebox_admin_shows_module_not_found_message_without_verbose_prompt(app_mocks):
+    services = MagicMock(settings=MagicMock(), sonos=MagicMock())
+    app_mocks.build_admin_services.return_value = services
+    app_mocks.execute_pn532_command.side_effect = ModuleNotFoundError("No module named 'pn532_nonexistent_extra'")
+
+    result = runner.invoke(app, ["pn532", "probe"])
+
+    assert result.exit_code == 1
+    assert "No module named 'pn532_nonexistent_extra'" in result.output
     assert "Unexpected error. Re-run with `--verbose` for details." not in result.output
 
 
@@ -254,8 +287,9 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
 
     captured = capsys.readouterr()
     assert "Household: household-1" in captured.out
-    assert "1. Kitchen" in captured.out
-    assert "2. Living Room" in captured.out
+    lines = captured.out.splitlines()
+    assert "1  Kitchen      192.168.1.30  speaker-1" in lines
+    assert "2  Living Room  192.168.1.31  speaker-2" in lines
     assert result == "household-1"
     assert [choice.title for choice in select.call_args.kwargs["choices"]] == ["household-1 (2 speakers)"]
 
