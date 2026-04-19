@@ -116,6 +116,10 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
             normalization_errors=snapshot.normalization_errors,
         )
 
+    # soco.discover() only surfaces the first household that responds, so we
+    # try manual SSDP multicast discovery first before falling back to a broader
+    # subnet scan. If SoCo adds native multi-household discovery, this can go away.
+    # ref: https://soco.readthedocs.io/en/latest/api/soco.discovery.html#soco.discovery.discover
     def _discover_multicast_network_speakers(self) -> set[Any]:
         import soco
         import soco.discovery
@@ -123,11 +127,6 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         from soco.exceptions import SoCoException, SoCoUPnPException
         from urllib3.exceptions import HTTPError
 
-        # soco.discover() only surfaces the first household that responds, so we
-        # try manual SSDP multicast discovery first before falling back to a broader
-        # subnet scan. If SoCo adds native multi-household discovery, this can go away.
-        # ref: https://soco.readthedocs.io/en/latest/api/soco.discovery.html#soco.discovery.discover
-        #
         # To make that multicast probe reliable, we send it from each local IPv4
         # interface via IP_MULTICAST_IF; otherwise we may only probe one network path
         # and miss reachable households.
