@@ -15,6 +15,7 @@ from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
+from .sonos_households import GroupedSonosHousehold
 
 _SECTION_ORDER = ("paths", "admin", "playback", "reader", "player", "other")
 _VALIDATION_SUFFIX_RE = re.compile(r"\s+\[type=.*$")
@@ -47,23 +48,35 @@ def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     return message
 
 
-def render_sonos_speakers_output(speakers: list[DiscoveredSonosSpeaker]) -> str:
-    if not speakers:
+def render_sonos_speakers_output(households: list[GroupedSonosHousehold]) -> str:
+    if not households:
         return "No visible Sonos speakers found."
 
-    name_width = max(len(speaker.name) for speaker in speakers)
-    host_width = max(len(speaker.host) for speaker in speakers)
-    return "\n".join(
-        "{index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
-            index=index,
-            name=speaker.name,
-            name_width=name_width,
-            host=speaker.host,
-            host_width=host_width,
-            uid=speaker.uid,
-        )
-        for index, speaker in enumerate(speakers, start=1)
-    )
+    all_speakers = [speaker for household in households for speaker in household.speakers]
+    name_width = max(len(speaker.name) for speaker in all_speakers)
+    host_width = max(len(speaker.host) for speaker in all_speakers)
+    lines = []
+    for household in households:
+        lines.append(f"Household: {household.household_id}")
+        for index, speaker in enumerate(household.speakers, start=1):
+            lines.append(
+                "  {index}. {name:<{name_width}}   {host:<{host_width}}   {uid}".format(
+                    index=index,
+                    name=speaker.name,
+                    name_width=name_width,
+                    host=speaker.host,
+                    host_width=host_width,
+                    uid=speaker.uid,
+                )
+            )
+        lines.append("")
+    return "\n".join(lines[:-1])
+
+
+def build_sonos_household_choice_label(household: GroupedSonosHousehold) -> str:
+    speaker_count = len(household.speakers)
+    suffix = "speaker" if speaker_count == 1 else "speakers"
+    return f"{household.household_id} ({speaker_count} {suffix})"
 
 
 def build_sonos_speaker_choice_label(speaker: DiscoveredSonosSpeaker) -> str:
@@ -102,6 +115,7 @@ def render_sonos_selection_status_output(status: SonosSelectionStatus) -> str:
         lines.append(f"- Coordinator UID: {status.selected_group.coordinator_uid}")
     else:
         lines.append(f"- Coordinator: {coordinator_speaker.name} [{coordinator_speaker.uid}]")
+        lines.append(f"- Household: {coordinator_speaker.household_id}")
     lines.append(f"- Status: {status_label}")
     lines.append("- Members:")
 
@@ -341,6 +355,7 @@ def _format_selected_group(value: object) -> str:
         return str(value)
 
     selected_group = cast(Dict[str, object], value)
+    household_id = selected_group.get("household_id")
     members = selected_group.get("members")
     coordinator_uid = selected_group.get("coordinator_uid")
     if not isinstance(members, list) or not isinstance(coordinator_uid, str):
@@ -358,8 +373,8 @@ def _format_selected_group(value: object) -> str:
 
     if not member_uids:
         return json.dumps(value, sort_keys=True, separators=(", ", ": "))
-
-    return f"{coordinator_uid} (coordinator); members: {', '.join(member_uids)}"
+    household_label = f"; household: {household_id}" if isinstance(household_id, str) else ""
+    return f"{coordinator_uid} (coordinator){household_label}; members: {', '.join(member_uids)}"
 
 
 def _render_cli_error_message(err: BaseException) -> str:

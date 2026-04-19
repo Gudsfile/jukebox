@@ -7,11 +7,15 @@ from jukebox.settings.entities import (
     SelectedSonosGroupSettings,
 )
 
-from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryPort, sort_sonos_speakers
+from .discovery import (
+    DiscoveredSonosSpeaker,
+    SonosDiscoveryPort,
+    sort_sonos_speakers,
+)
 
 
 class SonosService(Protocol):
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
+    def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
@@ -36,13 +40,26 @@ class DefaultSonosService:
     def __init__(self, discovery: SonosDiscoveryPort):
         self.discovery = discovery
 
-    def list_available_speakers(self) -> list[DiscoveredSonosSpeaker]:
-        return sort_sonos_speakers([speaker for speaker in self.discovery.discover_speakers() if speaker.is_visible])
+    def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]:
+        return self._filter_visible_speakers(self.discovery.discover_speakers())
 
     def inspect_selected_group(
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> InspectedSelectedSonosGroup:
+        if selected_group.household_id is None:
+            return _inspect_selected_group(
+                selected_group=selected_group,
+                speakers=self.discovery.discover_speakers(),
+            )
+
+        household_inspection = _inspect_selected_group(
+            selected_group=selected_group,
+            speakers=sort_sonos_speakers(self.discovery.discover_household_speakers(selected_group.household_id)),
+        )
+        if not _inspection_needs_network_fallback(household_inspection, selected_group):
+            return household_inspection
+
         return _inspect_selected_group(
             selected_group=selected_group,
             speakers=self.discovery.discover_speakers(),
@@ -77,6 +94,10 @@ class DefaultSonosService:
             host=speaker.host,
             household_id=speaker.household_id,
         )
+
+    @staticmethod
+    def _filter_visible_speakers(speakers: list[DiscoveredSonosSpeaker]) -> list[DiscoveredSonosSpeaker]:
+        return sort_sonos_speakers([speaker for speaker in speakers if speaker.is_visible])
 
 
 def _inspect_selected_group(
@@ -123,3 +144,12 @@ def _inspect_selected_group(
         resolved_members=resolved_members,
         missing_member_uids=missing_member_uids,
     )
+
+
+def _inspection_needs_network_fallback(
+    inspection: InspectedSelectedSonosGroup,
+    selected_group: SelectedSonosGroupSettings,
+) -> bool:
+    if inspection.error_message is not None:
+        return True
+    return len(inspection.resolved_members) != len(selected_group.members)

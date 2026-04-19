@@ -1,3 +1,4 @@
+import sys
 import traceback
 from typing import Annotated, Optional
 
@@ -21,7 +22,12 @@ from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
-from .cli_presentation import build_sonos_speaker_choice_label, render_cli_error
+from .cli_presentation import (
+    build_sonos_household_choice_label,
+    build_sonos_speaker_choice_label,
+    render_cli_error,
+    render_sonos_speakers_output,
+)
 from .command_handlers import execute_server_command, execute_settings_command, execute_sonos_command
 from .commands import (
     ApiCommand,
@@ -36,6 +42,7 @@ from .commands import (
     is_sonos_command,
 )
 from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
+from .sonos_households import GroupedSonosHousehold
 
 
 class AdminCliState:
@@ -76,8 +83,10 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                     command=command,
                     sonos_service=services.sonos,
                     settings_service=services.settings,
+                    household_prompt_fn=_prompt_for_sonos_household_selection,
                     speaker_prompt_fn=_prompt_for_sonos_speaker_selection,
                     coordinator_prompt_fn=_prompt_for_sonos_group_coordinator,
+                    status_fn=_emit_cli_status,
                 )
             else:
                 execute_server_command(
@@ -167,6 +176,25 @@ def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) 
         return None
 
 
+def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold]) -> Optional[str]:
+    import questionary
+
+    try:
+        typer.echo(render_sonos_speakers_output(households))
+        return questionary.select(
+            "Select the Sonos household",
+            choices=[
+                questionary.Choice(
+                    title=build_sonos_household_choice_label(household),
+                    value=household.household_id,
+                )
+                for household in households
+            ],
+        ).ask()
+    except KeyboardInterrupt:
+        return None
+
+
 def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
     import questionary
 
@@ -183,6 +211,12 @@ def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) 
         ).ask()
     except KeyboardInterrupt:
         return None
+
+
+def _emit_cli_status(message: str) -> None:
+    if not sys.stderr.isatty():
+        return
+    typer.echo(message, err=True)
 
 
 app = typer.Typer(help="Admin CLI for jukebox")
@@ -319,12 +353,21 @@ def sonos_select(
         Optional[str],
         typer.Option("--coordinator", help="coordinator UID for the selected Sonos group"),
     ] = None,
+    household: Annotated[
+        Optional[str],
+        typer.Option("--household", help="household ID to use for interactive Sonos speaker selection"),
+    ] = None,
 ) -> None:
     parsed_uids = (
         None if uids is None else [uid.strip() for raw_uids in uids for uid in raw_uids.split(",") if uid.strip()]
     )
     try:
-        command = SonosSelectCommand(type="sonos_select", uids=parsed_uids, coordinator=coordinator)
+        command = SonosSelectCommand(
+            type="sonos_select",
+            uids=parsed_uids,
+            coordinator=coordinator,
+            household=household,
+        )
     except ValidationError as err:
         _exit_on_command_validation_error(err)
 

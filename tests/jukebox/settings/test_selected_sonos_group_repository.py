@@ -69,6 +69,7 @@ def test_get_selected_group_loads_saved_group_from_settings_schema():
                 "player": {
                     "sonos": {
                         "selected_group": {
+                            "household_id": "household-1",
                             "coordinator_uid": "speaker-1",
                             "members": [{"uid": "speaker-1"}],
                         }
@@ -81,6 +82,7 @@ def test_get_selected_group_loads_saved_group_from_settings_schema():
     repository = SettingsSelectedSonosGroupRepository(settings_service)
 
     assert repository.get_selected_group() == SelectedSonosGroupSettings(
+        household_id="household-1",
         coordinator_uid="speaker-1",
         members=[SelectedSonosSpeakerSettings(uid="speaker-1")],
     )
@@ -90,6 +92,7 @@ def test_save_selected_group_persists_through_settings_service():
     settings_service = StubSettingsService()
     repository = SettingsSelectedSonosGroupRepository(settings_service)
     selected_group = SelectedSonosGroupSettings(
+        household_id="household-1",
         coordinator_uid="speaker-1",
         members=[SelectedSonosSpeakerSettings(uid="speaker-1")],
     )
@@ -102,6 +105,7 @@ def test_save_selected_group_persists_through_settings_service():
                 "type": "sonos",
                 "sonos": {
                     "selected_group": {
+                        "household_id": "household-1",
                         "coordinator_uid": "speaker-1",
                         "members": [{"uid": "speaker-1"}],
                     }

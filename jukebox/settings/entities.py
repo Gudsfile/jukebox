@@ -22,6 +22,7 @@ class SelectedSonosSpeakerSettings(StrictModel):
 
 
 class SelectedSonosGroupSettings(StrictModel):
+    household_id: Optional[str] = Field(default=None, exclude_if=lambda value: value is None)
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
 
@@ -131,6 +132,7 @@ class SparseSelectedSonosSpeakerSettings(StrictModel):
 
 
 class SparseSelectedSonosGroupSettings(StrictModel):
+    household_id: Optional[str] = None
     coordinator_uid: Optional[str] = None
     members: Optional[list[SparseSelectedSonosSpeakerSettings]] = None
 

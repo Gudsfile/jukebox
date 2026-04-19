@@ -25,6 +25,7 @@ from .commands import (
     UiCommand,
 )
 from .services import AdminServices
+from .sonos_households import GroupedSonosHousehold, group_sonos_speakers_by_household
 
 
 class AppController(Protocol):
@@ -97,22 +98,38 @@ def execute_sonos_command(
     command: object,
     sonos_service: SonosService,
     settings_service: Optional[SettingsService] = None,
+    household_prompt_fn: Optional[Callable[[list[GroupedSonosHousehold]], Optional[str]]] = None,
     speaker_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[list[str]]]] = None,
     coordinator_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[str]]] = None,
     stdout_fn: Callable[[str], None] = print,
+    status_fn: Optional[Callable[[str], None]] = None,
 ) -> None:
     if isinstance(command, SonosListCommand):
-        stdout_fn(render_sonos_speakers_output(sonos_service.list_available_speakers()))
+        _emit_status(status_fn, "Discovering Sonos speakers...")
+        stdout_fn(
+            render_sonos_speakers_output(group_sonos_speakers_by_household(sonos_service.list_network_speakers()))
+        )
         return
 
     if isinstance(command, SonosSelectCommand):
         if settings_service is None:
             raise TypeError("settings_service is required for Sonos select commands")
 
+        requested_household_id = command.household
         if command.uids is None:
-            available_speakers = sonos_service.list_available_speakers()
-            if not available_speakers:
+            _emit_status(status_fn, "Discovering Sonos speakers...")
+            available_households = group_sonos_speakers_by_household(sonos_service.list_network_speakers())
+            if not available_households:
                 raise RuntimeError("No visible Sonos speakers found.")
+            selected_household = _select_available_household(
+                available_households,
+                requested_household_id=command.household,
+                household_prompt_fn=household_prompt_fn,
+            )
+            if selected_household is None:
+                return
+            requested_household_id = selected_household.household_id
+            available_speakers = list(selected_household.speakers)
             if speaker_prompt_fn is None:
                 raise RuntimeError("Interactive Sonos speaker selection is not available in this context.")
             prompt_result = speaker_prompt_fn(available_speakers)
@@ -136,10 +153,15 @@ def execute_sonos_command(
             coordinator_uid = command.coordinator
 
         try:
+            _emit_status(status_fn, "Validating Sonos selection...")
             result = SaveSonosSelection(
                 selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
                 sonos_service=sonos_service,
-            ).execute(selected_uids, coordinator_uid=coordinator_uid)
+            ).execute(
+                selected_uids,
+                coordinator_uid=coordinator_uid,
+                requested_household_id=requested_household_id,
+            )
         except ValueError as err:
             raise RuntimeError(str(err)) from err
         stdout_fn(render_sonos_selection_saved_output(result))
@@ -157,6 +179,40 @@ def execute_sonos_command(
         return
 
     raise TypeError("Unsupported Sonos command")
+
+
+def _emit_status(status_fn: Optional[Callable[[str], None]], message: str) -> None:
+    if status_fn is not None:
+        status_fn(message)
+
+
+def _select_available_household(
+    households: list[GroupedSonosHousehold],
+    requested_household_id: Optional[str],
+    household_prompt_fn: Optional[Callable[[list[GroupedSonosHousehold]], Optional[str]]],
+) -> Optional[GroupedSonosHousehold]:
+    if requested_household_id is not None:
+        return _get_available_household(households, requested_household_id)
+
+    if household_prompt_fn is None:
+        if len(households) == 1:
+            return households[0]
+        raise RuntimeError("Interactive Sonos household selection is not available in this context.")
+
+    selected_household_id = household_prompt_fn(households)
+    if selected_household_id is None:
+        return None
+    return _get_available_household(households, selected_household_id)
+
+
+def _get_available_household(
+    households: list[GroupedSonosHousehold],
+    household_id: str,
+) -> GroupedSonosHousehold:
+    for household in households:
+        if household.household_id == household_id:
+            return household
+    raise RuntimeError(f"No visible Sonos speakers found for household `{household_id}`.")
 
 
 def execute_server_command(
