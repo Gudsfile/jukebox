@@ -217,21 +217,18 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.135.1" },
-    { name = "fastapi", marker = "python_full_version < '3.10' and extra == 'api'", specifier = "==0.128.7" },
-    { name = "fastui", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.9.0" },
+    { name = "fastapi", marker = "extra == 'api'", specifier = "==0.135.1" },
+    { name = "fastui", marker = "extra == 'ui'", specifier = "==0.9.0" },
     { name = "gukebox", extras = ["api"], marker = "extra == 'ui'" },
     { name = "lgpio", marker = "python_full_version < '3.13' and extra == 'pn532'", specifier = "==0.2.2.0" },
     { name = "pydantic", specifier = "==2.13.3" },
     { name = "pyserial", marker = "extra == 'pn532'", specifier = "==3.5" },
-    { name = "python-multipart", marker = "python_full_version >= '3.10' and extra == 'ui'", specifier = "==0.0.22" },
+    { name = "python-multipart", marker = "extra == 'ui'", specifier = "==0.0.22" },
     { name = "questionary", specifier = "==2.1.1" },
     { name = "soco", specifier = "==0.31.0" },
     { name = "spidev", marker = "extra == 'pn532'", specifier = "==3.8" },
-    { name = "typer", marker = "python_full_version < '3.10'", specifier = "==0.23.2" },
-    { name = "typer", marker = "python_full_version >= '3.10'", specifier = "==0.24.1" },
-    { name = "uvicorn", marker = "python_full_version >= '3.10' and extra == 'api'", specifier = "==0.41.0" },
-    { name = "uvicorn", marker = "python_full_version < '3.10' and extra == 'api'", specifier = "==0.39.0" },
+    { name = "typer", specifier = "==0.24.1" },
+    { name = "uvicorn", marker = "extra == 'api'", specifier = "==0.41.0" },
 ]
 provides-extras = ["api", "ui", "pn532"]
 
