@@ -123,6 +123,17 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         from soco.exceptions import SoCoException, SoCoUPnPException
         from urllib3.exceptions import HTTPError
 
+        # soco.discover() only surfaces the first household that responds, so we
+        # try manual SSDP multicast discovery first before falling back to a broader
+        # subnet scan. If SoCo adds native multi-household discovery, this can go away.
+        # ref: https://soco.readthedocs.io/en/latest/api/soco.discovery.html#soco.discovery.discover
+        #
+        # To make that multicast probe reliable, we send it from each local IPv4
+        # interface via IP_MULTICAST_IF; otherwise we may only probe one network path
+        # and miss reachable households.
+        #
+        # This uses a private SoCo helper because there is no public equivalent for
+        # enumerating the interface IPv4 addresses to bind the multicast sockets to.
         interface_addresses = soco.discovery._find_ipv4_addresses()
         if not interface_addresses:
             return set()

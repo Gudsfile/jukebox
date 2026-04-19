@@ -180,7 +180,7 @@ def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold
     import questionary
 
     try:
-        print(render_sonos_speakers_output(households))
+        typer.echo(render_sonos_speakers_output(households))
         return questionary.select(
             "Select the Sonos household",
             choices=[

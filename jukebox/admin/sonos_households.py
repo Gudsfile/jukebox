@@ -6,7 +6,7 @@ from jukebox.sonos.discovery import DiscoveredSonosSpeaker, sort_sonos_speakers
 @dataclass(frozen=True)
 class GroupedSonosHousehold:
     household_id: str
-    speakers: list[DiscoveredSonosSpeaker]
+    speakers: tuple[DiscoveredSonosSpeaker, ...]
 
 
 def group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) -> list[GroupedSonosHousehold]:
@@ -17,7 +17,7 @@ def group_sonos_speakers_by_household(speakers: list[DiscoveredSonosSpeaker]) ->
     households = [
         GroupedSonosHousehold(
             household_id=household_id,
-            speakers=members,
+            speakers=tuple(members),
         )
         for household_id, members in speakers_by_household.items()
     ]

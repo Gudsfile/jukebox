@@ -292,7 +292,7 @@ def test_render_sonos_speakers_output_is_stable_and_human_readable():
         [
             GroupedSonosHousehold(
                 household_id="household-1",
-                speakers=[
+                speakers=(
                     DiscoveredSonosSpeaker(
                         uid="speaker-1",
                         name="Kitchen",
@@ -307,7 +307,7 @@ def test_render_sonos_speakers_output_is_stable_and_human_readable():
                         household_id="household-1",
                         is_visible=True,
                     ),
-                ],
+                ),
             ),
         ]
     )
@@ -326,7 +326,7 @@ def test_build_sonos_household_choice_label_includes_household_and_speaker_list(
         build_sonos_household_choice_label(
             GroupedSonosHousehold(
                 household_id="household-1",
-                speakers=[
+                speakers=(
                     DiscoveredSonosSpeaker(
                         uid="speaker-1",
                         name="Kitchen",
@@ -341,7 +341,7 @@ def test_build_sonos_household_choice_label_includes_household_and_speaker_list(
                         household_id="household-1",
                         is_visible=True,
                     ),
-                ],
+                ),
             )
         )
         == "household-1 (2 speakers)"

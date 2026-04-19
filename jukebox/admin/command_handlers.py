@@ -129,7 +129,7 @@ def execute_sonos_command(
             if selected_household is None:
                 return
             requested_household_id = selected_household.household_id
-            available_speakers = selected_household.speakers
+            available_speakers = list(selected_household.speakers)
             if speaker_prompt_fn is None:
                 raise RuntimeError("Interactive Sonos speaker selection is not available in this context.")
             prompt_result = speaker_prompt_fn(available_speakers)
@@ -194,10 +194,9 @@ def _select_available_household(
     if requested_household_id is not None:
         return _get_available_household(households, requested_household_id)
 
-    if len(households) == 1:
-        return households[0]
-
     if household_prompt_fn is None:
+        if len(households) == 1:
+            return households[0]
         raise RuntimeError("Interactive Sonos household selection is not available in this context.")
 
     selected_household_id = household_prompt_fn(households)

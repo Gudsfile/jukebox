@@ -232,7 +232,7 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
         [
             GroupedSonosHousehold(
                 household_id="household-1",
-                speakers=[
+                speakers=(
                     DiscoveredSonosSpeaker(
                         uid="speaker-1",
                         name="Kitchen",
@@ -247,7 +247,7 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
                         household_id="household-1",
                         is_visible=True,
                     ),
-                ],
+                ),
             )
         ]
     )
