@@ -146,6 +146,26 @@ def test_build_settings_service_reads_persisted_reader_and_timing_settings(tmp_p
     assert runtime_config.loop_interval_seconds == 0.2
 
 
+def test_build_settings_service_maps_pn532_overrides():
+    service = app._build_settings_service(
+        JukeboxCliConfig(
+            pn532_spi_reset=25,
+            pn532_spi_cs=10,
+            pn532_spi_irq=24,
+        )
+    )
+
+    assert service.cli_overrides == {
+        "jukebox": {
+            "reader": {
+                "pn532": {
+                    "spi": {"reset": 25, "cs": 10, "irq": 24},
+                }
+            }
+        }
+    }
+
+
 def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, mocker):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(

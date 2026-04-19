@@ -15,6 +15,9 @@ class JukeboxCliConfig(BaseModel):
     sonos_name: Optional[str] = None
     pause_duration_seconds: Optional[int] = None
     pause_delay_seconds: Optional[float] = None
+    pn532_spi_reset: Optional[int] = None
+    pn532_spi_cs: Optional[int] = None
+    pn532_spi_irq: Optional[int] = None
 
 
 def parse_config() -> JukeboxCliConfig:
@@ -71,6 +74,25 @@ def parse_config() -> JukeboxCliConfig:
         help="override the grace period in seconds before pausing when a tag is removed",
     )
 
+    parser.add_argument(
+        "--pn532-spi-reset",
+        default=None,
+        type=int,
+        help="override the PN532 SPI reset GPIO pin for this process",
+    )
+    parser.add_argument(
+        "--pn532-spi-cs",
+        default=None,
+        type=int,
+        help="override the PN532 SPI chip select GPIO pin for this process",
+    )
+    parser.add_argument(
+        "--pn532-spi-irq",
+        default=None,
+        type=int,
+        help="override the PN532 SPI IRQ GPIO pin for this process",
+    )
+
     args = parser.parse_args()
 
     return JukeboxCliConfig(
@@ -82,4 +104,7 @@ def parse_config() -> JukeboxCliConfig:
         sonos_name=args.sonos_name,
         pause_duration_seconds=args.pause_duration,
         pause_delay_seconds=args.pause_delay,
+        pn532_spi_reset=args.pn532_spi_reset,
+        pn532_spi_cs=args.pn532_spi_cs,
+        pn532_spi_irq=args.pn532_spi_irq,
     )
