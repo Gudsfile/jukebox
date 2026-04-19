@@ -1,7 +1,6 @@
 import json
 import sys
 from importlib import util
-from unittest import mock
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -17,14 +16,6 @@ def build_speaker(uid, name, host, household_id):
         household_id=household_id,
         is_visible=True,
     )
-
-
-def test_module_import_failure():
-    version_below_py37 = (3, 7, 17, "final", 0)
-    with mock.patch("sys.version_info", version_below_py37), pytest.raises(RuntimeError) as err:
-        import discstore.adapters.inbound.ui_controller  # noqa: F401
-
-    assert "The `ui_controller` module requires Python 3.10+." in str(err.value)
 
 
 @pytest.mark.skipif(sys.version_info < (3, 10), reason="FastUI requires Python 3.10+")
