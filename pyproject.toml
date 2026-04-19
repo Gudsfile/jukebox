@@ -69,10 +69,7 @@ extend-select = [
 exclude = ["pn532/"]
 
 [tool.ty.rules]
-# Ignoring missing-argument rule for now as it is a false positive for pydantic 2.5.3 (necessary for python <3.10):
-# "No arguments provided for required parameters `__pydantic_extra__`, `__pydantic_fields_set__`, `__pydantic_private__`"
-# CI/CD will treat this rule as an error for Python >= 3.10.
-missing-argument = "warn"
+missing-argument = "error"
 
 [build-system]
 requires = ["uv_build>=0.8.7,<0.12.0"]
