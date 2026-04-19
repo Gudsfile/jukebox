@@ -3,7 +3,6 @@ import logging
 import os
 import tempfile
 from contextlib import suppress
-from typing import Optional
 
 from pydantic import ValidationError
 
@@ -18,12 +17,12 @@ class JsonLibraryAdapter(LibraryRepository):
 
     def __init__(self, filepath: str):
         self.filepath = filepath
-        self._cached_library: Optional[Library] = None
-        self._cached_file_state: Optional[tuple[int, int]] = None
+        self._cached_library: Library | None = None
+        self._cached_file_state: tuple[int, int] | None = None
 
     def _load_from_disk(self) -> Library:
         try:
-            with open(self.filepath, "r", encoding="utf-8") as f:
+            with open(self.filepath, encoding="utf-8") as f:
                 data = json.load(f)
                 return Library.model_validate(data)
         except FileNotFoundError as err:
@@ -57,7 +56,7 @@ class JsonLibraryAdapter(LibraryRepository):
                 os.unlink(temp_path)
             raise
 
-    def _get_file_state(self) -> Optional[tuple[int, int]]:
+    def _get_file_state(self) -> tuple[int, int] | None:
         try:
             stat_result = os.stat(self.filepath)
         except FileNotFoundError:
@@ -90,7 +89,7 @@ class JsonLibraryAdapter(LibraryRepository):
     def list_discs(self) -> dict[str, Disc]:
         return {tag_id: self._copy_disc(disc) for tag_id, disc in self._get_cached_library().discs.items()}
 
-    def get_disc(self, tag_id: str) -> Optional[Disc]:
+    def get_disc(self, tag_id: str) -> Disc | None:
         disc = self._get_cached_library().discs.get(tag_id)
         if disc is None:
             return None

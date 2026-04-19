@@ -1,7 +1,7 @@
 import copy
 import json
 import os
-from typing import Optional, Union, cast
+from typing import cast
 
 from pydantic import ValidationError
 
@@ -52,8 +52,8 @@ class SettingsService:
     def __init__(
         self,
         repository: SettingsRepository,
-        env_overrides: Optional[JsonObject] = None,
-        cli_overrides: Optional[JsonObject] = None,
+        env_overrides: JsonObject | None = None,
+        cli_overrides: JsonObject | None = None,
     ):
         self.repository = repository
         self.env_overrides = copy.deepcopy(env_overrides or {})
@@ -164,7 +164,7 @@ class SettingsService:
         self,
         updated_data: JsonObject,
         updated_paths: list[str],
-        reset_paths: Optional[list[str]] = None,
+        reset_paths: list[str] | None = None,
     ) -> JsonObject:
         persisted_before = self.repository.load_persisted_settings_data()
 
@@ -287,7 +287,7 @@ def _resolve_provenance_label(file_value: object, env_value: object, cli_value: 
     return "default"
 
 
-def _get_child(node: JsonObject, key: str) -> Union[JsonValue, object]:
+def _get_child(node: JsonObject, key: str) -> JsonValue | object:
     if isinstance(node, dict) and key in node:
         return node[key]
     return _MISSING
@@ -299,7 +299,7 @@ def _without_schema_version(data: JsonObject) -> JsonObject:
     return filtered
 
 
-def _collect_patch_paths(node: JsonObject, prefix: Optional[str] = None) -> set[str]:
+def _collect_patch_paths(node: JsonObject, prefix: str | None = None) -> set[str]:
     paths = set()
 
     for key, value in node.items():

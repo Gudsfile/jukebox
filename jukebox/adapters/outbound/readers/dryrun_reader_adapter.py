@@ -2,7 +2,6 @@ import logging
 import select
 import sys
 import time
-from typing import Union
 
 from jukebox.domain.ports import ReaderPort
 from jukebox.shared.timing import DEFAULT_LOOP_INTERVAL_SECONDS
@@ -18,7 +17,7 @@ class DryrunReaderAdapter(ReaderPort):
         self.uid = None
         self.hold_until = None
 
-    def read(self) -> Union[str, None]:
+    def read(self) -> str | None:
         if self.uid is not None and self.hold_until is not None and time.monotonic() < self.hold_until:
             LOGGER.info(f"Reading tag {self.uid}")
             return self.uid

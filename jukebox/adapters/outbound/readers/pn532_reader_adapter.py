@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional, Union
 
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
@@ -31,9 +30,9 @@ class Pn532ReaderAdapter(ReaderPort):
     def __init__(
         self,
         read_timeout_seconds: float = DEFAULT_NFC_READ_TIMEOUT_SECONDS,
-        spi_reset: Optional[int] = None,
-        spi_cs: Optional[int] = None,
-        spi_irq: Optional[int] = None,
+        spi_reset: int | None = None,
+        spi_cs: int | None = None,
+        spi_irq: int | None = None,
     ):
         if not spi_active():
             error_message = (
@@ -49,7 +48,7 @@ class Pn532ReaderAdapter(ReaderPort):
         LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
         self.pn532.SAM_configuration()
 
-    def read(self) -> Union[str, None]:
+    def read(self) -> str | None:
         rawuid = self.pn532.read_passive_target(timeout=self.read_timeout_seconds)
         if rawuid is None:
             return None

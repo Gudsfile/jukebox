@@ -81,7 +81,7 @@ def test_no_partial_text_observed_during_writes(tmp_path, monkeypatch):
 
     for _ in range(100):
         try:
-            with open(adapter.filepath, "r", encoding="utf-8") as current_tag_file:
+            with open(adapter.filepath, encoding="utf-8") as current_tag_file:
                 observed_payloads.append(current_tag_file.read())
         except Exception as err:  # pragma: no cover - exercised only on failure
             observed_errors.append(err)

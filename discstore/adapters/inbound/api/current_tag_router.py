@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import ValidationError
@@ -27,11 +27,11 @@ def build_current_tag_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["current-tag"])
 
-    def read_current_tag_status() -> Optional[CurrentTagStatus]:
+    def read_current_tag_status() -> CurrentTagStatus | None:
         return get_current_tag_status.execute()
 
     def ensure_expected_tag_id_matches(
-        expected_tag_id: Optional[str], current_tag_status: Optional[CurrentTagStatus]
+        expected_tag_id: str | None, current_tag_status: CurrentTagStatus | None
     ) -> None:
         if expected_tag_id is None:
             return
@@ -84,7 +84,7 @@ def build_current_tag_router(
     )
     def create_current_tag_disc(
         disc: DiscInput,
-        expected_tag_id: Optional[str] = None,
+        expected_tag_id: str | None = None,
     ) -> Any:
         current_tag_status = read_current_tag_status()
         ensure_expected_tag_id_matches(expected_tag_id, current_tag_status)
@@ -112,7 +112,7 @@ def build_current_tag_router(
     )
     def update_current_tag_disc(
         disc_patch: DiscPatchInput,
-        expected_tag_id: Optional[str] = None,
+        expected_tag_id: str | None = None,
     ) -> Any:
         current_tag_status = read_current_tag_status()
         ensure_expected_tag_id_matches(expected_tag_id, current_tag_status)
@@ -147,7 +147,7 @@ def build_current_tag_router(
         },
         summary="Delete the current tag disc",
     )
-    def delete_current_tag_disc(expected_tag_id: Optional[str] = None) -> Response:
+    def delete_current_tag_disc(expected_tag_id: str | None = None) -> Response:
         current_tag_status = read_current_tag_status()
         ensure_expected_tag_id_matches(expected_tag_id, current_tag_status)
         if current_tag_status is None:

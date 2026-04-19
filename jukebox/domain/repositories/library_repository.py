@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from jukebox.domain.entities import Disc
 
@@ -10,7 +9,7 @@ class LibraryRepository(ABC):
         pass
 
     @abstractmethod
-    def get_disc(self, tag_id: str) -> Optional[Disc]:
+    def get_disc(self, tag_id: str) -> Disc | None:
         pass
 
     @abstractmethod

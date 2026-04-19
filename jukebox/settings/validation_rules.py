@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Mapping, Optional
+from typing import Any
 
 from .timing_validation import validate_loop_interval_lower_than_pause_delay
 
@@ -46,7 +47,7 @@ def get_rules_supported_by_settings(settings: Mapping[str, Any]) -> list[Setting
 
 def validate_settings_rules(
     settings: Mapping[str, Any],
-    updated_paths: Optional[Iterable[str]] = None,
+    updated_paths: Iterable[str] | None = None,
 ) -> None:
     supported_rules = get_rules_supported_by_settings(settings)
     if updated_paths is None:

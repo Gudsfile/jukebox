@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
@@ -112,7 +111,7 @@ class InteractiveCLIController:
         print(f"Tag ID           : {current_tag_status.tag_id}")
         print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
 
-    def _prompt_for_tag(self, current_tag_status: Optional[CurrentTagStatus], action: str) -> str:
+    def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
         default_tag = ""
         if current_tag_status is not None and (
             (action == "add" and not current_tag_status.known_in_library)

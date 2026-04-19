@@ -1,5 +1,4 @@
 import logging
-from typing import Union
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.commands import (
@@ -43,9 +42,7 @@ class CLIController:
 
     def run(
         self,
-        command: Union[
-            CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand, CliGetCommand, CliSearchCommand
-        ],
+        command: CliAddCommand | CliListCommand | CliRemoveCommand | CliEditCommand | CliGetCommand | CliSearchCommand,
     ) -> None:
         if isinstance(command, CliAddCommand):
             self.add_disc_flow(command)

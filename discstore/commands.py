@@ -1,11 +1,11 @@
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
 
 class CliTagSourceCommand(BaseModel):
-    tag: Optional[str] = None
+    tag: str | None = None
     use_current_tag: bool = False
 
     @model_validator(mode="after")
@@ -19,9 +19,9 @@ class CliTagSourceCommand(BaseModel):
 class CliAddCommand(CliTagSourceCommand):
     type: Literal["add"]
     uri: str
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
+    track: str | None = None
+    artist: str | None = None
+    album: str | None = None
 
 
 class CliListCommandModes(str, Enum):
@@ -40,10 +40,10 @@ class CliRemoveCommand(CliTagSourceCommand):
 
 class CliEditCommand(CliTagSourceCommand):
     type: Literal["edit"]
-    uri: Optional[str] = None
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
+    uri: str | None = None
+    track: str | None = None
+    artist: str | None = None
+    album: str | None = None
 
 
 class CliGetCommand(CliTagSourceCommand):

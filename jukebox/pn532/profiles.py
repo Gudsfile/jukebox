@@ -1,14 +1,14 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 Pn532BoardProfile = Literal["waveshare_hat", "hiletgo_v3", "custom"]
 
 
 @dataclass(frozen=True)
 class Pn532BoardProfileDefaults:
-    reset: Optional[int]
-    cs: Optional[int]
-    irq: Optional[int]
+    reset: int | None
+    cs: int | None
+    irq: int | None
 
 
 PN532_PROFILES: dict[Pn532BoardProfile, Pn532BoardProfileDefaults] = {
@@ -20,9 +20,9 @@ PN532_PROFILES: dict[Pn532BoardProfile, Pn532BoardProfileDefaults] = {
 
 def resolve_spi_pins(
     board_profile: Pn532BoardProfile,
-    reset: Optional[int],
-    cs: Optional[int],
-    irq: Optional[int],
+    reset: int | None,
+    cs: int | None,
+    irq: int | None,
 ) -> Pn532BoardProfileDefaults:
     profile = PN532_PROFILES[board_profile]
     return Pn532BoardProfileDefaults(

@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from importlib import import_module
-from typing import Callable, Optional, Protocol
+from typing import Protocol
 
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
@@ -97,12 +98,12 @@ def execute_settings_command(
 def execute_sonos_command(
     command: object,
     sonos_service: SonosService,
-    settings_service: Optional[SettingsService] = None,
-    household_prompt_fn: Optional[Callable[[list[GroupedSonosHousehold]], Optional[str]]] = None,
-    speaker_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[list[str]]]] = None,
-    coordinator_prompt_fn: Optional[Callable[[list[DiscoveredSonosSpeaker]], Optional[str]]] = None,
+    settings_service: SettingsService | None = None,
+    household_prompt_fn: Callable[[list[GroupedSonosHousehold]], str | None] | None = None,
+    speaker_prompt_fn: Callable[[list[DiscoveredSonosSpeaker]], list[str] | None] | None = None,
+    coordinator_prompt_fn: Callable[[list[DiscoveredSonosSpeaker]], str | None] | None = None,
     stdout_fn: Callable[[str], None] = print,
-    status_fn: Optional[Callable[[str], None]] = None,
+    status_fn: Callable[[str], None] | None = None,
 ) -> None:
     if isinstance(command, SonosListCommand):
         _emit_status(status_fn, "Discovering Sonos speakers...")
@@ -181,16 +182,16 @@ def execute_sonos_command(
     raise TypeError("Unsupported Sonos command")
 
 
-def _emit_status(status_fn: Optional[Callable[[str], None]], message: str) -> None:
+def _emit_status(status_fn: Callable[[str], None] | None, message: str) -> None:
     if status_fn is not None:
         status_fn(message)
 
 
 def _select_available_household(
     households: list[GroupedSonosHousehold],
-    requested_household_id: Optional[str],
-    household_prompt_fn: Optional[Callable[[list[GroupedSonosHousehold]], Optional[str]]],
-) -> Optional[GroupedSonosHousehold]:
+    requested_household_id: str | None,
+    household_prompt_fn: Callable[[list[GroupedSonosHousehold]], str | None] | None,
+) -> GroupedSonosHousehold | None:
     if requested_household_id is not None:
         return _get_available_household(households, requested_household_id)
 

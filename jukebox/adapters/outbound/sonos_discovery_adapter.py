@@ -5,7 +5,7 @@ import socket
 import struct
 import time
 from dataclasses import dataclass
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
@@ -35,7 +35,7 @@ _PLAYER_SEARCH = (
     "MX: 1\r\n"
     "ST: urn:schemas-upnp-org:device:ZonePlayer:1\r\n"
     "\r\n"
-).encode("utf-8")
+).encode()
 
 
 class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
@@ -280,7 +280,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
 
     @staticmethod
     def _choose_preferred(
-        existing: Optional[DiscoveredSonosSpeaker],
+        existing: DiscoveredSonosSpeaker | None,
         candidate: DiscoveredSonosSpeaker,
     ) -> DiscoveredSonosSpeaker:
         if existing is None:
@@ -296,7 +296,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
     @staticmethod
     def _normalize_speaker(
         speaker: "_SonosSpeakerLike",
-    ) -> tuple[Optional[DiscoveredSonosSpeaker], Optional[str]]:
+    ) -> tuple[DiscoveredSonosSpeaker | None, str | None]:
         from requests.exceptions import RequestException
         from soco.exceptions import SoCoException, SoCoUPnPException
         from urllib3.exceptions import HTTPError
@@ -340,7 +340,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
     return str(uid)
 
 
-def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> Optional[str]:
+def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
     try:
         ip_address = getattr(speaker, "ip_address", None)
     except Exception:
@@ -351,14 +351,14 @@ def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> Optional[str]:
     return None
 
 
-def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> Optional[str]:
+def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> str | None:
     try:
         return str(getattr(speaker, "uid"))
     except Exception:
         return None
 
 
-def _extract_sonos_household_id(response: bytes) -> Optional[str]:
+def _extract_sonos_household_id(response: bytes) -> str | None:
     match = _HOUSEHOLD_HEADER_RE.search(response)
     if match is None:
         return None

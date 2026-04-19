@@ -1,5 +1,3 @@
-from typing import Optional
-
 from discstore.domain.entities import CurrentTagStatus
 from discstore.domain.repositories import CurrentTagRepository, LibraryRepository
 
@@ -9,7 +7,7 @@ class GetCurrentTagStatus:
         self.current_tag_repository = current_tag_repository
         self.library = library
 
-    def execute(self) -> Optional[CurrentTagStatus]:
+    def execute(self) -> CurrentTagStatus | None:
         tag_id = self.current_tag_repository.get()
         if tag_id is None:
             return None

@@ -1,6 +1,6 @@
 import sys
 import traceback
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from pydantic import ValidationError
@@ -46,7 +46,7 @@ from .sonos_households import GroupedSonosHousehold
 
 
 class AdminCliState:
-    def __init__(self, library: Optional[str], verbose: bool):
+    def __init__(self, library: str | None, verbose: bool):
         self.library = library
         self.verbose = verbose
 
@@ -158,7 +158,7 @@ def _exit_on_command_validation_error(err: ValidationError) -> None:
     raise SystemExit(str(err)) from err
 
 
-def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> Optional[list[str]]:
+def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> list[str] | None:
     import questionary
 
     try:
@@ -176,7 +176,7 @@ def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) 
         return None
 
 
-def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold]) -> Optional[str]:
+def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold]) -> str | None:
     import questionary
 
     try:
@@ -195,7 +195,7 @@ def _prompt_for_sonos_household_selection(households: list[GroupedSonosHousehold
         return None
 
 
-def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) -> Optional[str]:
+def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) -> str | None:
     import questionary
 
     try:
@@ -232,7 +232,7 @@ app.add_typer(sonos_app, name="sonos")
 def main_callback(
     ctx: typer.Context,
     library: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--library", "-l", help="override the library JSON path for this process"),
     ] = None,
     verbose: Annotated[
@@ -313,7 +313,7 @@ def settings_reset(
 def api(
     ctx: typer.Context,
     port: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--port", help="override the configured API port"),
     ] = None,
 ) -> None:
@@ -324,7 +324,7 @@ def api(
 def ui(
     ctx: typer.Context,
     port: Annotated[
-        Optional[int],
+        int | None,
         typer.Option("--port", help="override the configured UI port"),
     ] = None,
 ) -> None:
@@ -340,7 +340,7 @@ def sonos_list(ctx: typer.Context) -> None:
 def sonos_select(
     ctx: typer.Context,
     uids: Annotated[
-        Optional[list[str]],
+        list[str] | None,
         typer.Option(
             "--uids",
             help=(
@@ -350,11 +350,11 @@ def sonos_select(
         ),
     ] = None,
     coordinator: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--coordinator", help="coordinator UID for the selected Sonos group"),
     ] = None,
     household: Annotated[
-        Optional[str],
+        str | None,
         typer.Option("--household", help="household ID to use for interactive Sonos speaker selection"),
     ] = None,
 ) -> None:
@@ -383,10 +383,10 @@ def sonos_show(ctx: typer.Context) -> None:
 def library_add(
     ctx: typer.Context,
     uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")],
-    tag: Annotated[Optional[str], typer.Argument(help="Tag to be associated with the disc")] = None,
-    track: Annotated[Optional[str], typer.Option("--track", help="Name of the track")] = None,
-    artist: Annotated[Optional[str], typer.Option("--artist", help="Name of the artist or band")] = None,
-    album: Annotated[Optional[str], typer.Option("--album", help="Name of the album")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to be associated with the disc")] = None,
+    track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
+    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
+    album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -419,7 +419,7 @@ def library_list(
 @library_app.command("remove")
 def library_remove(
     ctx: typer.Context,
-    tag: Annotated[Optional[str], typer.Argument(help="Tag to remove")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to remove")] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -436,11 +436,11 @@ def library_remove(
 @library_app.command("edit")
 def library_edit(
     ctx: typer.Context,
-    tag: Annotated[Optional[str], typer.Argument(help="Tag to be edited")] = None,
-    uri: Annotated[Optional[str], typer.Option("--uri", help="Path or URI of the media file")] = None,
-    track: Annotated[Optional[str], typer.Option("--track", help="Name of the track")] = None,
-    artist: Annotated[Optional[str], typer.Option("--artist", help="Name of the artist or band")] = None,
-    album: Annotated[Optional[str], typer.Option("--album", help="Name of the album")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to be edited")] = None,
+    uri: Annotated[str | None, typer.Option("--uri", help="Path or URI of the media file")] = None,
+    track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
+    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
+    album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -465,7 +465,7 @@ def library_edit(
 @library_app.command("get")
 def library_get(
     ctx: typer.Context,
-    tag: Annotated[Optional[str], typer.Argument(help="Tag to retrieve")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to retrieve")] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -492,5 +492,5 @@ def library_interactive(ctx: typer.Context) -> None:
     _run_library_command(ctx, InteractiveCliCommand(type="interactive"))
 
 
-def main(args: Optional[list[str]] = None) -> None:
+def main(args: list[str] | None = None) -> None:
     app(args=args, prog_name="jukebox-admin")

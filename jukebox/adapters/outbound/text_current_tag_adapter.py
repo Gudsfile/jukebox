@@ -1,7 +1,6 @@
 import logging
 import os
 import tempfile
-from typing import Optional
 
 from jukebox.domain.repositories import CurrentTagRepository
 
@@ -18,7 +17,7 @@ class TextCurrentTagAdapter(CurrentTagRepository):
     def __init__(self, filepath: str):
         self.filepath = filepath
 
-    def get(self) -> Optional[str]:
+    def get(self) -> str | None:
         return self._read_current_tag()
 
     def set(self, tag_id: str) -> None:
@@ -49,9 +48,9 @@ class TextCurrentTagAdapter(CurrentTagRepository):
     def clear(self) -> None:
         self._clear_unlocked()
 
-    def _read_current_tag(self) -> Optional[str]:
+    def _read_current_tag(self) -> str | None:
         try:
-            with open(self.filepath, "r", encoding="utf-8") as current_tag_file:
+            with open(self.filepath, encoding="utf-8") as current_tag_file:
                 tag_id = current_tag_file.read().strip()
         except FileNotFoundError:
             return None
