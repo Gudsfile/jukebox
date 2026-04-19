@@ -318,19 +318,21 @@ def _format_entry_label(dotted_path: str) -> str:
 def _format_value(dotted_path: str, value: object) -> str:
     if dotted_path == "jukebox.player.sonos.selected_group":
         return _format_selected_group(value)
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return ", ".join(_format_value(dotted_path, item) for item in value)
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True, separators=(", ", ": "))
-    return str(value)
+    match value:
+        case None:
+            return "null"
+        case bool():
+            return "true" if value else "false"
+        case int() | float():
+            return str(value)
+        case str():
+            return value
+        case list():
+            return ", ".join(_format_value(dotted_path, item) for item in value)
+        case dict():
+            return json.dumps(value, sort_keys=True, separators=(", ", ": "))
+        case _:
+            return str(value)
 
 
 def _format_selected_group(value: object) -> str:
@@ -363,25 +365,22 @@ def _format_selected_group(value: object) -> str:
 
 
 def _render_cli_error_message(err: BaseException) -> str:
-    if isinstance(err, MalformedSettingsFileError):
-        filepath = _extract_quoted_path(str(err))
-        if filepath is not None:
-            return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
-        return "Malformed settings file. Fix the JSON syntax and try again."
-
-    if isinstance(err, UnsupportedSettingsVersionError):
-        return f"Unsupported settings file version. {str(err)}"
-
-    if isinstance(err, InvalidSettingsError):
-        return _render_invalid_settings_error(err)
-
-    if isinstance(err, SettingsError):
-        return str(err)
-
-    if isinstance(err, SystemExit) and isinstance(err.code, str):
-        return _render_system_exit_message(err.code)
-
-    return "Unexpected error. Re-run with `--verbose` for details."
+    match err:
+        case MalformedSettingsFileError():
+            filepath = _extract_quoted_path(str(err))
+            if filepath is not None:
+                return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
+            return "Malformed settings file. Fix the JSON syntax and try again."
+        case UnsupportedSettingsVersionError():
+            return f"Unsupported settings file version. {str(err)}"
+        case InvalidSettingsError():
+            return _render_invalid_settings_error(err)
+        case SettingsError():
+            return str(err)
+        case SystemExit() if isinstance(err.code, str):
+            return _render_system_exit_message(err.code)
+        case _:
+            return "Unexpected error. Re-run with `--verbose` for details."
 
 
 def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
