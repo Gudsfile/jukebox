@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import AsyncIterator, List, Optional
+from collections.abc import AsyncIterator
 
 from fastapi import Request
 from fastui import AnyComponent
@@ -22,9 +22,9 @@ class DiscTable(DiscMetadata, DiscOption):
 class DiscForm(BaseModel):
     tag: str = Field(title="Tag ID")
     uri: str = Field(title="URI / Path")
-    artist: Optional[str] = Field(None, title="Artist")
-    album: Optional[str] = Field(None, title="Album")
-    track: Optional[str] = Field(None, title="Track")
+    artist: str | None = Field(None, title="Artist")
+    album: str | None = Field(None, title="Album")
+    track: str | None = Field(None, title="Track")
     shuffle: bool = Field(False, title="Shuffle")
 
 
@@ -39,7 +39,7 @@ class LibraryUIPageBuilder:
         self.get_disc = get_disc
         self.get_current_tag_status = get_current_tag_status
 
-    def build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
+    def build_index_page_components(self, toast: str | None = None) -> list[AnyComponent]:
         discs = self.list_discs.execute()
         discs_list = [
             DiscTable(tag=tag, uri=disc.uri, **disc.metadata.model_dump(), **disc.option.model_dump())
@@ -94,7 +94,7 @@ class LibraryUIPageBuilder:
 
         return page_components
 
-    def build_form_page_components(self, title: str, form_components: List[AnyComponent]) -> List[AnyComponent]:
+    def build_form_page_components(self, title: str, form_components: list[AnyComponent]) -> list[AnyComponent]:
         return [
             c.Page(
                 components=[
@@ -115,8 +115,8 @@ class LibraryUIPageBuilder:
 
     def build_current_tag_banner_components(
         self,
-        current_tag_status: Optional[CurrentTagStatus],
-    ) -> List[AnyComponent]:
+        current_tag_status: CurrentTagStatus | None,
+    ) -> list[AnyComponent]:
         if current_tag_status is None:
             return []
 
@@ -156,7 +156,7 @@ class LibraryUIPageBuilder:
             )
         ]
 
-    def build_disc_library_components(self, discs: List[DiscTable]) -> List[AnyComponent]:
+    def build_disc_library_components(self, discs: list[DiscTable]) -> list[AnyComponent]:
         if not discs:
             return [c.Paragraph(text="No disc found")]
 
@@ -170,7 +170,7 @@ class LibraryUIPageBuilder:
             )
         ]
 
-    def build_new_disc_form_components(self, prefill_current: bool) -> List[AnyComponent]:
+    def build_new_disc_form_components(self, prefill_current: bool) -> list[AnyComponent]:
         initial = None
 
         if prefill_current:
@@ -200,7 +200,7 @@ class LibraryUIPageBuilder:
             )
         ]
 
-    def build_edit_disc_form_components(self, tag_id: str) -> List[AnyComponent]:
+    def build_edit_disc_form_components(self, tag_id: str) -> list[AnyComponent]:
         if not tag_id:
             return [
                 c.Error(
@@ -239,7 +239,7 @@ class LibraryUIPageBuilder:
             ),
         ]
 
-    def build_delete_disc_form_components(self, tag_id: str) -> List[AnyComponent]:
+    def build_delete_disc_form_components(self, tag_id: str) -> list[AnyComponent]:
         if not tag_id:
             return [c.Error(title="No disc selected", description="Delete mode requires an existing disc tag ID.")]
         try:
@@ -275,7 +275,7 @@ class LibraryUIPageBuilder:
         request: Request,
         poll_interval_seconds: float = 0.5,
     ) -> AsyncIterator[bytes]:
-        previous_payload: Optional[str] = None
+        previous_payload: str | None = None
 
         while True:
             payload = self.serialize_current_tag_components(
@@ -283,7 +283,7 @@ class LibraryUIPageBuilder:
             )
             if payload != previous_payload:
                 previous_payload = payload
-                yield f"data: {payload}\n\n".encode("utf-8")
+                yield f"data: {payload}\n\n".encode()
 
             if await request.is_disconnected():
                 break
@@ -291,7 +291,7 @@ class LibraryUIPageBuilder:
             await asyncio.sleep(poll_interval_seconds)
 
     @staticmethod
-    def serialize_current_tag_components(components: List[AnyComponent]) -> str:
+    def serialize_current_tag_components(components: list[AnyComponent]) -> str:
         return json.dumps([component.model_dump(by_alias=True, exclude_none=True) for component in components])
 
     def _build_disc_library_header(self) -> AnyComponent:
@@ -365,7 +365,7 @@ class LibraryUIPageBuilder:
             ],
         )
 
-    def _build_disc_value_cell(self, label: str, value: Optional[str], class_name: str) -> AnyComponent:
+    def _build_disc_value_cell(self, label: str, value: str | None, class_name: str) -> AnyComponent:
         return c.Div(
             class_name=class_name,
             components=[

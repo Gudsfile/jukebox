@@ -94,7 +94,6 @@ The library is stored as `library.json` via `json_library_adapter.py`. No databa
 ### Type Annotations
 
 - Use type hints for function parameters and return types
-- Use `Optional[X]` over `X | None` for Python 3.9 compatibility
 
 ## Testing Patterns
 

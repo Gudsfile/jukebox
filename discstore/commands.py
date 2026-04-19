@@ -1,15 +1,15 @@
-from enum import Enum
-from typing import Literal, Optional
+from enum import StrEnum
+from typing import Literal, Self
 
 from pydantic import BaseModel, model_validator
 
 
 class CliTagSourceCommand(BaseModel):
-    tag: Optional[str] = None
+    tag: str | None = None
     use_current_tag: bool = False
 
     @model_validator(mode="after")
-    def validate_tag_source(self):
+    def validate_tag_source(self) -> Self:
         has_explicit_tag = bool(self.tag)
         if has_explicit_tag == self.use_current_tag:
             raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")
@@ -19,12 +19,12 @@ class CliTagSourceCommand(BaseModel):
 class CliAddCommand(CliTagSourceCommand):
     type: Literal["add"]
     uri: str
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
+    track: str | None = None
+    artist: str | None = None
+    album: str | None = None
 
 
-class CliListCommandModes(str, Enum):
+class CliListCommandModes(StrEnum):
     table = "table"
     line = "line"
 
@@ -40,10 +40,10 @@ class CliRemoveCommand(CliTagSourceCommand):
 
 class CliEditCommand(CliTagSourceCommand):
     type: Literal["edit"]
-    uri: Optional[str] = None
-    track: Optional[str] = None
-    artist: Optional[str] = None
-    album: Optional[str] = None
+    uri: str | None = None
+    track: str | None = None
+    artist: str | None = None
+    album: str | None = None
 
 
 class CliGetCommand(CliTagSourceCommand):

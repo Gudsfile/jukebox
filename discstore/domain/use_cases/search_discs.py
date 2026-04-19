@@ -1,5 +1,3 @@
-from typing import Dict
-
 from discstore.domain.entities import Disc
 from discstore.domain.repositories import LibraryRepository
 
@@ -8,7 +6,7 @@ class SearchDiscs:
     def __init__(self, repository: LibraryRepository):
         self.repository = repository
 
-    def execute(self, query: str) -> Dict[str, Disc]:
+    def execute(self, query: str) -> dict[str, Disc]:
         query_lower = query.lower()
         results = {}
 

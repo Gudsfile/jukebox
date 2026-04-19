@@ -16,29 +16,32 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
     library = JsonLibraryAdapter(config.library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(config.library_path))
 
-    if config.player_type == "sonos":
-        player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name, group=config.sonos_group)
-    elif config.player_type == "dryrun":
-        player = DryrunPlayerAdapter()
-    else:
-        raise ValueError(f"Unknown player type: {config.player_type}")
+    match config.player_type:
+        case "sonos":
+            player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name, group=config.sonos_group)
+        case "dryrun":
+            player = DryrunPlayerAdapter()
+        case _:
+            raise ValueError(f"Unknown player type: {config.player_type}")
 
-    if config.reader_type == "pn532":
-        from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
+    match config.reader_type:
+        case "pn532":
+            from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
 
-        if config.pn532_protocol == "spi":
-            reader = Pn532ReaderAdapter(
-                read_timeout_seconds=config.pn532_read_timeout_seconds,
-                spi_reset=config.pn532_spi_reset,
-                spi_cs=config.pn532_spi_cs,
-                spi_irq=config.pn532_spi_irq,
-            )
-        else:
-            raise ValueError(f"Unsupported PN532 protocol: {config.pn532_protocol}")
-    elif config.reader_type == "dryrun":
-        reader = DryrunReaderAdapter()
-    else:
-        raise ValueError(f"Unknown reader type: {config.reader_type}")
+            match config.pn532_protocol:
+                case "spi":
+                    reader = Pn532ReaderAdapter(
+                        read_timeout_seconds=config.pn532_read_timeout_seconds,
+                        spi_reset=config.pn532_spi_reset,
+                        spi_cs=config.pn532_spi_cs,
+                        spi_irq=config.pn532_spi_irq,
+                    )
+                case _:
+                    raise ValueError(f"Unsupported PN532 protocol: {config.pn532_protocol}")
+        case "dryrun":
+            reader = DryrunReaderAdapter()
+        case _:
+            raise ValueError(f"Unknown reader type: {config.reader_type}")
 
     determine_action = DetermineAction(
         pause_delay=config.pause_delay_seconds,

@@ -1,4 +1,3 @@
-from typing import List, Optional
 from urllib.parse import urlencode
 
 from fastui import AnyComponent
@@ -20,8 +19,8 @@ from jukebox.sonos.service import SonosService
 
 
 class SonosSelectionForm(BaseModel):
-    uids: List[str] = Field(default_factory=list, title="Speakers")
-    coordinator_uid: Optional[str] = Field(None, title="Coordinator")
+    uids: list[str] = Field(default_factory=list, title="Speakers")
+    coordinator_uid: str | None = Field(None, title="Coordinator")
 
     @field_validator("uids", mode="before")
     @classmethod
@@ -50,8 +49,8 @@ class SonosUIPageBuilder:
     def build_sonos_edit_error_response(
         self,
         message: str,
-        uids: List[str],
-        coordinator_uid: Optional[str],
+        uids: list[str],
+        coordinator_uid: str | None,
     ) -> list[AnyComponent]:
         query = urlencode(
             [
@@ -66,12 +65,12 @@ class SonosUIPageBuilder:
 
     def build_sonos_page_components(
         self,
-        toast: Optional[str] = None,
-        toast_message: Optional[str] = None,
-        error_message: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        toast: str | None = None,
+        toast_message: str | None = None,
+        error_message: str | None = None,
+    ) -> list[AnyComponent]:
         selected_group = self._get_selected_group()
-        status: Optional[SonosSelectionStatus] = None
+        status: SonosSelectionStatus | None = None
         speakers: list[DiscoveredSonosSpeaker] = []
         discovery_error = error_message
 
@@ -139,11 +138,11 @@ class SonosUIPageBuilder:
 
     def build_sonos_edit_page_components(
         self,
-        error_message: Optional[str] = None,
-        field_errors: Optional[dict[str, str]] = None,
-        submitted_uids: Optional[List[str]] = None,
-        submitted_coordinator_uid: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        error_message: str | None = None,
+        field_errors: dict[str, str] | None = None,
+        submitted_uids: list[str] | None = None,
+        submitted_coordinator_uid: str | None = None,
+    ) -> list[AnyComponent]:
         selected_group = self._get_selected_group()
         components: list[AnyComponent] = [
             c.Heading(text="Edit Sonos Selection", level=1),
@@ -197,7 +196,7 @@ class SonosUIPageBuilder:
         components.extend(self._build_navigation_links())
         return [c.Page(components=components)]
 
-    def _build_edit_error_components(self, error_message: Optional[str]) -> list[AnyComponent]:
+    def _build_edit_error_components(self, error_message: str | None) -> list[AnyComponent]:
         if not error_message:
             return []
 
@@ -213,7 +212,7 @@ class SonosUIPageBuilder:
 
     def _build_edit_saved_selection_components(
         self,
-        selected_group: Optional[SelectedSonosGroupSettings],
+        selected_group: SelectedSonosGroupSettings | None,
         speakers: list[DiscoveredSonosSpeaker],
     ) -> list[AnyComponent]:
         if selected_group is None:
@@ -243,10 +242,10 @@ class SonosUIPageBuilder:
     def _build_selection_form(
         self,
         speakers: list[DiscoveredSonosSpeaker],
-        selected_group: Optional[SelectedSonosGroupSettings],
-        field_errors: Optional[dict[str, str]] = None,
-        submitted_uids: Optional[List[str]] = None,
-        submitted_coordinator_uid: Optional[str] = None,
+        selected_group: SelectedSonosGroupSettings | None,
+        field_errors: dict[str, str] | None = None,
+        submitted_uids: list[str] | None = None,
+        submitted_coordinator_uid: str | None = None,
     ) -> AnyComponent:
         selected_uids = (
             list(submitted_uids)
@@ -306,8 +305,8 @@ class SonosUIPageBuilder:
 
     def _build_saved_selection_components(
         self,
-        status: Optional[SonosSelectionStatus],
-        selected_group: Optional[SelectedSonosGroupSettings],
+        status: SonosSelectionStatus | None,
+        selected_group: SelectedSonosGroupSettings | None,
     ) -> list[AnyComponent]:
         if selected_group is None:
             return [
@@ -359,7 +358,7 @@ class SonosUIPageBuilder:
     def _build_discovered_speakers_components(
         self,
         speakers: list[DiscoveredSonosSpeaker],
-        selected_group: Optional[SelectedSonosGroupSettings],
+        selected_group: SelectedSonosGroupSettings | None,
     ) -> list[AnyComponent]:
         if not speakers:
             return [
@@ -478,7 +477,7 @@ class SonosUIPageBuilder:
             ],
         )
 
-    def _get_selected_group(self) -> Optional[SelectedSonosGroupSettings]:
+    def _get_selected_group(self) -> SelectedSonosGroupSettings | None:
         return SettingsSelectedSonosGroupRepository(self.settings_service).get_selected_group()
 
     @staticmethod

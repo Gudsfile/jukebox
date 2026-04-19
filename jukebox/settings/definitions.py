@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable, Optional, cast
+from typing import cast
 
 from .entities import AppSettings
 from .types import JsonObject
@@ -225,7 +226,7 @@ SETTINGS = {
 }
 
 
-def get_setting_definition(dotted_path: str) -> Optional[SettingDefinition]:
+def get_setting_definition(dotted_path: str) -> SettingDefinition | None:
     return SETTINGS.get(dotted_path)
 
 

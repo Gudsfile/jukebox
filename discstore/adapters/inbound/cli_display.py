@@ -1,11 +1,9 @@
-from typing import Dict
-
 from discstore.domain.entities import Disc
 
 MAX_COL_WIDTH = 20
 
 
-def display_library_line(discs: Dict[str, Disc]) -> None:
+def display_library_line(discs: dict[str, Disc]) -> None:
     if not discs:
         print("The library is empty")
         return
@@ -28,7 +26,7 @@ def truncate(text: str, max_length: int) -> str:
     return text[: max_length - 3] + "..."
 
 
-def display_library_table(discs: Dict[str, Disc]) -> None:
+def display_library_table(discs: dict[str, Disc]) -> None:
     if not discs:
         print("The library is empty")
         return

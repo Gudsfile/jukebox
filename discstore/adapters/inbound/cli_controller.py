@@ -1,5 +1,4 @@
 import logging
-from typing import Union
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.commands import (
@@ -43,24 +42,23 @@ class CLIController:
 
     def run(
         self,
-        command: Union[
-            CliAddCommand, CliListCommand, CliRemoveCommand, CliEditCommand, CliGetCommand, CliSearchCommand
-        ],
+        command: CliAddCommand | CliListCommand | CliRemoveCommand | CliEditCommand | CliGetCommand | CliSearchCommand,
     ) -> None:
-        if isinstance(command, CliAddCommand):
-            self.add_disc_flow(command)
-        elif isinstance(command, CliListCommand):
-            self.list_discs_flow(command)
-        elif isinstance(command, CliRemoveCommand):
-            self.remove_disc_flow(command)
-        elif isinstance(command, CliEditCommand):
-            self.edit_disc_flow(command)
-        elif isinstance(command, CliGetCommand):
-            self.get_disc_flow(command)
-        elif isinstance(command, CliSearchCommand):
-            self.search_discs_flow(command)
-        else:
-            LOGGER.error(f"Command not implemented yet: command='{command}'")
+        match command:
+            case CliAddCommand():
+                self.add_disc_flow(command)
+            case CliListCommand():
+                self.list_discs_flow(command)
+            case CliRemoveCommand():
+                self.remove_disc_flow(command)
+            case CliEditCommand():
+                self.edit_disc_flow(command)
+            case CliGetCommand():
+                self.get_disc_flow(command)
+            case CliSearchCommand():
+                self.search_discs_flow(command)
+            case _:
+                LOGGER.error(f"Command not implemented yet: command='{command}'")
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)

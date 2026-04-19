@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import json
 
 import pytest
@@ -15,7 +13,7 @@ def write_library(filepath, library: Library | dict) -> None:
 
 
 def read_library(filepath) -> dict:
-    with open(filepath, "r", encoding="utf-8") as file_obj:
+    with open(filepath, encoding="utf-8") as file_obj:
         return json.load(file_obj)
 
 

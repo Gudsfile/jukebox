@@ -1,4 +1,5 @@
-from typing import Any, Literal, Optional, Union, get_args, get_origin
+from types import UnionType
+from typing import Any, Literal, Union, get_args, get_origin
 
 from pydantic import BaseModel
 
@@ -55,7 +56,7 @@ def _field_type_name(annotation: Any) -> str:
     raise AssertionError(f"Unsupported field annotation: {annotation!r}")
 
 
-def _extract_model_type(annotation: Any) -> Optional[type[BaseModel]]:
+def _extract_model_type(annotation: Any) -> type[BaseModel] | None:
     annotation = _strip_none(annotation)
     if isinstance(annotation, type) and issubclass(annotation, BaseModel):
         return annotation
@@ -63,7 +64,7 @@ def _extract_model_type(annotation: Any) -> Optional[type[BaseModel]]:
 
 
 def _strip_none(annotation: Any) -> Any:
-    if get_origin(annotation) is not Union:
+    if get_origin(annotation) not in (Union, UnionType):
         return annotation
 
     args = tuple(arg for arg in get_args(annotation) if arg is not type(None))

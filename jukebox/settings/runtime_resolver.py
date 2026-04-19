@@ -1,5 +1,5 @@
 import os
-from typing import Any, Optional, Tuple
+from typing import Any, TypeAlias
 
 from pydantic import ValidationError
 
@@ -11,7 +11,7 @@ from .errors import InvalidSettingsError
 from .service_protocols import RuntimeSettingsService
 from .validation_rules import validate_settings_rules
 
-ActiveSonosTarget = Tuple[Optional[str], Optional[str], Optional[ResolvedSonosGroupRuntime]]
+ActiveSonosTarget: TypeAlias = tuple[str | None, str | None, ResolvedSonosGroupRuntime | None]
 
 
 class JukeboxRuntimeResolver:

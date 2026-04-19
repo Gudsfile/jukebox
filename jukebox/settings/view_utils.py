@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 from .types import JsonObject
 
@@ -31,7 +31,7 @@ def lookup_provenance_label(root: JsonObject, dotted_path: str) -> str:
     return collapsed_label
 
 
-def collapse_provenance_value(value: object) -> Optional[str]:
+def collapse_provenance_value(value: object) -> str | None:
     if isinstance(value, str):
         return value
     if not isinstance(value, dict):

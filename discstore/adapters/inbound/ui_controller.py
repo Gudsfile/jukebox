@@ -1,9 +1,5 @@
-import sys
-
-if sys.version_info < (3, 10):
-    raise RuntimeError("The `ui_controller` module requires Python 3.10+.")
-
-from typing import Annotated, AsyncIterator, List, Optional
+from collections.abc import AsyncIterator
+from typing import Annotated
 
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
 
@@ -84,7 +80,7 @@ class UIController(APIController):
         super().register_routes()
 
         @self.app.get("/api/ui/", response_model=FastUI, response_model_exclude_none=True)
-        def list_discs(toast: Optional[str] = None) -> List[AnyComponent]:
+        def list_discs(toast: str | None = None) -> list[AnyComponent]:
             return self._build_index_page_components(toast=toast)
 
         @self.app.get("/api/ui/current-tag-banner/events")
@@ -100,7 +96,7 @@ class UIController(APIController):
             )
 
         @self.app.get("/api/ui/discs/new", response_model=FastUI, response_model_exclude_none=True)
-        def new_disc_form(prefill: Optional[str] = None) -> List[AnyComponent]:
+        def new_disc_form(prefill: str | None = None) -> list[AnyComponent]:
             return self._build_form_page_components(
                 title="Add disc",
                 form_components=self._build_new_disc_form_components(prefill_current=(prefill == "current")),
@@ -127,7 +123,7 @@ class UIController(APIController):
             return self._build_success_response("toast-add-disc-success")
 
         @self.app.get("/api/ui/discs/{tag_id}/edit", response_model=FastUI, response_model_exclude_none=True)
-        def edit_disc_form(tag_id: str) -> List[AnyComponent]:
+        def edit_disc_form(tag_id: str) -> list[AnyComponent]:
             return self._build_form_page_components(
                 title=f"Edit disc {tag_id}",
                 form_components=self._build_edit_disc_form_components(tag_id),
@@ -169,7 +165,7 @@ class UIController(APIController):
             return self._build_success_response("toast-edit-disc-success")
 
         @self.app.get("/api/ui/discs/{tag_id}/delete", response_model=FastUI, response_model_exclude_none=True)
-        def delete_disc_confirmation(tag_id: str) -> List[AnyComponent]:
+        def delete_disc_confirmation(tag_id: str) -> list[AnyComponent]:
             return self._build_form_page_components(
                 title=f"Delete disc {tag_id}",
                 form_components=self._build_delete_disc_form_components(tag_id),
@@ -189,11 +185,11 @@ class UIController(APIController):
             return self._build_success_response("toast-remove-disc-success")
 
         @self.app.get("/api/ui/settings", response_model=FastUI, response_model_exclude_none=True)
-        def settings_page(toast: Optional[str] = None, toast_message: Optional[str] = None) -> List[AnyComponent]:
+        def settings_page(toast: str | None = None, toast_message: str | None = None) -> list[AnyComponent]:
             return self._build_settings_page_components(toast=toast, toast_message=toast_message)
 
         @self.app.get("/api/ui/settings/{setting_path}/edit", response_model=FastUI, response_model_exclude_none=True)
-        def edit_setting_form(setting_path: str) -> List[AnyComponent]:
+        def edit_setting_form(setting_path: str) -> list[AnyComponent]:
             return self._build_settings_edit_page_components(setting_path)
 
         @self.app.post("/api/ui/settings/{setting_path}", response_model=FastUI, response_model_exclude_none=True)
@@ -228,15 +224,15 @@ class UIController(APIController):
             return self._reset_setting(setting_path)
 
         @self.app.get("/api/ui/sonos", response_model=FastUI, response_model_exclude_none=True)
-        def sonos_page(toast: Optional[str] = None, toast_message: Optional[str] = None) -> List[AnyComponent]:
+        def sonos_page(toast: str | None = None, toast_message: str | None = None) -> list[AnyComponent]:
             return self._build_sonos_page_components(toast=toast, toast_message=toast_message)
 
         @self.app.get("/api/ui/sonos/edit", response_model=FastUI, response_model_exclude_none=True)
         def edit_sonos_form(
-            error_message: Optional[str] = None,
-            uids: Optional[List[str]] = None,
-            coordinator_uid: Optional[str] = None,
-        ) -> List[AnyComponent]:
+            error_message: str | None = None,
+            uids: list[str] | None = None,
+            coordinator_uid: str | None = None,
+        ) -> list[AnyComponent]:
             field_errors = None
             if error_message:
                 field_errors = {self._sonos_field_name_for_error(error_message): error_message}
@@ -304,10 +300,10 @@ class UIController(APIController):
 
     def _build_sonos_page_components(
         self,
-        toast: Optional[str] = None,
-        toast_message: Optional[str] = None,
-        error_message: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        toast: str | None = None,
+        toast_message: str | None = None,
+        error_message: str | None = None,
+    ) -> list[AnyComponent]:
         return self.sonos_pages.build_sonos_page_components(
             toast=toast,
             toast_message=toast_message,
@@ -316,11 +312,11 @@ class UIController(APIController):
 
     def _build_sonos_edit_page_components(
         self,
-        error_message: Optional[str] = None,
-        field_errors: Optional[dict[str, str]] = None,
-        submitted_uids: Optional[List[str]] = None,
-        submitted_coordinator_uid: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        error_message: str | None = None,
+        field_errors: dict[str, str] | None = None,
+        submitted_uids: list[str] | None = None,
+        submitted_coordinator_uid: str | None = None,
+    ) -> list[AnyComponent]:
         return self.sonos_pages.build_sonos_edit_page_components(
             error_message=error_message,
             field_errors=field_errors,
@@ -345,7 +341,7 @@ class UIController(APIController):
 
         return self.sonos_pages.build_sonos_success_response(str(result.get("message", "Settings saved.")))
 
-    def _persisted_sonos_selection_matches(self, uids: List[str], coordinator_uid: Optional[str]) -> bool:
+    def _persisted_sonos_selection_matches(self, uids: list[str], coordinator_uid: str | None) -> bool:
         try:
             selected_group = SettingsSelectedSonosGroupRepository(self.settings_service).get_selected_group()
         except Exception:
@@ -360,7 +356,7 @@ class UIController(APIController):
             and [member.uid for member in selected_group.members] == uids
         )
 
-    def _build_sonos_error_message(self, message: str, coordinator_uid: Optional[str]) -> str:
+    def _build_sonos_error_message(self, message: str, coordinator_uid: str | None) -> str:
         prefix = "Selected Sonos coordinator must be one of the selected speakers: "
         if coordinator_uid is None or not message.startswith(prefix):
             return message
@@ -376,21 +372,21 @@ class UIController(APIController):
 
         return f"{prefix}{speaker.name} [{speaker.uid}]"
 
-    def _build_index_page_components(self, toast: Optional[str] = None) -> List[AnyComponent]:
+    def _build_index_page_components(self, toast: str | None = None) -> list[AnyComponent]:
         return self.library_pages.build_index_page_components(toast=toast)
 
     def _build_settings_page_components(
         self,
-        toast: Optional[str] = None,
-        toast_message: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        toast: str | None = None,
+        toast_message: str | None = None,
+    ) -> list[AnyComponent]:
         return self.settings_pages.build_settings_page_components(toast=toast, toast_message=toast_message)
 
     def _build_settings_section_components(
         self,
         section: str,
-        settings: List[EditableSettingDisplay],
-    ) -> List[AnyComponent]:
+        settings: list[EditableSettingDisplay],
+    ) -> list[AnyComponent]:
         return self.settings_pages.build_settings_section_components(section, settings)
 
     def _build_settings_row(self, setting: EditableSettingDisplay, index: int) -> AnyComponent:
@@ -399,8 +395,8 @@ class UIController(APIController):
     def _build_settings_edit_page_components(
         self,
         setting_path: str,
-        reset_error: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        reset_error: str | None = None,
+    ) -> list[AnyComponent]:
         return self.settings_pages.build_settings_edit_page_components(setting_path, reset_error=reset_error)
 
     def _build_settings_edit_form(self, setting: EditableSettingDisplay) -> AnyComponent:
@@ -409,7 +405,7 @@ class UIController(APIController):
     def _build_settings_reset_form(self, setting_path: str) -> AnyComponent:
         return self.settings_pages.build_settings_reset_form(setting_path)
 
-    def _get_settings_displays(self) -> tuple[List[EditableSettingDisplay], Optional[str]]:
+    def _get_settings_displays(self) -> tuple[list[EditableSettingDisplay], str | None]:
         return self.settings_pages.get_settings_displays()
 
     def _build_settings_badges(self, setting: EditableSettingDisplay) -> list[AnyComponent]:
@@ -445,15 +441,13 @@ class UIController(APIController):
     def _format_settings_provenance(self, provenance: str) -> str:
         return self.settings_pages.format_settings_provenance(provenance)
 
-    def _build_form_page_components(self, title: str, form_components: List[AnyComponent]) -> List[AnyComponent]:
+    def _build_form_page_components(self, title: str, form_components: list[AnyComponent]) -> list[AnyComponent]:
         return self.library_pages.build_form_page_components(title=title, form_components=form_components)
 
-    def _build_current_tag_banner_components(
-        self, current_tag_status: Optional[CurrentTagStatus]
-    ) -> List[AnyComponent]:
+    def _build_current_tag_banner_components(self, current_tag_status: CurrentTagStatus | None) -> list[AnyComponent]:
         return self.library_pages.build_current_tag_banner_components(current_tag_status)
 
-    def _build_disc_library_components(self, discs: List[DiscTable]) -> List[AnyComponent]:
+    def _build_disc_library_components(self, discs: list[DiscTable]) -> list[AnyComponent]:
         return self.library_pages.build_disc_library_components(discs)
 
     def _build_disc_library_header(self) -> AnyComponent:
@@ -465,16 +459,16 @@ class UIController(APIController):
     def _build_disc_header_cell(self, label: str, class_name: str) -> AnyComponent:
         return self.library_pages._build_disc_header_cell(label, class_name)
 
-    def _build_disc_value_cell(self, label: str, value: Optional[str], class_name: str) -> AnyComponent:
+    def _build_disc_value_cell(self, label: str, value: str | None, class_name: str) -> AnyComponent:
         return self.library_pages._build_disc_value_cell(label, value, class_name)
 
-    def _build_new_disc_form_components(self, prefill_current: bool) -> List[AnyComponent]:
+    def _build_new_disc_form_components(self, prefill_current: bool) -> list[AnyComponent]:
         return self.library_pages.build_new_disc_form_components(prefill_current)
 
-    def _build_edit_disc_form_components(self, tag_id: str) -> List[AnyComponent]:
+    def _build_edit_disc_form_components(self, tag_id: str) -> list[AnyComponent]:
         return self.library_pages.build_edit_disc_form_components(tag_id)
 
-    def _build_delete_disc_form_components(self, tag_id: str) -> List[AnyComponent]:
+    def _build_delete_disc_form_components(self, tag_id: str) -> list[AnyComponent]:
         return self.library_pages.build_delete_disc_form_components(tag_id)
 
     async def _current_tag_banner_event_stream(
@@ -485,7 +479,7 @@ class UIController(APIController):
         async for payload in self.library_pages.current_tag_banner_event_stream(request, poll_interval_seconds):
             yield payload
 
-    def _serialize_current_tag_components(self, components: List[AnyComponent]) -> str:
+    def _serialize_current_tag_components(self, components: list[AnyComponent]) -> str:
         return self.library_pages.serialize_current_tag_components(components)
 
     @staticmethod
