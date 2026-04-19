@@ -1,5 +1,5 @@
 import os
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -23,7 +23,7 @@ class SelectedSonosSpeakerSettings(StrictModel):
 
 
 class SelectedSonosGroupSettings(StrictModel):
-    household_id: Optional[str] = Field(default=None, exclude_if=lambda value: value is None)
+    household_id: str | None = Field(default=None, exclude_if=lambda value: value is None)
     coordinator_uid: str
     members: list[SelectedSonosSpeakerSettings]
 
@@ -43,12 +43,12 @@ class SelectedSonosGroupSettings(StrictModel):
 
 
 class PersistedSonosPlayerSettings(StrictModel):
-    selected_group: Optional[SelectedSonosGroupSettings] = None
+    selected_group: SelectedSonosGroupSettings | None = None
 
 
 class SonosPlayerSettings(PersistedSonosPlayerSettings):
-    manual_host: Optional[str] = None
-    manual_name: Optional[str] = None
+    manual_host: str | None = None
+    manual_name: str | None = None
 
     @model_validator(mode="after")
     def validate_manual_target(self):
@@ -67,9 +67,9 @@ class PlayerSettings(PersistedPlayerSettings):
 
 
 class Pn532SpiSettings(StrictModel):
-    reset: Optional[int] = Field(default=None, ge=0)
-    cs: Optional[int] = Field(default=None, ge=0)
-    irq: Optional[int] = Field(default=None, ge=0)
+    reset: int | None = Field(default=None, ge=0)
+    cs: int | None = Field(default=None, ge=0)
+    irq: int | None = Field(default=None, ge=0)
 
 
 class Pn532ReaderSettings(StrictModel):
@@ -129,93 +129,93 @@ class AppSettings(PersistedAppSettings):
 
 
 class SparseSelectedSonosSpeakerSettings(StrictModel):
-    uid: Optional[str] = None
+    uid: str | None = None
 
 
 class SparseSelectedSonosGroupSettings(StrictModel):
-    household_id: Optional[str] = None
-    coordinator_uid: Optional[str] = None
-    members: Optional[list[SparseSelectedSonosSpeakerSettings]] = None
+    household_id: str | None = None
+    coordinator_uid: str | None = None
+    members: list[SparseSelectedSonosSpeakerSettings] | None = None
 
 
 class SparsePersistedSonosPlayerSettings(StrictModel):
-    selected_group: Optional[SparseSelectedSonosGroupSettings] = None
+    selected_group: SparseSelectedSonosGroupSettings | None = None
 
 
 class SparseSonosPlayerSettings(SparsePersistedSonosPlayerSettings):
-    manual_host: Optional[str] = None
-    manual_name: Optional[str] = None
+    manual_host: str | None = None
+    manual_name: str | None = None
 
 
 class SparsePersistedPlayerSettings(StrictModel):
-    type: Optional[Literal["dryrun", "sonos"]] = None
-    sonos: Optional[SparsePersistedSonosPlayerSettings] = None
+    type: Literal["dryrun", "sonos"] | None = None
+    sonos: SparsePersistedSonosPlayerSettings | None = None
 
 
 class SparsePlayerSettings(SparsePersistedPlayerSettings):
-    sonos: Optional[SparseSonosPlayerSettings] = None
+    sonos: SparseSonosPlayerSettings | None = None
 
 
 class SparsePn532SpiSettings(StrictModel):
-    reset: Optional[int] = Field(default=None, ge=0)
-    cs: Optional[int] = Field(default=None, ge=0)
-    irq: Optional[int] = Field(default=None, ge=0)
+    reset: int | None = Field(default=None, ge=0)
+    cs: int | None = Field(default=None, ge=0)
+    irq: int | None = Field(default=None, ge=0)
 
 
 class SparsePn532ReaderSettings(StrictModel):
-    read_timeout_seconds: Optional[float] = None
-    board_profile: Optional[Literal["waveshare_hat", "hiletgo_v3", "custom"]] = None
-    protocol: Optional[Literal["spi"]] = None
-    spi: Optional[SparsePn532SpiSettings] = None
+    read_timeout_seconds: float | None = None
+    board_profile: Literal["waveshare_hat", "hiletgo_v3", "custom"] | None = None
+    protocol: Literal["spi"] | None = None
+    spi: SparsePn532SpiSettings | None = None
 
 
 class SparseReaderSettings(StrictModel):
-    type: Optional[Literal["dryrun", "pn532"]] = None
-    pn532: Optional[SparsePn532ReaderSettings] = None
+    type: Literal["dryrun", "pn532"] | None = None
+    pn532: SparsePn532ReaderSettings | None = None
 
 
 class SparsePlaybackSettings(StrictModel):
-    pause_duration_seconds: Optional[int] = None
-    pause_delay_seconds: Optional[float] = None
+    pause_duration_seconds: int | None = None
+    pause_delay_seconds: float | None = None
 
 
 class SparseRuntimeSettings(StrictModel):
-    loop_interval_seconds: Optional[float] = None
+    loop_interval_seconds: float | None = None
 
 
 class SparsePersistedJukeboxSettings(StrictModel):
-    player: Optional[SparsePersistedPlayerSettings] = None
-    reader: Optional[SparseReaderSettings] = None
-    playback: Optional[SparsePlaybackSettings] = None
-    runtime: Optional[SparseRuntimeSettings] = None
+    player: SparsePersistedPlayerSettings | None = None
+    reader: SparseReaderSettings | None = None
+    playback: SparsePlaybackSettings | None = None
+    runtime: SparseRuntimeSettings | None = None
 
 
 class SparseJukeboxSettings(SparsePersistedJukeboxSettings):
-    player: Optional[SparsePlayerSettings] = None
+    player: SparsePlayerSettings | None = None
 
 
 class SparseServerSettings(StrictModel):
-    port: Optional[int] = None
+    port: int | None = None
 
 
 class SparsePathsSettings(StrictModel):
-    library_path: Optional[str] = None
+    library_path: str | None = None
 
 
 class SparseAdminSettings(StrictModel):
-    api: Optional[SparseServerSettings] = None
-    ui: Optional[SparseServerSettings] = None
+    api: SparseServerSettings | None = None
+    ui: SparseServerSettings | None = None
 
 
 class SparsePersistedAppSettings(StrictModel):
     schema_version: int
-    paths: Optional[SparsePathsSettings] = None
-    jukebox: Optional[SparsePersistedJukeboxSettings] = None
-    admin: Optional[SparseAdminSettings] = None
+    paths: SparsePathsSettings | None = None
+    jukebox: SparsePersistedJukeboxSettings | None = None
+    admin: SparseAdminSettings | None = None
 
 
 class SparseAppSettings(SparsePersistedAppSettings):
-    jukebox: Optional[SparseJukeboxSettings] = None
+    jukebox: SparseJukeboxSettings | None = None
 
 
 class ResolvedSonosSpeakerRuntime(StrictModel):
@@ -263,9 +263,9 @@ class ResolvedSonosGroupRuntime(StrictModel):
 class ResolvedJukeboxRuntimeConfig(StrictModel):
     library_path: str
     player_type: Literal["dryrun", "sonos"]
-    sonos_host: Optional[str] = None
-    sonos_name: Optional[str] = None
-    sonos_group: Optional[ResolvedSonosGroupRuntime] = None
+    sonos_host: str | None = None
+    sonos_name: str | None = None
+    sonos_group: ResolvedSonosGroupRuntime | None = None
     reader_type: Literal["dryrun", "pn532"]
     pause_duration_seconds: int
     pause_delay_seconds: float

@@ -1,4 +1,5 @@
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from jukebox.settings.service_protocols import SettingsService
 

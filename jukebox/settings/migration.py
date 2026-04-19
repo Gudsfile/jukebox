@@ -1,5 +1,4 @@
 import copy
-from typing import Tuple
 
 from .errors import InvalidSettingsError, UnsupportedSettingsVersionError
 from .types import JsonObject, JsonValue
@@ -7,7 +6,7 @@ from .types import JsonObject, JsonValue
 CURRENT_SETTINGS_SCHEMA_VERSION = 1
 
 
-def migrate_settings_data(data: JsonValue) -> Tuple[JsonObject, bool]:
+def migrate_settings_data(data: JsonValue) -> tuple[JsonObject, bool]:
     if not isinstance(data, dict):
         raise InvalidSettingsError("The settings file root must be a JSON object.")
 

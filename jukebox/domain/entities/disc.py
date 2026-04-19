@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, Field
 
 
@@ -13,10 +11,10 @@ class DiscOption(BaseModel):
 class DiscMetadata(BaseModel):
     """Metadata information for a disc."""
 
-    artist: Optional[str] = Field(default=None, description="Name of the artist or band", examples=["Zubi", None])
-    album: Optional[str] = Field(default=None, description="Name of the album", examples=["Dear Z", None])
-    track: Optional[str] = Field(default=None, description="Name of the track", examples=["dey ok", None])
-    playlist: Optional[str] = Field(default=None, description="Name of the playlist", examples=["dey ok", None])
+    artist: str | None = Field(default=None, description="Name of the artist or band", examples=["Zubi", None])
+    album: str | None = Field(default=None, description="Name of the album", examples=["Dear Z", None])
+    track: str | None = Field(default=None, description="Name of the track", examples=["dey ok", None])
+    playlist: str | None = Field(default=None, description="Name of the playlist", examples=["dey ok", None])
 
 
 class Disc(BaseModel):

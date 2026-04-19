@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 import pytest
 
@@ -88,8 +87,8 @@ def test_resolve_connection_params_raises_for_unsupported_protocol():
 def test_resolve_connection_params_raises_for_mismatched_override_type():
     @dataclass(frozen=True)
     class UartConnectionParams:
-        tx: Optional[int]
-        rx: Optional[int]
+        tx: int | None
+        rx: int | None
 
     with pytest.raises(ValueError, match="Expected overrides of type SpiConnectionParams"):
         resolve_connection_params(

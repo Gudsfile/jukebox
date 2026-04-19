@@ -1,16 +1,16 @@
-from typing import Literal, Optional, Union
+from typing import Literal, Union
 
 from pydantic import BaseModel, model_validator
 
 
 class ApiCommand(BaseModel):
     type: Literal["api"]
-    port: Optional[int] = None
+    port: int | None = None
 
 
 class UiCommand(BaseModel):
     type: Literal["ui"]
-    port: Optional[int] = None
+    port: int | None = None
 
 
 class SonosListCommand(BaseModel):
@@ -19,9 +19,9 @@ class SonosListCommand(BaseModel):
 
 class SonosSelectCommand(BaseModel):
     type: Literal["sonos_select"]
-    uids: Optional[list[str]] = None
-    coordinator: Optional[str] = None
-    household: Optional[str] = None
+    uids: list[str] | None = None
+    coordinator: str | None = None
+    household: str | None = None
 
     @model_validator(mode="after")
     def validate_coordinator_requires_uids(self):

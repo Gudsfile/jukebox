@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -9,7 +9,7 @@ class Pn532ProfilesCommand(BaseModel):
 
 class Pn532SelectCommand(BaseModel):
     type: Literal["pn532_select"]
-    profile: Optional[str] = None
+    profile: str | None = None
 
 
 class Pn532ProbeCommand(BaseModel):

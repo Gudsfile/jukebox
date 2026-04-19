@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
+from collections.abc import Iterable, Mapping
+from typing import cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -244,7 +245,7 @@ def _format_effective_suffix(provenance: str, requires_restart: bool) -> str:
     return f" ({'; '.join(suffix_parts)})"
 
 
-def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_persisted_entries(node: JsonObject, prefix: str | None = None) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         if key == "schema_version":
             continue
@@ -258,7 +259,7 @@ def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -
         yield dotted_path, value
 
 
-def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}"
         if isinstance(value, dict):
@@ -268,7 +269,7 @@ def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[st
         yield dotted_path, value
 
 
-def _collect_leaf_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_leaf_entries(node: JsonObject, prefix: str | None = None) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
@@ -278,7 +279,7 @@ def _collect_leaf_entries(node: JsonObject, prefix: Optional[str] = None) -> Ite
         yield dotted_path, value
 
 
-def _group_entries_by_section(entries: Iterable[Tuple[str, JsonValue]]) -> Dict[str, List[Tuple[str, JsonValue]]]:
+def _group_entries_by_section(entries: Iterable[tuple[str, JsonValue]]) -> dict[str, list[tuple[str, JsonValue]]]:
     grouped_entries = {}
     for dotted_path, value in entries:
         section = _section_for_path(dotted_path)
@@ -341,7 +342,7 @@ def _format_selected_group(value: object) -> str:
     if not isinstance(value, dict):
         return str(value)
 
-    selected_group = cast(Dict[str, object], value)
+    selected_group = cast(dict[str, object], value)
     household_id = selected_group.get("household_id")
     members = selected_group.get("members")
     coordinator_uid = selected_group.get("coordinator_uid")
@@ -352,7 +353,7 @@ def _format_selected_group(value: object) -> str:
     for member in members:
         if not isinstance(member, dict):
             continue
-        selected_member = cast(Dict[str, object], member)
+        selected_member = cast(dict[str, object], member)
         uid = selected_member.get("uid")
         if not isinstance(uid, str):
             continue
@@ -470,7 +471,7 @@ def _extract_compact_detail(message: str) -> str:
     return detail_lines[-1]
 
 
-def _extract_quoted_path(message: str) -> Optional[str]:
+def _extract_quoted_path(message: str) -> str | None:
     match = re.search(r"'([^']+)'", message)
     if match is None:
         return None

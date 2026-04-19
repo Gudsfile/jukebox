@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Protocol
+from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
@@ -18,7 +18,7 @@ class StrictModel(BaseModel):
 class SonosSelectionMemberAvailability(StrictModel):
     uid: str
     status: Literal["available", "unavailable"]
-    speaker: Optional[DiscoveredSonosSpeaker] = None
+    speaker: DiscoveredSonosSpeaker | None = None
 
 
 class SonosSelectionAvailability(StrictModel):
@@ -27,7 +27,7 @@ class SonosSelectionAvailability(StrictModel):
 
 
 class SonosSelectionStatus(StrictModel):
-    selected_group: Optional[SelectedSonosGroupSettings] = None
+    selected_group: SelectedSonosGroupSettings | None = None
     availability: SonosSelectionAvailability
 
 
@@ -45,7 +45,7 @@ class SaveSelectedSonosGroupResult(StrictModel):
 
 
 class SelectedSonosGroupRepository(Protocol):
-    def get_selected_group(self) -> Optional[SelectedSonosGroupSettings]: ...
+    def get_selected_group(self) -> SelectedSonosGroupSettings | None: ...
 
     def save_selected_group(self, selected_group: SelectedSonosGroupSettings) -> SaveSelectedSonosGroupResult: ...
 
@@ -58,8 +58,8 @@ class SaveSonosSelection:
     def execute(
         self,
         uids: list[str],
-        coordinator_uid: Optional[str] = None,
-        requested_household_id: Optional[str] = None,
+        coordinator_uid: str | None = None,
+        requested_household_id: str | None = None,
     ) -> SonosSelectionResult:
         available_speakers = self.sonos_service.list_network_speakers()
         validated_group = _validate_selection_request(
@@ -144,8 +144,8 @@ class _ValidatedSonosSelectionRequest(StrictModel):
 def _validate_selection_request(
     available_speakers: list[DiscoveredSonosSpeaker],
     requested_uids: list[str],
-    coordinator_uid: Optional[str] = None,
-    requested_household_id: Optional[str] = None,
+    coordinator_uid: str | None = None,
+    requested_household_id: str | None = None,
 ) -> _ValidatedSonosSelectionRequest:
     if not requested_uids:
         raise ValueError("`uids` must include at least one UID.")

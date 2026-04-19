@@ -1,6 +1,6 @@
 import json
 from itertools import groupby
-from typing import List, Optional, cast
+from typing import cast
 from urllib.parse import urlencode
 
 from fastapi import HTTPException
@@ -59,9 +59,9 @@ class SettingsUIPageBuilder:
 
     def build_settings_page_components(
         self,
-        toast: Optional[str] = None,
-        toast_message: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        toast: str | None = None,
+        toast_message: str | None = None,
+    ) -> list[AnyComponent]:
         settings, effective_settings_error = self.get_settings_displays()
         components: list[AnyComponent] = [
             c.Heading(text="Settings", level=1),
@@ -105,8 +105,8 @@ class SettingsUIPageBuilder:
     def build_settings_section_components(
         self,
         section: str,
-        settings: List[EditableSettingDisplay],
-    ) -> List[AnyComponent]:
+        settings: list[EditableSettingDisplay],
+    ) -> list[AnyComponent]:
         first_setting = settings[0]
         section_components: list[AnyComponent] = [
             c.Heading(text=first_setting.section_label, level=2),
@@ -171,8 +171,8 @@ class SettingsUIPageBuilder:
     def build_settings_edit_page_components(
         self,
         setting_path: str,
-        reset_error: Optional[str] = None,
-    ) -> List[AnyComponent]:
+        reset_error: str | None = None,
+    ) -> list[AnyComponent]:
         settings, effective_settings_error = self.get_settings_displays()
         setting = next((candidate for candidate in settings if candidate.path == setting_path), None)
         if setting is None:
@@ -339,9 +339,9 @@ class SettingsUIPageBuilder:
             footer=[c.Button(text="Reset", html_type="submit", class_name="btn btn-outline-danger text-nowrap px-3")],
         )
 
-    def get_settings_displays(self) -> tuple[List[EditableSettingDisplay], Optional[str]]:
+    def get_settings_displays(self) -> tuple[list[EditableSettingDisplay], str | None]:
         persisted_settings = self.settings_service.get_persisted_settings_view()
-        effective_settings_error: Optional[str] = None
+        effective_settings_error: str | None = None
         try:
             effective_settings_view = self.settings_service.get_effective_settings_view()
         except SettingsError as err:

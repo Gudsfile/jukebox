@@ -1,6 +1,5 @@
 import sys
 from io import StringIO
-from typing import Dict
 
 import pytest
 
@@ -9,7 +8,7 @@ from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
 
 @pytest.fixture
-def sample_discs() -> Dict[str, Disc]:
+def sample_discs() -> dict[str, Disc]:
     return {
         "abc123": Disc(
             uri="/path/to/music.mp3",

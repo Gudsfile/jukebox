@@ -1,6 +1,6 @@
 import dataclasses
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 Pn532BoardProfile = Literal["waveshare_hat", "hiletgo_v3", "custom"]
 
@@ -9,9 +9,9 @@ Pn532Protocol = Literal["spi"]
 
 @dataclass(frozen=True)
 class SpiConnectionParams:
-    reset: Optional[int]
-    cs: Optional[int]
-    irq: Optional[int]
+    reset: int | None
+    cs: int | None
+    irq: int | None
 
 
 # Today SpiConnectionParams only; Union[SpiConnectionParams, UartConnectionParams, ...]

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from jukebox.sonos.selection import (
     SaveSelectedSonosGroupResult,
     SelectedSonosGroupRepository,
@@ -14,7 +12,7 @@ class SettingsSelectedSonosGroupRepository(SelectedSonosGroupRepository):
     def __init__(self, settings_service: SettingsService):
         self.settings_service = settings_service
 
-    def get_selected_group(self) -> Optional[SelectedSonosGroupSettings]:
+    def get_selected_group(self) -> SelectedSonosGroupSettings | None:
         persisted = self.settings_service.get_persisted_settings_view()
         selected_group_data = _lookup_selected_group(persisted)
         if selected_group_data is None:
@@ -40,7 +38,7 @@ class SettingsSelectedSonosGroupRepository(SelectedSonosGroupRepository):
         )
 
 
-def _lookup_selected_group(persisted: JsonObject) -> Optional[JsonObject]:
+def _lookup_selected_group(persisted: JsonObject) -> JsonObject | None:
     jukebox_settings = persisted.get("jukebox")
     if not isinstance(jukebox_settings, dict):
         return None

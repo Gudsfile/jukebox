@@ -2,7 +2,6 @@ import json
 import os
 import tempfile
 from contextlib import suppress
-from typing import Optional
 
 from pydantic import ValidationError
 
@@ -14,7 +13,7 @@ from .types import JsonObject
 
 
 class FileSettingsRepository:
-    def __init__(self, filepath: Optional[str] = None):
+    def __init__(self, filepath: str | None = None):
         if filepath is None:
             xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
             self.filepath = os.path.expanduser(os.path.join(xdg_config_home, "jukebox/settings.json"))
@@ -26,7 +25,7 @@ class FileSettingsRepository:
             return {"schema_version": CURRENT_SETTINGS_SCHEMA_VERSION}
 
         try:
-            with open(self.filepath, "r", encoding="utf-8") as file_obj:
+            with open(self.filepath, encoding="utf-8") as file_obj:
                 raw_data = json.load(file_obj)
         except json.JSONDecodeError as err:
             raise MalformedSettingsFileError(f"Malformed settings file at '{self.filepath}': {err}") from err

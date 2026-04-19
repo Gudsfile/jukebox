@@ -1,10 +1,9 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
 
 class CurrentTagRepository(ABC):
     @abstractmethod
-    def get(self) -> Optional[str]:
+    def get(self) -> str | None:
         pass
 
     @abstractmethod
