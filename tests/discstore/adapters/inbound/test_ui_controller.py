@@ -18,7 +18,6 @@ def build_speaker(uid, name, host, household_id):
     )
 
 
-@pytest.mark.skipif(sys.version_info < (3, 10), reason="FastUI requires Python 3.10+")
 def test_dependencies_import_failure(mocker):
     sys.modules.pop("discstore.adapters.inbound.ui_controller", None)
     mocker.patch.dict("sys.modules", {"fastui": None})
@@ -132,10 +131,7 @@ def walk_components(components):
             yield from walk_components(children)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_ui_controller_registers_fastui_routes_and_page_structure():
     from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
@@ -260,10 +256,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
     assert "/api/ui" in html_response.body.decode("utf-8")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_settings_page_groups_entries_and_shows_persisted_and_effective_values():
     controller = build_controller()
 
@@ -313,10 +306,7 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
     assert page[1].event.name == "toast-settings-success"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_settings_edit_pages_render_select_text_and_json_fields():
     controller = build_controller()
     route = next(
@@ -382,10 +372,7 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
     assert reset_form.footer[0].text == "Reset"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_sonos_page_renders_saved_selection_and_discovered_speakers():
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos")
@@ -412,10 +399,7 @@ def test_sonos_page_renders_saved_selection_and_discovered_speakers():
     assert page[1].event.name == "toast-sonos-success"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_sonos_edit_page_renders_speaker_and_coordinator_selects():
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
@@ -453,10 +437,7 @@ def test_sonos_edit_page_renders_speaker_and_coordinator_selects():
     assert form.method == "POST"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_saves_and_redirects():
     from discstore.adapters.inbound.ui_controller import SonosSelectionForm
@@ -495,10 +476,7 @@ async def test_update_sonos_selection_saves_and_redirects():
     assert "Changes+take+effect+after+restart." in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_returns_field_error_for_invalid_coordinator():
     from discstore.adapters.inbound.ui_controller import SonosSelectionForm
@@ -522,10 +500,7 @@ async def test_update_sonos_selection_returns_field_error_for_invalid_coordinato
     assert "coordinator_uid=speaker-2" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values():
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
@@ -557,10 +532,7 @@ def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values():
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_saves_single_speaker_selection():
     from discstore.adapters.inbound.ui_controller import SonosSelectionForm
@@ -595,10 +567,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
     assert response[0].event.url.startswith("/sonos?")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
     from discstore.adapters.inbound.ui_controller import SonosSelectionForm
@@ -639,10 +608,7 @@ async def test_update_sonos_selection_redirects_when_write_succeeds_but_effectiv
     assert "effective+settings+are+still+unavailable" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_sonos_selection_calls_service_and_redirects():
     controller = build_controller()
@@ -661,10 +627,7 @@ async def test_reset_sonos_selection_calls_service_and_redirects():
     assert "toast=toast-sonos-success" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable():
     from jukebox.settings.errors import InvalidSettingsError
 
@@ -706,10 +669,7 @@ def test_settings_pages_render_error_banner_when_effective_settings_are_unavaila
     assert any(component.type == "Paragraph" and component.text == "8100" for component in edit_components)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_settings_page_renders_mixed_provenance_label():
     controller = build_controller()
     controller.settings_service.get_effective_settings_view.return_value["provenance"]["jukebox"]["player"]["sonos"][
@@ -726,10 +686,7 @@ def test_settings_page_renders_mixed_provenance_label():
     assert any(component.type == "Paragraph" and component.text == "Mixed source" for component in all_components)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
     controller = build_controller()
     controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
@@ -785,10 +742,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_builds_scalar_patch_and_redirects_with_service_message():
     from discstore.adapters.inbound.ui_controller import SettingValueForm
@@ -812,10 +766,7 @@ async def test_update_setting_builds_scalar_patch_and_redirects_with_service_mes
     assert "Changes+take+effect+after+restart." in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_builds_object_patch_from_json_text():
     from discstore.adapters.inbound.ui_controller import SettingValueForm
@@ -850,10 +801,7 @@ async def test_update_setting_builds_object_patch_from_json_text():
     assert response[0].event.url.startswith("/settings?")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_treats_blank_object_text_as_none():
     from discstore.adapters.inbound.ui_controller import SettingValueForm
@@ -881,10 +829,7 @@ async def test_update_setting_treats_blank_object_text_as_none():
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_returns_field_error_for_invalid_json():
     from fastapi import HTTPException
@@ -912,10 +857,7 @@ async def test_update_setting_returns_field_error_for_invalid_json():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_returns_field_error_for_non_object_json():
     from fastapi import HTTPException
@@ -943,10 +885,7 @@ async def test_update_setting_returns_field_error_for_non_object_json():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
     from discstore.adapters.inbound.ui_controller import SettingValueForm
@@ -989,10 +928,7 @@ async def test_update_setting_redirects_when_write_succeeds_but_effective_settin
     assert "effective+settings+are+still+unavailable" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_returns_field_error_for_shared_validation_failure():
     from fastapi import HTTPException
@@ -1022,10 +958,7 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_setting_redirects_when_reset_succeeds_but_effective_settings_stay_invalid():
     from jukebox.settings.errors import InvalidSettingsError
@@ -1068,10 +1001,7 @@ async def test_reset_setting_redirects_when_reset_succeeds_but_effective_setting
     assert "effective+settings+are+still+unavailable" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_setting_calls_service_and_returns_refreshed_settings_page():
     controller = build_controller()
@@ -1089,10 +1019,7 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
     assert response[0].event.url.startswith("/settings?")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_setting_rerenders_edit_page_with_visible_error():
     from jukebox.settings.errors import InvalidSettingsError
@@ -1118,10 +1045,7 @@ async def test_reset_setting_rerenders_edit_page_with_visible_error():
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_ui_controller_does_not_register_get_reset_setting_route():
     controller = build_controller()
 
@@ -1132,10 +1056,7 @@ def test_ui_controller_does_not_register_get_reset_setting_route():
     )
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_disc_library_components_render_empty_and_editable_states():
     from discstore.adapters.inbound.ui_controller import DiscTable
 
@@ -1164,10 +1085,7 @@ def test_disc_library_components_render_empty_and_editable_states():
     assert edit_button.on_click.url == "/discs/tag-123/edit"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_current_tag_banner_for_unknown_disc_offers_add_cta():
     from discstore.domain.entities import CurrentTagStatus
 
@@ -1185,10 +1103,7 @@ def test_current_tag_banner_for_unknown_disc_offers_add_cta():
     assert button.on_click.url == "/discs/new?prefill=current"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_current_tag_banner_for_known_disc_is_informational_only():
     from discstore.domain.entities import CurrentTagStatus
 
@@ -1205,10 +1120,7 @@ def test_current_tag_banner_for_known_disc_is_informational_only():
     assert button.on_click.url == "/discs/tag-123/edit"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_new_disc_form_components_render_blank_add_form():
     controller = build_controller()
 
@@ -1220,10 +1132,7 @@ def test_new_disc_form_components_render_blank_add_form():
     assert form.initial is None
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_new_disc_form_components_can_prefill_current_tag():
     from discstore.domain.entities import CurrentTagStatus
 
@@ -1238,10 +1147,7 @@ def test_new_disc_form_components_can_prefill_current_tag():
     assert form.initial == {"tag": "tag-123", "shuffle": False}
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_edit_disc_form_components_prefill_existing_disc():
     from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 
@@ -1267,10 +1173,7 @@ def test_edit_disc_form_components_prefill_existing_disc():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_disc_form_helpers_return_errors_for_invalid_current_tag_state_or_missing_edit_target():
     from discstore.domain.entities import CurrentTagStatus
 
@@ -1290,10 +1193,7 @@ def test_disc_form_helpers_return_errors_for_invalid_current_tag_state_or_missin
     assert missing_disc_components[0].type == "Error"
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_form_page_components_include_back_link_and_form():
     controller = build_controller()
     components = controller._build_form_page_components(
@@ -1308,10 +1208,7 @@ def test_form_page_components_include_back_link_and_form():
     assert any(component.type == "Link" and component.on_click.url == "/" for component in page_components)
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_current_tag_banner_event_stream_emits_serialized_updates():
     from discstore.domain.entities import CurrentTagStatus
@@ -1329,10 +1226,7 @@ async def test_current_tag_banner_event_stream_emits_serialized_updates():
     assert "Unknown disc on reader" in first_chunk.decode("utf-8")
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_create_disc_returns_success_toast():
     from discstore.adapters.inbound.ui_controller import DiscForm
@@ -1358,10 +1252,7 @@ async def test_create_disc_returns_success_toast():
     assert "toast=toast-add-disc-success" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_create_disc_returns_conflict_when_add_fails():
     from fastapi import HTTPException
@@ -1386,10 +1277,7 @@ async def test_create_disc_returns_conflict_when_add_fails():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_disc_uses_edit_path():
     from discstore.adapters.inbound.ui_controller import DiscForm
@@ -1417,10 +1305,7 @@ async def test_update_disc_uses_edit_path():
     assert "toast=toast-edit-disc-success" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_disc_rejects_tag_changes():
     from fastapi import HTTPException
@@ -1448,10 +1333,7 @@ async def test_update_disc_rejects_tag_changes():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_disc_returns_field_error_when_edit_target_is_missing():
     from fastapi import HTTPException
@@ -1480,10 +1362,7 @@ async def test_update_disc_returns_field_error_when_edit_target_is_missing():
     }
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_delete_disc_endpoint_calls_remove_use_case():
     controller = build_controller()
@@ -1501,10 +1380,7 @@ async def test_delete_disc_endpoint_calls_remove_use_case():
     assert "toast=toast-remove-disc-success" in response[0].event.url
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_delete_disc_returns_404_when_disc_not_found():
     from fastapi import HTTPException
@@ -1524,10 +1400,7 @@ async def test_delete_disc_returns_404_when_disc_not_found():
     assert "Disc not found" in err.value.detail
 
 
-@pytest.mark.skipif(
-    sys.version_info < (3, 10) or util.find_spec("fastui") is None,
-    reason="FastUI dependencies are not installed",
-)
+@pytest.mark.skipif(util.find_spec("fastui") is None, reason="FastUI dependencies are not installed")
 def test_index_page_shows_remove_toast():
     controller = build_controller()
     components = controller._build_index_page_components(toast="toast-remove-disc-success")
