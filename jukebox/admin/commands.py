@@ -1,4 +1,4 @@
-from typing import Literal, Union
+from typing import Literal
 
 from pydantic import BaseModel, model_validator
 
@@ -53,16 +53,16 @@ class SettingsResetCommand(BaseModel):
     json_output: bool = False
 
 
-AdminCommand = Union[
-    ApiCommand,
-    SettingsResetCommand,
-    SettingsSetCommand,
-    SettingsShowCommand,
-    SonosListCommand,
-    SonosSelectCommand,
-    SonosShowCommand,
-    UiCommand,
-]
+AdminCommand = (
+    ApiCommand
+    | SettingsResetCommand
+    | SettingsSetCommand
+    | SettingsShowCommand
+    | SonosListCommand
+    | SonosSelectCommand
+    | SonosShowCommand
+    | UiCommand
+)
 
 
 def is_admin_command(command: object) -> bool:
