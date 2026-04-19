@@ -39,6 +39,8 @@ Python 3.7 is supported by Jukebox up to version 0.4.1.
 
 Python 3.8 is supported by Jukebox up to version 0.5.4.
 
+Python 3.9 and Python 3.10 are supported by Jukebox up to version 0.9.0.
+
 The `ui` extension is only available for Python versions 3.10 and above.
 
 ## Install
@@ -132,10 +134,9 @@ jukebox-admin settings show --effective
 To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
 
 ```shell
-# Python 3.9+ required
 uv tool install gukebox[api]
 
-# Python 3.10+ required, ui includes the api extra
+# ui includes the api extra
 uv tool install gukebox[ui]
 ```
 
