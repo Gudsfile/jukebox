@@ -238,7 +238,7 @@ def _expand_path(path: str) -> str:
 def _derive_pn532(effective_settings: AppSettings) -> JsonObject:
     pn532 = effective_settings.jukebox.reader.pn532
     overrides = SpiConnectionParams(reset=pn532.spi.reset, cs=pn532.spi.cs, irq=pn532.spi.irq)
-    resolved = resolve_connection_params(pn532.board_profile, overrides)
+    resolved = resolve_connection_params(pn532.board_profile, pn532.protocol, overrides)
     return {
         "reader": {
             "pn532": {

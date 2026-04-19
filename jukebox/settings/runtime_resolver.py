@@ -65,4 +65,4 @@ class JukeboxRuntimeResolver:
 
 def _resolve_pn532_connection(pn532: Pn532ReaderSettings) -> SpiConnectionParams:
     overrides = SpiConnectionParams(reset=pn532.spi.reset, cs=pn532.spi.cs, irq=pn532.spi.irq)
-    return resolve_connection_params(pn532.board_profile, overrides)
+    return resolve_connection_params(pn532.board_profile, pn532.protocol, overrides)

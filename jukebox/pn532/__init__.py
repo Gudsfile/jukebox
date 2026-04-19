@@ -3,6 +3,7 @@ from .profiles import (
     Pn532BoardProfile,
     Pn532BoardProfileDefaults,
     Pn532ConnectionParams,
+    Pn532Protocol,
     SpiConnectionParams,
     resolve_connection_params,
 )
@@ -12,6 +13,7 @@ __all__ = [
     "Pn532BoardProfile",
     "Pn532BoardProfileDefaults",
     "Pn532ConnectionParams",
+    "Pn532Protocol",
     "SpiConnectionParams",
     "resolve_connection_params",
 ]
