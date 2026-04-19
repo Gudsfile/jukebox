@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Self, TypeAlias
 
 from pydantic import BaseModel, model_validator
 
@@ -24,7 +24,7 @@ class SonosSelectCommand(BaseModel):
     household: str | None = None
 
     @model_validator(mode="after")
-    def validate_coordinator_requires_uids(self):
+    def validate_coordinator_requires_uids(self) -> Self:
         if self.coordinator is not None and not self.uids:
             raise ValueError("--coordinator requires --uids")
         return self
@@ -53,7 +53,7 @@ class SettingsResetCommand(BaseModel):
     json_output: bool = False
 
 
-AdminCommand = (
+AdminCommand: TypeAlias = (
     ApiCommand
     | SettingsResetCommand
     | SettingsSetCommand

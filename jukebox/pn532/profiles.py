@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
 
-Pn532BoardProfile = Literal["waveshare_hat", "hiletgo_v3", "custom"]
+Pn532BoardProfile: TypeAlias = Literal["waveshare_hat", "hiletgo_v3", "custom"]
 
 
 @dataclass(frozen=True)
