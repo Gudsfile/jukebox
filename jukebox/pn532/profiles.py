@@ -1,10 +1,10 @@
 import dataclasses
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, TypeAlias
 
-Pn532BoardProfile = Literal["waveshare_hat", "hiletgo_v3", "custom"]
+Pn532BoardProfile: TypeAlias = Literal["waveshare_hat", "hiletgo_v3", "custom"]
 
-Pn532Protocol = Literal["spi"]
+Pn532Protocol: TypeAlias = Literal["spi"]
 
 
 @dataclass(frozen=True)
@@ -14,9 +14,9 @@ class SpiConnectionParams:
     irq: int | None
 
 
-# Today SpiConnectionParams only; Union[SpiConnectionParams, UartConnectionParams, ...]
+# Today SpiConnectionParams only; SpiConnectionParams | UartConnectionParams, ...
 # will be introduced when additional protocols are added.
-Pn532ConnectionParams = SpiConnectionParams
+Pn532ConnectionParams: TypeAlias = SpiConnectionParams
 
 
 @dataclass(frozen=True)

@@ -1,5 +1,5 @@
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import BaseModel, model_validator
 
@@ -9,7 +9,7 @@ class CliTagSourceCommand(BaseModel):
     use_current_tag: bool = False
 
     @model_validator(mode="after")
-    def validate_tag_source(self):
+    def validate_tag_source(self) -> Self:
         has_explicit_tag = bool(self.tag)
         if has_explicit_tag == self.use_current_tag:
             raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")

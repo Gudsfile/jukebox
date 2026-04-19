@@ -1,5 +1,5 @@
 import os
-from typing import Literal
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -28,7 +28,7 @@ class SelectedSonosGroupSettings(StrictModel):
     members: list[SelectedSonosSpeakerSettings]
 
     @model_validator(mode="after")
-    def validate_group_shape(self):
+    def validate_group_shape(self) -> Self:
         if not self.members:
             raise ValueError("selected_group must include at least one member")
 
@@ -51,7 +51,7 @@ class SonosPlayerSettings(PersistedSonosPlayerSettings):
     manual_name: str | None = None
 
     @model_validator(mode="after")
-    def validate_manual_target(self):
+    def validate_manual_target(self) -> Self:
         if self.manual_host and self.manual_name:
             raise ValueError("manual_host and manual_name are mutually exclusive")
         return self
@@ -232,7 +232,7 @@ class ResolvedSonosGroupRuntime(StrictModel):
     missing_member_uids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def validate_group_shape(self):
+    def validate_group_shape(self) -> Self:
         if not self.members:
             raise ValueError("resolved Sonos group must include at least one member")
 
@@ -277,7 +277,7 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
     verbose: bool = False
 
     @model_validator(mode="after")
-    def validate_runtime_rules(self):
+    def validate_runtime_rules(self) -> Self:
         validate_resolved_jukebox_runtime_rules(self)
         return self
 
