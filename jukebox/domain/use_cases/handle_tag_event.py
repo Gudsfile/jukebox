@@ -35,50 +35,51 @@ class HandleTagEvent:
             f"{session.paused_at} | {session.playing_tag_removed_at}"
         )
 
-        if action == PlaybackAction.CONTINUE:
-            # Reset when tag is present
-            session.playing_tag_removed_at = None
+        match action:
+            case PlaybackAction.CONTINUE:
+                # Reset when tag is present
+                session.playing_tag_removed_at = None
 
-        elif action == PlaybackAction.RESUME:
-            self.player.resume()
-            session.paused_at = None
-            session.playing_tag_removed_at = None
-
-        elif action == PlaybackAction.PLAY:
-            LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
-
-            disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
-            if disc is not None:
-                LOGGER.info(f"Found corresponding disc: {disc}")
-                session.playing_tag = tag_event.tag_id
-                self.player.play(disc.uri, disc.option.shuffle)
+            case PlaybackAction.RESUME:
+                self.player.resume()
                 session.paused_at = None
                 session.playing_tag_removed_at = None
-            else:
-                LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
 
-        elif action == PlaybackAction.WAITING:
-            # Grace period - tag removed but not pausing yet
-            if session.playing_tag_removed_at is None:
-                session.playing_tag_removed_at = tag_event.timestamp
-            grace_period_elapsed = tag_event.timestamp - session.playing_tag_removed_at
-            LOGGER.debug(f"Grace period: {grace_period_elapsed:.3f}s / {self.determine_action.pause_delay:g}s")
+            case PlaybackAction.PLAY:
+                LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
 
-        elif action == PlaybackAction.PAUSE:
-            self.player.pause()
-            session.paused_at = tag_event.timestamp
+                disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
+                if disc is not None:
+                    LOGGER.info(f"Found corresponding disc: {disc}")
+                    session.playing_tag = tag_event.tag_id
+                    self.player.play(disc.uri, disc.option.shuffle)
+                    session.paused_at = None
+                    session.playing_tag_removed_at = None
+                else:
+                    LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
 
-        elif action == PlaybackAction.STOP:
-            self.player.stop()
-            session.playing_tag = None
-            session.paused_at = None
-            session.playing_tag_removed_at = None
+            case PlaybackAction.WAITING:
+                # Grace period - tag removed but not pausing yet
+                if session.playing_tag_removed_at is None:
+                    session.playing_tag_removed_at = tag_event.timestamp
+                grace_period_elapsed = tag_event.timestamp - session.playing_tag_removed_at
+                LOGGER.debug(f"Grace period: {grace_period_elapsed:.3f}s / {self.determine_action.pause_delay:g}s")
 
-        elif action == PlaybackAction.IDLE:
-            pass
+            case PlaybackAction.PAUSE:
+                self.player.pause()
+                session.paused_at = tag_event.timestamp
 
-        else:
-            LOGGER.warning(f"`{action.value}` action is not implemented yet")
+            case PlaybackAction.STOP:
+                self.player.stop()
+                session.playing_tag = None
+                session.paused_at = None
+                session.playing_tag_removed_at = None
+
+            case PlaybackAction.IDLE:
+                pass
+
+            case _:
+                LOGGER.warning(f"`{action.value}` action is not implemented yet")
 
         session.last_event_timestamp = tag_event.timestamp
         return session
@@ -95,27 +96,28 @@ class HandleTagEvent:
     def _apply_current_tag_action(
         self, action: CurrentTagAction, tag_event: TagEvent, session: PlaybackSession
     ) -> None:
-        if action == CurrentTagAction.SET:
-            if tag_event.tag_id is None:
-                LOGGER.error(
-                    "`SET` action without tag_id",
-                    extra={"event": tag_event, "session": session},
-                )
-                return
-            self.current_tag_repository.set(tag_event.tag_id)
-            session.physical_tag = tag_event.tag_id
-            session.physical_tag_removed_at = None
+        match action:
+            case CurrentTagAction.SET:
+                if tag_event.tag_id is None:
+                    LOGGER.error(
+                        "`SET` action without tag_id",
+                        extra={"event": tag_event, "session": session},
+                    )
+                    return
+                self.current_tag_repository.set(tag_event.tag_id)
+                session.physical_tag = tag_event.tag_id
+                session.physical_tag_removed_at = None
 
-        elif action == CurrentTagAction.CLEAR:
-            self.current_tag_repository.clear()
-            session.physical_tag = None
-            session.physical_tag_removed_at = None
+            case CurrentTagAction.CLEAR:
+                self.current_tag_repository.clear()
+                session.physical_tag = None
+                session.physical_tag_removed_at = None
 
-        elif action == CurrentTagAction.RESTORE:
-            session.physical_tag_removed_at = None
+            case CurrentTagAction.RESTORE:
+                session.physical_tag_removed_at = None
 
-        elif action == CurrentTagAction.REMOVE:
-            session.physical_tag_removed_at = tag_event.timestamp
+            case CurrentTagAction.REMOVE:
+                session.physical_tag_removed_at = tag_event.timestamp
 
-        elif action == CurrentTagAction.KEEP:
-            pass  # No state changed
+            case CurrentTagAction.KEEP:
+                pass  # No state changed

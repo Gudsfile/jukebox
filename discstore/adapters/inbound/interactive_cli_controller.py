@@ -37,24 +37,25 @@ class InteractiveCLIController:
 
     def handle_command(self, command: str) -> None:
         try:
-            if command == "add":
-                self.add_disc_flow()
-            elif command == "remove":
-                self.remove_disc_flow()
-            elif command == "list":
-                self.list_discs_flow()
-            elif command == "edit":
-                self.edit_disc_flow()
-            elif command == "current":
-                self.current_tag_flow()
-            elif command == "exit":
-                print("See you soon!")
-                exit(0)
-            elif command == "help":
-                print(self.help_message)
-            else:
-                print(f"Invalid command `{command}`")
-                print(self.help_message)
+            match command:
+                case "add":
+                    self.add_disc_flow()
+                case "remove":
+                    self.remove_disc_flow()
+                case "list":
+                    self.list_discs_flow()
+                case "edit":
+                    self.edit_disc_flow()
+                case "current":
+                    self.current_tag_flow()
+                case "exit":
+                    print("See you soon!")
+                    exit(0)
+                case "help":
+                    print(self.help_message)
+                case _:
+                    print(f"Invalid command `{command}`")
+                    print(self.help_message)
         except Exception as err:
             print(f"Error: {err}")
             LOGGER.error("Error during handling command: %s", err)
