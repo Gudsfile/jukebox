@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, model_validator
@@ -24,7 +24,7 @@ class CliAddCommand(CliTagSourceCommand):
     album: str | None = None
 
 
-class CliListCommandModes(str, Enum):
+class CliListCommandModes(StrEnum):
     table = "table"
     line = "line"
 

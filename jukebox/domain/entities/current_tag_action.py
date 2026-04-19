@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class CurrentTagAction(str, Enum):
+class CurrentTagAction(StrEnum):
     """Actions that can be taken on the physical current tag state."""
 
     SET = "set"

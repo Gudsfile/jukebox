@@ -252,8 +252,7 @@ def _collect_persisted_entries(node: JsonObject, prefix: str | None = None) -> I
 
         dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
-            for child_entry in _collect_persisted_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_persisted_entries(value, dotted_path)
             continue
 
         yield dotted_path, value
@@ -263,8 +262,7 @@ def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[tuple[st
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}"
         if isinstance(value, dict):
-            for child_entry in _collect_generic_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_generic_entries(value, dotted_path)
             continue
         yield dotted_path, value
 
@@ -273,8 +271,7 @@ def _collect_leaf_entries(node: JsonObject, prefix: str | None = None) -> Iterab
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
-            for child_entry in _collect_leaf_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_leaf_entries(value, dotted_path)
             continue
         yield dotted_path, value
 

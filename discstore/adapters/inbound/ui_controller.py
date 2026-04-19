@@ -1,8 +1,3 @@
-import sys
-
-if sys.version_info < (3, 10):
-    raise RuntimeError("The `ui_controller` module requires Python 3.10+.")
-
 from collections.abc import AsyncIterator
 from typing import Annotated
 
