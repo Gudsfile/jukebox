@@ -42,10 +42,58 @@ def test_list_discs_returns_existing_library(tmp_path):
     assert discs["tag:123"].metadata.artist == "Test Artist"
 
 
-def test_list_discs_returns_empty_when_file_does_not_exist(tmp_path):
-    adapter = JsonLibraryAdapter(str(tmp_path / "missing-library.json"))
+@pytest.mark.parametrize(
+    "operation,expected",
+    [
+        pytest.param(lambda adapter: adapter.list_discs(), {}, id="list_discs"),
+        pytest.param(lambda adapter: adapter.get_disc("missing"), None, id="get_disc"),
+    ],
+)
+def test_read_returns_empty_when_file_does_not_exist(tmp_path, operation, expected):
+    filepath = tmp_path / "missing" / "dir" / "missing-library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
 
-    assert adapter.list_discs() == {}
+    assert operation(adapter) == expected
+
+
+@pytest.mark.parametrize(
+    "pre_existing_discs,operation",
+    [
+        pytest.param(
+            {},
+            lambda adapter: adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata())),
+            id="add_disc",
+        ),
+        pytest.param(
+            {"existing-tag": Disc(uri="before.mp3", metadata=DiscMetadata())},
+            lambda adapter: adapter.update_disc("existing-tag", Disc(uri="new.mp3", metadata=DiscMetadata())),
+            id="update_disc",
+        ),
+        pytest.param(
+            {"existing-tag": Disc(uri="before.mp3", metadata=DiscMetadata())},
+            lambda adapter: adapter.remove_disc("existing-tag"),
+            id="remove_disc",
+        ),
+    ],
+)
+def test_write_creates_parent_directory_when_it_does_not_exist(tmp_path, mocker, pre_existing_discs, operation):
+    filepath = tmp_path / "missing" / "dir" / "missing-library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+    mocker.patch.object(adapter, "_get_cached_library", return_value=Library(discs=pre_existing_discs))
+
+    assert not filepath.exists()
+    operation(adapter)
+    assert filepath.exists()
+
+
+def test_missing_file_logs_info_message(tmp_path, caplog):
+    filepath = tmp_path / "missing" / "dir" / "missing-library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+
+    with caplog.at_level("WARNING", logger="jukebox"):
+        adapter.list_discs()
+
+    assert "No library file found, starting with an empty library" in caplog.text
 
 
 def test_list_discs_returns_empty_when_json_is_corrupted(tmp_path):

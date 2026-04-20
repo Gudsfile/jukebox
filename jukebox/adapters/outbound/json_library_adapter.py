@@ -26,8 +26,8 @@ class JsonLibraryAdapter(LibraryRepository):
             with open(self.filepath, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 return Library.model_validate(data)
-        except FileNotFoundError as err:
-            LOGGER.warning(f"File not found, continuing with an empty library: filepath: {self.filepath}, error: {err}")
+        except FileNotFoundError:
+            LOGGER.warning(f"No library file found, starting with an empty library: {self.filepath}")
             return Library()
         except (json.JSONDecodeError, ValidationError) as err:
             LOGGER.warning(
@@ -37,6 +37,7 @@ class JsonLibraryAdapter(LibraryRepository):
 
     def _write_library(self, library: Library) -> None:
         directory = os.path.dirname(self.filepath) or "."
+        os.makedirs(directory, exist_ok=True)
         temp_fd, temp_path = tempfile.mkstemp(dir=directory, prefix=".library-", suffix=".json")
 
         try:
