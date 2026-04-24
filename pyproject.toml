@@ -34,7 +34,7 @@ api = [
 ui = [
     "gukebox[api]",
     "fastui==0.9.0",
-    "python-multipart==0.0.22",
+    "python-multipart==0.0.26",
 ]
 pn532 = [
   "pyserial==3.5",

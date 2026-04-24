@@ -1412,3 +1412,23 @@ def test_index_page_shows_remove_toast():
         component for component in all_components if component.type == "Toast" and "removed" in str(component.body)
     )
     assert remove_toast.open_trigger.name == "toast-remove-disc-success"
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+@pytest.mark.anyio
+async def test_form_parsing_does_not_lack_python_multipart():
+    """Verify that python-multipart is installed.
+
+    Without it, FastAPI raises: "The `python-multipart` library must be installed to use
+    form parsing in the UI.
+    """
+    from starlette.requests import Request
+
+    scope = {"type": "http", "headers": []}
+    request = Request(scope)
+
+    try:
+        await request.form()
+    except RuntimeError as e:
+        assert "python-multipart" not in str(e)
+        raise
