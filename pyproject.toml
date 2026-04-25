@@ -68,9 +68,6 @@ extend-select = [
 [tool.ty.src]
 exclude = ["pn532/"]
 
-[tool.ty.rules]
-missing-argument = "error"
-
 [build-system]
 requires = ["uv_build>=0.8.7,<0.12.0"]
 build-backend = "uv_build"
