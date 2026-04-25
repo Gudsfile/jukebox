@@ -60,7 +60,7 @@ class CLIController:
         elif isinstance(command, CliSearchCommand):
             self.search_discs_flow(command)
         else:
-            LOGGER.error(f"Command not implemented yet: command='{command}'")
+            LOGGER.error("Command not implemented yet: command='%s'", command)
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
@@ -79,7 +79,7 @@ class CLIController:
         if command.mode == "line":
             display_library_line(discs)
             return
-        LOGGER.error(f"Displaying mode not implemented yet: mode='{command.mode}'")
+        LOGGER.error("Displaying mode not implemented yet: mode='%s'", command.mode)
 
     def remove_disc_flow(self, command: CliRemoveCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
@@ -122,7 +122,7 @@ class CLIController:
     def search_discs_flow(self, command: CliSearchCommand) -> None:
         results = self.search_discs.execute(command.query)
         if not results:
-            LOGGER.info(f"No discs found matching '{command.query}'")
+            LOGGER.info("No discs found matching '%s'", command.query)
             return
-        LOGGER.info(f"Found {len(results)} disc(s) matching '{command.query}':")
+        LOGGER.info("Found %d disc(s) matching '%s':", len(results), command.query)
         display_library_table(results)

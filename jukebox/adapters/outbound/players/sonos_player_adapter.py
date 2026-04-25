@@ -21,13 +21,16 @@ def catch_soco_upnp_exception(func):
             return func(*args, **kwargs)
         except SoCoUPnPException as err:
             if "UPnP Error 804" in str(err.message):
-                LOGGER.warning(f"{func.__name__} with `{args}` failed, probably a bad uri: {str(err.message)}")
+                LOGGER.warning("%s with `%s` failed, probably a bad uri: %s", func.__name__, args, err.message)
             elif "UPnP Error 701" in str(err.message):
                 LOGGER.warning(
-                    f"{func.__name__} with `{args}` failed, probably a not available transition: {str(err.message)}"
+                    "%s with `%s` failed, probably a not available transition: %s",
+                    func.__name__,
+                    args,
+                    err.message,
                 )
             else:
-                LOGGER.exception(f"{func.__name__} with `{args}` failed: {str(err)}")
+                LOGGER.exception("%s with `%s` failed: %s", func.__name__, args, str(err))
             return
 
     return wrapper
@@ -59,7 +62,9 @@ class SonosPlayerAdapter(PlayerPort):
             raise InvalidSettingsError(f"Failed to initialize Sonos player: {err}") from err
 
         LOGGER.info(
-            f"Found `{self.speaker.player_name}` with software version: {speaker_info.get('software_version', None)}"
+            "Found `%s` with software version: %s",
+            self.speaker.player_name,
+            speaker_info.get("software_version", None),
         )
         self.sharelink = ShareLinkPlugin(self.speaker)
 
@@ -69,13 +74,14 @@ class SonosPlayerAdapter(PlayerPort):
         if not discovered:
             raise RuntimeError("No Sonos speakers found on the network")
         speakers = sorted(discovered, key=lambda s: s.player_name)
-        LOGGER.info(f"Discovered {len(speakers)} Sonos speaker(s): {[s.player_name for s in speakers]}")
+        LOGGER.info("Discovered %d Sonos speaker(s): %s", len(speakers), [s.player_name for s in speakers])
         if name:
             matching = [s for s in speakers if s.player_name == name]
             if len(matching) > 1:
                 LOGGER.warning(
-                    f"Multiple Sonos speakers with name '{name}' found. Using first match. "
-                    "Consider using host IP to disambiguate."
+                    "Multiple Sonos speakers with name '%s' found. Using first match. "
+                    "Consider using host IP to disambiguate.",
+                    name,
                 )
             if matching:
                 return matching[0]
@@ -89,7 +95,7 @@ class SonosPlayerAdapter(PlayerPort):
         applied_operations = []
 
         if group.is_partial:
-            LOGGER.warning(f"Applying Sonos group best-effort with missing saved members: {group.missing_member_uids}")
+            LOGGER.warning("Applying Sonos group best-effort with missing saved members: %s", group.missing_member_uids)
 
         try:
             for member in group.members:
@@ -102,7 +108,9 @@ class SonosPlayerAdapter(PlayerPort):
 
                 rollback_coordinator = self._get_rollback_coordinator_for_join(speaker)
                 LOGGER.info(
-                    f"Joining Sonos speaker `{speaker.player_name}` to `{coordinator.player_name}` before playback"
+                    "Joining Sonos speaker `%s` to `%s` before playback",
+                    speaker.player_name,
+                    coordinator.player_name,
                 )
                 speaker.join(coordinator)
                 applied_operations.append(("join", speaker, rollback_coordinator))
@@ -114,7 +122,8 @@ class SonosPlayerAdapter(PlayerPort):
                         continue
 
                     LOGGER.info(
-                        f"Removing Sonos speaker `{current_member.player_name}` from coordinator group before playback"
+                        "Removing Sonos speaker `%s` from coordinator group before playback",
+                        current_member.player_name,
                     )
                     current_member.unjoin()
                     applied_operations.append(("unjoin", current_member, None))
@@ -127,7 +136,8 @@ class SonosPlayerAdapter(PlayerPort):
             try:
                 if operation == "join":
                     LOGGER.warning(
-                        f"Rolling back Sonos join for `{speaker.player_name}` after startup group enforcement failed"
+                        "Rolling back Sonos join for `%s` after startup group enforcement failed",
+                        speaker.player_name,
                     )
                     if rollback_target is None:
                         speaker.unjoin()
@@ -135,12 +145,16 @@ class SonosPlayerAdapter(PlayerPort):
                         speaker.join(rollback_target)
                 else:
                     LOGGER.warning(
-                        f"Rolling back Sonos removal for `{speaker.player_name}` after startup group enforcement failed"
+                        "Rolling back Sonos removal for `%s` after startup group enforcement failed",
+                        speaker.player_name,
                     )
                     speaker.join(coordinator)
             except Exception as err:
                 LOGGER.warning(
-                    f"Failed to roll back Sonos group change `{operation}` for `{speaker.player_name}`: {err}"
+                    "Failed to roll back Sonos group change `%s` for `%s`: %s",
+                    operation,
+                    speaker.player_name,
+                    err,
                 )
 
     @staticmethod
@@ -173,7 +187,7 @@ class SonosPlayerAdapter(PlayerPort):
 
     @catch_soco_upnp_exception
     def play(self, uri: str, shuffle: bool = False) -> None:
-        LOGGER.info(f"Playing `{uri}` on the player `{self.speaker.player_name}`")
+        LOGGER.info("Playing `%s` on the player `%s`", uri, self.speaker.player_name)
         self.speaker.clear_queue()
         _ = self.handle_uri(uri)
         self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
@@ -181,17 +195,17 @@ class SonosPlayerAdapter(PlayerPort):
 
     @catch_soco_upnp_exception
     def pause(self) -> None:
-        LOGGER.info(f"Pausing player `{self.speaker.player_name}`")
+        LOGGER.info("Pausing player `%s`", self.speaker.player_name)
         self.speaker.pause()
 
     @catch_soco_upnp_exception
     def resume(self) -> None:
-        LOGGER.info(f"Resuming player `{self.speaker.player_name}`")
+        LOGGER.info("Resuming player `%s`", self.speaker.player_name)
         self.speaker.play()
 
     @catch_soco_upnp_exception
     def stop(self) -> None:
-        LOGGER.info(f"Stopping player `{self.speaker.player_name}` and clearing its queue")
+        LOGGER.info("Stopping player `%s` and clearing its queue", self.speaker.player_name)
         self.speaker.clear_queue()
 
     def handle_uri(self, uri):

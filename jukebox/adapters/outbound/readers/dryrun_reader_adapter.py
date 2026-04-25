@@ -20,7 +20,7 @@ class DryrunReaderAdapter(ReaderPort):
 
     def read(self) -> Union[str, None]:
         if self.uid is not None and self.hold_until is not None and time.monotonic() < self.hold_until:
-            LOGGER.info(f"Reading tag {self.uid}")
+            LOGGER.info("Reading tag %s", self.uid)
             return self.uid
 
         self.uid = None
@@ -47,8 +47,9 @@ class DryrunReaderAdapter(ReaderPort):
                 self.hold_until = time.monotonic() + duration_seconds
             except ValueError:
                 LOGGER.warning(
-                    f"Duration parameter should be a non-negative number of seconds, received: `{commands[1]}`"
+                    "Duration parameter should be a non-negative number of seconds, received: `%s`",
+                    commands[1],
                 )
             return self.uid
-        LOGGER.warning(f"Invalid input, should be `tag_uid duration_seconds`, received: {commands}")
+        LOGGER.warning("Invalid input, should be `tag_uid duration_seconds`, received: %s", commands)
         return None

@@ -67,6 +67,7 @@ extend-select = [
     "SIM",
     "I",
     "UP032",
+    "G",
 ]
 
 [tool.ty.src]

@@ -46,7 +46,7 @@ class Pn532ReaderAdapter(ReaderPort):
         self.pn532 = PN532_SPI(debug=False, reset=spi_reset, cs=spi_cs, irq=spi_irq)
         self.read_timeout_seconds = read_timeout_seconds
         ic, ver, rev, support = self.pn532.get_firmware_version()
-        LOGGER.info(f"Found PN532 with firmware version: {ver}.{rev}")
+        LOGGER.info("Found PN532 with firmware version: %s.%s", ver, rev)
         self._firmware_version: tuple[int, int] = (ver, rev)
         self.pn532.SAM_configuration()
 

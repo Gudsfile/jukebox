@@ -31,8 +31,12 @@ class HandleTagEvent:
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
-            f"{action.value} \t\t {tag_event.tag_id} | {session.playing_tag} | "
-            f"{session.paused_at} | {session.playing_tag_removed_at}"
+            "%s \t\t %s | %s | %s | %s",
+            action.value,
+            tag_event.tag_id,
+            session.playing_tag,
+            session.paused_at,
+            session.playing_tag_removed_at,
         )
 
         if action == PlaybackAction.CONTINUE:
@@ -45,24 +49,24 @@ class HandleTagEvent:
             session.playing_tag_removed_at = None
 
         elif action == PlaybackAction.PLAY:
-            LOGGER.info(f"Found card with UID: {tag_event.tag_id}")
+            LOGGER.info("Found card with UID: %s", tag_event.tag_id)
 
             disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
             if disc is not None:
-                LOGGER.info(f"Found corresponding disc: {disc}")
+                LOGGER.info("Found corresponding disc: %s", disc)
                 session.playing_tag = tag_event.tag_id
                 self.player.play(disc.uri, disc.option.shuffle)
                 session.paused_at = None
                 session.playing_tag_removed_at = None
             else:
-                LOGGER.warning(f"No disc found for UID: {tag_event.tag_id}")
+                LOGGER.warning("No disc found for UID: %s", tag_event.tag_id)
 
         elif action == PlaybackAction.WAITING:
             # Grace period - tag removed but not pausing yet
             if session.playing_tag_removed_at is None:
                 session.playing_tag_removed_at = tag_event.timestamp
             grace_period_elapsed = tag_event.timestamp - session.playing_tag_removed_at
-            LOGGER.debug(f"Grace period: {grace_period_elapsed:.3f}s / {self.determine_action.pause_delay:g}s")
+            LOGGER.debug("Grace period: %.3fs / %gs", grace_period_elapsed, self.determine_action.pause_delay)
 
         elif action == PlaybackAction.PAUSE:
             self.player.pause()
@@ -78,7 +82,7 @@ class HandleTagEvent:
             pass
 
         else:
-            LOGGER.warning(f"`{action.value}` action is not implemented yet")
+            LOGGER.warning("`%s` action is not implemented yet", action.value)
 
         session.last_event_timestamp = tag_event.timestamp
         return session
@@ -89,7 +93,9 @@ class HandleTagEvent:
             self._apply_current_tag_action(action, tag_event, session)
         except Exception as err:
             LOGGER.warning(
-                f"Failed to sync current tag state; continuing tag handling: tag_id={tag_event.tag_id!r}, error={err}"
+                "Failed to sync current tag state; continuing tag handling: tag_id=%r, error=%s",
+                tag_event.tag_id,
+                err,
             )
 
     def _apply_current_tag_action(

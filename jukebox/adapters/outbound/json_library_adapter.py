@@ -27,11 +27,13 @@ class JsonLibraryAdapter(LibraryRepository):
                 data = json.load(f)
                 return Library.model_validate(data)
         except FileNotFoundError:
-            LOGGER.warning(f"No library file found, starting with an empty library: {self.filepath}")
+            LOGGER.warning("No library file found, starting with an empty library: %s", self.filepath)
             return Library()
         except (json.JSONDecodeError, ValidationError) as err:
             LOGGER.warning(
-                f"Error deserializing library, continuing with empty library: filepath: {self.filepath}, error: {err}"
+                "Error deserializing library, continuing with empty library: filepath: %s, error: %s",
+                self.filepath,
+                err,
             )
             return Library()
 
