@@ -352,6 +352,8 @@ class SettingsUIPageBuilder:
 
     def build_settings_badges(self, setting: EditableSettingDisplay) -> list[AnyComponent]:
         badge_components: list[AnyComponent] = []
+        if setting.is_persisted and not setting.is_pinned_default:
+            badge_components.append(c.Paragraph(text="Configured", class_name="badge text-bg-success text-uppercase"))
         if setting.is_pinned_default:
             badge_components.append(c.Paragraph(text="Pinned default", class_name="badge text-bg-info text-uppercase"))
         if setting.requires_restart:
