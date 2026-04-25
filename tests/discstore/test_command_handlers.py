@@ -1,12 +1,13 @@
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, create_autospec
 
-from discstore.command_handlers import execute_library_command
+from discstore.command_handlers import InteractiveLibraryController, LibraryController, execute_library_command
 from discstore.commands import CliSearchCommand, InteractiveCliCommand
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
+from jukebox.settings.service_protocols import SettingsService
 
 
 def test_execute_library_command_runs_standard_cli_with_resolved_library_path():
-    settings_service = MagicMock()
+    settings_service = create_autospec(SettingsService)
     settings_service.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
         api_port=8000,
@@ -14,7 +15,7 @@ def test_execute_library_command_runs_standard_cli_with_resolved_library_path():
         verbose=True,
     )
     command = CliSearchCommand(type="search", query="beatles")
-    cli = MagicMock()
+    cli = create_autospec(LibraryController)
     build_cli_controller = MagicMock(return_value=cli)
     build_interactive_cli_controller = MagicMock()
 
@@ -33,14 +34,14 @@ def test_execute_library_command_runs_standard_cli_with_resolved_library_path():
 
 
 def test_execute_library_command_runs_interactive_cli_with_resolved_library_path():
-    settings_service = MagicMock()
+    settings_service = create_autospec(SettingsService)
     settings_service.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
         api_port=8000,
         ui_port=9000,
         verbose=False,
     )
-    interactive_cli = MagicMock()
+    interactive_cli = create_autospec(InteractiveLibraryController)
     build_cli_controller = MagicMock()
     build_interactive_cli_controller = MagicMock(return_value=interactive_cli)
 
