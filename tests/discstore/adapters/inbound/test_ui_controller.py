@@ -2,7 +2,7 @@ import json
 import sys
 from importlib import util
 from unittest import mock
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, create_autospec
 
 import pytest
 
@@ -43,10 +43,10 @@ def test_dependencies_import_failure(mocker):
 
 def build_controller():
     from discstore.adapters.inbound.ui_controller import UIController
-    from jukebox.sonos.service import InspectedSelectedSonosGroup
+    from jukebox.sonos.service import InspectedSelectedSonosGroup, SonosService
 
     settings_service = MagicMock()
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     available_speakers = [
         build_speaker(uid="speaker-1", name="Kitchen", host="192.168.1.30", household_id="household-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-1"),
@@ -113,7 +113,6 @@ def build_controller():
         "derived": {},
         "change_metadata": {},
     }
-    sonos_service.list_available_speakers.return_value = available_speakers
     sonos_service.list_network_speakers.return_value = available_speakers
     sonos_service.inspect_selected_group.return_value = InspectedSelectedSonosGroup(
         coordinator=available_speakers[1],

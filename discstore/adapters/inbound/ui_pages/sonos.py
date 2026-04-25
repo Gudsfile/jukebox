@@ -80,7 +80,7 @@ class SonosUIPageBuilder:
                 selected_group_repository=SettingsSelectedSonosGroupRepository(self.settings_service),
                 sonos_service=self.sonos_service,
             ).execute()
-            speakers = self.sonos_service.list_available_speakers()
+            speakers = self.sonos_service.list_network_speakers()
         except SonosDiscoveryError as err:
             discovery_error = str(err)
 
@@ -154,7 +154,7 @@ class SonosUIPageBuilder:
         ]
 
         try:
-            speakers = self.sonos_service.list_available_speakers()
+            speakers = self.sonos_service.list_network_speakers()
         except SonosDiscoveryError as err:
             components.append(
                 c.Error(
