@@ -1,6 +1,8 @@
 import logging
+from contextlib import contextmanager
 
 from jukebox.domain.entities import CurrentTagAction, PlaybackAction, PlaybackSession, TagEvent
+from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
 from jukebox.domain.use_cases.determine_action import DetermineAction
@@ -44,9 +46,10 @@ class HandleTagEvent:
             session.playing_tag_removed_at = None
 
         elif action == PlaybackAction.RESUME:
-            self.player.resume()
-            session.paused_at = None
-            session.playing_tag_removed_at = None
+            with suppress_playback_error("Playback operation `RESUME` failed; stopping session update"):
+                self.player.resume()
+                session.paused_at = None
+                session.playing_tag_removed_at = None
 
         elif action == PlaybackAction.PLAY:
             LOGGER.info("Found card with UID: %s", tag_event.tag_id)
@@ -54,10 +57,13 @@ class HandleTagEvent:
             disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
             if disc is not None:
                 LOGGER.info("Found corresponding disc: %s", disc)
-                session.playing_tag = tag_event.tag_id
-                self.player.play(disc.uri, disc.option.shuffle)
-                session.paused_at = None
-                session.playing_tag_removed_at = None
+                with suppress_playback_error(
+                    f"Playback operation `PLAY` failed for tag_id='{tag_event.tag_id}'; stopping session update"
+                ):
+                    self.player.play(disc.uri, disc.option.shuffle)
+                    session.playing_tag = tag_event.tag_id
+                    session.paused_at = None
+                    session.playing_tag_removed_at = None
             else:
                 LOGGER.warning("No disc found for UID: %s", tag_event.tag_id)
 
@@ -69,11 +75,13 @@ class HandleTagEvent:
             LOGGER.debug("Grace period: %.3fs / %gs", grace_period_elapsed, self.determine_action.pause_delay)
 
         elif action == PlaybackAction.PAUSE:
-            self.player.pause()
+            with suppress_playback_error("Playback operation `PAUSE` failed; continuing session update"):
+                self.player.pause()
             session.paused_at = tag_event.timestamp
 
         elif action == PlaybackAction.STOP:
-            self.player.stop()
+            with suppress_playback_error("Playback operation `STOP` failed; continuing session update"):
+                self.player.stop()
             session.playing_tag = None
             session.paused_at = None
             session.playing_tag_removed_at = None
@@ -125,3 +133,11 @@ class HandleTagEvent:
 
         elif action == CurrentTagAction.KEEP:
             pass  # No state changed
+
+
+@contextmanager
+def suppress_playback_error(msg: str):
+    try:
+        yield
+    except PlaybackError:
+        LOGGER.warning(msg)

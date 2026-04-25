@@ -8,6 +8,7 @@ from soco.exceptions import SoCoException, SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
 from urllib3.exceptions import HTTPError
 
+from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import InvalidSettingsError
@@ -31,7 +32,7 @@ def catch_soco_upnp_exception(func):
                 )
             else:
                 LOGGER.exception("%s with `%s` failed: %s", func.__name__, args, str(err))
-            return
+            raise PlaybackError(str(err)) from err
 
     return wrapper
 
