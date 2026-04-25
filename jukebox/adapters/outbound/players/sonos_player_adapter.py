@@ -27,7 +27,7 @@ def catch_soco_upnp_exception(func):
                     f"{func.__name__} with `{args}` failed, probably a not available transition: {str(err.message)}"
                 )
             else:
-                LOGGER.error(f"{func.__name__} with `{args}` failed", err)
+                LOGGER.exception(f"{func.__name__} with `{args}` failed: {str(err)}")
             return
 
     return wrapper
