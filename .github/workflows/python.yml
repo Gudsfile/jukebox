@@ -48,7 +48,11 @@ jobs:
           ) }}
         extras: ["--all-extras"]
         include:
-          - python-version: "3.13"
+          - python-version: ${{
+              github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
+              && format('{0}', github.event.inputs.python-version)
+              || '3.13'
+              }}
             extras: ""
 
     steps:
