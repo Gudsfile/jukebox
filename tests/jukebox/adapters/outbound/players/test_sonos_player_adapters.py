@@ -1,10 +1,16 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from soco.exceptions import SoCoUPnPException
 
-from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
+from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter, catch_soco_upnp_exception
+from jukebox.domain.errors import PlaybackError
 from jukebox.settings.errors import InvalidSettingsError
 from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
+
+
+def make_exception(code: str):
+    return SoCoUPnPException(f"UPnP Error {code} received", code, f"<errorCode>{code}</errorCode>")
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
@@ -632,3 +638,53 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
 
     assert adapter.speaker.player_name == "Kitchen"
     assert "Multiple Sonos speakers with name 'Kitchen' found. Using first match." in caplog.text
+
+
+@pytest.mark.parametrize(
+    "adapter_method, soco_method, args",
+    [
+        ("play", "play_from_queue", ("uri",)),
+        ("pause", "pause", ()),
+        ("resume", "play", ()),
+        ("stop", "clear_queue", ()),
+    ],
+)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+def test_methods_log_and_raise_on_upnp_error(mock_soco, caplog, adapter_method, soco_method, args):
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+
+    getattr(mock_speaker, soco_method).side_effect = make_exception("804")
+
+    adapter = SonosPlayerAdapter(host="192.168.1.100")
+
+    with pytest.raises(PlaybackError):
+        getattr(adapter, adapter_method)(*args)
+
+    assert "bad uri" in caplog.text
+    getattr(mock_speaker, soco_method).assert_called()
+
+
+@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
+def test_decorator_logs_warning_for_know_codes(caplog, error_code, expected_message):
+    @catch_soco_upnp_exception
+    def failing():
+        raise make_exception(error_code)
+
+    with pytest.raises(PlaybackError), caplog.at_level("WARNING"):
+        failing()
+
+    assert expected_message in caplog.text
+    assert any(r.levelname == "WARNING" for r in caplog.records)
+
+
+def test_decorator_logs_exception_for_other_codes(caplog):
+    @catch_soco_upnp_exception
+    def failing():
+        raise make_exception("999")
+
+    with pytest.raises(PlaybackError), caplog.at_level("ERROR"):
+        failing()
+
+    assert any(r.levelname == "ERROR" for r in caplog.records)

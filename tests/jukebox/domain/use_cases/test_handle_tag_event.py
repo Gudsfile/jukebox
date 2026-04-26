@@ -3,9 +3,10 @@ from unittest.mock import MagicMock, call
 import pytest
 
 from jukebox.domain.entities import CurrentTagAction, Disc, DiscMetadata, DiscOption, PlaybackSession, TagEvent
+from jukebox.domain.errors import PlaybackError
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
-from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
+from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent, suppress_playback_error
 
 
 @pytest.fixture
@@ -450,3 +451,80 @@ def test_same_tag_returns_after_pause_resumes_immediately(handle_tag_event, mock
     mock_player.resume.assert_called_once()
     assert session.paused_at is None
     assert session.playing_tag_removed_at is None
+
+
+def test_handle_play_action_does_not_update_session_when_player_raises(handle_tag_event, mock_player):
+    mock_player.play.side_effect = PlaybackError("bad uri")
+    session = PlaybackSession()
+    tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.play.assert_called_once()
+    assert new_session.playing_tag is None
+
+
+def test_handle_resume_action_does_not_update_session_when_player_raises(handle_tag_event, mock_player):
+    mock_player.resume.side_effect = PlaybackError("cannot resume")
+    session = PlaybackSession()
+    session.playing_tag = "test-tag"
+    session.paused_at = 60.0
+    tag_event = TagEvent(tag_id="test-tag", timestamp=100.0)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.resume.assert_called_once()
+    assert new_session.paused_at == 60.0
+
+
+def test_handle_pause_action_updates_session_even_when_player_raises(handle_tag_event, mock_player):
+    mock_player.pause.side_effect = PlaybackError("cannot pause")
+    session = PlaybackSession()
+    session.playing_tag = "test-tag"
+    session.playing_tag_removed_at = 96.9
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.pause.assert_called_once()
+    assert new_session.paused_at == 100.0
+
+
+def test_handle_stop_action_updates_session_even_when_player_raises(handle_tag_event, mock_player):
+    mock_player.stop.side_effect = PlaybackError("cannot stop")
+    session = PlaybackSession()
+    session.playing_tag = "test-tag"
+    session.paused_at = 49.0
+    tag_event = TagEvent(tag_id=None, timestamp=100.0)
+
+    new_session = handle_tag_event.execute(tag_event, session)
+
+    mock_player.stop.assert_called_once()
+    assert new_session.playing_tag is None
+    assert new_session.paused_at is None
+
+
+def test_suppress_playback_error_suppresses_playback_error():
+    with suppress_playback_error("msg"):
+        raise PlaybackError("boom")
+
+
+def test_suppress_playback_error_logs_warning(caplog):
+    with suppress_playback_error("something went wrong"), caplog.at_level("WARNING"):
+        raise PlaybackError("boom")
+
+    assert "something went wrong" in caplog.text
+    assert any(r.levelname == "WARNING" for r in caplog.records)
+
+
+def test_suppress_playback_error_does_not_suppress_other_exceptions():
+    with pytest.raises(RuntimeError), suppress_playback_error("msg"):
+        raise RuntimeError("not a playback error")
+
+
+def test_suppress_playback_error_runs_body_when_no_error():
+    executed = False
+    with suppress_playback_error("msg"):
+        executed = True
+
+    assert executed is True
