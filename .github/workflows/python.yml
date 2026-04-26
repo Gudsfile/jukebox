@@ -46,6 +46,14 @@ jobs:
           && format('["{0}"]', github.event.inputs.python-version)
           || '["3.9", "3.10", "3.11", "3.12", "3.13"]'
           ) }}
+        extras: ["--all-extras"]
+        include:
+          - python-version: ${{
+              github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
+              && format('{0}', github.event.inputs.python-version)
+              || '3.13'
+              }}
+            extras: ""
 
     steps:
       - uses: actions/checkout@v6
@@ -61,7 +69,7 @@ jobs:
           enable-cache: true
 
       - name: Install the project
-        run: uv sync --locked --all-extras --dev
+        run: uv sync --locked ${{ matrix.extras }} --dev
 
       - name: Check format with ruff
         run: uv run ruff format --check
