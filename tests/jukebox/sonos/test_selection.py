@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import create_autospec
 
 import pytest
 
@@ -8,8 +8,9 @@ from jukebox.sonos.selection import (
     GetSonosSelectionStatus,
     SaveSelectedSonosGroupResult,
     SaveSonosSelection,
+    SelectedSonosGroupRepository,
 )
-from jukebox.sonos.service import InspectedSelectedSonosGroup
+from jukebox.sonos.service import InspectedSelectedSonosGroup, SonosService
 
 
 def build_speaker(uid="speaker-1", name="Kitchen", host="192.168.1.30", household_id="household-1"):
@@ -38,11 +39,11 @@ def build_inspected_group(
 
 
 def test_save_sonos_selection_defaults_coordinator_to_first_selected_uid():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult(
         message="Settings saved. Changes take effect after restart."
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
@@ -69,11 +70,11 @@ def test_save_sonos_selection_defaults_coordinator_to_first_selected_uid():
 
 
 def test_save_sonos_selection_persists_multi_member_selected_group_and_player_type():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult(
         message="Settings saved. Changes take effect after restart."
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
@@ -107,9 +108,9 @@ def test_save_sonos_selection_persists_multi_member_selected_group_and_player_ty
 
 
 def test_save_sonos_selection_validates_against_selectable_speakers():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult()
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [build_speaker(uid="speaker-9", household_id="household-2")]
 
     SaveSonosSelection(
@@ -121,8 +122,8 @@ def test_save_sonos_selection_validates_against_selectable_speakers():
 
 
 def test_save_sonos_selection_rejects_unknown_uid_without_writing():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [build_speaker()]
 
     with pytest.raises(ValueError, match="not currently discoverable: speaker-9"):
@@ -135,8 +136,8 @@ def test_save_sonos_selection_rejects_unknown_uid_without_writing():
 
 
 def test_save_sonos_selection_rejects_empty_uid_input():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [build_speaker()]
 
     with pytest.raises(ValueError, match="`uids` must include at least one UID."):
@@ -149,8 +150,8 @@ def test_save_sonos_selection_rejects_empty_uid_input():
 
 
 def test_save_sonos_selection_rejects_duplicate_uids():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [build_speaker()]
 
     with pytest.raises(ValueError, match="`uids` must not contain duplicate UIDs."):
@@ -163,8 +164,8 @@ def test_save_sonos_selection_rejects_duplicate_uids():
 
 
 def test_save_sonos_selection_rejects_explicit_coordinator_outside_selected_group():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
@@ -180,8 +181,8 @@ def test_save_sonos_selection_rejects_explicit_coordinator_outside_selected_grou
 
 
 def test_save_sonos_selection_rejects_blank_coordinator_uid():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31"),
@@ -197,8 +198,8 @@ def test_save_sonos_selection_rejects_blank_coordinator_uid():
 
 
 def test_save_sonos_selection_rejects_mixed_household_input():
-    selected_group_repository = MagicMock()
-    sonos_service = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1", household_id="household-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-2"),
@@ -214,9 +215,9 @@ def test_save_sonos_selection_rejects_mixed_household_input():
 
 
 def test_save_sonos_selection_persists_selected_household_id():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.save_selected_group.return_value = SaveSelectedSonosGroupResult()
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.list_network_speakers.return_value = [
         build_speaker(uid="speaker-1", household_id="household-1"),
         build_speaker(uid="speaker-2", name="Living Room", host="192.168.1.31", household_id="household-1"),
@@ -242,9 +243,9 @@ def test_save_sonos_selection_persists_selected_household_id():
 
 
 def test_get_sonos_selection_status_reports_not_selected_without_discovery():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = None
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
 
     status = GetSonosSelectionStatus(
         selected_group_repository=selected_group_repository,
@@ -258,7 +259,7 @@ def test_get_sonos_selection_status_reports_not_selected_without_discovery():
 
 
 def test_get_sonos_selection_status_reports_available_multi_speaker_selection():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-2",
@@ -267,7 +268,7 @@ def test_get_sonos_selection_status_reports_available_multi_speaker_selection():
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.inspect_selected_group.return_value = build_inspected_group(
         resolved_members=[
             build_speaker(uid="speaker-1"),
@@ -290,7 +291,7 @@ def test_get_sonos_selection_status_reports_available_multi_speaker_selection():
 
 
 def test_get_sonos_selection_status_reports_partially_available_selection():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-1",
@@ -299,7 +300,7 @@ def test_get_sonos_selection_status_reports_partially_available_selection():
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.inspect_selected_group.return_value = build_inspected_group(
         resolved_members=[build_speaker(uid="speaker-1")],
         coordinator_uid="speaker-1",
@@ -318,7 +319,7 @@ def test_get_sonos_selection_status_reports_partially_available_selection():
 
 
 def test_get_sonos_selection_status_reports_unavailable_selection_when_coordinator_is_missing():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-2",
@@ -327,7 +328,7 @@ def test_get_sonos_selection_status_reports_unavailable_selection_when_coordinat
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.inspect_selected_group.return_value = build_inspected_group(
         resolved_members=[build_speaker(uid="speaker-1", host="192.168.1.31")],
         coordinator_uid="speaker-2",
@@ -346,7 +347,7 @@ def test_get_sonos_selection_status_reports_unavailable_selection_when_coordinat
 
 
 def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_households():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-1",
@@ -355,7 +356,7 @@ def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_hous
             SelectedSonosSpeakerSettings(uid="speaker-2"),
         ],
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.inspect_selected_group.return_value = build_inspected_group(
         resolved_members=[
             build_speaker(uid="speaker-1", household_id="household-1"),
@@ -377,7 +378,7 @@ def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_hous
 
 
 def test_get_sonos_selection_status_reports_unavailable_when_partial_group_spans_households():
-    selected_group_repository = MagicMock()
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
     selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
         household_id="household-1",
         coordinator_uid="speaker-1",
@@ -387,7 +388,7 @@ def test_get_sonos_selection_status_reports_unavailable_when_partial_group_spans
             SelectedSonosSpeakerSettings(uid="speaker-3"),
         ],
     )
-    sonos_service = MagicMock()
+    sonos_service = create_autospec(SonosService)
     sonos_service.inspect_selected_group.return_value = build_inspected_group(
         resolved_members=[
             build_speaker(uid="speaker-1", household_id="household-1"),

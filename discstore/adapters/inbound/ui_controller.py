@@ -366,7 +366,7 @@ class UIController(APIController):
             return message
 
         try:
-            speakers = self.sonos_service.list_available_speakers()
+            speakers = self.sonos_service.list_network_speakers()
         except Exception:
             return message
 
