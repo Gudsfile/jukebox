@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "gukebox"
-version = "1.0.0.dev12"
+version = "1.0.0.dev13"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
