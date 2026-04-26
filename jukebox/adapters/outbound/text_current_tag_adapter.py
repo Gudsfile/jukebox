@@ -56,7 +56,7 @@ class TextCurrentTagAdapter(CurrentTagRepository):
         except FileNotFoundError:
             return None
         except OSError as err:
-            LOGGER.warning(f"Error reading current tag state: filepath: {self.filepath}, error: {err}")
+            LOGGER.warning("Error reading current tag state: filepath: %s, error: %s", self.filepath, err)
             return None
 
         if not tag_id:
