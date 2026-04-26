@@ -35,7 +35,7 @@ from jukebox.settings.definitions import (
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.settings.types import JsonObject
+from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.sonos.discovery import SonosDiscoveryError
 from jukebox.sonos.selection import SaveSonosSelection
 from jukebox.sonos.service import SonosService
@@ -423,7 +423,7 @@ class UIController(APIController):
     def _build_settings_patch(self, setting_path: str, raw_value: str) -> JsonObject:
         return self.settings_pages.build_settings_patch(setting_path, raw_value)
 
-    def _build_dotted_patch(self, dotted_path: str, value: object) -> JsonObject:
+    def _build_dotted_patch(self, dotted_path: str, value: JsonValue) -> JsonObject:
         return self.settings_pages.build_dotted_patch(dotted_path, value)
 
     def _persisted_value_matches(self, dotted_path: str, expected_value: object) -> bool:
