@@ -547,7 +547,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
         if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
     )
 
-    response = await route.endpoint(SonosSelectionForm(uids="speaker-1", coordinator_uid="speaker-1"))
+    response = await route.endpoint(SonosSelectionForm(uids="speaker-1", coordinator_uid="speaker-1"))  # ty: ignore[invalid-argument-type] # field_validator coerces str to list[str] at runtime
 
     controller.settings_service.patch_persisted_settings.assert_called_once_with(
         {
