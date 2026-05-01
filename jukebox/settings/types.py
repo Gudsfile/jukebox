@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import TypeAlias
 
-JsonValue = Union[None, bool, int, float, str, List["JsonValue"], Dict[str, "JsonValue"]]
-JsonObject = Dict[str, JsonValue]
+JsonValue: TypeAlias = None | bool | int | float | str | list["JsonValue"] | dict[str, "JsonValue"]
+JsonObject: TypeAlias = dict[str, JsonValue]

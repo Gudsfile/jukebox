@@ -1,5 +1,3 @@
-from typing import Dict
-
 from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import ValidationError
 
@@ -21,8 +19,8 @@ def build_discs_router(
 ) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["discs"])
 
-    @router.get("/discs", response_model=Dict[str, DiscOutput], summary="List discs")
-    def list_discs_route() -> Dict[str, Disc]:
+    @router.get("/discs", response_model=dict[str, DiscOutput], summary="List discs")
+    def list_discs_route() -> dict[str, Disc]:
         return list_discs.execute()
 
     @router.get("/discs/{tag_id}", response_model=DiscOutput, summary="Get a disc")

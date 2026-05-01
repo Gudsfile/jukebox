@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
 from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
@@ -38,24 +37,25 @@ class InteractiveCLIController:
 
     def handle_command(self, command: str) -> None:
         try:
-            if command == "add":
-                self.add_disc_flow()
-            elif command == "remove":
-                self.remove_disc_flow()
-            elif command == "list":
-                self.list_discs_flow()
-            elif command == "edit":
-                self.edit_disc_flow()
-            elif command == "current":
-                self.current_tag_flow()
-            elif command == "exit":
-                print("See you soon!")
-                exit(0)
-            elif command == "help":
-                print(self.help_message)
-            else:
-                print(f"Invalid command `{command}`")
-                print(self.help_message)
+            match command:
+                case "add":
+                    self.add_disc_flow()
+                case "remove":
+                    self.remove_disc_flow()
+                case "list":
+                    self.list_discs_flow()
+                case "edit":
+                    self.edit_disc_flow()
+                case "current":
+                    self.current_tag_flow()
+                case "exit":
+                    print("See you soon!")
+                    exit(0)
+                case "help":
+                    print(self.help_message)
+                case _:
+                    print(f"Invalid command `{command}`")
+                    print(self.help_message)
         except Exception as err:
             print(f"Error: {err}")
             LOGGER.error("Error during handling command: %s", err)
@@ -112,7 +112,7 @@ class InteractiveCLIController:
         print(f"Tag ID           : {current_tag_status.tag_id}")
         print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
 
-    def _prompt_for_tag(self, current_tag_status: Optional[CurrentTagStatus], action: str) -> str:
+    def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
         default_tag = ""
         if current_tag_status is not None and (
             (action == "add" and not current_tag_status.known_in_library)

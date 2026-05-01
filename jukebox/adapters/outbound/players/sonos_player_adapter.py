@@ -1,5 +1,4 @@
 import logging
-from typing import Optional
 
 import soco
 from requests.exceptions import RequestException
@@ -42,9 +41,9 @@ class SonosPlayerAdapter(PlayerPort):
 
     def __init__(
         self,
-        host: Optional[str] = None,
-        name: Optional[str] = None,
-        group: Optional[ResolvedSonosGroupRuntime] = None,
+        host: str | None = None,
+        name: str | None = None,
+        group: ResolvedSonosGroupRuntime | None = None,
     ):
         try:
             if group is not None:
@@ -70,7 +69,7 @@ class SonosPlayerAdapter(PlayerPort):
         self.sharelink = ShareLinkPlugin(self.speaker)
 
     @staticmethod
-    def _discover(name: Optional[str] = None) -> SoCo:
+    def _discover(name: str | None = None) -> SoCo:
         discovered = soco.discover()
         if not discovered:
             raise RuntimeError("No Sonos speakers found on the network")
@@ -175,7 +174,7 @@ class SonosPlayerAdapter(PlayerPort):
         return getattr(speaker, "is_visible", True) is False
 
     @staticmethod
-    def _get_rollback_coordinator_for_join(speaker: SoCo) -> Optional[SoCo]:
+    def _get_rollback_coordinator_for_join(speaker: SoCo) -> SoCo | None:
         current_group = speaker.group
         if current_group is None:
             return None

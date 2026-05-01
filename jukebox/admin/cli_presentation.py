@@ -1,6 +1,7 @@
 import json
 import re
-from typing import Dict, Iterable, List, Mapping, Optional, Tuple, cast
+from collections.abc import Iterable, Mapping
+from typing import cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
@@ -244,41 +245,38 @@ def _format_effective_suffix(provenance: str, requires_restart: bool) -> str:
     return f" ({'; '.join(suffix_parts)})"
 
 
-def _collect_persisted_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_persisted_entries(node: JsonObject, prefix: str | None = None) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         if key == "schema_version":
             continue
 
         dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
-            for child_entry in _collect_persisted_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_persisted_entries(value, dotted_path)
             continue
 
         yield dotted_path, value
 
 
-def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_generic_entries(node: JsonObject, prefix: str) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}"
         if isinstance(value, dict):
-            for child_entry in _collect_generic_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_generic_entries(value, dotted_path)
             continue
         yield dotted_path, value
 
 
-def _collect_leaf_entries(node: JsonObject, prefix: Optional[str] = None) -> Iterable[Tuple[str, JsonValue]]:
+def _collect_leaf_entries(node: JsonObject, prefix: str | None = None) -> Iterable[tuple[str, JsonValue]]:
     for key, value in sorted(node.items()):
         dotted_path = f"{prefix}.{key}" if prefix else key
         if isinstance(value, dict) and not is_editable_setting_path(dotted_path):
-            for child_entry in _collect_leaf_entries(value, dotted_path):
-                yield child_entry
+            yield from _collect_leaf_entries(value, dotted_path)
             continue
         yield dotted_path, value
 
 
-def _group_entries_by_section(entries: Iterable[Tuple[str, JsonValue]]) -> Dict[str, List[Tuple[str, JsonValue]]]:
+def _group_entries_by_section(entries: Iterable[tuple[str, JsonValue]]) -> dict[str, list[tuple[str, JsonValue]]]:
     grouped_entries = {}
     for dotted_path, value in entries:
         section = _section_for_path(dotted_path)
@@ -320,19 +318,21 @@ def _format_entry_label(dotted_path: str) -> str:
 def _format_value(dotted_path: str, value: object) -> str:
     if dotted_path == "jukebox.player.sonos.selected_group":
         return _format_selected_group(value)
-    if value is None:
-        return "null"
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, (int, float)):
-        return str(value)
-    if isinstance(value, str):
-        return value
-    if isinstance(value, list):
-        return ", ".join(_format_value(dotted_path, item) for item in value)
-    if isinstance(value, dict):
-        return json.dumps(value, sort_keys=True, separators=(", ", ": "))
-    return str(value)
+    match value:
+        case None:
+            return "null"
+        case bool():
+            return "true" if value else "false"
+        case int() | float():
+            return str(value)
+        case str():
+            return value
+        case list():
+            return ", ".join(_format_value(dotted_path, item) for item in value)
+        case dict():
+            return json.dumps(value, sort_keys=True, separators=(", ", ": "))
+        case _:
+            return str(value)
 
 
 def _format_selected_group(value: object) -> str:
@@ -341,7 +341,7 @@ def _format_selected_group(value: object) -> str:
     if not isinstance(value, dict):
         return str(value)
 
-    selected_group = cast(Dict[str, object], value)
+    selected_group = cast(dict[str, object], value)
     household_id = selected_group.get("household_id")
     members = selected_group.get("members")
     coordinator_uid = selected_group.get("coordinator_uid")
@@ -352,7 +352,7 @@ def _format_selected_group(value: object) -> str:
     for member in members:
         if not isinstance(member, dict):
             continue
-        selected_member = cast(Dict[str, object], member)
+        selected_member = cast(dict[str, object], member)
         uid = selected_member.get("uid")
         if not isinstance(uid, str):
             continue
@@ -365,25 +365,22 @@ def _format_selected_group(value: object) -> str:
 
 
 def _render_cli_error_message(err: BaseException) -> str:
-    if isinstance(err, MalformedSettingsFileError):
-        filepath = _extract_quoted_path(str(err))
-        if filepath is not None:
-            return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
-        return "Malformed settings file. Fix the JSON syntax and try again."
-
-    if isinstance(err, UnsupportedSettingsVersionError):
-        return f"Unsupported settings file version. {str(err)}"
-
-    if isinstance(err, InvalidSettingsError):
-        return _render_invalid_settings_error(err)
-
-    if isinstance(err, SettingsError):
-        return str(err)
-
-    if isinstance(err, SystemExit) and isinstance(err.code, str):
-        return _render_system_exit_message(err.code)
-
-    return "Unexpected error. Re-run with `--verbose` for details."
+    match err:
+        case MalformedSettingsFileError():
+            filepath = _extract_quoted_path(str(err))
+            if filepath is not None:
+                return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
+            return "Malformed settings file. Fix the JSON syntax and try again."
+        case UnsupportedSettingsVersionError():
+            return f"Unsupported settings file version. {str(err)}"
+        case InvalidSettingsError():
+            return _render_invalid_settings_error(err)
+        case SettingsError():
+            return str(err)
+        case SystemExit() if isinstance(err.code, str):
+            return _render_system_exit_message(err.code)
+        case _:
+            return "Unexpected error. Re-run with `--verbose` for details."
 
 
 def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
@@ -470,7 +467,7 @@ def _extract_compact_detail(message: str) -> str:
     return detail_lines[-1]
 
 
-def _extract_quoted_path(message: str) -> Optional[str]:
+def _extract_quoted_path(message: str) -> str | None:
     match = re.search(r"'([^']+)'", message)
     if match is None:
         return None

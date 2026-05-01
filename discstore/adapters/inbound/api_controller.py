@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel
 
 from jukebox.shared.dependency_messages import optional_extra_dependency_message
@@ -62,7 +60,7 @@ class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
 class SonosSelectionMemberAvailabilityOutput(BaseModel):
     uid: str
     status: str
-    speaker: Optional[SonosSpeakerOutput] = None
+    speaker: SonosSpeakerOutput | None = None
 
 
 class SonosSelectionAvailabilityOutput(BaseModel):
@@ -71,13 +69,13 @@ class SonosSelectionAvailabilityOutput(BaseModel):
 
 
 class SonosSelectionOutput(BaseModel):
-    selected_group: Optional[SelectedSonosGroupOutput] = None
+    selected_group: SelectedSonosGroupOutput | None = None
     availability: SonosSelectionAvailabilityOutput
 
 
 class SonosSelectionInput(BaseModel):
     uids: list[str]
-    coordinator_uid: Optional[str] = None
+    coordinator_uid: str | None = None
 
 
 class SonosSelectionUpdateOutput(BaseModel):

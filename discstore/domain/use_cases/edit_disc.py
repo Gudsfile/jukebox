@@ -1,5 +1,3 @@
-from typing import Optional
-
 from discstore.domain.entities import Disc, DiscMetadata, DiscOption
 from discstore.domain.repositories import LibraryRepository
 
@@ -11,9 +9,9 @@ class EditDisc:
     def execute(
         self,
         tag_id: str,
-        uri: Optional[str] = None,
-        metadata: Optional[DiscMetadata] = None,
-        option: Optional[DiscOption] = None,
+        uri: str | None = None,
+        metadata: DiscMetadata | None = None,
+        option: DiscOption | None = None,
     ) -> Disc:
         current_disc = self.repository.get_disc(tag_id)
         if current_disc is None:

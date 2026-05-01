@@ -1,6 +1,6 @@
 import importlib.util
 import sys
-from typing import Dict, List, Tuple, cast
+from typing import cast
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -30,10 +30,10 @@ if FASTAPI_INSTALLED:
     from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
-InvalidUidPayloadCase = Tuple[Dict[str, object], List[object], str]
+InvalidUidPayloadCase = tuple[dict[str, object], list[object], str]
 
 
-INVALID_UID_PAYLOAD_CASES: List[InvalidUidPayloadCase] = [
+INVALID_UID_PAYLOAD_CASES: list[InvalidUidPayloadCase] = [
     ({"uids": []}, [], "`uids` must include at least one UID."),
     ({"uids": ["speaker-1", "speaker-1"]}, [], "`uids` must not contain duplicate UIDs."),
 ]

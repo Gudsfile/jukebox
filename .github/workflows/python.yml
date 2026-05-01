@@ -44,7 +44,7 @@ jobs:
         python-version: ${{ fromJson(
           github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
           && format('["{0}"]', github.event.inputs.python-version)
-          || '["3.9", "3.10", "3.11", "3.12", "3.13"]'
+          || '["3.11", "3.12", "3.13"]'
           ) }}
         extras: ["--all-extras"]
         include:
@@ -80,21 +80,11 @@ jobs:
       - name: Test with pytest
         run: uv run pytest
 
-      - name: Set ty_args based on Python version
-        # Check the missig-argument rule for Python versions >= 3.10
-        # Exclude the opt/ directory as it is not part of the project
-        run: |
-          if [[ "${{ matrix.python-version }}" == "3.9" ]]; then
-            echo "ty_args=--ignore missing-argument --exclude opt/" >> $GITHUB_ENV
-          else
-            echo "ty_args=--error missing-argument" >> $GITHUB_ENV
-          fi
-
       - name: Type check with ty
         # TODO: remove `grep -v || true` once ty supports a flag to suppress warnings (https://github.com/astral-sh/ty/issues/2169)
         # grep -v filters out warnings from the GitHub annotations output to keep the PR review
         # interface readable. Warnings are still visible locally and should not be forgotten.
-        run: uv run ty check $ty_args --output-format github | grep -v "::warning " || true
+        run: uv run ty check --output-format github | grep -v "::warning " || true
 
   build:
     name: Build Package
@@ -107,7 +97,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.9"
+          python-version: "3.11"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

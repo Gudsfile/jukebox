@@ -1,5 +1,5 @@
 import argparse
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -7,17 +7,17 @@ from jukebox.shared.config_utils import add_verbose_arg, add_version_arg
 
 
 class JukeboxCliConfig(BaseModel):
-    library: Optional[str] = None
+    library: str | None = None
     verbose: bool = False
-    player: Optional[Literal["dryrun", "sonos"]] = None
-    reader: Optional[Literal["dryrun", "pn532"]] = None
-    sonos_host: Optional[str] = None
-    sonos_name: Optional[str] = None
-    pause_duration_seconds: Optional[int] = None
-    pause_delay_seconds: Optional[float] = None
-    pn532_spi_reset: Optional[int] = None
-    pn532_spi_cs: Optional[int] = None
-    pn532_spi_irq: Optional[int] = None
+    player: Literal["dryrun", "sonos"] | None = None
+    reader: Literal["dryrun", "pn532"] | None = None
+    sonos_host: str | None = None
+    sonos_name: str | None = None
+    pause_duration_seconds: int | None = None
+    pause_delay_seconds: float | None = None
+    pn532_spi_reset: int | None = None
+    pn532_spi_cs: int | None = None
+    pn532_spi_irq: int | None = None
 
 
 def parse_config() -> JukeboxCliConfig:

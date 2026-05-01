@@ -1,5 +1,6 @@
 import dataclasses
-from typing import Any, Callable, Optional, cast
+from collections.abc import Callable
+from typing import Any, cast
 
 from jukebox.pn532.profiles import (
     PN532_PROFILES,
@@ -33,7 +34,7 @@ def _default_build_pn532_reader(
     raise ValueError(f"Unsupported PN532 protocol: {protocol}")
 
 
-def _parse_pin(raw: Optional[str]) -> "tuple[bool, Optional[str]]":
+def _parse_pin(raw: str | None) -> "tuple[bool, str | None]":
     """Returns (ok, value). ok=False means the user cancelled the prompt.
     value=None means blank input (reset to profile default)."""
     if raw is None:
@@ -45,9 +46,9 @@ def _parse_pin(raw: Optional[str]) -> "tuple[bool, Optional[str]]":
 def execute_pn532_command(
     command: object,
     settings_service: SettingsService,
-    profile_prompt_fn: Optional[Callable[[list], Optional[str]]] = None,
-    protocol_prompt_fn: Optional[Callable[[list, str], Optional[str]]] = None,
-    pin_prompt_fn: Optional[Callable[[str, Optional[int]], Optional[str]]] = None,
+    profile_prompt_fn: Callable[[list], str | None] | None = None,
+    protocol_prompt_fn: Callable[[list, str], str | None] | None = None,
+    pin_prompt_fn: Callable[[str, int | None], str | None] | None = None,
     build_pn532_reader: Callable[..., Any] = _default_build_pn532_reader,
     stdout_fn: Callable[[str], None] = print,
 ) -> None:
@@ -87,7 +88,7 @@ def execute_pn532_command(
             )
 
         if pin_prompt_fn is not None:
-            field_values: dict[str, Optional[str]] = {}
+            field_values: dict[str, str | None] = {}
             for f in dataclasses.fields(pin_defaults):
                 default = getattr(pin_defaults, f.name)
                 raw = pin_prompt_fn(f.name, default)
@@ -207,7 +208,7 @@ def render_pn532_configure_output(
     profile: str,
     protocol: str,
     connection: Pn532ConnectionParams,
-    field_values: dict[str, Optional[str]],
+    field_values: dict[str, str | None],
 ) -> str:
     fields = "  ".join(
         f"{f.name}={field_values[f.name] if field_values[f.name] is not None else '-'}"

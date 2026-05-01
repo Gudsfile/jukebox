@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Optional, Protocol
+from typing import Protocol
 
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
@@ -30,10 +30,10 @@ class SonosService(Protocol):
 
 @dataclass(frozen=True)
 class InspectedSelectedSonosGroup:
-    coordinator: Optional[DiscoveredSonosSpeaker]
+    coordinator: DiscoveredSonosSpeaker | None
     resolved_members: list[DiscoveredSonosSpeaker]
     missing_member_uids: list[str] = field(default_factory=list)
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 class DefaultSonosService:

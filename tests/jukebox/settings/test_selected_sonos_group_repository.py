@@ -1,5 +1,3 @@
-from typing import Optional
-
 from jukebox.settings.entities import (
     AppSettings,
     ResolvedAdminRuntimeConfig,
@@ -13,8 +11,8 @@ from jukebox.settings.types import JsonObject
 class StubSettingsService:
     def __init__(
         self,
-        persisted_view: Optional[JsonObject] = None,
-        patch_result: Optional[JsonObject] = None,
+        persisted_view: JsonObject | None = None,
+        patch_result: JsonObject | None = None,
     ):
         if persisted_view is None:
             persisted_view = {"schema_version": 1}

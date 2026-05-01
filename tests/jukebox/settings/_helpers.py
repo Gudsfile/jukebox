@@ -1,4 +1,4 @@
-from typing import Optional, cast
+from typing import cast
 
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
@@ -29,9 +29,9 @@ def lookup_json_object(root: JsonObject, *path: str) -> JsonObject:
 
 def build_resolved_sonos_group_runtime(
     coordinator_uid: str = "speaker-1",
-    speakers: Optional[list[tuple[str, str, str, str]]] = None,
+    speakers: list[tuple[str, str, str, str]] | None = None,
     household_id: str = "household-1",
-    missing_member_uids: Optional[list[str]] = None,
+    missing_member_uids: list[str] | None = None,
 ) -> ResolvedSonosGroupRuntime:
     speakers = speakers or [("speaker-1", "Living Room", "192.168.1.20", household_id)]
     members = [
@@ -50,9 +50,9 @@ def build_resolved_sonos_group_runtime(
 class StubSonosService:
     def __init__(
         self,
-        resolved_group: Optional[ResolvedSonosGroupRuntime] = None,
-        inspected_group: Optional[InspectedSelectedSonosGroup] = None,
-        error: Optional[Exception] = None,
+        resolved_group: ResolvedSonosGroupRuntime | None = None,
+        inspected_group: InspectedSelectedSonosGroup | None = None,
+        error: Exception | None = None,
     ):
         self.resolved_group = resolved_group
         self.inspected_group = inspected_group
@@ -99,7 +99,7 @@ class StubSonosService:
 
 def resolve_jukebox_runtime(
     settings_service: SettingsService,
-    sonos_service: Optional[StubSonosService] = None,
+    sonos_service: StubSonosService | None = None,
     verbose: bool = False,
 ):
     if sonos_service is None:

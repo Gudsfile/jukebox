@@ -1,7 +1,7 @@
-from enum import Enum
+from enum import StrEnum
 
 
-class PlaybackAction(str, Enum):
+class PlaybackAction(StrEnum):
     """Actions that can be performed during playback."""
 
     CONTINUE = "continue"

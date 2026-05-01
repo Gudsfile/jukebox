@@ -1,5 +1,3 @@
-from typing import Optional
-
 from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from discstore.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
 from discstore.domain.use_cases.add_disc import AddDisc
@@ -21,8 +19,8 @@ from .services import AdminServices
 
 
 def build_settings_service(
-    library: Optional[str],
-    command: Optional[object],
+    library: str | None,
+    command: object | None,
 ) -> SettingsService:
     cli_overrides = {}
 
@@ -43,8 +41,8 @@ def build_settings_service(
 
 
 def build_admin_services(
-    library: Optional[str],
-    command: Optional[object],
+    library: str | None,
+    command: object | None,
 ) -> AdminServices:
     sonos_service = build_sonos_service()
     settings_service = build_settings_service(
