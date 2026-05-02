@@ -1,0 +1,74 @@
+from fastapi import APIRouter, HTTPException, Response, status
+from pydantic import ValidationError
+
+from jukebox.adapters.inbound.admin.api.models import DiscInput, DiscOutput, DiscPatchInput
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.domain.use_cases.library.add_disc import AddDisc
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
+from jukebox.domain.use_cases.library.get_disc import GetDisc
+from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+
+
+def build_discs_router(
+    add_disc: AddDisc,
+    list_discs: ListDiscs,
+    remove_disc: RemoveDisc,
+    edit_disc: EditDisc,
+    get_disc: GetDisc,
+) -> APIRouter:
+    router = APIRouter(prefix="/api/v1", tags=["discs"])
+
+    @router.get("/discs", response_model=dict[str, DiscOutput], summary="List discs")
+    def list_discs_route() -> dict[str, Disc]:
+        return list_discs.execute()
+
+    @router.get("/discs/{tag_id}", response_model=DiscOutput, summary="Get a disc")
+    def get_disc_route(tag_id: str) -> Disc:
+        try:
+            return get_disc.execute(tag_id)
+        except ValueError as value_err:
+            raise HTTPException(status_code=404, detail=str(value_err))
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+    @router.post("/discs/{tag_id}", response_model=DiscOutput, status_code=201, summary="Create a disc")
+    def create_disc_route(tag_id: str, disc: DiscInput) -> Disc:
+        try:
+            new_disc = Disc(**disc.model_dump())
+            return add_disc.execute(tag_id, new_disc)
+        except ValueError as value_err:
+            raise HTTPException(status_code=409, detail=str(value_err))
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+    @router.patch("/discs/{tag_id}", response_model=DiscOutput, summary="Update a disc")
+    def update_disc_route(tag_id: str, disc_patch: DiscPatchInput) -> Disc:
+        try:
+            metadata = None
+            if disc_patch.metadata is not None:
+                metadata = DiscMetadata(**disc_patch.metadata.model_dump(exclude_unset=True))
+
+            option = None
+            if disc_patch.option is not None:
+                option = DiscOption(**disc_patch.option.model_dump(exclude_unset=True))
+
+            return edit_disc.execute(tag_id, disc_patch.uri, metadata, option)
+        except ValidationError as err:
+            raise HTTPException(status_code=422, detail=err.errors())
+        except ValueError as value_err:
+            raise HTTPException(status_code=404, detail=str(value_err))
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+    @router.delete("/discs/{tag_id}", status_code=204, summary="Delete a disc")
+    def remove_disc_route(tag_id: str) -> Response:
+        try:
+            remove_disc.execute(tag_id)
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        except ValueError as value_err:
+            raise HTTPException(status_code=404, detail=str(value_err))
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+
+    return router
