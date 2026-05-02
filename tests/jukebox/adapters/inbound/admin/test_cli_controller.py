@@ -2,9 +2,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from discstore.adapters.inbound.cli_controller import CLIController
-from discstore.commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
-from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.adapters.inbound.admin.cli_controller import CLIController
+from jukebox.admin.library_commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
 
 def build_controller():

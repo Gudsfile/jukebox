@@ -1,5 +1,5 @@
-from discstore.domain.entities import Disc, Library
-from discstore.domain.repositories import LibraryRepository
+from jukebox.domain.entities import Disc, Library
+from jukebox.domain.repositories import LibraryRepository
 
 
 class MockRepo(LibraryRepository):

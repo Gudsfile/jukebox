@@ -1,8 +1,8 @@
 import pytest
 
-from discstore.domain.entities import Disc, DiscMetadata, Library
-from discstore.domain.use_cases.remove_disc import RemoveDisc
-from tests.discstore.domain.use_cases.mock_repo import MockRepo
+from jukebox.domain.entities import Disc, DiscMetadata, Library
+from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
 
 
 @pytest.fixture

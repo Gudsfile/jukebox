@@ -3,8 +3,8 @@ from io import StringIO
 
 import pytest
 
-from discstore.adapters.inbound.cli_display import display_library_line, display_library_table
-from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
 
 @pytest.fixture

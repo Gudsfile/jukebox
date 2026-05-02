@@ -1,6 +1,6 @@
-from discstore.domain.entities import Disc, DiscMetadata, Library
-from discstore.domain.use_cases.list_discs import ListDiscs
-from tests.discstore.domain.use_cases.mock_repo import MockRepo
+from jukebox.domain.entities import Disc, DiscMetadata, Library
+from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
 
 
 def test_list_discs_returns_all_discs():

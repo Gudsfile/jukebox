@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from discstore.domain.entities import CurrentTagStatus
-from discstore.domain.use_cases.resolve_tag_id import ResolveTagId
+from jukebox.domain.entities import CurrentTagStatus
+from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
 
 
 def test_resolve_tag_id_returns_explicit_tag_without_loading_current_tag_status():

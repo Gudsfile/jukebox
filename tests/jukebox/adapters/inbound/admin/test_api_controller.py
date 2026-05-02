@@ -11,7 +11,7 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute
 
-    from discstore.adapters.inbound.api.models import (
+    from jukebox.adapters.inbound.admin.api.models import (
         DiscInput,
         DiscPatchInput,
         DiscPatchMetadataInput,
@@ -19,12 +19,12 @@ if FASTAPI_INSTALLED:
         SettingsPatchInput,
         SettingsResetInput,
     )
-    from discstore.adapters.inbound.api_controller import (
+    from jukebox.adapters.inbound.admin.api_controller import (
         APIController,
         SonosSelectionInput,
     )
-    from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
-    from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
+    from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
     from jukebox.settings.errors import InvalidSettingsError
     from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
     from jukebox.sonos.service import InspectedSelectedSonosGroup
@@ -121,11 +121,11 @@ def build_inspected_group(
 
 
 def test_dependencies_import_failure(mocker):
-    sys.modules.pop("discstore.adapters.inbound.api_controller", None)
+    sys.modules.pop("jukebox.adapters.inbound.admin.api_controller", None)
     mocker.patch.dict("sys.modules", {"fastapi": None})
 
     with pytest.raises(ModuleNotFoundError) as err:
-        import discstore.adapters.inbound.api_controller  # noqa: F401
+        import jukebox.adapters.inbound.admin.api_controller  # noqa: F401
 
     assert "The `api_controller` module requires the optional `api` dependencies." in str(err.value)
     assert "pip install 'gukebox[api]'" in str(err.value)

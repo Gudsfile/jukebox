@@ -1,7 +1,11 @@
 from unittest.mock import MagicMock, create_autospec
 
-from discstore.command_handlers import InteractiveLibraryController, LibraryController, execute_library_command
-from discstore.commands import CliSearchCommand, InteractiveCliCommand
+from jukebox.admin.library_command_handlers import (
+    InteractiveLibraryController,
+    LibraryController,
+    execute_library_command,
+)
+from jukebox.admin.library_commands import CliSearchCommand, InteractiveCliCommand
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
 from jukebox.settings.service_protocols import SettingsService
 

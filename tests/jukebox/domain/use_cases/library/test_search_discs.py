@@ -1,5 +1,5 @@
-from discstore.domain.entities import Disc, DiscMetadata, Library
-from discstore.domain.use_cases.search_discs import SearchDiscs
+from jukebox.domain.entities import Disc, DiscMetadata, Library
+from jukebox.domain.use_cases.library.search_discs import SearchDiscs
 
 from .mock_repo import MockRepo
 

@@ -1,7 +1,7 @@
 import pytest
 
-from discstore.domain.entities import Disc, DiscMetadata, DiscOption, Library
-from discstore.domain.use_cases.edit_disc import EditDisc
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
 
 from .mock_repo import MockRepo
 

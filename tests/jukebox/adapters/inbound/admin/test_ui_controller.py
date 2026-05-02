@@ -21,11 +21,11 @@ def build_speaker(uid, name, host, household_id):
 
 
 def test_dependencies_import_failure(mocker):
-    sys.modules.pop("discstore.adapters.inbound.ui_controller", None)
+    sys.modules.pop("jukebox.adapters.inbound.admin.ui_controller", None)
     mocker.patch.dict("sys.modules", {"fastui": None})
 
     with pytest.raises(ModuleNotFoundError) as err:
-        import discstore.adapters.inbound.ui_controller  # noqa: F401
+        import jukebox.adapters.inbound.admin.ui_controller  # noqa: F401
 
     assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)
     assert "pip install 'gukebox[ui]'" in str(err.value)
@@ -34,7 +34,7 @@ def test_dependencies_import_failure(mocker):
 
 
 def build_controller():
-    from discstore.adapters.inbound.ui_controller import UIController
+    from jukebox.adapters.inbound.admin.ui_controller import UIController
     from jukebox.sonos.service import InspectedSelectedSonosGroup, SonosService
 
     settings_service = MagicMock()
@@ -135,7 +135,7 @@ def walk_components(components):
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_ui_controller_registers_fastui_routes_and_page_structure():
-    from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
     controller.list_discs.execute.return_value = {
@@ -442,7 +442,7 @@ def test_sonos_edit_page_renders_speaker_and_coordinator_selects():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_saves_and_redirects():
-    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+    from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
 
     controller = build_controller()
     controller.settings_service.patch_persisted_settings.return_value = {
@@ -481,7 +481,7 @@ async def test_update_sonos_selection_saves_and_redirects():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_returns_field_error_for_invalid_coordinator():
-    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+    from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
 
     controller = build_controller()
     route = next(
@@ -537,7 +537,7 @@ def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_saves_single_speaker_selection():
-    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+    from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
 
     controller = build_controller()
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
@@ -572,7 +572,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_sonos_selection_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
-    from discstore.adapters.inbound.ui_controller import SonosSelectionForm
+    from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
     from jukebox.settings.errors import InvalidSettingsError
 
     controller = build_controller()
@@ -747,7 +747,7 @@ def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_builds_scalar_patch_and_redirects_with_service_message():
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
 
     controller = build_controller()
     controller.settings_service.patch_persisted_settings.return_value = {
@@ -771,7 +771,7 @@ async def test_update_setting_builds_scalar_patch_and_redirects_with_service_mes
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_builds_object_patch_from_json_text():
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
 
     controller = build_controller()
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
@@ -806,7 +806,7 @@ async def test_update_setting_builds_object_patch_from_json_text():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_treats_blank_object_text_as_none():
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
 
     controller = build_controller()
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
@@ -836,7 +836,7 @@ async def test_update_setting_treats_blank_object_text_as_none():
 async def test_update_setting_returns_field_error_for_invalid_json():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
 
     controller = build_controller()
     route = next(
@@ -864,7 +864,7 @@ async def test_update_setting_returns_field_error_for_invalid_json():
 async def test_update_setting_returns_field_error_for_non_object_json():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
 
     controller = build_controller()
     route = next(
@@ -890,7 +890,7 @@ async def test_update_setting_returns_field_error_for_non_object_json():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_setting_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
     from jukebox.settings.errors import InvalidSettingsError
 
     controller = build_controller()
@@ -935,7 +935,7 @@ async def test_update_setting_redirects_when_write_succeeds_but_effective_settin
 async def test_update_setting_returns_field_error_for_shared_validation_failure():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import SettingValueForm
+    from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
     from jukebox.settings.errors import InvalidSettingsError
 
     controller = build_controller()
@@ -1060,7 +1060,7 @@ def test_ui_controller_does_not_register_get_reset_setting_route():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_disc_library_components_render_empty_and_editable_states():
-    from discstore.adapters.inbound.ui_controller import DiscTable
+    from jukebox.adapters.inbound.admin.ui_controller import DiscTable
 
     controller = build_controller()
     empty_components = controller._build_disc_library_components([])
@@ -1089,7 +1089,7 @@ def test_disc_library_components_render_empty_and_editable_states():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_current_tag_banner_for_unknown_disc_offers_add_cta():
-    from discstore.domain.entities import CurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
@@ -1107,7 +1107,7 @@ def test_current_tag_banner_for_unknown_disc_offers_add_cta():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_current_tag_banner_for_known_disc_is_informational_only():
-    from discstore.domain.entities import CurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
@@ -1136,7 +1136,7 @@ def test_new_disc_form_components_render_blank_add_form():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_new_disc_form_components_can_prefill_current_tag():
-    from discstore.domain.entities import CurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus
 
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=False)
@@ -1151,7 +1151,7 @@ def test_new_disc_form_components_can_prefill_current_tag():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_edit_disc_form_components_prefill_existing_disc():
-    from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
     controller.get_disc.execute.return_value = Disc(
@@ -1177,7 +1177,7 @@ def test_edit_disc_form_components_prefill_existing_disc():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_disc_form_helpers_return_errors_for_invalid_current_tag_state_or_missing_edit_target():
-    from discstore.domain.entities import CurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus
 
     controller = build_controller()
 
@@ -1213,7 +1213,7 @@ def test_form_page_components_include_back_link_and_form():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_current_tag_banner_event_stream_emits_serialized_updates():
-    from discstore.domain.entities import CurrentTagStatus
+    from jukebox.domain.entities import CurrentTagStatus
 
     controller = build_controller()
     controller.get_current_tag_status.execute.side_effect = [CurrentTagStatus(tag_id="tag-123", known_in_library=False)]
@@ -1231,8 +1231,8 @@ async def test_current_tag_banner_event_stream_emits_serialized_updates():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_create_disc_returns_success_toast():
-    from discstore.adapters.inbound.ui_controller import DiscForm
-    from discstore.domain.entities import Disc, DiscMetadata, DiscOption
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs")
@@ -1259,7 +1259,7 @@ async def test_create_disc_returns_success_toast():
 async def test_create_disc_returns_conflict_when_add_fails():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import DiscForm
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
 
     controller = build_controller()
     controller.add_disc.execute.side_effect = ValueError("Already existing tag")
@@ -1282,8 +1282,8 @@ async def test_create_disc_returns_conflict_when_add_fails():
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_update_disc_uses_edit_path():
-    from discstore.adapters.inbound.ui_controller import DiscForm
-    from discstore.domain.entities import DiscMetadata, DiscOption
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
+    from jukebox.domain.entities import DiscMetadata, DiscOption
 
     controller = build_controller()
     route = next(
@@ -1312,7 +1312,7 @@ async def test_update_disc_uses_edit_path():
 async def test_update_disc_rejects_tag_changes():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import DiscForm
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
 
     controller = build_controller()
     route = next(
@@ -1340,7 +1340,7 @@ async def test_update_disc_rejects_tag_changes():
 async def test_update_disc_returns_field_error_when_edit_target_is_missing():
     from fastapi import HTTPException
 
-    from discstore.adapters.inbound.ui_controller import DiscForm
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
 
     controller = build_controller()
     controller.edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='tag-123'")

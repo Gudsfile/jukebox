@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock
 
-from discstore.domain.entities import CurrentTagStatus
-from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
+from jukebox.domain.entities import CurrentTagStatus
+from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
 
 
 def test_get_current_tag_status_returns_none_without_current_tag():

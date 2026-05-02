@@ -1,7 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-from discstore.adapters.inbound.interactive_cli_controller import InteractiveCLIController
-from discstore.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
+from jukebox.adapters.inbound.admin.interactive_cli_controller import InteractiveCLIController
+from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 
 
 def build_controller():
