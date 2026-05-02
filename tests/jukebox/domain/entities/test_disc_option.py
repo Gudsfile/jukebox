@@ -1,4 +1,4 @@
-from discstore.domain.entities import DiscOption
+from jukebox.domain.entities import DiscOption
 
 
 def test_default_values():
