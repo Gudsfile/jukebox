@@ -55,27 +55,6 @@ def app_mocks(mocker):
 @pytest.mark.parametrize(
     ("args", "expected_command", "executor_name"),
     [
-        (["settings", "show"], SettingsShowCommand(type="settings_show", effective=False), "execute_settings_command"),
-        (
-            ["settings", "show", "--effective"],
-            SettingsShowCommand(type="settings_show", effective=True),
-            "execute_settings_command",
-        ),
-        (
-            ["settings", "show", "--json"],
-            SettingsShowCommand(type="settings_show", effective=False, json_output=True),
-            "execute_settings_command",
-        ),
-        (
-            ["settings", "set", "admin.api.port", "9000"],
-            SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
-            "execute_settings_command",
-        ),
-        (
-            ["settings", "reset", "admin.ui.port", "--json"],
-            SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port", json_output=True),
-            "execute_settings_command",
-        ),
         (["sonos", "list"], SonosListCommand(type="sonos_list"), "execute_sonos_command"),
         (
             ["sonos", "select", "--uids", "speaker-1,speaker-2", "--coordinator", "speaker-2"],
@@ -119,14 +98,7 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
     executor = getattr(app_mocks, executor_name)
     assert executor.call_count == 1
 
-    if executor_name == "execute_settings_command":
-        executor.assert_called_once_with(
-            command=expected_command,
-            settings_service=services.settings,
-        )
-        app_mocks.execute_sonos_command.assert_not_called()
-        app_mocks.execute_server_command.assert_not_called()
-    elif executor_name == "execute_sonos_command":
+    if executor_name == "execute_sonos_command":
         executor.assert_called_once_with(
             command=expected_command,
             sonos_service=services.sonos,
@@ -163,6 +135,49 @@ def test_jukebox_admin_routes_admin_commands_by_category(app_mocks, args, expect
         app_mocks.execute_sonos_command.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    ("args", "expected_command"),
+    [
+        (["settings", "show"], SettingsShowCommand(type="settings_show", effective=False)),
+        (
+            ["settings", "show", "--effective"],
+            SettingsShowCommand(type="settings_show", effective=True),
+        ),
+        (
+            ["settings", "show", "--json"],
+            SettingsShowCommand(type="settings_show", effective=False, json_output=True),
+        ),
+        (
+            ["settings", "set", "admin.api.port", "9000"],
+            SettingsSetCommand(type="settings_set", dotted_path="admin.api.port", value="9000"),
+        ),
+        (
+            ["settings", "reset", "admin.ui.port", "--json"],
+            SettingsResetCommand(type="settings_reset", dotted_path="admin.ui.port", json_output=True),
+        ),
+    ],
+)
+def test_jukebox_admin_routes_settings_commands_to_settings_handler(app_mocks, args, expected_command):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+
+    result = runner.invoke(app, ["--library", "/custom/library.json", "--verbose", *args])
+
+    assert result.exit_code == 0
+    app_mocks.set_logger.assert_called_once_with("jukebox-admin", True)
+    app_mocks.build_settings_service.assert_called_once_with(
+        library="/custom/library.json",
+        command=expected_command,
+    )
+    app_mocks.execute_settings_command.assert_called_once_with(
+        command=expected_command,
+        settings_service=settings_service,
+    )
+    app_mocks.build_admin_services.assert_not_called()
+    app_mocks.execute_sonos_command.assert_not_called()
+    app_mocks.execute_server_command.assert_not_called()
+
+
 def test_jukebox_admin_version_flag(app_mocks, mocker):
     mocker.patch("jukebox.admin.app.get_package_version", return_value="1.2.3")
 
@@ -176,7 +191,7 @@ def test_jukebox_admin_version_flag(app_mocks, mocker):
 
 
 def test_jukebox_admin_renders_friendly_settings_errors(app_mocks):
-    app_mocks.build_admin_services.side_effect = ValueError("boom")
+    app_mocks.build_settings_service.side_effect = ValueError("boom")
 
     result = runner.invoke(app, ["settings", "show"])
 

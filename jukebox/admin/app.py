@@ -38,7 +38,6 @@ from .commands import (
     SonosSelectCommand,
     SonosShowCommand,
     UiCommand,
-    is_settings_command,
     is_sonos_command,
 )
 from .di_container import (
@@ -72,6 +71,33 @@ def _get_state(ctx: typer.Context) -> AdminCliState:
     return state
 
 
+def _run_settings_command(ctx: typer.Context, command: object) -> None:
+    state = _get_state(ctx)
+
+    try:
+        settings_service = build_settings_service(
+            library=state.library,
+            command=command,
+        )
+        execute_settings_command(
+            command=command,
+            settings_service=settings_service,
+        )
+    except typer.Exit:
+        raise
+    except SettingsError as err:
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        raise typer.Exit(code=1)
+    except OSError as err:
+        typer.echo(str(err), err=True)
+        raise typer.Exit(code=1)
+    except Exception as err:
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        if state.verbose:
+            traceback.print_exception(type(err), err, err.__traceback__)
+        raise typer.Exit(code=1)
+
+
 def _run_command(ctx: typer.Context, command: object) -> None:
     state = _get_state(ctx)
 
@@ -81,12 +107,7 @@ def _run_command(ctx: typer.Context, command: object) -> None:
             command=command,
         )
         try:
-            if is_settings_command(command):
-                execute_settings_command(
-                    command=command,
-                    settings_service=services.settings,
-                )
-            elif is_sonos_command(command):
+            if is_sonos_command(command):
                 execute_sonos_command(
                     command=command,
                     sonos_service=services.sonos,
@@ -318,7 +339,7 @@ def settings_show(
         typer.Option("--json", help="print the raw machine-readable payload"),
     ] = False,
 ) -> None:
-    _run_command(ctx, SettingsShowCommand(type="settings_show", effective=effective, json_output=json_output))
+    _run_settings_command(ctx, SettingsShowCommand(type="settings_show", effective=effective, json_output=json_output))
 
 
 @settings_app.command("set")
@@ -331,7 +352,7 @@ def settings_set(
         typer.Option("--json", help="print the raw machine-readable payload"),
     ] = False,
 ) -> None:
-    _run_command(
+    _run_settings_command(
         ctx,
         SettingsSetCommand(
             type="settings_set",
@@ -351,7 +372,7 @@ def settings_reset(
         typer.Option("--json", help="print the raw machine-readable payload"),
     ] = False,
 ) -> None:
-    _run_command(
+    _run_settings_command(
         ctx,
         SettingsResetCommand(
             type="settings_reset",
