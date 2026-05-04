@@ -6,14 +6,6 @@ import pytest
 FASTUI_INSTALLED = util.find_spec("fastui") is not None
 
 
-def walk_components(components):
-    for component in components:
-        yield component
-        children = getattr(component, "components", None)
-        if children:
-            yield from walk_components(children)
-
-
 def build_library_page_builder():
     from jukebox.adapters.inbound.admin.ui_pages.library import LibraryUIPageBuilder
 
@@ -31,7 +23,7 @@ def build_library_page_builder():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_disc_library_components_render_empty_and_editable_states():
+def test_disc_library_components_render_empty_and_editable_states(walk_components):
     from jukebox.adapters.inbound.admin.ui_pages.library import DiscTable
 
     page_builder = build_library_page_builder()
@@ -60,7 +52,7 @@ def test_disc_library_components_render_empty_and_editable_states():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_current_tag_banner_for_unknown_disc_offers_add_cta():
+def test_current_tag_banner_for_unknown_disc_offers_add_cta(walk_components):
     from jukebox.domain.entities import CurrentTagStatus
 
     page_builder = build_library_page_builder()
@@ -78,7 +70,7 @@ def test_current_tag_banner_for_unknown_disc_offers_add_cta():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_current_tag_banner_for_known_disc_is_informational_only():
+def test_current_tag_banner_for_known_disc_is_informational_only(walk_components):
     from jukebox.domain.entities import CurrentTagStatus
 
     page_builder = build_library_page_builder()
@@ -170,7 +162,7 @@ def test_disc_form_helpers_return_errors_for_invalid_current_tag_state_or_missin
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_form_page_components_include_back_link_and_form():
+def test_form_page_components_include_back_link_and_form(walk_components):
     page_builder = build_library_page_builder()
     components = page_builder.build_form_page_components(
         title="Add disc",
@@ -205,7 +197,7 @@ async def test_current_tag_banner_event_stream_emits_serialized_updates():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_index_page_shows_remove_toast():
+def test_index_page_shows_remove_toast(walk_components):
     page_builder = build_library_page_builder()
     components = page_builder.build_index_page_components(toast="toast-remove-disc-success")
     all_components = list(walk_components(components))

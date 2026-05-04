@@ -125,16 +125,8 @@ def build_controller():
     )
 
 
-def walk_components(components):
-    for component in components:
-        yield component
-        children = getattr(component, "components", None)
-        if children:
-            yield from walk_components(children)
-
-
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_ui_controller_registers_fastui_routes_and_page_structure():
+def test_ui_controller_registers_fastui_routes_and_page_structure(walk_components):
     from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
@@ -259,7 +251,7 @@ def test_ui_controller_registers_fastui_routes_and_page_structure():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_settings_page_groups_entries_and_shows_persisted_and_effective_values():
+def test_settings_page_groups_entries_and_shows_persisted_and_effective_values(walk_components):
     controller = build_controller()
 
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/settings")
@@ -309,7 +301,7 @@ def test_settings_page_groups_entries_and_shows_persisted_and_effective_values()
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_settings_edit_pages_render_select_text_and_json_fields():
+def test_settings_edit_pages_render_select_text_and_json_fields(walk_components):
     controller = build_controller()
     route = next(
         route
@@ -375,7 +367,7 @@ def test_settings_edit_pages_render_select_text_and_json_fields():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_sonos_page_renders_saved_selection_and_discovered_speakers():
+def test_sonos_page_renders_saved_selection_and_discovered_speakers(walk_components):
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos")
 
@@ -402,7 +394,7 @@ def test_sonos_page_renders_saved_selection_and_discovered_speakers():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_sonos_edit_page_renders_speaker_and_coordinator_selects():
+def test_sonos_edit_page_renders_speaker_and_coordinator_selects(walk_components):
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
 
@@ -503,7 +495,7 @@ async def test_update_sonos_selection_returns_field_error_for_invalid_coordinato
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values():
+def test_sonos_edit_page_renders_error_banner_and_preserves_submitted_values(walk_components):
     controller = build_controller()
     route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/sonos/edit")
 
@@ -630,7 +622,7 @@ async def test_reset_sonos_selection_calls_service_and_redirects():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable():
+def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable(walk_components):
     from jukebox.settings.errors import InvalidSettingsError
 
     controller = build_controller()
@@ -672,7 +664,7 @@ def test_settings_pages_render_error_banner_when_effective_settings_are_unavaila
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_settings_page_renders_mixed_provenance_label():
+def test_settings_page_renders_mixed_provenance_label(walk_components):
     controller = build_controller()
     controller.settings_service.get_effective_settings_view.return_value["provenance"]["jukebox"]["player"]["sonos"][
         "selected_group"
@@ -689,7 +681,7 @@ def test_settings_page_renders_mixed_provenance_label():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value():
+def test_settings_edit_page_renders_empty_object_field_with_placeholder_when_no_value(walk_components):
     controller = build_controller()
     controller.settings_service.get_persisted_settings_view.return_value = {"schema_version": 1}
     controller.settings_service.get_effective_settings_view.return_value = {
@@ -1023,7 +1015,7 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
-async def test_reset_setting_rerenders_edit_page_with_visible_error():
+async def test_reset_setting_rerenders_edit_page_with_visible_error(walk_components):
     from jukebox.settings.errors import InvalidSettingsError
 
     controller = build_controller()
