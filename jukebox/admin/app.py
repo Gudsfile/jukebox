@@ -176,7 +176,8 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
 
 
 def _exit_on_command_validation_error(err: ValidationError) -> None:
-    raise SystemExit(str(err)) from err
+    typer.echo(str(err))
+    raise typer.Exit(code=1)
 
 
 def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> list[str] | None:
