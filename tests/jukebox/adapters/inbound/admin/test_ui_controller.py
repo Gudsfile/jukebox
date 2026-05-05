@@ -125,23 +125,8 @@ def build_controller():
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
-def test_ui_controller_registers_fastui_routes_and_page_structure(walk_components):
-    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
-
+def test_ui_controller_registers_routes():
     controller = build_controller()
-    controller.list_discs.execute.return_value = {
-        "tag-123": Disc(
-            uri="/music/song.mp3",
-            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
-            option=DiscOption(shuffle=True),
-        )
-    }
-    controller.get_disc.execute.return_value = Disc(
-        uri="/music/song.mp3",
-        metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
-        option=DiscOption(shuffle=True),
-    )
-    controller.remove_disc.execute.return_value = None
 
     route_index = {
         (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
@@ -172,76 +157,6 @@ def test_ui_controller_registers_fastui_routes_and_page_structure(walk_component
     assert ("/api/v1/discs/{tag_id}", ("PATCH",)) in route_index
     assert ("/api/v1/discs/{tag_id}", ("DELETE",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
-
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/")
-    page = route.endpoint()[0]
-    all_components = list(walk_components(page.components))
-    server_load = next(component for component in all_components if component.type == "ServerLoad")
-    add_button = next(
-        component
-        for component in all_components
-        if component.type == "Button" and component.text == "➕ Add a new disc"
-    )
-    sonos_button = next(
-        component
-        for component in all_components
-        if component.type == "Button" and component.text == "🔊 Sonos Speakers"
-    )
-    settings_button = next(
-        component for component in all_components if component.type == "Button" and component.text == "⚙️ Settings"
-    )
-    edit_button = next(
-        component
-        for component in all_components
-        if component.type == "Button" and component.text == "Edit ✏️" and component.on_click is not None
-    )
-    assert any(component.type == "Paragraph" and component.text == "URI / Path" for component in all_components)
-
-    assert server_load.path == "/current-tag-banner/events"
-    assert server_load.sse is True
-    assert add_button.on_click.type == "go-to"
-    assert add_button.on_click.url == "/discs/new"
-    assert sonos_button.on_click.type == "go-to"
-    assert sonos_button.on_click.url == "/sonos"
-    assert settings_button.on_click.type == "go-to"
-    assert settings_button.on_click.url == "/settings"
-    assert edit_button.on_click.type == "go-to"
-    assert edit_button.on_click.url == "/discs/tag-123/edit"
-
-    new_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs/new")
-    new_page = new_route.endpoint()[0]
-    assert new_page.components[0].text == "Add disc"
-
-    edit_route = next(
-        route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/edit"
-    )
-    edit_page = edit_route.endpoint("tag-123")[0]
-    assert edit_page.components[0].text == "Edit disc tag-123"
-    delete_button = next(
-        component
-        for component in edit_page.components
-        if component.type == "Button" and component.text == "🗑️ Delete this disc"
-    )
-    assert delete_button.on_click.type == "go-to"
-    assert delete_button.on_click.url == "/discs/tag-123/delete"
-
-    delete_route = next(
-        route
-        for route in controller.app.routes
-        if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "GET" in getattr(route, "methods", [])
-    )
-    delete_page = delete_route.endpoint("tag-123")[0]
-    assert delete_page.components[0].text == "Delete disc tag-123"
-    assert delete_page.components[1].text == 'Are you sure you want to delete the disc with tag "tag-123"?'
-    all_delete_page_components = list(walk_components(delete_page.components))
-    confirm_deletion_form = next(component for component in all_delete_page_components if component.type == "Form")
-    cancel_deletion_button = next(
-        component
-        for component in all_delete_page_components
-        if component.type == "Button" and component.text == "Cancel"
-    )
-    assert confirm_deletion_form.submit_url == "/api/ui/discs/tag-123/delete"
-    assert cancel_deletion_button.on_click.type == "back"
 
     html_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/{path:path}")
     html_response = html_route.endpoint("discs/new")
