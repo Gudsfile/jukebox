@@ -8,6 +8,7 @@ from jukebox.admin.cli_presentation import (
     render_sonos_speakers_output,
 )
 from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
+from jukebox.admin.errors import MissingOptionalDependencyError
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.settings.errors import (
@@ -678,14 +679,18 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
     )
 
 
-def test_render_cli_error_for_optional_dependency_exit_is_concise():
+def test_render_cli_error_for_optional_dependency_error_is_concise():
+    from jukebox.shared.dependency_messages import optional_extra_dependency_message
+
     message = render_cli_error(
-        SystemExit(
-            "The `ui_controller` module requires the optional `ui` dependencies.\n\n"
-            "If you're running from a source checkout:\n"
-            "  uv sync --extra ui\n"
-            "or \n"
-            "  uv run --extra ui jukebox-admin ui"
+        MissingOptionalDependencyError(
+            optional_extra_dependency_message(
+                subject="`jukebox-admin ui`",
+                extra_name="ui",
+                source_command="jukebox-admin ui",
+            ),
+            extra_name="ui",
+            run_command="jukebox-admin ui",
         )
     )
 

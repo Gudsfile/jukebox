@@ -48,6 +48,7 @@ from .di_container import (
     build_interactive_cli_controller,
     build_settings_service,
 )
+from .errors import MissingOptionalDependencyError
 from .pn532_command_handlers import execute_pn532_command
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand, is_pn532_command
 from .sonos_households import GroupedSonosHousehold
@@ -119,11 +120,9 @@ def _run_command(ctx: typer.Context, command: object) -> None:
                 raise
             typer.echo(str(err), err=True)
             raise typer.Exit(code=1)
-    except SystemExit as err:
-        if isinstance(err.code, str):
-            typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
-            raise typer.Exit(code=1)
-        raise
+    except MissingOptionalDependencyError as err:
+        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
+        raise typer.Exit(code=1)
     except typer.Exit:
         raise
     except SettingsError as err:

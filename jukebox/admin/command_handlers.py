@@ -25,6 +25,7 @@ from .commands import (
     SonosShowCommand,
     UiCommand,
 )
+from .errors import MissingOptionalDependencyError
 from .services import AdminServices
 from .sonos_households import GroupedSonosHousehold, group_sonos_speakers_by_household
 
@@ -34,12 +35,15 @@ class AppController(Protocol):
 
 
 def _raise_optional_extra_error(command_name: str, extra_name: str, source_command: str, err: ModuleNotFoundError):
-    raise SystemExit(
+    full_command = f"{source_command} {command_name}"
+    raise MissingOptionalDependencyError(
         optional_extra_dependency_message(
-            subject=f"`{source_command} {command_name}`",
+            subject=f"`{full_command}`",
             extra_name=extra_name,
-            source_command=f"{source_command} {command_name}",
-        )
+            source_command=full_command,
+        ),
+        extra_name=extra_name,
+        run_command=full_command,
     ) from err
 
 

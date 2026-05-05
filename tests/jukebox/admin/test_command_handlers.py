@@ -18,6 +18,7 @@ from jukebox.admin.commands import (
     SonosShowCommand,
     UiCommand,
 )
+from jukebox.admin.errors import MissingOptionalDependencyError
 from jukebox.admin.services import AdminServices
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
@@ -905,7 +906,7 @@ def test_execute_server_command_reports_missing_optional_dependencies(mocker, co
         side_effect=ModuleNotFoundError("No module named 'uvicorn'"),
     )
 
-    with pytest.raises(SystemExit) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         execute_server_command(
             verbose=False,
             command=command,
@@ -946,7 +947,7 @@ def test_execute_server_command_rewrites_controller_dependency_failures(mocker, 
         )
     )
 
-    with pytest.raises(SystemExit) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         execute_server_command(
             verbose=False,
             command=command,
