@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from jukebox.shared.dependency_messages import optional_extra_dependency_message
+from jukebox.shared.errors import MissingOptionalDependencyError
 
 try:
     from fastapi import FastAPI, HTTPException
@@ -20,9 +20,7 @@ try:
 except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
-    raise ModuleNotFoundError(
-        optional_extra_dependency_message("The `api_controller` module", "api", "jukebox-admin api")
-    ) from e
+    raise MissingOptionalDependencyError("The `api_controller` module", "api", "jukebox-admin api") from e
 from jukebox.domain.use_cases.library.add_disc import AddDisc
 from jukebox.domain.use_cases.library.edit_disc import EditDisc
 from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus

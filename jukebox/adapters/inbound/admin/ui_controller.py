@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from jukebox.shared.dependency_messages import optional_extra_dependency_message
+from jukebox.shared.errors import MissingOptionalDependencyError
 
 try:
     from fastapi import HTTPException, Request
@@ -10,9 +10,7 @@ try:
     from fastui.events import GoToEvent
     from fastui.forms import fastui_form
 except ModuleNotFoundError as e:
-    raise ModuleNotFoundError(
-        optional_extra_dependency_message("The `ui_controller` module", "ui", "jukebox-admin ui")
-    ) from e
+    raise MissingOptionalDependencyError("The `ui_controller` module", "ui", "jukebox-admin ui") from e
 
 from pydantic import BaseModel, Field
 

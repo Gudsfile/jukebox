@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
+from jukebox.shared.errors import MissingOptionalDependencyError
+
 FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 
 if FASTAPI_INSTALLED:
@@ -28,7 +30,6 @@ if FASTAPI_INSTALLED:
     from jukebox.settings.errors import InvalidSettingsError
     from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
     from jukebox.sonos.service import InspectedSelectedSonosGroup
-
 
 InvalidUidPayloadCase = tuple[dict[str, object], list[object], str]
 
@@ -124,7 +125,7 @@ def test_dependencies_import_failure(mocker):
     sys.modules.pop("jukebox.adapters.inbound.admin.api_controller", None)
     mocker.patch.dict("sys.modules", {"fastapi": None})
 
-    with pytest.raises(ModuleNotFoundError) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         import jukebox.adapters.inbound.admin.api_controller  # noqa: F401
 
     assert "The `api_controller` module requires the optional `api` dependencies." in str(err.value)

@@ -4,6 +4,8 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
+from jukebox.shared.errors import MissingOptionalDependencyError
+
 FASTUI_INSTALLED = util.find_spec("fastui") is not None
 
 
@@ -23,7 +25,7 @@ def test_dependencies_import_failure(mocker):
     sys.modules.pop("jukebox.adapters.inbound.admin.ui_controller", None)
     mocker.patch.dict("sys.modules", {"fastui": None})
 
-    with pytest.raises(ModuleNotFoundError) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         import jukebox.adapters.inbound.admin.ui_controller  # noqa: F401
 
     assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)

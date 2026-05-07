@@ -4,7 +4,7 @@ from typing import Protocol
 
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.shared.dependency_messages import optional_extra_dependency_message
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
@@ -25,7 +25,6 @@ from .commands import (
     SonosShowCommand,
     UiCommand,
 )
-from .errors import MissingOptionalDependencyError
 from .services import AdminServices
 from .sonos_households import GroupedSonosHousehold, group_sonos_speakers_by_household
 
@@ -36,15 +35,7 @@ class AppController(Protocol):
 
 def _raise_optional_extra_error(command_name: str, extra_name: str, source_command: str, err: ModuleNotFoundError):
     full_command = f"{source_command} {command_name}"
-    raise MissingOptionalDependencyError(
-        optional_extra_dependency_message(
-            subject=f"`{full_command}`",
-            extra_name=extra_name,
-            source_command=full_command,
-        ),
-        extra_name=extra_name,
-        run_command=full_command,
-    ) from err
+    raise MissingOptionalDependencyError(f"`{full_command}`", extra_name, full_command) from err
 
 
 def _load_uvicorn(command_name: str, extra_name: str, source_command: str):

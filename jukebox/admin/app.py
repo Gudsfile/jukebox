@@ -18,6 +18,7 @@ from jukebox.admin.library_commands import (
 )
 from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.logger import set_logger
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
@@ -48,7 +49,6 @@ from .di_container import (
     build_interactive_cli_controller,
     build_settings_service,
 )
-from .errors import MissingOptionalDependencyError
 from .pn532_command_handlers import execute_pn532_command
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand, is_pn532_command
 from .sonos_households import GroupedSonosHousehold

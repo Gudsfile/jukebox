@@ -8,7 +8,6 @@ from jukebox.admin.cli_presentation import (
     render_sonos_speakers_output,
 )
 from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
-from jukebox.admin.errors import MissingOptionalDependencyError
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.settings.errors import (
@@ -17,6 +16,7 @@ from jukebox.settings.errors import (
     UnsupportedSettingsVersionError,
 )
 from jukebox.settings.types import JsonObject
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import (
     SonosSelectionAvailability,
@@ -680,20 +680,20 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
 
 
 def test_render_cli_error_for_optional_dependency_error_is_concise():
-    from jukebox.shared.dependency_messages import optional_extra_dependency_message
-
-    message = render_cli_error(
-        MissingOptionalDependencyError(
-            optional_extra_dependency_message(
-                subject="`jukebox-admin ui`",
-                extra_name="ui",
-                source_command="jukebox-admin ui",
-            ),
-            extra_name="ui",
-            run_command="jukebox-admin ui",
-        )
-    )
+    message = render_cli_error(MissingOptionalDependencyError("`jukebox-admin ui`", "ui", "jukebox-admin ui"))
 
     assert "Optional `ui` dependencies are not installed." in message
     assert "`uv sync --extra ui`" in message
     assert "`uv run --extra ui jukebox-admin ui`" in message
+
+
+def test_render_cli_error_for_optional_dependency_error_is_verbose_with_flag():
+    message = render_cli_error(
+        MissingOptionalDependencyError("`jukebox-admin ui`", "ui", "jukebox-admin ui"),
+        verbose=True,
+    )
+
+    assert "Optional `ui` dependencies are not installed." in message
+    assert "Details:" in message
+    assert "`jukebox-admin ui` requires the optional `ui` dependencies" in message
+    assert "pip install 'gukebox[ui]'" in message

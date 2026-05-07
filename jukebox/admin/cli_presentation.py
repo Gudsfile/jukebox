@@ -12,12 +12,12 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.terminal_ui import table
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
 
 from .commands import SettingsResetCommand, SettingsSetCommand, SettingsShowCommand
-from .errors import MissingOptionalDependencyError
 from .sonos_households import GroupedSonosHousehold
 
 _SECTION_ORDER = ("paths", "admin", "playback", "reader", "player", "other")
@@ -379,7 +379,7 @@ def _render_cli_error_message(err: BaseException) -> str:
         case SettingsError():
             return str(err)
         case MissingOptionalDependencyError():
-            return err.install_hint
+            return err.concise_hint
         case _:
             return "Unexpected error. Re-run with `--verbose` for details."
 
