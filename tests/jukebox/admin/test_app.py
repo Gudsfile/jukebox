@@ -5,16 +5,6 @@ import pytest
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
-from discstore.commands import (
-    CliAddCommand,
-    CliEditCommand,
-    CliGetCommand,
-    CliListCommand,
-    CliListCommandModes,
-    CliRemoveCommand,
-    CliSearchCommand,
-    InteractiveCliCommand,
-)
 from jukebox.admin.app import _prompt_for_sonos_household_selection, app
 from jukebox.admin.commands import (
     ApiCommand,
@@ -25,6 +15,16 @@ from jukebox.admin.commands import (
     SonosSelectCommand,
     SonosShowCommand,
     UiCommand,
+)
+from jukebox.admin.library_commands import (
+    CliAddCommand,
+    CliEditCommand,
+    CliGetCommand,
+    CliListCommand,
+    CliListCommandModes,
+    CliRemoveCommand,
+    CliSearchCommand,
+    InteractiveCliCommand,
 )
 from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 from jukebox.admin.sonos_households import GroupedSonosHousehold

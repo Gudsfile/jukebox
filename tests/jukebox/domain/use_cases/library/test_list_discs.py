@@ -1,0 +1,17 @@
+from jukebox.domain.entities import Disc, DiscMetadata, Library
+from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
+
+
+def test_list_discs_returns_all_discs():
+    discs = {
+        "tag1": Disc(uri="/song1.mp3", metadata=DiscMetadata()),
+        "tag2": Disc(uri="/song2.mp3", metadata=DiscMetadata()),
+    }
+    repo = MockRepo(Library(discs=discs))
+    use_case = ListDiscs(repo)
+
+    result = use_case.execute()
+
+    assert repo.list_calls == 1
+    assert result == discs

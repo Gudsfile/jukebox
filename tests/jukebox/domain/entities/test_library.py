@@ -1,4 +1,4 @@
-from discstore.domain.entities import Disc, DiscMetadata, Library
+from jukebox.domain.entities import Disc, DiscMetadata, Library
 
 
 def test_library():

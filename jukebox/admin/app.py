@@ -5,8 +5,8 @@ from typing import Annotated
 import typer
 from pydantic import ValidationError
 
-from discstore.command_handlers import execute_library_command
-from discstore.commands import (
+from jukebox.admin.library_command_handlers import execute_library_command
+from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
     CliGetCommand,
@@ -16,7 +16,6 @@ from discstore.commands import (
     CliSearchCommand,
     InteractiveCliCommand,
 )
-from discstore.di_container import build_cli_controller, build_interactive_cli_controller
 from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
@@ -41,7 +40,14 @@ from .commands import (
     is_settings_command,
     is_sonos_command,
 )
-from .di_container import build_admin_api_app, build_admin_services, build_admin_ui_app, build_settings_service
+from .di_container import (
+    build_admin_api_app,
+    build_admin_services,
+    build_admin_ui_app,
+    build_cli_controller,
+    build_interactive_cli_controller,
+    build_settings_service,
+)
 from .pn532_command_handlers import execute_pn532_command
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand, is_pn532_command
 from .sonos_households import GroupedSonosHousehold

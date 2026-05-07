@@ -93,7 +93,8 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
     mock_api_instance = MagicMock()
     mock_api_controller_class = MagicMock(return_value=mock_api_instance)
     mocker.patch.dict(
-        "sys.modules", {"discstore.adapters.inbound.api_controller": MagicMock(APIController=mock_api_controller_class)}
+        "sys.modules",
+        {"jukebox.adapters.inbound.admin.api_controller": MagicMock(APIController=mock_api_controller_class)},
     )
     services = AdminServices(settings=MagicMock(), sonos=MagicMock())
 
@@ -118,7 +119,8 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
     mock_ui_instance = MagicMock()
     mock_ui_controller_class = MagicMock(return_value=mock_ui_instance)
     mocker.patch.dict(
-        "sys.modules", {"discstore.adapters.inbound.ui_controller": MagicMock(UIController=mock_ui_controller_class)}
+        "sys.modules",
+        {"jukebox.adapters.inbound.admin.ui_controller": MagicMock(UIController=mock_ui_controller_class)},
     )
     services = AdminServices(settings=MagicMock(), sonos=MagicMock())
 

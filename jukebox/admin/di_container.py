@@ -1,12 +1,14 @@
-from discstore.adapters.outbound.json_library_adapter import JsonLibraryAdapter
-from discstore.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
-from discstore.domain.use_cases.add_disc import AddDisc
-from discstore.domain.use_cases.edit_disc import EditDisc
-from discstore.domain.use_cases.get_current_tag_status import GetCurrentTagStatus
-from discstore.domain.use_cases.get_disc import GetDisc
-from discstore.domain.use_cases.list_discs import ListDiscs
-from discstore.domain.use_cases.remove_disc import RemoveDisc
+from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
+from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
+from jukebox.domain.use_cases.library.add_disc import AddDisc
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
+from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
+from jukebox.domain.use_cases.library.get_disc import GetDisc
+from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
+from jukebox.domain.use_cases.library.search_discs import SearchDiscs
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides
@@ -56,7 +58,7 @@ def build_admin_api_app(library_path: str, services: AdminServices):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
 
-    from discstore.adapters.inbound.api_controller import APIController
+    from jukebox.adapters.inbound.admin.api_controller import APIController
 
     return APIController(
         AddDisc(repository),
@@ -74,7 +76,7 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
     repository = JsonLibraryAdapter(library_path)
     current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
 
-    from discstore.adapters.inbound.ui_controller import UIController
+    from jukebox.adapters.inbound.admin.ui_controller import UIController
 
     return UIController(
         AddDisc(repository),
@@ -90,3 +92,36 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
 
 def build_sonos_service() -> SonosService:
     return DefaultSonosService(SoCoSonosDiscoveryAdapter())
+
+
+def build_cli_controller(library_path: str):
+    repository = JsonLibraryAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
+    get_current_tag_status = GetCurrentTagStatus(current_tag_repository, repository)
+
+    from jukebox.adapters.inbound.admin.cli_controller import CLIController
+
+    return CLIController(
+        AddDisc(repository),
+        ListDiscs(repository),
+        RemoveDisc(repository),
+        EditDisc(repository),
+        GetDisc(repository),
+        SearchDiscs(repository),
+        ResolveTagId(get_current_tag_status),
+    )
+
+
+def build_interactive_cli_controller(library_path: str):
+    repository = JsonLibraryAdapter(library_path)
+    current_tag_repository = TextCurrentTagAdapter(get_current_tag_path(library_path))
+
+    from jukebox.adapters.inbound.admin.interactive_cli_controller import InteractiveCLIController
+
+    return InteractiveCLIController(
+        AddDisc(repository),
+        ListDiscs(repository),
+        RemoveDisc(repository),
+        EditDisc(repository),
+        GetCurrentTagStatus(current_tag_repository, repository),
+    )

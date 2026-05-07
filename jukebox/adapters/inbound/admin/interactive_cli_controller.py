@@ -1,0 +1,132 @@
+import logging
+
+from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
+from jukebox.domain.use_cases.library.add_disc import AddDisc
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
+from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
+from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+
+LOGGER = logging.getLogger("discstore")
+
+
+class InteractiveCLIController:
+    available_commands = "\n* " + "\n* ".join(["add", "remove", "list", "edit", "current", "exit", "help"])
+    help_message = f"\nAvailable commands: {available_commands}"
+
+    def __init__(
+        self,
+        add_disc: AddDisc,
+        list_discs: ListDiscs,
+        remove_disc: RemoveDisc,
+        edit_disc: EditDisc,
+        get_current_tag_status: GetCurrentTagStatus,
+    ):
+        self.add_disc = add_disc
+        self.list_discs = list_discs
+        self.remove_disc = remove_disc
+        self.edit_disc = edit_disc
+        self.get_current_tag_status = get_current_tag_status
+
+    def run(self) -> None:
+        print(self.help_message)
+        while True:
+            command = input("discstore> ")
+            self.handle_command(command)
+
+    def handle_command(self, command: str) -> None:
+        try:
+            match command:
+                case "add":
+                    self.add_disc_flow()
+                case "remove":
+                    self.remove_disc_flow()
+                case "list":
+                    self.list_discs_flow()
+                case "edit":
+                    self.edit_disc_flow()
+                case "current":
+                    self.current_tag_flow()
+                case "exit":
+                    print("See you soon!")
+                    exit(0)
+                case "help":
+                    print(self.help_message)
+                case _:
+                    print(f"Invalid command `{command}`")
+                    print(self.help_message)
+        except Exception as err:
+            print(f"Error: {err}")
+            LOGGER.error("Error during handling command: %s", err)
+
+    def add_disc_flow(self) -> None:
+        print("\n-- Add a disc --")
+        current_tag_status = self.get_current_tag_status.execute()
+        tag = self._prompt_for_tag(current_tag_status, action="add")
+        uri = input("discstore> add uri> ").strip()
+        option = DiscOption()
+        metadata = DiscMetadata()
+
+        disc = Disc(uri=uri, metadata=metadata, option=option)
+        self.add_disc.execute(tag, disc)
+        print("✅ Disc successfully added")
+
+    def list_discs_flow(self) -> None:
+        print("\n-- List all discs --")
+        mode = input("discstore> list mode(table/line)> ").strip()
+
+        discs = self.list_discs.execute()
+        if mode == "table" or mode == "":
+            display_library_table(discs)
+            return
+        if mode == "line":
+            display_library_line(discs)
+            return
+        print(f"Displaying mode not implemented yet: `{mode}`")
+
+    def remove_disc_flow(self) -> None:
+        print("\n-- Remove a disc --")
+        tag = input("discstore> remove tag> ").strip()
+        self.remove_disc.execute(tag)
+        print("🗑️ Disc successfully removed")
+
+    def edit_disc_flow(self) -> None:
+        print("\n-- Edit a disc --")
+        current_tag_status = self.get_current_tag_status.execute()
+        tag = self._prompt_for_tag(current_tag_status, action="edit")
+        uri = input("discstore> edit uri> ").strip()
+        option = DiscOption()
+        metadata = DiscMetadata()
+
+        self.edit_disc.execute(tag, uri, metadata, option)
+        print("✅ Disc successfully edited")
+
+    def current_tag_flow(self) -> None:
+        print("\n-- Current tag --")
+        current_tag_status = self.get_current_tag_status.execute()
+        if current_tag_status is None:
+            print("No current tag is available")
+            return
+
+        print(f"Tag ID           : {current_tag_status.tag_id}")
+        print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
+
+    def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
+        default_tag = ""
+        if current_tag_status is not None and (
+            (action == "add" and not current_tag_status.known_in_library)
+            or (action == "edit" and current_tag_status.known_in_library)
+        ):
+            default_tag = current_tag_status.tag_id
+        prompt = f"discstore> {action} tag"
+        if default_tag:
+            prompt += f" [{default_tag}]"
+        prompt += "> "
+
+        entered_tag = input(prompt).strip()
+        tag = entered_tag or default_tag
+        if not tag:
+            raise ValueError("A tag ID is required.")
+
+        return tag

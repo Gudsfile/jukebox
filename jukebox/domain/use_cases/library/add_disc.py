@@ -1,0 +1,11 @@
+from jukebox.domain.entities import Disc
+from jukebox.domain.repositories import LibraryRepository
+
+
+class AddDisc:
+    def __init__(self, repository: LibraryRepository):
+        self.repository = repository
+
+    def execute(self, tag_id: str, disc: Disc) -> Disc:
+        self.repository.add_disc(tag_id, disc)
+        return disc
