@@ -128,6 +128,7 @@ def test_edit_disc_form_components_prefill_existing_disc():
 
     components = page_builder.build_edit_disc_form_components("tag-123")
     form = components[0]
+    delete_button = components[1]
 
     assert form.type == "ModelForm"
     assert form.submit_url == "/api/ui/discs/tag-123"
@@ -139,6 +140,28 @@ def test_edit_disc_form_components_prefill_existing_disc():
         "track": "Track",
         "shuffle": True,
     }
+    assert delete_button.text == "🗑️ Delete this disc"
+    assert delete_button.on_click.url == "/discs/tag-123/delete"
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+def test_delete_disc_form_components_render_confirmation_and_actions(walk_components):
+    page_builder = build_library_page_builder()
+
+    page = page_builder.build_form_page_components(
+        "Delete disc tag-123",
+        page_builder.build_delete_disc_form_components("tag-123"),
+    )[0]
+    all_components = list(walk_components(page.components))
+
+    assert page.components[0].text == "Delete disc tag-123"
+    assert page.components[1].text == 'Are you sure you want to delete the disc with tag "tag-123"?'
+    confirm_deletion_form = next(component for component in all_components if component.type == "Form")
+    cancel_deletion_button = next(
+        component for component in all_components if component.type == "Button" and component.text == "Cancel"
+    )
+    assert confirm_deletion_form.submit_url == "/api/ui/discs/tag-123/delete"
+    assert cancel_deletion_button.on_click.type == "back"
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
@@ -205,3 +228,48 @@ def test_index_page_shows_remove_toast(walk_components):
         component for component in all_components if component.type == "Toast" and "removed" in str(component.body)
     )
     assert remove_toast.open_trigger.name == "toast-remove-disc-success"
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+def test_index_page_renders_server_load_and_navigation(walk_components):
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+
+    page_builder = build_library_page_builder()
+    page_builder.list_discs.execute.return_value = {
+        "tag-123": Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(artist="Artist", album="Album", track="Track"),
+            option=DiscOption(shuffle=True),
+        )
+    }
+
+    page = page_builder.build_index_page_components()[0]
+    all_components = list(walk_components(page.components))
+
+    server_load = next(component for component in all_components if component.type == "ServerLoad")
+    add_button = next(
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "➕ Add a new disc"
+    )
+    sonos_button = next(
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "🔊 Sonos Speakers"
+    )
+    settings_button = next(
+        component for component in all_components if component.type == "Button" and component.text == "⚙️ Settings"
+    )
+    edit_button = next(
+        component
+        for component in all_components
+        if component.type == "Button" and component.text == "Edit ✏️" and component.on_click is not None
+    )
+
+    assert server_load.path == "/current-tag-banner/events"
+    assert server_load.sse is True
+    assert add_button.on_click.url == "/discs/new"
+    assert sonos_button.on_click.url == "/sonos"
+    assert settings_button.on_click.url == "/settings"
+    assert edit_button.on_click.url == "/discs/tag-123/edit"
+    assert any(component.type == "Paragraph" and component.text == "URI / Path" for component in all_components)
