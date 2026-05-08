@@ -1,19 +1,14 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Annotated, Literal, Never
 
 import typer
 
 from jukebox.adapters.inbound.cli_controller import CLIController
-from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
-from jukebox.di_container import build_jukebox
+from jukebox.di_container import build_jukebox, build_runtime_resolver, build_settings_service
 from jukebox.settings.errors import SettingsError
-from jukebox.settings.file_settings_repository import FileSettingsRepository
-from jukebox.settings.resolve import SettingsService, build_environment_settings_overrides
-from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.shared.config_utils import get_package_version
 from jukebox.shared.logger import set_logger
-from jukebox.sonos.service import DefaultSonosService
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -46,66 +41,6 @@ def _exit_success(message: str) -> Never:
 def _exit_error(message: str) -> Never:
     typer.echo(message, err=True)
     raise typer.Exit(code=1)
-
-
-def _build_settings_service(config: JukeboxCliState) -> SettingsService:
-    cli_overrides = {}
-
-    if config.library is not None:
-        cli_overrides.setdefault("paths", {})["library_path"] = config.library
-
-    if config.player is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("player", {})["type"] = config.player
-
-    if config.reader is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {})["type"] = config.reader
-
-    if config.sonos_host is not None:
-        sonos_overrides = cli_overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
-        sonos_overrides["manual_host"] = config.sonos_host
-        sonos_overrides["manual_name"] = None
-        sonos_overrides["selected_group"] = None
-
-    if config.sonos_name is not None:
-        sonos_overrides = cli_overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
-        sonos_overrides["manual_host"] = None
-        sonos_overrides["manual_name"] = config.sonos_name
-        sonos_overrides["selected_group"] = None
-
-    if config.pause_duration_seconds is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("playback", {})["pause_duration_seconds"] = (
-            config.pause_duration_seconds
-        )
-
-    if config.pause_delay_seconds is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("playback", {})["pause_delay_seconds"] = (
-            config.pause_delay_seconds
-        )
-
-    if config.pn532_spi_reset is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
-            "reset"
-        ] = config.pn532_spi_reset
-
-    if config.pn532_spi_cs is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
-            "cs"
-        ] = config.pn532_spi_cs
-
-    if config.pn532_spi_irq is not None:
-        cli_overrides.setdefault("jukebox", {}).setdefault("reader", {}).setdefault("pn532", {}).setdefault("spi", {})[
-            "irq"
-        ] = config.pn532_spi_irq
-
-    return SettingsService(
-        repository=FileSettingsRepository(),
-        env_overrides=build_environment_settings_overrides(),
-        cli_overrides=cli_overrides,
-    )
-
-
-def _build_runtime_resolver(settings_service: SettingsService) -> JukeboxRuntimeResolver:
-    return JukeboxRuntimeResolver(settings_service, DefaultSonosService(SoCoSonosDiscoveryAdapter()))
 
 
 app = typer.Typer(help="Play music on speakers using NFC tags", invoke_without_command=True)
@@ -173,9 +108,12 @@ def jukebox(
 
 def _run(state: JukeboxCliState) -> None:
 
+    if state.sonos_host is not None and state.sonos_name is not None:
+        raise typer.BadParameter("--sonos-host and --sonos-name are mutually exclusive")
+
     try:
-        settings_service = _build_settings_service(state)
-        runtime_resolver = _build_runtime_resolver(settings_service)
+        settings_service = build_settings_service(**{k: v for k, v in asdict(state).items() if k != "verbose"})
+        runtime_resolver = build_runtime_resolver(settings_service)
         runtime_config = runtime_resolver.resolve(verbose=state.verbose)
         reader, handle_tag_event = build_jukebox(runtime_config)
     except SettingsError as err:
