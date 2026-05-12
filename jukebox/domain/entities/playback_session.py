@@ -7,7 +7,7 @@ class PlaybackCommandRetry(BaseModel):
     """Tracks retry timing for a failed playback command."""
 
     action: PlaybackAction
-    command_key: str
+    retry_key: str
     first_failed_at: float
     last_failed_at: float
     attempt_count: int
