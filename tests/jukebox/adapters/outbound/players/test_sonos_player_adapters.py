@@ -1,12 +1,13 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
+from requests.exceptions import ConnectionError as RequestConnectionError
 from soco.exceptions import SoCoUPnPException
 
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter, catch_soco_upnp_exception
 from jukebox.domain.errors import PlaybackError
 from jukebox.settings.errors import InvalidSettingsError
-from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
+from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
 
 
 def make_exception(code: str):
@@ -592,6 +593,88 @@ def test_pause_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     adapter.pause()
 
     mock_speaker.pause.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_uses_cached_player_name(mock_sharelink, mock_soco):
+    """Should not poll Sonos for player_name while pausing."""
+
+    class SpeakerWithNetworkedName:
+        def __init__(self):
+            self.get_speaker_info = MagicMock(return_value={"software_version": "1.0", "zone_name": "Living Room"})
+            self.pause = MagicMock()
+
+        @property
+        def player_name(self):
+            raise RequestConnectionError("No route to host")
+
+    speaker = SpeakerWithNetworkedName()
+    mock_soco.return_value = speaker
+
+    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter.pause()
+
+    speaker.pause.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_recovers_selected_group_after_ip_changes(mock_sharelink, mock_soco):
+    """Should re-resolve the saved Sonos group by UID and retry the command once."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    new_speaker = MagicMock()
+    new_speaker.uid = "RINCON_949F3E8DD34001400"
+    new_speaker.household_id = "household-1"
+    new_speaker.group = None
+    new_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    mock_soco.side_effect = lambda host: {
+        "192.168.1.24": old_speaker,
+        "192.168.1.25": new_speaker,
+    }[host]
+    sonos_service = StubSonosService(resolved_group=new_group)
+
+    adapter = SonosPlayerAdapter(group=old_group, sonos_service=sonos_service)
+    adapter.pause()
+
+    old_speaker.pause.assert_called_once()
+    new_speaker.pause.assert_called_once()
+    assert adapter.speaker is new_speaker
+    assert len(sonos_service.calls) == 1
+    assert sonos_service.calls[0].coordinator_uid == "RINCON_949F3E8DD34001400"
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_raises_playback_error_when_recovery_fails(mock_sharelink, mock_soco, caplog):
+    """Should report command failure after recovery cannot find the selected speaker."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.uid = "RINCON_949F3E8DD34001400"
+    mock_speaker.household_id = "household-1"
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    mock_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    sonos_service = StubSonosService(error=ValueError("not found on network"))
+
+    adapter = SonosPlayerAdapter(host="192.168.1.24", sonos_service=sonos_service)
+    with pytest.raises(PlaybackError, match="No route to host"):
+        adapter.pause()
+
+    mock_speaker.pause.assert_called_once()
+    assert "pause could not re-resolve Sonos player `Living Room`: not found on network" in caplog.text
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
