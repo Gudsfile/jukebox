@@ -11,7 +11,8 @@ class PlaybackCommandRetry(BaseModel):
     first_failed_at: float
     last_failed_at: float
     attempt_count: int
-    next_retry_at: float
+    next_retry_at: float | None
+    exhausted: bool = False
 
 
 class PlaybackSession(BaseModel):

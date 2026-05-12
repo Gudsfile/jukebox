@@ -9,7 +9,7 @@ from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 
 LOGGER = logging.getLogger("jukebox")
-PLAYBACK_RETRY_DELAYS_SECONDS = (0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
+PLAYBACK_RETRY_DELAYS_SECONDS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
 
 
 class HandleTagEvent:
@@ -179,10 +179,19 @@ class HandleTagEvent:
         command: Callable[[], None],
     ) -> bool:
         retry = session.playback_command_retry
+        if retry is not None and retry.action == action and retry.command_key == command_key and retry.exhausted:
+            LOGGER.debug(
+                "Skipping playback operation `%s`; retry exhausted after %d attempts",
+                action.value.upper(),
+                retry.attempt_count,
+            )
+            return False
+
         if (
             retry is not None
             and retry.action == action
             and retry.command_key == command_key
+            and retry.next_retry_at is not None
             and tag_event.timestamp < retry.next_retry_at
         ):
             LOGGER.debug(
@@ -196,7 +205,13 @@ class HandleTagEvent:
             command()
         except PlaybackError:
             retry = self._record_playback_command_failure(action, command_key, tag_event, session)
-            LOGGER.warning("%s; retrying in %.3fs", error_message, retry.next_retry_at - tag_event.timestamp)
+            if retry.exhausted:
+                LOGGER.warning("%s; retry exhausted after %d attempts", error_message, retry.attempt_count)
+            else:
+                next_retry_at = retry.next_retry_at
+                if next_retry_at is None:
+                    raise RuntimeError("retry is not exhausted but next_retry_at is missing")
+                LOGGER.warning("%s; retrying in %.3fs", error_message, next_retry_at - tag_event.timestamp)
             return False
 
         session.playback_command_retry = None
@@ -224,11 +239,14 @@ class HandleTagEvent:
             first_failed_at=first_failed_at,
             last_failed_at=tag_event.timestamp,
             attempt_count=attempt_count,
-            next_retry_at=tag_event.timestamp + retry_delay,
+            next_retry_at=None if retry_delay is None else tag_event.timestamp + retry_delay,
+            exhausted=retry_delay is None,
         )
         session.playback_command_retry = retry
         return retry
 
-    def _retry_delay_for_attempt(self, attempt_count: int) -> float:
-        delay_index = min(attempt_count - 1, len(self.retry_delays_seconds) - 1)
+    def _retry_delay_for_attempt(self, attempt_count: int) -> float | None:
+        delay_index = attempt_count - 1
+        if delay_index >= len(self.retry_delays_seconds):
+            return None
         return self.retry_delays_seconds[delay_index]

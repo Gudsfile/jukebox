@@ -492,14 +492,32 @@ def test_handle_play_failure_keeps_retry_after_brief_missed_read(handle_tag_even
     session = PlaybackSession()
 
     session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
-    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.3), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.04), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.05), session)
 
     mock_player.play.assert_called_once()
     assert session.playback_command_retry is not None
     assert session.playback_command_retry.action == PlaybackAction.PLAY
     assert session.playback_command_retry.command_key == "play:test-tag"
-    assert session.playback_command_retry.next_retry_at == pytest.approx(100.5)
+    assert session.playback_command_retry.next_retry_at == pytest.approx(100.1)
+
+
+def test_handle_play_failure_gives_up_after_retry_delays_are_exhausted(handle_tag_event, mock_player):
+    handle_tag_event.retry_delays_seconds = (0.5,)
+    mock_player.play.side_effect = PlaybackError("bad uri")
+    session = PlaybackSession()
+
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.5), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=101.0), session)
+
+    assert mock_player.play.call_count == 2
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.action == PlaybackAction.PLAY
+    assert session.playback_command_retry.command_key == "play:test-tag"
+    assert session.playback_command_retry.attempt_count == 2
+    assert session.playback_command_retry.exhausted is True
+    assert session.playback_command_retry.next_retry_at is None
 
 
 def test_handle_play_failure_clears_retry_when_unknown_tag_is_read(handle_tag_event, mock_player, mock_library):
@@ -543,14 +561,14 @@ def test_handle_resume_failure_keeps_retry_after_brief_missed_read(handle_tag_ev
     session = PlaybackSession(playing_tag="test-tag", paused_at=60.0)
 
     session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
-    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.3), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.04), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.05), session)
 
     mock_player.resume.assert_called_once()
     assert session.playback_command_retry is not None
     assert session.playback_command_retry.action == PlaybackAction.RESUME
     assert session.playback_command_retry.command_key == "resume"
-    assert session.playback_command_retry.next_retry_at == pytest.approx(100.5)
+    assert session.playback_command_retry.next_retry_at == pytest.approx(100.1)
 
 
 def test_handle_pause_action_does_not_update_session_when_player_raises(handle_tag_event, mock_player):
@@ -570,7 +588,7 @@ def test_handle_pause_action_does_not_update_session_when_player_raises(handle_t
     assert new_session.playback_command_retry.action == PlaybackAction.PAUSE
     assert new_session.playback_command_retry.command_key == "pause"
     assert new_session.playback_command_retry.attempt_count == 1
-    assert new_session.playback_command_retry.next_retry_at == pytest.approx(100.5)
+    assert new_session.playback_command_retry.next_retry_at == pytest.approx(100.1)
 
 
 def test_handle_pause_failure_does_not_retry_before_backoff_expires(handle_tag_event, mock_player):
@@ -578,7 +596,7 @@ def test_handle_pause_failure_does_not_retry_before_backoff_expires(handle_tag_e
     session = PlaybackSession(playing_tag="test-tag", playing_tag_removed_at=96.9)
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.05), session)
 
     mock_player.pause.assert_called_once()
     assert session.paused_at is None
@@ -591,10 +609,10 @@ def test_handle_pause_failure_retries_after_backoff_and_updates_session_on_succe
     session = PlaybackSession(playing_tag="test-tag", playing_tag_removed_at=96.9)
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.5), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.1), session)
 
     assert mock_player.pause.call_count == 2
-    assert session.paused_at == 100.5
+    assert session.paused_at == 100.1
     assert session.playback_command_retry is None
 
 
@@ -603,12 +621,31 @@ def test_handle_pause_failure_uses_next_backoff_after_retry_fails(handle_tag_eve
     session = PlaybackSession(playing_tag="test-tag", playing_tag_removed_at=96.9)
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.5), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.1), session)
 
     assert mock_player.pause.call_count == 2
     assert session.playback_command_retry is not None
     assert session.playback_command_retry.attempt_count == 2
-    assert session.playback_command_retry.next_retry_at == pytest.approx(101.5)
+    assert session.playback_command_retry.next_retry_at == pytest.approx(100.35)
+
+
+def test_handle_pause_failure_gives_up_after_retry_delays_are_exhausted(handle_tag_event, mock_player):
+    handle_tag_event.retry_delays_seconds = (0.5,)
+    mock_player.pause.side_effect = PlaybackError("cannot pause")
+    session = PlaybackSession(playing_tag="test-tag", playing_tag_removed_at=96.9)
+
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.5), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=200.0), session)
+
+    assert mock_player.pause.call_count == 2
+    mock_player.stop.assert_not_called()
+    assert session.paused_at is None
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.action == PlaybackAction.PAUSE
+    assert session.playback_command_retry.attempt_count == 2
+    assert session.playback_command_retry.exhausted is True
+    assert session.playback_command_retry.next_retry_at is None
 
 
 def test_persistent_pause_failure_keeps_retrying_pause_after_pause_duration(handle_tag_event, mock_player):
@@ -625,7 +662,7 @@ def test_persistent_pause_failure_keeps_retrying_pause_after_pause_duration(hand
     assert session.playback_command_retry is not None
     assert session.playback_command_retry.action == PlaybackAction.PAUSE
     assert session.playback_command_retry.attempt_count == 3
-    assert session.playback_command_retry.next_retry_at == pytest.approx(1002.0)
+    assert session.playback_command_retry.next_retry_at == pytest.approx(1000.5)
 
 
 def test_handle_pause_failure_clears_retry_when_action_changes(handle_tag_event, mock_player):
@@ -662,7 +699,7 @@ def test_handle_stop_failure_does_not_retry_before_backoff_expires(handle_tag_ev
     session = PlaybackSession(playing_tag="test-tag", paused_at=49.0)
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.05), session)
 
     mock_player.stop.assert_called_once()
     assert session.playing_tag == "test-tag"
