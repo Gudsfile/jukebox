@@ -487,6 +487,41 @@ def test_handle_play_failure_does_not_throttle_different_tag(handle_tag_event, m
     assert session.playback_command_retry is None
 
 
+def test_handle_play_failure_keeps_retry_after_brief_missed_read(handle_tag_event, mock_player):
+    mock_player.play.side_effect = PlaybackError("bad uri")
+    session = PlaybackSession()
+
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.3), session)
+
+    mock_player.play.assert_called_once()
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.action == PlaybackAction.PLAY
+    assert session.playback_command_retry.command_key == "play:test-tag"
+    assert session.playback_command_retry.next_retry_at == pytest.approx(100.5)
+
+
+def test_handle_play_failure_clears_retry_when_unknown_tag_is_read(handle_tag_event, mock_player, mock_library):
+    known_disc = Disc(uri="uri:tag-a", metadata=DiscMetadata(), option=DiscOption(shuffle=False))
+    mock_library.get_disc.side_effect = lambda tag_id: known_disc if tag_id == "tag-a" else None
+    mock_player.play.side_effect = PlaybackError("bad uri")
+    session = PlaybackSession()
+
+    session = handle_tag_event.execute(TagEvent(tag_id="tag-a", timestamp=100.0), session)
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.command_key == "play:tag-a"
+
+    session = handle_tag_event.execute(TagEvent(tag_id="unknown-tag", timestamp=100.2), session)
+    assert session.playback_command_retry is None
+
+    session = handle_tag_event.execute(TagEvent(tag_id="tag-a", timestamp=100.3), session)
+
+    assert mock_player.play.call_count == 2
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.command_key == "play:tag-a"
+
+
 def test_handle_resume_action_does_not_update_session_when_player_raises(handle_tag_event, mock_player):
     mock_player.resume.side_effect = PlaybackError("cannot resume")
     session = PlaybackSession()
@@ -501,6 +536,21 @@ def test_handle_resume_action_does_not_update_session_when_player_raises(handle_
     assert new_session.playback_command_retry is not None
     assert new_session.playback_command_retry.action == PlaybackAction.RESUME
     assert new_session.playback_command_retry.command_key == "resume"
+
+
+def test_handle_resume_failure_keeps_retry_after_brief_missed_read(handle_tag_event, mock_player):
+    mock_player.resume.side_effect = PlaybackError("cannot resume")
+    session = PlaybackSession(playing_tag="test-tag", paused_at=60.0)
+
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), session)
+    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.2), session)
+    session = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.3), session)
+
+    mock_player.resume.assert_called_once()
+    assert session.playback_command_retry is not None
+    assert session.playback_command_retry.action == PlaybackAction.RESUME
+    assert session.playback_command_retry.command_key == "resume"
+    assert session.playback_command_retry.next_retry_at == pytest.approx(100.5)
 
 
 def test_handle_pause_action_does_not_update_session_when_player_raises(handle_tag_event, mock_player):

@@ -36,7 +36,6 @@ class HandleTagEvent:
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
         self._apply_current_tag_action_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
-        self._clear_stale_playback_retry(action, session)
 
         LOGGER.debug(
             "%s \t\t %s | %s | %s | %s",
@@ -51,6 +50,11 @@ class HandleTagEvent:
             case PlaybackAction.CONTINUE:
                 # Reset when tag is present
                 session.playing_tag_removed_at = None
+                if (
+                    session.playback_command_retry is not None
+                    and session.playback_command_retry.action == PlaybackAction.PAUSE
+                ):
+                    session.playback_command_retry = None
 
             case PlaybackAction.RESUME:
                 if self._run_playback_command(
@@ -228,9 +232,3 @@ class HandleTagEvent:
     def _retry_delay_for_attempt(self, attempt_count: int) -> float:
         delay_index = min(attempt_count - 1, len(self.retry_delays_seconds) - 1)
         return self.retry_delays_seconds[delay_index]
-
-    @staticmethod
-    def _clear_stale_playback_retry(action: PlaybackAction, session: PlaybackSession) -> None:
-        retry = session.playback_command_retry
-        if retry is not None and retry.action != action:
-            session.playback_command_retry = None
