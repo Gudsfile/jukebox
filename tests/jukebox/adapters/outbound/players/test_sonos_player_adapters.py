@@ -4,7 +4,7 @@ import pytest
 from requests.exceptions import ConnectionError as RequestConnectionError
 from soco.exceptions import SoCoUPnPException
 
-from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter, catch_soco_upnp_exception
+from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
 from jukebox.domain.errors import PlaybackError
 from jukebox.settings.errors import InvalidSettingsError
 from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
@@ -732,42 +732,42 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
         ("stop", "clear_queue", ()),
     ],
 )
+@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
-def test_methods_log_and_raise_on_upnp_error(mock_soco, caplog, adapter_method, soco_method, args):
+def test_methods_log_and_raise_on_known_upnp_error(
+    mock_soco,
+    caplog,
+    adapter_method,
+    soco_method,
+    args,
+    error_code,
+    expected_message,
+):
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    getattr(mock_speaker, soco_method).side_effect = make_exception("804")
+    getattr(mock_speaker, soco_method).side_effect = make_exception(error_code)
 
     adapter = SonosPlayerAdapter(host="192.168.1.100")
 
     with pytest.raises(PlaybackError):
         getattr(adapter, adapter_method)(*args)
 
-    assert "bad uri" in caplog.text
+    assert expected_message in caplog.text
     getattr(mock_speaker, soco_method).assert_called()
 
 
-@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
-def test_decorator_logs_warning_for_know_codes(caplog, error_code, expected_message):
-    @catch_soco_upnp_exception
-    def failing():
-        raise make_exception(error_code)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+def test_methods_log_exception_for_unknown_upnp_error(mock_soco, caplog):
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.pause.side_effect = make_exception("999")
 
-    with pytest.raises(PlaybackError), caplog.at_level("WARNING"):
-        failing()
-
-    assert expected_message in caplog.text
-    assert any(r.levelname == "WARNING" for r in caplog.records)
-
-
-def test_decorator_logs_exception_for_other_codes(caplog):
-    @catch_soco_upnp_exception
-    def failing():
-        raise make_exception("999")
+    adapter = SonosPlayerAdapter(host="192.168.1.100")
 
     with pytest.raises(PlaybackError), caplog.at_level("ERROR"):
-        failing()
+        adapter.pause()
 
-    assert any(r.levelname == "ERROR" for r in caplog.records)
+    assert any(record.levelname == "ERROR" for record in caplog.records)

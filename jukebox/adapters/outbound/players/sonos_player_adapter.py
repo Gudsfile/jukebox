@@ -35,17 +35,6 @@ def _log_upnp_failure(command_name: str, err: SoCoUPnPException) -> None:
         LOGGER.exception("%s failed: %s", command_name, str(err))
 
 
-def catch_soco_upnp_exception(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except SoCoUPnPException as err:
-            _log_upnp_failure(func.__name__, err)
-            raise PlaybackError(str(err)) from err
-
-    return wrapper
-
-
 class SonosPlayerAdapter(PlayerPort):
     """Adapter for Sonos player implementing PlayerPort."""
 
