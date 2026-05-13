@@ -5,6 +5,7 @@ from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
     SelectedSonosGroupSettings,
+    SelectedSonosSpeakerSettings,
 )
 
 from .discovery import (
@@ -14,20 +15,40 @@ from .discovery import (
 )
 
 
-class SonosGroupResolver(Protocol):
-    def resolve_selected_group(
+@dataclass(frozen=True)
+class SonosPlaybackTarget:
+    household_id: str | None
+    coordinator_uid: str
+    member_uids: tuple[str, ...]
+
+    def __post_init__(self) -> None:
+        if not self.member_uids:
+            raise ValueError("Sonos playback target must include at least one member")
+        if len(set(self.member_uids)) != len(self.member_uids):
+            raise ValueError("Sonos playback target members must not contain duplicate uids")
+        if self.coordinator_uid not in self.member_uids:
+            raise ValueError("Sonos playback target coordinator must match a member uid")
+
+
+class SonosPlaybackTargetResolver(Protocol):
+    def resolve_playback_target(
         self,
-        selected_group: SelectedSonosGroupSettings,
+        target: SonosPlaybackTarget,
     ) -> ResolvedSonosGroupRuntime: ...
 
 
-class SonosService(SonosGroupResolver, Protocol):
+class SonosService(SonosPlaybackTargetResolver, Protocol):
     def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> "InspectedSelectedSonosGroup": ...
+
+    def resolve_selected_group(
+        self,
+        selected_group: SelectedSonosGroupSettings,
+    ) -> ResolvedSonosGroupRuntime: ...
 
 
 @dataclass(frozen=True)
@@ -87,6 +108,12 @@ class DefaultSonosService:
             members=resolved_members,
             missing_member_uids=inspection.missing_member_uids,
         )
+
+    def resolve_playback_target(
+        self,
+        target: SonosPlaybackTarget,
+    ) -> ResolvedSonosGroupRuntime:
+        return self.resolve_selected_group(_selected_group_from_playback_target(target))
 
     @staticmethod
     def _build_runtime_speaker(speaker: DiscoveredSonosSpeaker) -> ResolvedSonosSpeakerRuntime:
@@ -155,3 +182,29 @@ def _inspection_needs_network_fallback(
     if inspection.error_message is not None:
         return True
     return len(inspection.resolved_members) != len(selected_group.members)
+
+
+def playback_target_from_runtime_group(
+    group: ResolvedSonosGroupRuntime | None,
+) -> SonosPlaybackTarget | None:
+    if group is None:
+        return None
+
+    member_uids = [member.uid for member in group.members]
+    for uid in group.missing_member_uids:
+        if uid not in member_uids:
+            member_uids.append(uid)
+
+    return SonosPlaybackTarget(
+        household_id=group.household_id,
+        coordinator_uid=group.coordinator.uid,
+        member_uids=tuple(member_uids),
+    )
+
+
+def _selected_group_from_playback_target(target: SonosPlaybackTarget) -> SelectedSonosGroupSettings:
+    return SelectedSonosGroupSettings(
+        household_id=target.household_id,
+        coordinator_uid=target.coordinator_uid,
+        members=[SelectedSonosSpeakerSettings(uid=uid) for uid in target.member_uids],
+    )

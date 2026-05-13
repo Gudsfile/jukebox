@@ -2,7 +2,7 @@ import pytest
 
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
-from jukebox.sonos.service import DefaultSonosService
+from jukebox.sonos.service import DefaultSonosService, SonosPlaybackTarget
 
 
 class StubDiscovery:
@@ -52,6 +52,27 @@ def test_default_sonos_service_resolves_multi_member_group_from_uids():
     assert resolved_group.coordinator.host == "192.168.1.40"
     assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
     assert resolved_group.missing_member_uids == []
+    assert discovery.requests == [("household", "household-1")]
+
+
+def test_default_sonos_service_resolves_playback_target_from_uids():
+    discovery = StubDiscovery(
+        [
+            build_discovered_speaker("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+            build_discovered_speaker("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+        ]
+    )
+    service = DefaultSonosService(discovery)
+    target = SonosPlaybackTarget(
+        household_id="household-1",
+        coordinator_uid="speaker-2",
+        member_uids=("speaker-1", "speaker-2"),
+    )
+
+    resolved_group = service.resolve_playback_target(target)
+
+    assert resolved_group.coordinator.uid == "speaker-2"
+    assert [member.uid for member in resolved_group.members] == ["speaker-1", "speaker-2"]
     assert discovery.requests == [("household", "household-1")]
 
 

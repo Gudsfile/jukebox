@@ -29,10 +29,10 @@ class TestBuildJukebox:
             "sys.modules",
             {"jukebox.adapters.outbound.readers.pn532_reader_adapter": MagicMock(Pn532ReaderAdapter=mock_pn532_class)},
         )
-        sonos_group_resolver = MagicMock()
-        build_sonos_group_resolver = mocker.patch(
-            "jukebox.di_container.build_sonos_group_resolver",
-            return_value=sonos_group_resolver,
+        sonos_playback_target_resolver = MagicMock()
+        build_sonos_playback_target_resolver = mocker.patch(
+            "jukebox.di_container.build_sonos_playback_target_resolver",
+            return_value=sonos_playback_target_resolver,
         )
 
         config = ResolvedJukeboxRuntimeConfig(
@@ -61,9 +61,9 @@ class TestBuildJukebox:
             host="192.168.1.100",
             name=None,
             group=config.sonos_group,
-            sonos_group_resolver=sonos_group_resolver,
+            sonos_playback_target_resolver=sonos_playback_target_resolver,
         )
-        build_sonos_group_resolver.assert_called_once_with()
+        build_sonos_playback_target_resolver.assert_called_once_with()
         mock_pn532_class.assert_called_once_with(
             read_timeout_seconds=0.25,
             spi_reset=20,
@@ -93,9 +93,12 @@ class TestBuildJukebox:
             pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
-        sonos_group_resolver = MagicMock()
+        sonos_playback_target_resolver = MagicMock()
 
-        reader, handle_tag_event = build_jukebox(config, sonos_group_resolver=sonos_group_resolver)
+        reader, handle_tag_event = build_jukebox(
+            config,
+            sonos_playback_target_resolver=sonos_playback_target_resolver,
+        )
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
@@ -103,7 +106,7 @@ class TestBuildJukebox:
             host=None,
             name="Living Room",
             group=None,
-            sonos_group_resolver=sonos_group_resolver,
+            sonos_playback_target_resolver=sonos_playback_target_resolver,
         )
         mock_reader.assert_called_once_with()
         assert reader == mock_reader.return_value
@@ -129,9 +132,12 @@ class TestBuildJukebox:
             pn532_connection=SpiConnectionParams(reset=20, cs=4, irq=None),
             verbose=False,
         )
-        sonos_group_resolver = MagicMock()
+        sonos_playback_target_resolver = MagicMock()
 
-        reader, handle_tag_event = build_jukebox(config, sonos_group_resolver=sonos_group_resolver)
+        reader, handle_tag_event = build_jukebox(
+            config,
+            sonos_playback_target_resolver=sonos_playback_target_resolver,
+        )
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
@@ -139,7 +145,7 @@ class TestBuildJukebox:
             host=None,
             name=None,
             group=None,
-            sonos_group_resolver=sonos_group_resolver,
+            sonos_playback_target_resolver=sonos_playback_target_resolver,
         )
         mock_reader.assert_called_once_with()
         assert reader == mock_reader.return_value

@@ -66,6 +66,13 @@ class StubSonosService:
         assert self.resolved_group is not None
         return self.resolved_group
 
+    def resolve_playback_target(self, target):
+        self.calls.append(target)
+        if self.error is not None:
+            raise self.error
+        assert self.resolved_group is not None
+        return self.resolved_group
+
     def inspect_selected_group(self, selected_group):
         self.calls.append(selected_group)
         if self.error is not None:

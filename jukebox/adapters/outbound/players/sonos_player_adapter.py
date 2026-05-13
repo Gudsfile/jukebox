@@ -10,13 +10,13 @@ from urllib3.exceptions import HTTPError
 
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
-from jukebox.settings.entities import (
-    ResolvedSonosGroupRuntime,
-    SelectedSonosGroupSettings,
-    SelectedSonosSpeakerSettings,
-)
+from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import InvalidSettingsError
-from jukebox.sonos.service import SonosGroupResolver
+from jukebox.sonos.service import (
+    SonosPlaybackTarget,
+    SonosPlaybackTargetResolver,
+    playback_target_from_runtime_group,
+)
 
 LOGGER = logging.getLogger("jukebox")
 _SONOS_TRANSPORT_ERRORS = (HTTPError, OSError, RequestException, SoCoException)
@@ -43,12 +43,12 @@ class SonosPlayerAdapter(PlayerPort):
         host: str | None = None,
         name: str | None = None,
         group: ResolvedSonosGroupRuntime | None = None,
-        sonos_group_resolver: SonosGroupResolver | None = None,
+        sonos_playback_target_resolver: SonosPlaybackTargetResolver | None = None,
     ):
         self.manual_name = name
         self.group = group
-        self.selected_group = _selected_group_from_runtime_group(group)
-        self.sonos_group_resolver = sonos_group_resolver
+        self.playback_target = playback_target_from_runtime_group(group)
+        self.sonos_playback_target_resolver = sonos_playback_target_resolver
         self.speaker_name = "unknown Sonos player"
 
         try:
@@ -194,8 +194,8 @@ class SonosPlayerAdapter(PlayerPort):
     def _refresh_speaker_metadata(self) -> dict:
         speaker_info = self.speaker.get_speaker_info()
         self.speaker_name = self._speaker_name_from_info(speaker_info)
-        if self.selected_group is None:
-            self.selected_group = self._selected_group_from_current_speaker()
+        if self.playback_target is None:
+            self.playback_target = self._playback_target_from_current_speaker()
         return speaker_info
 
     def _speaker_name_from_info(self, speaker_info: dict) -> str:
@@ -209,7 +209,7 @@ class SonosPlayerAdapter(PlayerPort):
 
         return "unknown Sonos player"
 
-    def _selected_group_from_current_speaker(self) -> SelectedSonosGroupSettings | None:
+    def _playback_target_from_current_speaker(self) -> SonosPlaybackTarget | None:
         uid = getattr(self.speaker, "uid", None)
         household_id = getattr(self.speaker, "household_id", None)
         if not isinstance(uid, str) or not uid:
@@ -217,10 +217,10 @@ class SonosPlayerAdapter(PlayerPort):
         if not isinstance(household_id, str) or not household_id:
             return None
 
-        return SelectedSonosGroupSettings(
+        return SonosPlaybackTarget(
             household_id=household_id,
             coordinator_uid=uid,
-            members=[SelectedSonosSpeakerSettings(uid=uid)],
+            member_uids=(uid,),
         )
 
     def _execute_with_recovery(self, command_name: str, command: Callable[[], None]) -> None:
@@ -247,8 +247,8 @@ class SonosPlayerAdapter(PlayerPort):
             raise PlaybackError(str(err)) from err
 
     def _recover_speaker(self, command_name: str) -> bool:
-        if self.selected_group is not None:
-            return self._recover_selected_group(command_name)
+        if self.playback_target is not None:
+            return self._recover_playback_target(command_name)
 
         if self.manual_name is not None:
             return self._recover_by_name(command_name)
@@ -256,18 +256,18 @@ class SonosPlayerAdapter(PlayerPort):
         LOGGER.warning("%s could not recover Sonos player because no rediscoverable target is available", command_name)
         return False
 
-    def _recover_selected_group(self, command_name: str) -> bool:
-        assert self.selected_group is not None
-        if self.sonos_group_resolver is None:
+    def _recover_playback_target(self, command_name: str) -> bool:
+        assert self.playback_target is not None
+        if self.sonos_playback_target_resolver is None:
             LOGGER.warning(
-                "%s could not re-resolve Sonos player `%s` because no Sonos group resolver is configured",
+                "%s could not re-resolve Sonos player `%s` because no Sonos playback target resolver is configured",
                 command_name,
                 self.speaker_name,
             )
             return False
 
         try:
-            resolved_group = self.sonos_group_resolver.resolve_selected_group(self.selected_group)
+            resolved_group = self.sonos_playback_target_resolver.resolve_playback_target(self.playback_target)
             self._switch_to_resolved_group(resolved_group)
         except (
             HTTPError,
@@ -295,7 +295,7 @@ class SonosPlayerAdapter(PlayerPort):
         if enforce_group:
             self._enforce_group(resolved_group)
             self.group = resolved_group
-        self.selected_group = _selected_group_from_runtime_group(resolved_group)
+        self.playback_target = playback_target_from_runtime_group(resolved_group)
         self._refresh_speaker_metadata()
         self.sharelink = ShareLinkPlugin(self.speaker)
 
@@ -346,21 +346,3 @@ class SonosPlayerAdapter(PlayerPort):
         if self.sharelink.is_share_link(uri):
             return self.sharelink.add_share_link_to_queue(uri, position=1)
         return self.speaker.add_uri_to_queue(uri, position=1)
-
-
-def _selected_group_from_runtime_group(
-    group: ResolvedSonosGroupRuntime | None,
-) -> SelectedSonosGroupSettings | None:
-    if group is None:
-        return None
-
-    member_uids = [member.uid for member in group.members]
-    for uid in group.missing_member_uids:
-        if uid not in member_uids:
-            member_uids.append(uid)
-
-    return SelectedSonosGroupSettings(
-        household_id=group.household_id,
-        coordinator_uid=group.coordinator.uid,
-        members=[SelectedSonosSpeakerSettings(uid=uid) for uid in member_uids],
-    )
