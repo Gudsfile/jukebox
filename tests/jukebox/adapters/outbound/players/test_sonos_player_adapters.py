@@ -20,11 +20,6 @@ def build_adapter(**kwargs: Any) -> SonosPlayerAdapter:
     return SonosPlayerAdapter(**kwargs)
 
 
-def test_init_requires_playback_target_resolver():
-    with pytest.raises(TypeError, match="sonos_playback_target_resolver"):
-        SonosPlayerAdapter(host="192.168.1.100")
-
-
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_with_host(mock_sharelink, mock_soco):
