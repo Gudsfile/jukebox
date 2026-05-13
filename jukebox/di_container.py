@@ -16,7 +16,7 @@ from jukebox.settings.resolve import build_environment_settings_overrides
 from jukebox.settings.runtime_resolver import JukeboxRuntimeResolver
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.config_utils import get_current_tag_path
-from jukebox.sonos.service import DefaultSonosService
+from jukebox.sonos.service import DefaultSonosService, SonosGroupResolver
 
 
 def build_settings_service(
@@ -88,7 +88,10 @@ def build_runtime_resolver(settings_service: SettingsService) -> JukeboxRuntimeR
     return JukeboxRuntimeResolver(settings_service, DefaultSonosService(SoCoSonosDiscoveryAdapter()))
 
 
-def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
+def build_jukebox(
+    config: ResolvedJukeboxRuntimeConfig,
+    sonos_group_resolver: SonosGroupResolver | None = None,
+):
     """Build and wire all dependencies for Jukebox."""
 
     library = JsonLibraryAdapter(config.library_path)
@@ -96,7 +99,14 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
 
     match config.player_type:
         case "sonos":
-            player = SonosPlayerAdapter(host=config.sonos_host, name=config.sonos_name, group=config.sonos_group)
+            if sonos_group_resolver is None:
+                sonos_group_resolver = build_sonos_group_resolver()
+            player = SonosPlayerAdapter(
+                host=config.sonos_host,
+                name=config.sonos_name,
+                group=config.sonos_group,
+                sonos_group_resolver=sonos_group_resolver,
+            )
         case "dryrun":
             player = DryrunPlayerAdapter()
         case _:
@@ -139,3 +149,7 @@ def build_jukebox(config: ResolvedJukeboxRuntimeConfig):
     )
 
     return reader, handle_tag_event
+
+
+def build_sonos_group_resolver() -> SonosGroupResolver:
+    return DefaultSonosService(SoCoSonosDiscoveryAdapter())

@@ -8,7 +8,6 @@ from soco.exceptions import SoCoException, SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
 from urllib3.exceptions import HTTPError
 
-from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import (
@@ -17,7 +16,7 @@ from jukebox.settings.entities import (
     SelectedSonosSpeakerSettings,
 )
 from jukebox.settings.errors import InvalidSettingsError
-from jukebox.sonos.service import DefaultSonosService, SonosService
+from jukebox.sonos.service import SonosGroupResolver
 
 LOGGER = logging.getLogger("jukebox")
 _SONOS_TRANSPORT_ERRORS = (HTTPError, OSError, RequestException, SoCoException)
@@ -55,12 +54,12 @@ class SonosPlayerAdapter(PlayerPort):
         host: str | None = None,
         name: str | None = None,
         group: ResolvedSonosGroupRuntime | None = None,
-        sonos_service: SonosService | None = None,
+        sonos_group_resolver: SonosGroupResolver | None = None,
     ):
         self.manual_name = name
         self.group = group
         self.selected_group = _selected_group_from_runtime_group(group)
-        self.sonos_service = sonos_service or DefaultSonosService(SoCoSonosDiscoveryAdapter())
+        self.sonos_group_resolver = sonos_group_resolver
         self.speaker_name = "unknown Sonos player"
 
         try:
@@ -270,8 +269,16 @@ class SonosPlayerAdapter(PlayerPort):
 
     def _recover_selected_group(self, command_name: str) -> bool:
         assert self.selected_group is not None
+        if self.sonos_group_resolver is None:
+            LOGGER.warning(
+                "%s could not re-resolve Sonos player `%s` because no Sonos group resolver is configured",
+                command_name,
+                self.speaker_name,
+            )
+            return False
+
         try:
-            resolved_group = self.sonos_service.resolve_selected_group(self.selected_group)
+            resolved_group = self.sonos_group_resolver.resolve_selected_group(self.selected_group)
             self._switch_to_resolved_group(resolved_group)
         except (
             HTTPError,

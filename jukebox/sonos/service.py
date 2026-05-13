@@ -14,18 +14,20 @@ from .discovery import (
 )
 
 
-class SonosService(Protocol):
+class SonosGroupResolver(Protocol):
+    def resolve_selected_group(
+        self,
+        selected_group: SelectedSonosGroupSettings,
+    ) -> ResolvedSonosGroupRuntime: ...
+
+
+class SonosService(SonosGroupResolver, Protocol):
     def list_network_speakers(self) -> list[DiscoveredSonosSpeaker]: ...
 
     def inspect_selected_group(
         self,
         selected_group: SelectedSonosGroupSettings,
     ) -> "InspectedSelectedSonosGroup": ...
-
-    def resolve_selected_group(
-        self,
-        selected_group: SelectedSonosGroupSettings,
-    ) -> ResolvedSonosGroupRuntime: ...
 
 
 @dataclass(frozen=True)
