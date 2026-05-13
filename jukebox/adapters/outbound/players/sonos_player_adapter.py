@@ -43,7 +43,8 @@ class SonosPlayerAdapter(PlayerPort):
         host: str | None = None,
         name: str | None = None,
         group: ResolvedSonosGroupRuntime | None = None,
-        sonos_playback_target_resolver: SonosPlaybackTargetResolver | None = None,
+        *,
+        sonos_playback_target_resolver: SonosPlaybackTargetResolver,
     ):
         self.manual_name = name
         self.group = group
@@ -247,8 +248,9 @@ class SonosPlayerAdapter(PlayerPort):
             raise PlaybackError(str(err)) from err
 
     def _recover_speaker(self, command_name: str) -> bool:
-        if self.playback_target is not None:
-            return self._recover_playback_target(command_name)
+        playback_target = self.playback_target
+        if playback_target is not None:
+            return self._recover_playback_target(command_name, playback_target)
 
         if self.manual_name is not None:
             return self._recover_by_name(command_name)
@@ -256,18 +258,9 @@ class SonosPlayerAdapter(PlayerPort):
         LOGGER.warning("%s could not recover Sonos player because no rediscoverable target is available", command_name)
         return False
 
-    def _recover_playback_target(self, command_name: str) -> bool:
-        assert self.playback_target is not None
-        if self.sonos_playback_target_resolver is None:
-            LOGGER.warning(
-                "%s could not re-resolve Sonos player `%s` because no Sonos playback target resolver is configured",
-                command_name,
-                self.speaker_name,
-            )
-            return False
-
+    def _recover_playback_target(self, command_name: str, playback_target: SonosPlaybackTarget) -> bool:
         try:
-            resolved_group = self.sonos_playback_target_resolver.resolve_playback_target(self.playback_target)
+            resolved_group = self.sonos_playback_target_resolver.resolve_playback_target(playback_target)
             self._switch_to_resolved_group(resolved_group)
         except (
             HTTPError,
