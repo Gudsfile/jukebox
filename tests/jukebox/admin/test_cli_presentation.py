@@ -683,8 +683,7 @@ def test_render_cli_error_for_optional_dependency_error_is_concise():
     message = render_cli_error(MissingOptionalDependencyError("`jukebox-admin ui`", "ui", "jukebox-admin ui"))
 
     assert "Optional `ui` dependencies are not installed." in message
-    assert "`uv sync --extra ui`" in message
-    assert "`uv run --extra ui jukebox-admin ui`" in message
+    assert "Install them with: pip install 'gukebox[ui]'" in message
 
 
 def test_render_cli_error_for_optional_dependency_error_is_verbose_with_flag():
