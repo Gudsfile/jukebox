@@ -295,4 +295,4 @@ def test_main_exits_when_settings_from_cli_arguments_are_invalid(mocker, app_moc
 def test_main_rejects_admin_subcommands(mocker, app_mocks, subcommand):
     result = runner.invoke(app.app, [subcommand])
     assert result.exit_code == 2
-    assert "Usage: root [OPTIONS] COMMAND [ARGS]" in result.output
+    assert f"Got unexpected extra argument ({subcommand})" in result.output

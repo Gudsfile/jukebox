@@ -38,13 +38,6 @@ def _version_callback(value: bool) -> None:
         _exit_success(f"jukebox {get_package_version()}")
 
 
-def _get_state(ctx: typer.Context) -> JukeboxCliState:
-    state = ctx.obj
-    if not isinstance(state, JukeboxCliState):
-        raise RuntimeError("Jukebox CLI state was not initialized")
-    return state
-
-
 def _exit_success(message: str) -> Never:
     typer.echo(message)
     raise typer.Exit()
@@ -118,9 +111,8 @@ def _build_runtime_resolver(settings_service: SettingsService) -> JukeboxRuntime
 app = typer.Typer(help="Play music on speakers using NFC tags", invoke_without_command=True)
 
 
-@app.callback()
-def main_callback(
-    ctx: typer.Context,
+@app.command()
+def jukebox(
     library: Annotated[
         str | None, typer.Option("--library", "-l", help="override the library JSON path for this process")
     ] = None,
@@ -163,7 +155,7 @@ def main_callback(
 ) -> None:
     del version
     set_logger("jukebox", verbose)
-    ctx.obj = JukeboxCliState(
+    state = JukeboxCliState(
         library=library,
         verbose=verbose,
         player=player,
@@ -176,12 +168,10 @@ def main_callback(
         pn532_spi_cs=pn532_spi_cs,
         pn532_spi_irq=pn532_spi_irq,
     )
-    if ctx.invoked_subcommand is None:
-        _run(ctx)
+    _run(state)
 
 
-def _run(ctx: typer.Context) -> None:
-    state = _get_state(ctx)
+def _run(state: JukeboxCliState) -> None:
 
     try:
         settings_service = _build_settings_service(state)
