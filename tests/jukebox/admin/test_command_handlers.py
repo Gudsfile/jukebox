@@ -925,7 +925,7 @@ def test_execute_server_command_reports_missing_optional_dependencies(mocker, co
         (UiCommand(type="ui", port=1234), "ui", "build_ui_app"),
     ],
 )
-def test_execute_server_command_rewrites_controller_dependency_failures(mocker, command, extra_name, builder_name):
+def test_execute_server_command_propagates_missing_optional_dependency_error(mocker, command, extra_name, builder_name):
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",

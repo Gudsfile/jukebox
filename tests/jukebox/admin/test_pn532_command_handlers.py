@@ -13,6 +13,7 @@ from jukebox.admin.pn532_command_handlers import (
 from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 from jukebox.pn532.profiles import PN532_PROFILES, SpiConnectionParams
 from jukebox.settings.errors import InvalidSettingsError
+from jukebox.shared.errors import MissingOptionalDependencyError
 
 
 def _make_settings_service(board_profile="waveshare_hat"):
@@ -358,9 +359,9 @@ def test_execute_pn532_command_probe_propagates_missing_extra():
     service = _make_settings_service()
 
     def failing_builder(**_kwargs):
-        raise ModuleNotFoundError("pn532 extra not installed")
+        raise MissingOptionalDependencyError("subject", "extra_name", "run_command")
 
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises(MissingOptionalDependencyError, match="The `pn532` command requires the optional `pn532`"):
         execute_pn532_command(
             command=Pn532ProbeCommand(type="pn532_probe"),
             settings_service=service,
