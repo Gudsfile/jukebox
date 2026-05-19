@@ -2,6 +2,8 @@ import sys
 
 import pytest
 
+from jukebox.shared.errors import MissingOptionalDependencyError
+
 
 @pytest.fixture()
 def mock_pn532_lib_installed():
@@ -27,7 +29,7 @@ def test_dependencies_import_failure(mocker):
     sys.modules.pop("jukebox.adapters.outbound.readers.pn532_reader_adapter", None)
     mocker.patch.dict("sys.modules", {"pn532": None})
 
-    with pytest.raises(ModuleNotFoundError) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         import jukebox.adapters.outbound.readers.pn532_reader_adapter  # noqa: F401
 
     assert "The `pn532` reader requires the optional `pn532` dependencies." in str(err.value)

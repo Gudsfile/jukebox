@@ -10,6 +10,7 @@ from jukebox.pn532.profiles import (
     resolve_connection_params,
 )
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.terminal_ui import table
 
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
@@ -134,7 +135,9 @@ def execute_pn532_command(
                 protocol=pn532.protocol,
                 connection=resolved,
             )
-        except (ModuleNotFoundError, RuntimeError):
+        except MissingOptionalDependencyError as err:
+            raise MissingOptionalDependencyError("The `pn532` command", "pn532", "jukebox-admin pn532 ...") from err
+        except RuntimeError:
             raise
         except Exception as err:
             msg = str(err)

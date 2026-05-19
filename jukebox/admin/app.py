@@ -1,6 +1,6 @@
 import sys
 import traceback
-from typing import Annotated
+from typing import Annotated, Never
 
 import typer
 from pydantic import ValidationError
@@ -18,6 +18,7 @@ from jukebox.admin.library_commands import (
 )
 from jukebox.settings.errors import SettingsError
 from jukebox.shared.config_utils import get_package_version
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.logger import set_logger
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 
@@ -61,8 +62,7 @@ class AdminCliState:
 
 def _version_callback(value: bool) -> None:
     if value:
-        typer.echo(f"jukebox-admin {get_package_version()}")
-        raise typer.Exit()
+        _exit_success(f"jukebox-admin {get_package_version()}")
 
 
 def _get_state(ctx: typer.Context) -> AdminCliState:
@@ -117,24 +117,17 @@ def _run_command(ctx: typer.Context, command: object) -> None:
         except RuntimeError as err:
             if state.verbose:
                 raise
-            typer.echo(str(err), err=True)
-            raise typer.Exit(code=1)
-    except SystemExit as err:
-        if isinstance(err.code, str):
-            typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
-            raise typer.Exit(code=1)
-        raise
+            _exit_error(str(err))
+    except MissingOptionalDependencyError as err:
+        _exit_error(render_cli_error(err, verbose=state.verbose))
     except typer.Exit:
         raise
     except SettingsError as err:
-        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
-        raise typer.Exit(code=1)
+        _exit_error(render_cli_error(err, verbose=state.verbose))
     except ModuleNotFoundError as err:
-        typer.echo(str(err), err=True)
-        raise typer.Exit(code=1)
+        _exit_error(str(err))
     except OSError as err:
-        typer.echo(str(err), err=True)
-        raise typer.Exit(code=1)
+        _exit_error(str(err))
     except Exception as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
         if state.verbose:
@@ -159,16 +152,13 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
                 build_interactive_cli_controller=build_interactive_cli_controller,
             )
         except (ValueError, RuntimeError) as err:
-            typer.echo(str(err), err=True)
-            raise typer.Exit(code=1)
+            _exit_error(str(err))
     except typer.Exit:
         raise
     except SettingsError as err:
-        typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
-        raise typer.Exit(code=1)
+        _exit_error(render_cli_error(err, verbose=state.verbose))
     except OSError as err:
-        typer.echo(str(err), err=True)
-        raise typer.Exit(code=1)
+        _exit_error(str(err))
     except Exception as err:
         typer.echo(render_cli_error(err, verbose=state.verbose), err=True)
         if state.verbose:
@@ -176,8 +166,14 @@ def _run_library_command(ctx: typer.Context, command: object) -> None:
         raise typer.Exit(code=1)
 
 
-def _exit_on_command_validation_error(err: ValidationError) -> None:
-    raise SystemExit(str(err)) from err
+def _exit_error(message: str) -> Never:
+    typer.echo(message, err=True)
+    raise typer.Exit(code=1)
+
+
+def _exit_success(message: str) -> Never:
+    typer.echo(message)
+    raise typer.Exit()
 
 
 def _prompt_for_sonos_speaker_selection(speakers: list[DiscoveredSonosSpeaker]) -> list[str] | None:
@@ -425,7 +421,7 @@ def sonos_select(
             household=household,
         )
     except ValidationError as err:
-        _exit_on_command_validation_error(err)
+        _exit_error(str(err))
 
     _run_command(ctx, command)
 
@@ -486,7 +482,7 @@ def library_add(
             album=album,
         )
     except ValidationError as err:
-        _exit_on_command_validation_error(err)
+        _exit_error(str(err))
 
     _run_library_command(ctx, command)
 
@@ -511,7 +507,7 @@ def library_remove(
     try:
         command = CliRemoveCommand(type="remove", tag=tag, use_current_tag=use_current_tag)
     except ValidationError as err:
-        _exit_on_command_validation_error(err)
+        _exit_error(str(err))
 
     _run_library_command(ctx, command)
 
@@ -540,7 +536,7 @@ def library_edit(
             album=album,
         )
     except ValidationError as err:
-        _exit_on_command_validation_error(err)
+        _exit_error(str(err))
 
     _run_library_command(ctx, command)
 
@@ -557,7 +553,7 @@ def library_get(
     try:
         command = CliGetCommand(type="get", tag=tag, use_current_tag=use_current_tag)
     except ValidationError as err:
-        _exit_on_command_validation_error(err)
+        _exit_error(str(err))
 
     _run_library_command(ctx, command)
 

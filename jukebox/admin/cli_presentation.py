@@ -12,6 +12,7 @@ from jukebox.settings.errors import (
 )
 from jukebox.settings.types import JsonObject, JsonValue
 from jukebox.settings.view_utils import MISSING, lookup_object, lookup_optional_dotted_path, lookup_provenance_label
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.terminal_ui import table
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker
 from jukebox.sonos.selection import SonosSelectionResult, SonosSelectionStatus
@@ -377,8 +378,8 @@ def _render_cli_error_message(err: BaseException) -> str:
             return _render_invalid_settings_error(err)
         case SettingsError():
             return str(err)
-        case SystemExit() if isinstance(err.code, str):
-            return _render_system_exit_message(err.code)
+        case MissingOptionalDependencyError():
+            return err.concise_hint
         case _:
             return "Unexpected error. Re-run with `--verbose` for details."
 
@@ -416,20 +417,6 @@ def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
 
     if message.startswith("Invalid effective settings"):
         return f"Effective settings are invalid: {_extract_compact_detail(message)}"
-
-    return message
-
-
-def _render_system_exit_message(message: str) -> str:
-    extra_name_match = re.search(r"optional `([^`]+)` dependencies", message)
-    command_match = re.search(r"uv run --extra [^ ]+ ([^\n]+)", message)
-
-    if extra_name_match is not None:
-        extra_name = extra_name_match.group(1)
-        install_hint = f"Run `uv sync --extra {extra_name}` to install them."
-        if command_match is not None:
-            install_hint = f"{install_hint} Or run `uv run --extra {extra_name} {command_match.group(1)}`."
-        return f"Optional `{extra_name}` dependencies are not installed. {install_hint}"
 
     return message
 

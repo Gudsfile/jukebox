@@ -21,7 +21,7 @@ from jukebox.admin.commands import (
 from jukebox.admin.services import AdminServices
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import ResolvedAdminRuntimeConfig
-from jukebox.shared.dependency_messages import optional_extra_dependency_message
+from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from jukebox.sonos.service import InspectedSelectedSonosGroup
 
@@ -905,7 +905,7 @@ def test_execute_server_command_reports_missing_optional_dependencies(mocker, co
         side_effect=ModuleNotFoundError("No module named 'uvicorn'"),
     )
 
-    with pytest.raises(SystemExit) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         execute_server_command(
             verbose=False,
             command=command,
@@ -925,7 +925,7 @@ def test_execute_server_command_reports_missing_optional_dependencies(mocker, co
         (UiCommand(type="ui", port=1234), "ui", "build_ui_app"),
     ],
 )
-def test_execute_server_command_rewrites_controller_dependency_failures(mocker, command, extra_name, builder_name):
+def test_execute_server_command_propagates_missing_optional_dependency_error(mocker, command, extra_name, builder_name):
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
@@ -938,15 +938,14 @@ def test_execute_server_command_rewrites_controller_dependency_failures(mocker, 
     build_ui_app = MagicMock()
     target_builder = build_api_app if builder_name == "build_api_app" else build_ui_app
     # The builder fails with a dependency-related error
-    target_builder.side_effect = ModuleNotFoundError(
-        optional_extra_dependency_message(
-            subject="regardless of the subject",
-            extra_name=extra_name,
-            source_command="regardless of the source command",
-        )
+    expected = MissingOptionalDependencyError(
+        subject="regardless of the subject",
+        extra_name=extra_name,
+        run_command="regardless of the source command",
     )
+    target_builder.side_effect = expected
 
-    with pytest.raises(SystemExit) as err:
+    with pytest.raises(MissingOptionalDependencyError) as err:
         execute_server_command(
             verbose=False,
             command=command,
@@ -956,8 +955,4 @@ def test_execute_server_command_rewrites_controller_dependency_failures(mocker, 
             source_command="jukebox-admin",
         )
 
-    assert str(err.value) == optional_extra_dependency_message(
-        subject=f"`jukebox-admin {extra_name}`",
-        extra_name=extra_name,
-        source_command=f"jukebox-admin {extra_name}",
-    )
+    assert str(err.value) == str(expected)
