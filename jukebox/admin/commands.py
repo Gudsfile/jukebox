@@ -81,16 +81,5 @@ def is_admin_command(command: object) -> bool:
     )
 
 
-def is_settings_command(command: object) -> bool:
-    return isinstance(
-        command,
-        (
-            SettingsResetCommand,
-            SettingsSetCommand,
-            SettingsShowCommand,
-        ),
-    )
-
-
 def is_sonos_command(command: object) -> bool:
     return isinstance(command, (SonosListCommand, SonosSelectCommand, SonosShowCommand))
