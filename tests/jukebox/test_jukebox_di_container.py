@@ -1,10 +1,15 @@
 from unittest.mock import MagicMock, patch
 
-from jukebox.di_container import build_jukebox
+from jukebox.di_container import build_jukebox, build_settings_service
 from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
+from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.shared.config_utils import get_current_tag_path
-from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
+from tests.jukebox.settings._helpers import (
+    StubSonosService,
+    build_resolved_sonos_group_runtime,
+    resolve_jukebox_runtime,
+)
 
 
 def test_get_current_tag_path_derives_path_beside_library(tmp_path):
@@ -174,3 +179,91 @@ class TestBuildJukebox:
         assert reader == mock_reader.return_value
         assert handle_tag_event.determine_action.pause_delay == 0.2
         assert handle_tag_event.determine_action.max_pause_duration == 200
+
+
+class TestBuildSettingService:
+    def test_build_settings_service_maps_sonos_name_override(self):
+        service = build_settings_service(player="sonos", sonos_name="Living Room")
+
+        assert isinstance(service.repository, FileSettingsRepository)
+        assert service.cli_overrides == {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {"manual_host": None, "manual_name": "Living Room", "selected_group": None},
+                }
+            }
+        }
+
+    def test_build_settings_service_maps_sonos_host_override(self):
+        service = build_settings_service(player="sonos", sonos_host="192.168.1.20")
+
+        assert service.cli_overrides == {
+            "jukebox": {
+                "player": {
+                    "type": "sonos",
+                    "sonos": {"manual_host": "192.168.1.20", "manual_name": None, "selected_group": None},
+                }
+            }
+        }
+
+    def test_build_settings_service_reads_persisted_reader_and_timing_settings(self, tmp_path, mocker):
+        settings_path = tmp_path / "settings.json"
+        settings_path.write_text(
+            '{"schema_version": 1, "jukebox": {"reader": {"type": "pn532", "pn532": {"read_timeout_seconds": 0.2}}, "playback": {"pause_duration_seconds": 600, "pause_delay_seconds": 0.3}, "runtime": {"loop_interval_seconds": 0.2}}}',
+            encoding="utf-8",
+        )
+        mocker.patch(
+            "jukebox.di_container.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path))
+        )
+
+        settings_service = build_settings_service()
+        runtime_config = resolve_jukebox_runtime(settings_service)
+
+        assert runtime_config.reader_type == "pn532"
+        assert runtime_config.pn532_read_timeout_seconds == 0.2
+        assert runtime_config.pause_duration_seconds == 600
+        assert runtime_config.pause_delay_seconds == 0.3
+        assert runtime_config.loop_interval_seconds == 0.2
+
+    def test_build_settings_service_maps_pn532_overrides(self):
+        service = build_settings_service(pn532_spi_reset=25, pn532_spi_cs=10, pn532_spi_irq=24)
+
+        assert service.cli_overrides == {
+            "jukebox": {
+                "reader": {
+                    "pn532": {
+                        "spi": {"reset": 25, "cs": 10, "irq": 24},
+                    }
+                }
+            }
+        }
+
+    def test_build_settings_service_reads_persisted_selected_group_target(self, tmp_path, mocker):
+        settings_path = tmp_path / "settings.json"
+        settings_path.write_text(
+            '{"schema_version": 1, "jukebox": {"player": {"type": "sonos", "sonos": {"selected_group": {"coordinator_uid": "speaker-2", "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}]}}}}}',
+            encoding="utf-8",
+        )
+        mocker.patch(
+            "jukebox.di_container.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path))
+        )
+
+        settings_service = build_settings_service()
+        runtime_config = resolve_jukebox_runtime(
+            settings_service,
+            StubSonosService(
+                resolved_group=build_resolved_sonos_group_runtime(
+                    coordinator_uid="speaker-2",
+                    speakers=[
+                        ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
+                        ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
+                    ],
+                ),
+            ),
+        )
+
+        assert runtime_config.player_type == "sonos"
+        assert runtime_config.sonos_host == "192.168.1.40"
+        assert runtime_config.sonos_name is None
+        assert runtime_config.sonos_group is not None

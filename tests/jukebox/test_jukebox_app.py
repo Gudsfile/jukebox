@@ -1,27 +1,25 @@
+from dataclasses import asdict
 from unittest.mock import MagicMock
 
+import click
 import pytest
+from typer.testing import CliRunner
 
 from jukebox import app
-from jukebox.adapters.inbound.config import JukeboxCliConfig
 from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
-from tests.jukebox.settings._helpers import (
-    StubSonosService,
-    build_resolved_sonos_group_runtime,
-    resolve_jukebox_runtime,
-)
+
+runner = CliRunner()
 
 
 @pytest.fixture
 def app_mocks(mocker):
     class Mocks:
-        parse_config = mocker.patch("jukebox.app.parse_config")
         set_logger = mocker.patch("jukebox.app.set_logger")
-        build_settings_service = mocker.patch("jukebox.app._build_settings_service")
-        build_runtime_resolver = mocker.patch("jukebox.app._build_runtime_resolver")
+        build_settings_service = mocker.patch("jukebox.app.build_settings_service")
+        build_runtime_resolver = mocker.patch("jukebox.app.build_runtime_resolver")
         build_jukebox = mocker.patch("jukebox.app.build_jukebox")
         controller_class = mocker.patch("jukebox.app.CLIController")
 
@@ -44,17 +42,19 @@ def test_main_uses_resolved_runtime_config(app_mocks):
     settings_service = MagicMock()
     runtime_resolver = MagicMock()
     runtime_resolver.resolve.return_value = runtime_config
-    app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
     app_mocks.build_settings_service.return_value = settings_service
     app_mocks.build_runtime_resolver.return_value = runtime_resolver
     app_mocks.build_jukebox.return_value = (MagicMock(), MagicMock())
 
-    app.main()
+    result = runner.invoke(app.app)
 
-    app_mocks.set_logger.assert_called_once_with("jukebox", True)
-    app_mocks.build_settings_service.assert_called_once_with(JukeboxCliConfig(verbose=True))
+    assert result.exit_code == 0
+    app_mocks.set_logger.assert_called_once_with("jukebox", False)
+    app_mocks.build_settings_service.assert_called_once_with(
+        **{k: v for k, v in asdict(app.JukeboxCliState()).items() if k != "verbose"}
+    )
     app_mocks.build_runtime_resolver.assert_called_once_with(settings_service)
-    runtime_resolver.resolve.assert_called_once_with(verbose=True)
+    runtime_resolver.resolve.assert_called_once_with(verbose=False)
     app_mocks.build_jukebox.assert_called_once_with(runtime_config)
     app_mocks.controller_class.assert_called_once()
     assert app_mocks.controller_class.call_args.kwargs["loop_interval_seconds"] == 0.5
@@ -62,13 +62,23 @@ def test_main_uses_resolved_runtime_config(app_mocks):
 
 
 def test_main_exits_on_settings_error(app_mocks):
-    app_mocks.parse_config.return_value = JukeboxCliConfig()
     app_mocks.build_settings_service.side_effect = InvalidSettingsError("broken settings")
 
-    with pytest.raises(SystemExit) as err:
-        app.main()
+    result = runner.invoke(app.app)
 
-    assert str(err.value) == "broken settings"
+    assert result.exit_code == 1
+    assert "broken settings" in result.output
+
+
+def test_main_exits_on_runtime_resolver_settings_error(app_mocks):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    app_mocks.build_runtime_resolver.side_effect = InvalidSettingsError("resolver failed")
+
+    result = runner.invoke(app.app)
+
+    assert result.exit_code == 1
+    assert "resolver failed" in result.output
 
 
 def test_main_exits_on_build_jukebox_settings_error(app_mocks):
@@ -87,105 +97,147 @@ def test_main_exits_on_build_jukebox_settings_error(app_mocks):
     settings_service = MagicMock()
     runtime_resolver = MagicMock()
     runtime_resolver.resolve.return_value = runtime_config
-    app_mocks.parse_config.return_value = JukeboxCliConfig(verbose=True)
     app_mocks.build_settings_service.return_value = settings_service
     app_mocks.build_runtime_resolver.return_value = runtime_resolver
     app_mocks.build_jukebox.side_effect = InvalidSettingsError("sonos startup failed")
 
-    with pytest.raises(SystemExit) as err:
-        app.main()
+    result = runner.invoke(app.app)
 
-    assert str(err.value) == "sonos startup failed"
-
-
-def test_build_settings_service_maps_sonos_name_override():
-    service = app._build_settings_service(JukeboxCliConfig(player="sonos", sonos_name="Living Room"))
-
-    assert isinstance(service.repository, FileSettingsRepository)
-    assert service.cli_overrides == {
-        "jukebox": {
-            "player": {
-                "type": "sonos",
-                "sonos": {"manual_host": None, "manual_name": "Living Room", "selected_group": None},
-            }
-        }
-    }
+    assert result.exit_code == 1
+    assert "sonos startup failed" in result.output
 
 
-def test_build_settings_service_maps_sonos_host_override():
-    service = app._build_settings_service(JukeboxCliConfig(player="sonos", sonos_host="192.168.1.20"))
-
-    assert service.cli_overrides == {
-        "jukebox": {
-            "player": {
-                "type": "sonos",
-                "sonos": {"manual_host": "192.168.1.20", "manual_name": None, "selected_group": None},
-            }
-        }
-    }
-
-
-def test_build_settings_service_reads_persisted_reader_and_timing_settings(tmp_path, mocker):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        '{"schema_version": 1, "jukebox": {"reader": {"type": "pn532", "pn532": {"read_timeout_seconds": 0.2}}, "playback": {"pause_duration_seconds": 600, "pause_delay_seconds": 0.3}, "runtime": {"loop_interval_seconds": 0.2}}}',
-        encoding="utf-8",
-    )
-    mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
-
-    settings_service = app._build_settings_service(JukeboxCliConfig())
-    runtime_config = resolve_jukebox_runtime(settings_service)
-
-    assert runtime_config.reader_type == "pn532"
-    assert runtime_config.pn532_read_timeout_seconds == 0.2
-    assert runtime_config.pause_duration_seconds == 600
-    assert runtime_config.pause_delay_seconds == 0.3
-    assert runtime_config.loop_interval_seconds == 0.2
-
-
-def test_build_settings_service_maps_pn532_overrides():
-    service = app._build_settings_service(
-        JukeboxCliConfig(
-            pn532_spi_reset=25,
-            pn532_spi_cs=10,
-            pn532_spi_irq=24,
-        )
-    )
-
-    assert service.cli_overrides == {
-        "jukebox": {
-            "reader": {
-                "pn532": {
-                    "spi": {"reset": 25, "cs": 10, "irq": 24},
-                }
-            }
-        }
-    }
-
-
-def test_build_settings_service_reads_persisted_selected_group_target(tmp_path, mocker):
-    settings_path = tmp_path / "settings.json"
-    settings_path.write_text(
-        '{"schema_version": 1, "jukebox": {"player": {"type": "sonos", "sonos": {"selected_group": {"coordinator_uid": "speaker-2", "members": [{"uid": "speaker-1"}, {"uid": "speaker-2"}]}}}}}',
-        encoding="utf-8",
-    )
-    mocker.patch("jukebox.app.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
-
-    settings_service = app._build_settings_service(JukeboxCliConfig())
-    runtime_config = resolve_jukebox_runtime(
-        settings_service,
-        StubSonosService(
-            resolved_group=build_resolved_sonos_group_runtime(
-                coordinator_uid="speaker-2",
-                speakers=[
-                    ("speaker-1", "Kitchen", "192.168.1.30", "household-1"),
-                    ("speaker-2", "Living Room", "192.168.1.40", "household-1"),
-                ],
+@pytest.mark.parametrize(
+    ("args", "expected_config"),
+    [
+        pytest.param(
+            [],
+            app.JukeboxCliState(
+                library=None,
+                verbose=False,
+                player=None,
+                reader=None,
+                sonos_host=None,
+                sonos_name=None,
+                pause_duration_seconds=None,
+                pause_delay_seconds=None,
+                pn532_spi_reset=None,
+                pn532_spi_cs=None,
+                pn532_spi_irq=None,
             ),
+            id="default",
         ),
-    )
+        pytest.param(["--reader", "pn532"], app.JukeboxCliState(reader="pn532"), id="reader-override"),
+        pytest.param(["--player", "sonos"], app.JukeboxCliState(player="sonos"), id="player-override"),
+        pytest.param(
+            ["--reader", "pn532", "--player", "sonos"],
+            app.JukeboxCliState(reader="pn532", player="sonos"),
+            id="reader-and-player",
+        ),
+        pytest.param(["--sonos-host", "192.168.1.50"], app.JukeboxCliState(sonos_host="192.168.1.50"), id="sonos-host"),
+        pytest.param(["--sonos-name", "Living Room"], app.JukeboxCliState(sonos_name="Living Room"), id="sonos-name"),
+        pytest.param(
+            ["--pause-duration", "300", "--pause-delay", "0.2"],
+            app.JukeboxCliState(pause_duration_seconds=300, pause_delay_seconds=0.2),
+            id="pause-settings",
+        ),
+        pytest.param(
+            ["-l", "/cli/library.json", "-v"],
+            app.JukeboxCliState(library="/cli/library.json", verbose=True),
+            id="library-and-verbose",
+        ),
+        pytest.param(
+            ["--pn532-spi-reset", "25", "--pn532-spi-cs", "8", "--pn532-spi-irq", "24"],
+            app.JukeboxCliState(pn532_spi_reset=25, pn532_spi_cs=8, pn532_spi_irq=24),
+            id="pn532-pin-settings",
+        ),
+    ],
+)
+def test_main_builds_runtime_from_cli_arguments(mocker, app_mocks, args, expected_config):
+    settings_service = MagicMock()
+    app_mocks.build_settings_service.return_value = settings_service
+    runtime_config, loop_interval_seconds = MagicMock(), MagicMock()
+    runtime_config.loop_interval_seconds = loop_interval_seconds
+    runtime_resolver = MagicMock()
+    runtime_resolver.resolve.return_value = runtime_config
+    app_mocks.build_runtime_resolver.return_value = runtime_resolver
+    reader, handle_tag_event = MagicMock(), MagicMock()
+    app_mocks.build_jukebox.return_value = (reader, handle_tag_event)
+    controller = MagicMock()
+    app_mocks.controller_class.return_value = controller
 
-    assert runtime_config.player_type == "sonos"
-    assert runtime_config.sonos_host == "192.168.1.40"
-    assert runtime_config.sonos_name is None
-    assert runtime_config.sonos_group is not None
+    result = runner.invoke(app.app, args)
+
+    assert result.exit_code == 0
+    app_mocks.set_logger.assert_called_once_with("jukebox", expected_config.verbose)
+    app_mocks.build_settings_service.assert_called_once_with(
+        **{k: v for k, v in asdict(expected_config).items() if k != "verbose"}
+    )
+    app_mocks.build_runtime_resolver.assert_called_once_with(settings_service)
+    runtime_resolver.resolve.assert_called_once_with(verbose=expected_config.verbose)
+    app_mocks.build_jukebox.assert_called_once_with(runtime_config)
+    app_mocks.controller_class.assert_called_once_with(
+        reader=reader,
+        handle_tag_event=handle_tag_event,
+        loop_interval_seconds=loop_interval_seconds,
+    )
+    controller.run.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("args"),
+    [
+        pytest.param(
+            ["--sonos-host", "192.168.1.1", "--sonos-name", "Living Room"],
+            id="sonos-host-and-name-together",
+        ),
+    ],
+)
+def test_main_exits_when_settings_from_cli_arguments_are_invalid(args):
+    result = runner.invoke(app.app, args)
+    assert result.exit_code == 2
+    assert "Invalid value: --sonos-host and --sonos-name are mutually exclusive" in click.unstyle(result.output)
+
+
+@pytest.mark.parametrize("subcommand", ["settings", "api", "ui", "library"])
+def test_main_rejects_admin_subcommands(subcommand):
+    result = runner.invoke(app.app, [subcommand])
+    assert result.exit_code == 2
+    assert f"Got unexpected extra argument ({subcommand})" in result.output
+
+
+@pytest.mark.parametrize("options", ["--effective", "--profile", "--uids", "--coordinator"])
+def test_main_rejects_bad_options(options):
+    result = runner.invoke(app.app, [options])
+    assert result.exit_code == 2
+    assert f"No such option: {options}" in click.unstyle(result.output)
+
+
+@pytest.mark.parametrize(
+    ("persisted_value", "cli_value", "expected"),
+    [
+        pytest.param(100, 200, 200, id="cli-overrides-persisted"),
+        pytest.param(200, 300, 300, id="cli-overrides-persisted-larger"),
+        pytest.param(200, 100, 100, id="cli-overrides-persisted-smaller"),
+        pytest.param(200, 200, 200, id="cli-equals-persisted"),
+        pytest.param(100, None, 100, id="no-cli-value-persisted-wins"),
+        pytest.param(None, 200, 200, id="no-persisted-value-cli-wins"),
+        pytest.param(None, None, 900, id="no-values-default-wins"),
+    ],
+)
+def test_cli_arguments_override_persisted_settings(tmp_path, mocker, persisted_value, cli_value, expected):
+    settings_path = tmp_path / "settings.json"
+    playback = f'"pause_duration_seconds": {persisted_value}' if persisted_value is not None else ""
+    settings_path.write_text(
+        f'{{"schema_version": 1, "jukebox": {{"playback": {{{playback}}}}}}}',
+        encoding="utf-8",
+    )
+    mocker.patch("jukebox.di_container.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
+    mocker.patch("jukebox.app.CLIController")
+    determine_action_class = mocker.patch("jukebox.di_container.DetermineAction")
+
+    cli_args = ["--pause-duration", str(cli_value)] if cli_value is not None else []
+    result = runner.invoke(app.app, cli_args)
+
+    assert result.exit_code == 0
+    determine_action_class.assert_called_once_with(pause_delay=mocker.ANY, max_pause_duration=expected)
