@@ -59,7 +59,6 @@ class HandleTagEvent:
             case PlaybackAction.RESUME:
                 if self._run_playback_command(
                     action=PlaybackAction.RESUME,
-                    retry_key="resume",
                     timestamp=tag_event.timestamp,
                     session=session,
                     error_message="Playback operation `RESUME` failed; stopping session update",
@@ -76,7 +75,7 @@ class HandleTagEvent:
                     LOGGER.info("Found corresponding disc: %s", disc)
                     if self._run_playback_command(
                         action=PlaybackAction.PLAY,
-                        retry_key=f"play:{tag_event.tag_id}",
+                        tag_id=tag_event.tag_id,
                         timestamp=tag_event.timestamp,
                         session=session,
                         error_message=(
@@ -101,7 +100,6 @@ class HandleTagEvent:
             case PlaybackAction.PAUSE:
                 if self._run_playback_command(
                     action=PlaybackAction.PAUSE,
-                    retry_key="pause",
                     timestamp=tag_event.timestamp,
                     session=session,
                     error_message="Playback operation `PAUSE` failed; stopping session update",
@@ -112,7 +110,6 @@ class HandleTagEvent:
             case PlaybackAction.STOP:
                 if self._run_playback_command(
                     action=PlaybackAction.STOP,
-                    retry_key="stop",
                     timestamp=tag_event.timestamp,
                     session=session,
                     error_message="Playback operation `STOP` failed; stopping session update",
@@ -175,14 +172,15 @@ class HandleTagEvent:
         self,
         *,
         action: PlaybackAction,
-        retry_key: str,
         timestamp: float,
         session: PlaybackSession,
         error_message: str,
         command: Callable[[], None],
+        tag_id: str | None = None,
     ) -> bool:
         retry = session.playback_command_retry
-        if retry is not None and retry.action == action and retry.retry_key == retry_key and retry.exhausted:
+        retry_matches = retry is not None and retry.matches(action=action, tag_id=tag_id)
+        if retry_matches and retry.exhausted:
             LOGGER.debug(
                 "Skipping playback operation `%s`; retry exhausted after %d attempts",
                 action.value.upper(),
@@ -190,13 +188,7 @@ class HandleTagEvent:
             )
             return False
 
-        if (
-            retry is not None
-            and retry.action == action
-            and retry.retry_key == retry_key
-            and retry.next_retry_at is not None
-            and timestamp < retry.next_retry_at
-        ):
+        if retry_matches and retry.next_retry_at is not None and timestamp < retry.next_retry_at:
             LOGGER.debug(
                 "Skipping playback operation `%s` until retry time %.3f",
                 action.value.upper(),
@@ -209,9 +201,9 @@ class HandleTagEvent:
         except PlaybackError:
             retry = self._record_playback_command_failure(
                 action=action,
-                retry_key=retry_key,
                 timestamp=timestamp,
                 session=session,
+                tag_id=tag_id,
             )
             if retry.exhausted:
                 LOGGER.warning("%s; retry exhausted after %d attempts", error_message, retry.attempt_count)
@@ -229,12 +221,12 @@ class HandleTagEvent:
         self,
         *,
         action: PlaybackAction,
-        retry_key: str,
         timestamp: float,
         session: PlaybackSession,
+        tag_id: str | None = None,
     ) -> PlaybackCommandRetry:
         existing_retry = session.playback_command_retry
-        if existing_retry is None or existing_retry.action != action or existing_retry.retry_key != retry_key:
+        if existing_retry is None or not existing_retry.matches(action=action, tag_id=tag_id):
             attempt_count = 1
             first_failed_at = timestamp
         else:
@@ -244,7 +236,7 @@ class HandleTagEvent:
         retry_delay = self._retry_delay_for_attempt(attempt_count)
         retry = PlaybackCommandRetry(
             action=action,
-            retry_key=retry_key,
+            tag_id=tag_id,
             first_failed_at=first_failed_at,
             last_failed_at=timestamp,
             attempt_count=attempt_count,
