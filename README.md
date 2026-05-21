@@ -273,7 +273,11 @@ git clone https://github.com/Gudsfile/jukebox.git
 uv sync
 ```
 
-Add `--all-extras` to install dependencies for all extras (`api` and `ui`).
+To install dependencies for all extras (`api`, `ui` and `pn532`):
+```shell
+uv sync --extra api --extra ui --extra pn532
+```
+Note: the `pn532` extra requires compatible hardware and is intentionally excluded from this command.
 
 If needed, you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
