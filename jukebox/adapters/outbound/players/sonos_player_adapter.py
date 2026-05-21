@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 
 import soco
 from requests.exceptions import RequestException
@@ -11,29 +12,27 @@ from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import InvalidSettingsError
+from jukebox.sonos.service import (
+    SonosPlaybackTarget,
+    SonosPlaybackTargetResolver,
+    playback_target_from_runtime_group,
+)
 
 LOGGER = logging.getLogger("jukebox")
+_SONOS_TRANSPORT_ERRORS = (HTTPError, OSError, RequestException, SoCoException)
 
 
-def catch_soco_upnp_exception(func):
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except SoCoUPnPException as err:
-            if "UPnP Error 804" in str(err.message):
-                LOGGER.warning("%s with `%s` failed, probably a bad uri: %s", func.__name__, args, err.message)
-            elif "UPnP Error 701" in str(err.message):
-                LOGGER.warning(
-                    "%s with `%s` failed, probably a not available transition: %s",
-                    func.__name__,
-                    args,
-                    err.message,
-                )
-            else:
-                LOGGER.exception("%s with `%s` failed: %s", func.__name__, args, str(err))
-            raise PlaybackError(str(err)) from err
-
-    return wrapper
+def _log_upnp_failure(command_name: str, err: SoCoUPnPException) -> None:
+    if "UPnP Error 804" in str(err.message):
+        LOGGER.warning("%s failed, probably a bad uri: %s", command_name, err.message)
+    elif "UPnP Error 701" in str(err.message):
+        LOGGER.warning(
+            "%s failed, probably a not available transition: %s",
+            command_name,
+            err.message,
+        )
+    else:
+        LOGGER.exception("%s failed: %s", command_name, str(err))
 
 
 class SonosPlayerAdapter(PlayerPort):
@@ -44,7 +43,15 @@ class SonosPlayerAdapter(PlayerPort):
         host: str | None = None,
         name: str | None = None,
         group: ResolvedSonosGroupRuntime | None = None,
+        *,
+        sonos_playback_target_resolver: SonosPlaybackTargetResolver,
     ):
+        self.manual_name = name
+        self.group = group
+        self.playback_target = playback_target_from_runtime_group(group)
+        self.sonos_playback_target_resolver = sonos_playback_target_resolver
+        self.speaker_name = "unknown Sonos player"
+
         try:
             if group is not None:
                 coordinator_host = host or group.coordinator.host
@@ -57,13 +64,13 @@ class SonosPlayerAdapter(PlayerPort):
             else:
                 self.speaker = self._discover(name)
 
-            speaker_info = self.speaker.get_speaker_info()
+            speaker_info = self._refresh_speaker_metadata()
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
             raise InvalidSettingsError(f"Failed to initialize Sonos player: {err}") from err
 
         LOGGER.info(
             "Found `%s` with software version: %s",
-            self.speaker.player_name,
+            self.speaker_name,
             speaker_info.get("software_version", None),
         )
         self.sharelink = ShareLinkPlugin(self.speaker)
@@ -185,28 +192,158 @@ class SonosPlayerAdapter(PlayerPort):
 
         return current_coordinator
 
-    @catch_soco_upnp_exception
+    def _refresh_speaker_metadata(self) -> dict:
+        speaker_info = self.speaker.get_speaker_info()
+        self.speaker_name = self._speaker_name_from_info(speaker_info)
+        if self.playback_target is None:
+            self.playback_target = self._playback_target_from_current_speaker()
+        return speaker_info
+
+    def _speaker_name_from_info(self, speaker_info: dict) -> str:
+        zone_name = speaker_info.get("zone_name")
+        if isinstance(zone_name, str) and zone_name:
+            return zone_name
+
+        player_name = getattr(self.speaker, "player_name", None)
+        if isinstance(player_name, str) and player_name:
+            return player_name
+
+        return "unknown Sonos player"
+
+    def _playback_target_from_current_speaker(self) -> SonosPlaybackTarget | None:
+        uid = getattr(self.speaker, "uid", None)
+        household_id = getattr(self.speaker, "household_id", None)
+        if not isinstance(uid, str) or not uid:
+            return None
+        if not isinstance(household_id, str) or not household_id:
+            return None
+
+        return SonosPlaybackTarget(
+            household_id=household_id,
+            coordinator_uid=uid,
+            member_uids=(uid,),
+        )
+
+    def _execute_with_recovery(self, command_name: str, command: Callable[[], None]) -> None:
+        try:
+            command()
+            return
+        except SoCoUPnPException as err:
+            _log_upnp_failure(command_name, err)
+            raise PlaybackError(str(err)) from err
+        except _SONOS_TRANSPORT_ERRORS as err:
+            LOGGER.warning("%s failed for Sonos player `%s`: %s", command_name, self.speaker_name, err)
+            original_error = err
+
+        if not self._recover_speaker(command_name):
+            raise PlaybackError(str(original_error)) from original_error
+
+        try:
+            command()
+        except SoCoUPnPException as err:
+            _log_upnp_failure(command_name, err)
+            raise PlaybackError(str(err)) from err
+        except _SONOS_TRANSPORT_ERRORS as err:
+            LOGGER.warning("%s failed after Sonos recovery for `%s`: %s", command_name, self.speaker_name, err)
+            raise PlaybackError(str(err)) from err
+
+    def _recover_speaker(self, command_name: str) -> bool:
+        playback_target = self.playback_target
+        if playback_target is not None:
+            return self._recover_playback_target(command_name, playback_target)
+
+        if self.manual_name is not None:
+            return self._recover_by_name(command_name)
+
+        LOGGER.warning("%s could not recover Sonos player because no rediscoverable target is available", command_name)
+        return False
+
+    def _recover_playback_target(self, command_name: str, playback_target: SonosPlaybackTarget) -> bool:
+        try:
+            resolved_group = self.sonos_playback_target_resolver.resolve_playback_target(playback_target)
+        except (
+            HTTPError,
+            OSError,
+            RequestException,
+            RuntimeError,
+            ValueError,
+            SoCoException,
+            SoCoUPnPException,
+        ) as err:
+            LOGGER.warning("%s could not re-resolve Sonos player `%s`: %s", command_name, self.speaker_name, err)
+            return False
+
+        try:
+            self._switch_to_resolved_group(resolved_group)
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            LOGGER.warning(
+                "%s recovered Sonos player `%s` but failed during group switch: %s",
+                command_name,
+                self.speaker_name,
+                err,
+            )
+            return False
+
+        LOGGER.info(
+            "%s recovered Sonos player `%s` at `%s`",
+            command_name,
+            self.speaker_name,
+            resolved_group.coordinator.host,
+        )
+        return True
+
+    def _switch_to_resolved_group(self, resolved_group: ResolvedSonosGroupRuntime) -> None:
+        enforce_group = self.group is not None
+        self.speaker = SoCo(resolved_group.coordinator.host)
+        if enforce_group:
+            self._enforce_group(resolved_group)
+            self.group = resolved_group
+        self.playback_target = playback_target_from_runtime_group(resolved_group)
+        self._refresh_speaker_metadata()
+        self.sharelink = ShareLinkPlugin(self.speaker)
+
+    def _recover_by_name(self, command_name: str) -> bool:
+        try:
+            self.speaker = self._discover(self.manual_name)
+            self._refresh_speaker_metadata()
+            self.sharelink = ShareLinkPlugin(self.speaker)
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            LOGGER.warning("%s could not rediscover Sonos player named `%s`: %s", command_name, self.manual_name, err)
+            return False
+
+        LOGGER.info("%s rediscovered Sonos player `%s`", command_name, self.speaker_name)
+        return True
+
     def play(self, uri: str, shuffle: bool = False) -> None:
-        LOGGER.info("Playing `%s` on the player `%s`", uri, self.speaker.player_name)
-        self.speaker.clear_queue()
-        _ = self.handle_uri(uri)
-        self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
-        self.speaker.play_from_queue(index=0, start=True)
+        def command() -> None:
+            LOGGER.info("Playing `%s` on the player `%s`", uri, self.speaker_name)
+            self.speaker.clear_queue()
+            _ = self.handle_uri(uri)
+            self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
+            self.speaker.play_from_queue(index=0, start=True)
 
-    @catch_soco_upnp_exception
+        self._execute_with_recovery("play", command)
+
     def pause(self) -> None:
-        LOGGER.info("Pausing player `%s`", self.speaker.player_name)
-        self.speaker.pause()
+        def command() -> None:
+            LOGGER.info("Pausing player `%s`", self.speaker_name)
+            self.speaker.pause()
 
-    @catch_soco_upnp_exception
+        self._execute_with_recovery("pause", command)
+
     def resume(self) -> None:
-        LOGGER.info("Resuming player `%s`", self.speaker.player_name)
-        self.speaker.play()
+        def command() -> None:
+            LOGGER.info("Resuming player `%s`", self.speaker_name)
+            self.speaker.play()
 
-    @catch_soco_upnp_exception
+        self._execute_with_recovery("resume", command)
+
     def stop(self) -> None:
-        LOGGER.info("Stopping player `%s` and clearing its queue", self.speaker.player_name)
-        self.speaker.clear_queue()
+        def command() -> None:
+            LOGGER.info("Stopping player `%s` and clearing its queue", self.speaker_name)
+            self.speaker.clear_queue()
+
+        self._execute_with_recovery("stop", command)
 
     def handle_uri(self, uri):
         if self.sharelink.is_share_link(uri):

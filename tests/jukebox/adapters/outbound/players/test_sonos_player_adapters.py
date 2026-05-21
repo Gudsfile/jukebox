@@ -1,22 +1,29 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from requests.exceptions import ConnectionError as RequestConnectionError
 from soco.exceptions import SoCoUPnPException
 
-from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter, catch_soco_upnp_exception
+from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
 from jukebox.domain.errors import PlaybackError
 from jukebox.settings.errors import InvalidSettingsError
-from tests.jukebox.settings._helpers import build_resolved_sonos_group_runtime
+from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
 
 
 def make_exception(code: str):
     return SoCoUPnPException(f"UPnP Error {code} received", code, f"<errorCode>{code}</errorCode>")
 
 
+def build_adapter(**kwargs: Any) -> SonosPlayerAdapter:
+    kwargs.setdefault("sonos_playback_target_resolver", MagicMock())
+    return SonosPlayerAdapter(**kwargs)
+
+
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_init_with_host(mock_sharelink, mock_soco):
-    SonosPlayerAdapter(host="192.168.1.100")
+    build_adapter(host="192.168.1.100")
     mock_soco.assert_called_once_with("192.168.1.100")
     mock_sharelink.assert_called_once_with(mock_soco.return_value)
 
@@ -29,7 +36,7 @@ def test_init_without_host_triggers_discovery(mock_sharelink, mock_soco_module):
     mock_speaker.player_name = "Living Room"
     mock_soco_module.discover.return_value = {mock_speaker}
 
-    adapter = SonosPlayerAdapter()
+    adapter = build_adapter()
 
     mock_soco_module.discover.assert_called_once()
     mock_sharelink.assert_called_once_with(mock_speaker)
@@ -43,7 +50,7 @@ def test_init_without_host_raises_when_no_speakers_found(mock_sharelink, mock_so
     mock_soco_module.discover.return_value = None
 
     with pytest.raises(InvalidSettingsError, match="No Sonos speakers found on the network"):
-        SonosPlayerAdapter()
+        build_adapter()
 
     mock_sharelink.assert_not_called()
 
@@ -59,7 +66,7 @@ def test_init_discovery_picks_first_speaker_alphabetically(mock_sharelink, mock_
 
     mock_soco_module.discover.return_value = {speaker_b, speaker_a}
 
-    adapter = SonosPlayerAdapter()
+    adapter = build_adapter()
 
     assert adapter.speaker is speaker_a
 
@@ -74,7 +81,7 @@ def test_init_with_name_selects_matching_speaker(mock_sharelink, mock_soco_modul
     speaker_b.player_name = "Living Room"
     mock_soco_module.discover.return_value = {speaker_a, speaker_b}
 
-    adapter = SonosPlayerAdapter(name="Living Room")
+    adapter = build_adapter(name="Living Room")
 
     assert adapter.speaker is speaker_b
 
@@ -89,7 +96,7 @@ def test_init_with_name_raises_when_speaker_not_found(mock_sharelink, mock_soco_
     mock_soco_module.discover.return_value = {mock_speaker}
 
     with pytest.raises(InvalidSettingsError, match="No Sonos speaker named 'Bedroom' found on the network"):
-        SonosPlayerAdapter(name="Bedroom")
+        build_adapter(name="Bedroom")
 
     mock_sharelink.assert_not_called()
 
@@ -128,7 +135,7 @@ def test_init_with_resolved_group_enforces_membership_before_playback(mock_share
         ],
     )
 
-    adapter = SonosPlayerAdapter(group=group)
+    adapter = build_adapter(group=group)
 
     kitchen.join.assert_called_once_with(coordinator)
     extra.unjoin.assert_called_once_with()
@@ -183,7 +190,7 @@ def test_init_with_resolved_group_preserves_nonvisible_members(mock_sharelink, m
         ],
     )
 
-    SonosPlayerAdapter(group=group)
+    build_adapter(group=group)
 
     kitchen.join.assert_called_once_with(coordinator)
     extra.unjoin.assert_called_once_with()
@@ -235,7 +242,7 @@ def test_init_with_partial_group_prunes_extras_but_keeps_missing_desired_members
         missing_member_uids=["speaker-3"],
     )
 
-    SonosPlayerAdapter(group=group)
+    build_adapter(group=group)
 
     kitchen.join.assert_called_once_with(coordinator)
     extra.unjoin.assert_called_once_with()
@@ -255,7 +262,7 @@ def test_init_with_one_member_resolved_group_preserves_single_speaker_behavior(m
 
     group = build_resolved_sonos_group_runtime()
 
-    adapter = SonosPlayerAdapter(group=group)
+    adapter = build_adapter(group=group)
 
     speaker.join.assert_not_called()
     speaker.unjoin.assert_not_called()
@@ -269,7 +276,7 @@ def test_init_with_host_wraps_network_errors(mock_sharelink, mock_soco):
     mock_soco.side_effect = TimeoutError("timed out")
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: timed out"):
-        SonosPlayerAdapter(host="192.168.1.100")
+        build_adapter(host="192.168.1.100")
 
     mock_sharelink.assert_not_called()
 
@@ -304,7 +311,7 @@ def test_init_with_group_wraps_group_enforcement_errors(mock_sharelink, mock_soc
     )
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
-        SonosPlayerAdapter(group=group)
+        build_adapter(group=group)
 
     mock_sharelink.assert_not_called()
 
@@ -342,7 +349,7 @@ def test_init_with_group_join_failure_does_not_remove_existing_members(mock_shar
     )
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
-        SonosPlayerAdapter(group=group)
+        build_adapter(group=group)
 
     extra.unjoin.assert_not_called()
     mock_sharelink.assert_not_called()
@@ -385,7 +392,7 @@ def test_init_with_group_failure_rolls_back_earlier_joins(mock_sharelink, mock_s
     )
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
-        SonosPlayerAdapter(group=group)
+        build_adapter(group=group)
 
     kitchen.join.assert_called_once_with(coordinator)
     kitchen.unjoin.assert_called_once_with()
@@ -433,7 +440,7 @@ def test_init_with_group_failure_restores_joined_member_to_original_group(mock_s
     )
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: join timed out"):
-        SonosPlayerAdapter(group=group)
+        build_adapter(group=group)
 
     assert kitchen.join.call_args_list == [((coordinator,),), ((old_coordinator,),)]
     kitchen.unjoin.assert_not_called()
@@ -482,7 +489,7 @@ def test_init_with_group_failure_rolls_back_earlier_removals(mock_sharelink, moc
     )
 
     with pytest.raises(InvalidSettingsError, match="Failed to initialize Sonos player: unjoin timed out"):
-        SonosPlayerAdapter(group=group)
+        build_adapter(group=group)
 
     extra_one.unjoin.assert_called_once_with()
     extra_one.join.assert_called_once_with(coordinator)
@@ -517,7 +524,7 @@ def test_play_does_not_reenforce_group_after_startup(mock_sharelink, mock_soco):
         ],
     )
 
-    adapter = SonosPlayerAdapter(group=group)
+    adapter = build_adapter(group=group)
     kitchen.join.reset_mock()
     coordinator.unjoin.reset_mock()
     mock_soco.reset_mock()
@@ -537,7 +544,7 @@ def test_play_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.play("uri:123", shuffle=False)
 
     mock_speaker.clear_queue.assert_called_once_with()
@@ -557,7 +564,7 @@ def test_play_calls_underlying_sonos_player_for_non_share_link(mock_sharelink, m
     mock_sharelink.return_value = mock_sharelink_value
     mock_sharelink_value.is_share_link = lambda x: False
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.play("non-share-link", shuffle=False)
 
     mock_speaker.clear_queue.assert_called_once_with()
@@ -574,7 +581,7 @@ def test_play_with_shuffle(mock_sharelink, mock_soco):
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.play("uri:456", shuffle=True)
 
     assert mock_speaker.play_mode == "SHUFFLE_NOREPEAT"
@@ -588,10 +595,183 @@ def test_pause_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.pause()
 
     mock_speaker.pause.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_uses_cached_player_name(mock_sharelink, mock_soco):
+    """Should not poll Sonos for player_name while pausing."""
+
+    class SpeakerWithNetworkedName:
+        def __init__(self):
+            self.get_speaker_info = MagicMock(return_value={"software_version": "1.0", "zone_name": "Living Room"})
+            self.pause = MagicMock()
+
+        @property
+        def player_name(self):
+            raise RequestConnectionError("No route to host")
+
+    speaker = SpeakerWithNetworkedName()
+    mock_soco.return_value = speaker
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.pause()
+
+    speaker.pause.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_recovers_selected_group_after_ip_changes(mock_sharelink, mock_soco):
+    """Should re-resolve the saved Sonos group by UID and retry the command once."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    new_speaker = MagicMock()
+    new_speaker.uid = "RINCON_949F3E8DD34001400"
+    new_speaker.household_id = "household-1"
+    new_speaker.group = None
+    new_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    mock_soco.side_effect = lambda host: {
+        "192.168.1.24": old_speaker,
+        "192.168.1.25": new_speaker,
+    }[host]
+    sonos_playback_target_resolver = StubSonosService(resolved_group=new_group)
+
+    adapter = build_adapter(
+        group=old_group,
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    adapter.pause()
+
+    old_speaker.pause.assert_called_once()
+    new_speaker.pause.assert_called_once()
+    assert adapter.speaker is new_speaker
+    assert len(sonos_playback_target_resolver.calls) == 1
+    assert sonos_playback_target_resolver.calls[0].coordinator_uid == "RINCON_949F3E8DD34001400"
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_raises_playback_error_when_recovery_fails(mock_sharelink, mock_soco, caplog):
+    """Should report command failure after recovery cannot find the selected speaker."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.uid = "RINCON_949F3E8DD34001400"
+    mock_speaker.household_id = "household-1"
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    mock_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    sonos_playback_target_resolver = StubSonosService(error=ValueError("not found on network"))
+
+    adapter = build_adapter(
+        host="192.168.1.24",
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    with pytest.raises(PlaybackError, match="No route to host"):
+        adapter.pause()
+
+    mock_speaker.pause.assert_called_once()
+    assert "pause could not re-resolve Sonos player `Living Room`: not found on network" in caplog.text
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_reports_group_switch_failure_separately(mock_sharelink, mock_soco, caplog):
+    """Should distinguish successful target resolution from a later failed group switch."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+
+    def build_soco(host: str):
+        if host == "192.168.1.24":
+            return old_speaker
+        if host == "192.168.1.25":
+            raise TimeoutError("switch timed out")
+        raise AssertionError(f"unexpected Sonos host: {host}")
+
+    mock_soco.side_effect = build_soco
+    sonos_playback_target_resolver = StubSonosService(resolved_group=new_group)
+
+    adapter = build_adapter(
+        group=old_group,
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    with pytest.raises(PlaybackError, match="No route to host"):
+        adapter.pause()
+
+    old_speaker.pause.assert_called_once()
+    assert "pause recovered Sonos player `Living Room` but failed during group switch: switch timed out" in caplog.text
+    assert "pause could not re-resolve Sonos player `Living Room`" not in caplog.text
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_does_not_swallow_group_switch_invariant_failures(mock_sharelink, mock_soco, caplog):
+    """Should not treat adapter invariant failures as rediscovery misses."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    new_speaker = MagicMock()
+    new_speaker.uid = "RINCON_949F3E8DD34001400"
+    new_speaker.household_id = "household-1"
+    new_speaker.group = None
+    mock_soco.side_effect = lambda host: {
+        "192.168.1.24": old_speaker,
+        "192.168.1.25": new_speaker,
+    }[host]
+    sonos_playback_target_resolver = StubSonosService(resolved_group=new_group)
+
+    adapter = build_adapter(
+        group=old_group,
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    with (
+        patch(
+            "jukebox.adapters.outbound.players.sonos_player_adapter.playback_target_from_runtime_group",
+            side_effect=ValueError("invalid playback target"),
+        ),
+        pytest.raises(ValueError, match="invalid playback target"),
+    ):
+        adapter.pause()
+
+    assert "pause could not re-resolve Sonos player `Living Room`" not in caplog.text
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
@@ -602,7 +782,7 @@ def test_resume_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.resume()
 
     mock_speaker.play.assert_called_once()
@@ -616,7 +796,7 @@ def test_stop_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
     adapter.stop()
 
     mock_speaker.clear_queue.assert_called_once()
@@ -634,7 +814,7 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
     speaker_c.player_name = "Kitchen"
     mock_soco_module.discover.return_value = [speaker_a, speaker_b, speaker_c]
 
-    adapter = SonosPlayerAdapter(name="Kitchen")
+    adapter = build_adapter(name="Kitchen")
 
     assert adapter.speaker.player_name == "Kitchen"
     assert "Multiple Sonos speakers with name 'Kitchen' found. Using first match." in caplog.text
@@ -649,42 +829,42 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
         ("stop", "clear_queue", ()),
     ],
 )
+@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
-def test_methods_log_and_raise_on_upnp_error(mock_soco, caplog, adapter_method, soco_method, args):
+def test_methods_log_and_raise_on_known_upnp_error(
+    mock_soco,
+    caplog,
+    adapter_method,
+    soco_method,
+    args,
+    error_code,
+    expected_message,
+):
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
 
-    getattr(mock_speaker, soco_method).side_effect = make_exception("804")
+    getattr(mock_speaker, soco_method).side_effect = make_exception(error_code)
 
-    adapter = SonosPlayerAdapter(host="192.168.1.100")
+    adapter = build_adapter(host="192.168.1.100")
 
     with pytest.raises(PlaybackError):
         getattr(adapter, adapter_method)(*args)
 
-    assert "bad uri" in caplog.text
+    assert expected_message in caplog.text
     getattr(mock_speaker, soco_method).assert_called()
 
 
-@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
-def test_decorator_logs_warning_for_know_codes(caplog, error_code, expected_message):
-    @catch_soco_upnp_exception
-    def failing():
-        raise make_exception(error_code)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+def test_methods_log_exception_for_unknown_upnp_error(mock_soco, caplog):
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.pause.side_effect = make_exception("999")
 
-    with pytest.raises(PlaybackError), caplog.at_level("WARNING"):
-        failing()
-
-    assert expected_message in caplog.text
-    assert any(r.levelname == "WARNING" for r in caplog.records)
-
-
-def test_decorator_logs_exception_for_other_codes(caplog):
-    @catch_soco_upnp_exception
-    def failing():
-        raise make_exception("999")
+    adapter = build_adapter(host="192.168.1.100")
 
     with pytest.raises(PlaybackError), caplog.at_level("ERROR"):
-        failing()
+        adapter.pause()
 
-    assert any(r.levelname == "ERROR" for r in caplog.records)
+    assert any(record.levelname == "ERROR" for record in caplog.records)

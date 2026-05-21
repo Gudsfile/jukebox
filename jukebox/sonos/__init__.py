@@ -11,7 +11,13 @@ from .selection import (
     SonosSelectionResult,
     SonosSelectionStatus,
 )
-from .service import DefaultSonosService, SonosService
+from .service import (
+    DefaultSonosService,
+    SonosPlaybackTarget,
+    SonosPlaybackTargetResolver,
+    SonosService,
+    playback_target_from_runtime_group,
+)
 
 __all__ = [
     "DefaultSonosService",
@@ -20,9 +26,12 @@ __all__ = [
     "SaveSonosSelection",
     "SonosDiscoveryError",
     "SonosDiscoveryPort",
+    "SonosPlaybackTarget",
+    "SonosPlaybackTargetResolver",
     "SonosSelectionAvailability",
     "SonosSelectionResult",
     "SonosSelectionStatus",
     "SonosService",
+    "playback_target_from_runtime_group",
     "sort_sonos_speakers",
 ]
