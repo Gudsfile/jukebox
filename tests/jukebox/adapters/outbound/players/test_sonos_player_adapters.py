@@ -691,6 +691,91 @@ def test_pause_raises_playback_error_when_recovery_fails(mock_sharelink, mock_so
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_reports_group_switch_failure_separately(mock_sharelink, mock_soco, caplog):
+    """Should distinguish successful target resolution from a later failed group switch."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+
+    def build_soco(host: str):
+        if host == "192.168.1.24":
+            return old_speaker
+        if host == "192.168.1.25":
+            raise TimeoutError("switch timed out")
+        raise AssertionError(f"unexpected Sonos host: {host}")
+
+    mock_soco.side_effect = build_soco
+    sonos_playback_target_resolver = StubSonosService(resolved_group=new_group)
+
+    adapter = build_adapter(
+        group=old_group,
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    with pytest.raises(PlaybackError, match="No route to host"):
+        adapter.pause()
+
+    old_speaker.pause.assert_called_once()
+    assert "pause recovered Sonos player `Living Room` but failed during group switch: switch timed out" in caplog.text
+    assert "pause could not re-resolve Sonos player `Living Room`" not in caplog.text
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_does_not_swallow_group_switch_invariant_failures(mock_sharelink, mock_soco, caplog):
+    """Should not treat adapter invariant failures as rediscovery misses."""
+    old_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.24", "household-1")],
+    )
+    new_group = build_resolved_sonos_group_runtime(
+        coordinator_uid="RINCON_949F3E8DD34001400",
+        speakers=[("RINCON_949F3E8DD34001400", "Living Room", "192.168.1.25", "household-1")],
+    )
+    old_speaker = MagicMock()
+    old_speaker.uid = "RINCON_949F3E8DD34001400"
+    old_speaker.household_id = "household-1"
+    old_speaker.group = None
+    old_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    old_speaker.pause.side_effect = RequestConnectionError("No route to host")
+    new_speaker = MagicMock()
+    new_speaker.uid = "RINCON_949F3E8DD34001400"
+    new_speaker.household_id = "household-1"
+    new_speaker.group = None
+    mock_soco.side_effect = lambda host: {
+        "192.168.1.24": old_speaker,
+        "192.168.1.25": new_speaker,
+    }[host]
+    sonos_playback_target_resolver = StubSonosService(resolved_group=new_group)
+
+    adapter = build_adapter(
+        group=old_group,
+        sonos_playback_target_resolver=sonos_playback_target_resolver,
+    )
+    with (
+        patch(
+            "jukebox.adapters.outbound.players.sonos_player_adapter.playback_target_from_runtime_group",
+            side_effect=ValueError("invalid playback target"),
+        ),
+        pytest.raises(ValueError, match="invalid playback target"),
+    ):
+        adapter.pause()
+
+    assert "pause could not re-resolve Sonos player `Living Room`" not in caplog.text
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_resume_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     """Should delegate resume to underlying Sonos player."""
     mock_speaker = MagicMock()

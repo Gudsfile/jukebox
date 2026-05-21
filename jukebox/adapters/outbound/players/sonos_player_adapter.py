@@ -261,7 +261,6 @@ class SonosPlayerAdapter(PlayerPort):
     def _recover_playback_target(self, command_name: str, playback_target: SonosPlaybackTarget) -> bool:
         try:
             resolved_group = self.sonos_playback_target_resolver.resolve_playback_target(playback_target)
-            self._switch_to_resolved_group(resolved_group)
         except (
             HTTPError,
             OSError,
@@ -272,6 +271,17 @@ class SonosPlayerAdapter(PlayerPort):
             SoCoUPnPException,
         ) as err:
             LOGGER.warning("%s could not re-resolve Sonos player `%s`: %s", command_name, self.speaker_name, err)
+            return False
+
+        try:
+            self._switch_to_resolved_group(resolved_group)
+        except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
+            LOGGER.warning(
+                "%s recovered Sonos player `%s` but failed during group switch: %s",
+                command_name,
+                self.speaker_name,
+                err,
+            )
             return False
 
         LOGGER.info(
