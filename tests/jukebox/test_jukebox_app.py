@@ -1,7 +1,6 @@
 from dataclasses import asdict
 from unittest.mock import MagicMock
 
-import click
 import pytest
 from typer.testing import CliRunner
 
@@ -196,7 +195,7 @@ def test_main_builds_runtime_from_cli_arguments(mocker, app_mocks, args, expecte
 def test_main_exits_when_settings_from_cli_arguments_are_invalid(args):
     result = runner.invoke(app.app, args)
     assert result.exit_code == 2
-    assert "Invalid value: --sonos-host and --sonos-name are mutually exclusive" in click.unstyle(result.output)
+    assert "Invalid value: --sonos-host and --sonos-name are mutually exclusive" in result.output
 
 
 @pytest.mark.parametrize("subcommand", ["settings", "api", "ui", "library"])
@@ -210,7 +209,7 @@ def test_main_rejects_admin_subcommands(subcommand):
 def test_main_rejects_bad_options(options):
     result = runner.invoke(app.app, [options])
     assert result.exit_code == 2
-    assert f"No such option: {options}" in click.unstyle(result.output)
+    assert f"No such option: {options}" in result.output
 
 
 @pytest.mark.parametrize(
