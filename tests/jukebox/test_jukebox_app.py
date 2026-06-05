@@ -202,7 +202,7 @@ def test_main_exits_when_settings_from_cli_arguments_are_invalid(args):
 def test_main_rejects_admin_subcommands(subcommand):
     result = runner.invoke(app.app, [subcommand])
     assert result.exit_code == 2
-    assert f"Got unexpected extra argument ({subcommand})" in result.output
+    assert f"Got unexpected extra argument(s) ({subcommand})" in result.output
 
 
 @pytest.mark.parametrize("options", ["--effective", "--profile", "--uids", "--coordinator"])
