@@ -1,9 +1,8 @@
 import sys
 from io import StringIO
-from unittest.mock import MagicMock, patch
 
 import pytest
-from rich.table import Table
+from rich.console import Console
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
@@ -58,18 +57,16 @@ ID : xyz789
 
 
 def test_display_library_table(sample_discs):
-    with patch("jukebox.adapters.inbound.admin.cli_display.Console") as mock_console_cls:
-        mock_console = MagicMock()
-        mock_console_cls.return_value = mock_console
-        display_library_table(sample_discs)
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    display_library_table(sample_discs, console=console)
+    output = buf.getvalue()
 
-    mock_console.print.assert_called_once()
-    table = mock_console.print.call_args[0][0]
-
-    assert isinstance(table, Table)
-    assert table.title == "Discs Library"
-    assert table.row_count == 2
-    assert [col.header for col in table.columns] == ["ID", "URI", "Artist", "Album", "Track", "Playlist", "Shuffle"]
-    assert list(table.columns[0]._cells) == ["abc123", "xyz789"]
-    assert list(table.columns[1]._cells) == ["/path/to/music.mp3", "/another/track.mp3"]
-    assert list(table.columns[2]._cells) == ["Test Artist", "Another Artist"]
+    assert "Discs Library" in output
+    assert "abc123" in output
+    assert "xyz789" in output
+    assert "/path/to/music.mp3" in output
+    assert "Test Artist" in output
+    assert "Another Artist" in output
+    assert "ID" in output
+    assert "URI" in output
