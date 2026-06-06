@@ -1,5 +1,7 @@
 import logging
 
+import typer
+
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.admin.library_commands import (
     CliAddCommand,
@@ -67,7 +69,7 @@ class CLIController:
 
         disc = Disc(uri=command.uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
-        LOGGER.info("✅ Disc successfully added")
+        typer.echo("✅ Disc successfully added")
 
     def list_discs_flow(self, command: CliListCommand) -> None:
         discs = self.list_discs.execute()
@@ -77,12 +79,12 @@ class CLIController:
         if command.mode == "line":
             display_library_line(discs)
             return
-        LOGGER.error("Displaying mode not implemented yet: mode='%s'", command.mode)
+        typer.echo(f"Displaying mode not implemented yet: mode='{command.mode}'", err=True)
 
     def remove_disc_flow(self, command: CliRemoveCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
         self.remove_disc.execute(tag)
-        LOGGER.info("🗑️ Disc successfully removed")
+        typer.echo("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self, command: CliEditCommand) -> None:
         metadata_fields = {}
@@ -101,7 +103,7 @@ class CLIController:
             metadata=metadata,
             option=None,
         )
-        LOGGER.info("✅ Disc successfully edited")
+        typer.echo("✅ Disc successfully edited")
 
     def get_disc_flow(self, command: CliGetCommand) -> None:
         try:
@@ -115,12 +117,12 @@ class CLIController:
             print(f"  Playlist : {disc.metadata.playlist or '/'}")
             print(f"  Shuffle  : {disc.option.shuffle}")
         except ValueError as e:
-            LOGGER.error(str(e))
+            typer.echo(str(e), err=True)
 
     def search_discs_flow(self, command: CliSearchCommand) -> None:
         results = self.search_discs.execute(command.query)
         if not results:
-            LOGGER.info("No discs found matching '%s'", command.query)
+            typer.echo(f"No discs found matching '{command.query}'")
             return
-        LOGGER.info("Found %d disc(s) matching '%s':", len(results), command.query)
+        typer.echo(f"Found {len(results)} disc(s) matching '{command.query}':")
         display_library_table(results)

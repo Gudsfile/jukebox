@@ -118,31 +118,31 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
     ]
 
 
-def test_get_disc_flow_logs_error_when_current_tag_is_missing(caplog, capsys):
+def test_get_disc_flow_outputs_error_when_current_tag_is_missing(capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.side_effect = ValueError("No current tag is available.")
     command = CliGetCommand(type="get", use_current_tag=True)
 
-    with caplog.at_level("ERROR", logger="jukebox.admin"):
-        controller.get_disc_flow(command)
+    controller.get_disc_flow(command)
 
     controller.get_disc.execute.assert_not_called()
-    assert "No current tag is available." in caplog.text
-    assert capsys.readouterr().out == ""
+    output = capsys.readouterr()
+    assert "No current tag is available." in output.err
+    assert output.out == ""
 
 
-def test_get_disc_flow_logs_error_when_tag_is_missing(caplog, capsys):
+def test_get_disc_flow_outputs_error_when_tag_is_missing(capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "missing-tag"
     controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing-tag'")
     command = CliGetCommand(type="get", tag="missing-tag")
 
-    with caplog.at_level("ERROR", logger="jukebox.admin"):
-        controller.get_disc_flow(command)
+    controller.get_disc_flow(command)
 
     controller.get_disc.execute.assert_called_once_with("missing-tag")
-    assert "Tag not found: tag_id='missing-tag'" in caplog.text
-    assert capsys.readouterr().out == ""
+    output = capsys.readouterr()
+    assert "Tag not found: tag_id='missing-tag'" in output.err
+    assert output.out == ""
 
 
 def test_run_propagates_command_errors():

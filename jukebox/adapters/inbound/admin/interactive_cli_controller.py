@@ -1,5 +1,7 @@
 import logging
 
+import typer
+
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 from jukebox.domain.use_cases.library.add_disc import AddDisc
@@ -53,7 +55,7 @@ class InteractiveCLIController:
             except KeyboardInterrupt:
                 return
             except Exception as err:
-                print(f"Error: {err}")
+                typer.echo(f"Error: {err}", err=True)
                 LOGGER.error("Error during handling command: %s", err)
 
     def add_disc_flow(self) -> None:
