@@ -63,6 +63,12 @@ ID : xyz789
     )
 
 
+def test_display_library_table_empty(console_capture):
+    console, buf = console_capture
+    display_library_table({}, console=console)
+    assert "The library is empty" in buf.getvalue()
+
+
 def test_display_library_table(sample_discs, console_capture):
     console, buf = console_capture
     display_library_table(sample_discs, console=console)

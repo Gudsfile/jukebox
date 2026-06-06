@@ -37,7 +37,7 @@ def display_library_line(discs: dict[str, Disc]) -> None:
 def display_library_table(discs: dict[str, Disc], console: Console | None = None) -> None:
     _console = console or Console()
     if not discs:
-        print("The library is empty")
+        _console.print("The library is empty")
         return
 
     table = Table(title="Discs Library")
