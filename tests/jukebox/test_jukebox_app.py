@@ -193,7 +193,7 @@ def test_main_builds_runtime_from_cli_arguments(mocker, app_mocks, args, expecte
     ],
 )
 def test_main_exits_when_settings_from_cli_arguments_are_invalid(args):
-    result = runner.invoke(app.app, args)
+    result = runner.invoke(app.app, args, env={"TERM": "dumb"})
     assert result.exit_code == 2
     assert "Invalid value: --sonos-host and --sonos-name are mutually exclusive" in result.output
 
@@ -207,7 +207,7 @@ def test_main_rejects_admin_subcommands(subcommand):
 
 @pytest.mark.parametrize("options", ["--effective", "--profile", "--uids", "--coordinator"])
 def test_main_rejects_bad_options(options):
-    result = runner.invoke(app.app, [options])
+    result = runner.invoke(app.app, [options], env={"TERM": "dumb"})
     assert result.exit_code == 2
     assert f"No such option: {options}" in result.output
 
