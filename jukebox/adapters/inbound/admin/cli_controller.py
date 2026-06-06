@@ -1,6 +1,6 @@
 import typer
 
-from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.adapters.inbound.admin.cli_display import display_disc, display_library_line, display_library_table
 from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
@@ -103,13 +103,7 @@ class CLIController:
         try:
             tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
             disc = self.get_disc.execute(tag)
-            print(f"\n📀 Disc: {tag}")
-            print(f"  URI      : {disc.uri}")
-            print(f"  Artist   : {disc.metadata.artist or '/'}")
-            print(f"  Album    : {disc.metadata.album or '/'}")
-            print(f"  Track    : {disc.metadata.track or '/'}")
-            print(f"  Playlist : {disc.metadata.playlist or '/'}")
-            print(f"  Shuffle  : {disc.option.shuffle}")
+            display_disc(tag, disc)
         except ValueError as e:
             typer.echo(str(e), err=True)
 

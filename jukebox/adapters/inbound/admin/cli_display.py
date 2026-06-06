@@ -4,6 +4,16 @@ from rich.table import Table
 from jukebox.domain.entities import Disc
 
 
+def display_disc(tag_id: str, disc: Disc) -> None:
+    print(f"\n📀 Disc: {tag_id}")
+    print(f"  URI      : {disc.uri}")
+    print(f"  Artist   : {disc.metadata.artist or '/'}")
+    print(f"  Album    : {disc.metadata.album or '/'}")
+    print(f"  Track    : {disc.metadata.track or '/'}")
+    print(f"  Playlist : {disc.metadata.playlist or '/'}")
+    print(f"  Shuffle  : {disc.option.shuffle}")
+
+
 def display_library_line(discs: dict[str, Disc]) -> None:
     if not discs:
         print("The library is empty")
