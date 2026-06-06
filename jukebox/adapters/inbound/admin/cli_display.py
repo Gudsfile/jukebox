@@ -3,6 +3,8 @@ from rich.table import Table
 
 from jukebox.domain.entities import Disc
 
+MAX_COL_WIDTH = 20
+
 
 def display_disc(tag_id: str, disc: Disc) -> None:
     print(f"\n📀 Disc: {tag_id}")
@@ -37,12 +39,12 @@ def display_library_table(discs: dict[str, Disc]) -> None:
         return
 
     table = Table(title="Discs Library")
-    table.add_column("ID", no_wrap=True, max_width=20)
-    table.add_column("URI", no_wrap=True, max_width=20)
-    table.add_column("Artist", no_wrap=True, max_width=20)
-    table.add_column("Album", no_wrap=True, max_width=20)
-    table.add_column("Track", no_wrap=True, max_width=20)
-    table.add_column("Playlist", no_wrap=True, max_width=20)
+    table.add_column("ID", no_wrap=True, max_width=MAX_COL_WIDTH)
+    table.add_column("URI", no_wrap=True, max_width=MAX_COL_WIDTH)
+    table.add_column("Artist", no_wrap=True, max_width=MAX_COL_WIDTH)
+    table.add_column("Album", no_wrap=True, max_width=MAX_COL_WIDTH)
+    table.add_column("Track", no_wrap=True, max_width=MAX_COL_WIDTH)
+    table.add_column("Playlist", no_wrap=True, max_width=MAX_COL_WIDTH)
     table.add_column("Shuffle")
 
     for disc_id, disc in discs.items():
