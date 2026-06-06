@@ -1,50 +1,39 @@
+<div align="center">
+
 # Jukebox \[gukebox\]
 
-![rpi](https://img.shields.io/badge/-Zero%202W%20%7C%203%20%7C%205-C51A4A?logo=raspberry-pi&label=RPi&logoColor=C51A4A&labcolor=C51A4A)
-[![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg?logo=python)](https://pypi.python.org/pypi/gukebox)
+**Bring a physical experience back to music streaming with NFC tags.**
+
+Pick an album, place it on the reader, and the music starts playing. Remove it, and playback pauses automatically.
+
 [![gukebox last version](https://img.shields.io/pypi/v/gukebox.svg?logo=pypi)](https://pypi.python.org/pypi/gukebox)
 [![license](https://img.shields.io/pypi/l/gukebox.svg)](https://pypi.python.org/pypi/gukebox)
 [![actions status](https://github.com/gudsfile/jukebox/actions/workflows/python.yml/badge.svg)](https://github.com/gudsfile/jukebox/actions)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+
+![rpi](https://img.shields.io/badge/-Zero%202W%20%7C%203%20%7C%205-C51A4A?logo=raspberry-pi&label=RPi&logoColor=C51A4A&labcolor=C51A4A)
+[![python versions](https://img.shields.io/pypi/pyversions/gukebox.svg?logo=python)](https://pypi.python.org/pypi/gukebox) [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![ty](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ty/main/assets/badge/v0.json)](https://github.com/astral-sh/ty)
 
-💿 Play music on speakers using NFC tags.
+---
 
-🚧 At the moment:
+📋 Table of contents
 
-- NFC tags - CDs must be pre-populated in a JSON file (`jukebox-admin` included with `jukebox` may be of help to you)
-- supports many music providers (Spotify, Apple Music, etc.), just add the URIs to the JSON file
-- only works with Sonos speakers (there is a "dryrun" player for development), but code is designed to **add new ones**
-- **as soon as** the NFC tag is removed, the music pauses, then resumes when the NFC tag is replaced
+[Install](#install) • [First steps](#first-steps) • [Usage](#usage) • [Readers](#readers) • [Players](#players) • [The library file](#the-library-file) • [Developer setup](#developer-setup)
 
-💡 Inspired by:
+</div>
 
+---
+
+Jukebox is an **NFC-powered music player for connected speakers**.
+- 💿 Turn NFC tags into albums, playlists, or radio stations
+- 🎵 Supports **Spotify**, **Apple Music**, and other music providers
+- 🔊 Currently supports **Sonos**, with more speaker platforms planned
+- 📡 Currently supports **PN532-compatible** NFC readers
+
+💡 Inspired by
 - https://github.com/hankhank10/vinylemulator
 - https://github.com/zacharycohn/jukebox
-
-📋 Table of contents:
-
-- [Install](#install)
-- [First steps](#first-steps)
-- [Manage the library with the Admin UI](#manage-the-library-with-the-admin-ui)
-- [Usage](#usage)
-- [Readers](#readers)
-- [Players](#players)
-- [The library file](#the-library-file)
-- [Developer setup](#developer-setup)
-
-## Python Compatibility
-
-Jukebox 1.0+ requires Python 3.11 or newer.
-
-| Python version | Compatible Jukebox versions | Notes |
-|----------------|-----------------------------|-------|
-| 3.7            | 0.4.0 – 0.4.1               | Legacy |
-| 3.8            | 0.4.0 – 0.5.4               | Legacy |
-| 3.9 – 3.10     | 0.4.0 – 0.9.0 (incl. 1.0.0.dev13) | Legacy |
-| 3.11 – 3.12    | 0.4.0 – latest              | Actively supported |
-| 3.13           | 0.5.3 – latest              | Actively supported (see installation notes) |
 
 ## Install
 
@@ -99,21 +88,28 @@ pip install "gukebox[pn532,ui]"
 ### Installation for development
 
 For development read the [Developer setup](#developer-setup) section.
-
-tl;dr:
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
 uv sync
 ```
 
+### Python Compatibility
+
+Jukebox 1.0+ requires Python 3.11 or newer.
+
+| Python version | Compatible Jukebox versions | Notes |
+|----------------|-----------------------------|-------|
+| 3.7            | 0.4.0 – 0.4.1               | Legacy |
+| 3.8            | 0.4.0 – 0.5.4               | Legacy |
+| 3.9 – 3.10     | 0.4.0 – 0.9.0 (incl. 1.0.0.dev13) | Legacy |
+| 3.11 – 3.12    | 0.4.0 – latest              | Actively supported |
+| 3.13           | 0.5.3 – latest              | Actively supported (see installation notes) |
+
 ## First steps
 
 Initialize the library file with `jukebox-admin` or manually create it at `~/.config/jukebox/library.json`.
 
-### Manage the library with the Admin UI
-
 Launch the web UI (requires the `ui` extra):
-
 ```shell
 jukebox-admin ui
 ```
@@ -124,8 +120,7 @@ jukebox-admin ui
 
 ## Usage
 
-Start the jukebox with the `jukebox` command (show help message with `--help`)
-
+Start the jukebox with the `jukebox` command:
 ```shell
 jukebox --player PLAYER --reader READER
 ```
@@ -179,7 +174,6 @@ jukebox-admin settings show --effective
 #### `api` and `ui`
 
 To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
-
 ```shell
 uv tool install gukebox[api]
 
@@ -188,7 +182,6 @@ uv tool install gukebox[ui]
 ```
 
 When running from this repository with `uv`, include the extra on the command as well:
-
 ```shell
 uv run --extra api jukebox-admin api
 uv run --extra ui jukebox-admin ui
@@ -197,10 +190,10 @@ uv run --extra ui jukebox-admin ui
 #### `library`
 
 The `library` command lets you manage the library through a CLI or an interactive CLI:
-
 ```shell
 jukebox-admin library add tag_id --uri /path/to/media.mp3
 ```
+
 or to pull the `tag_id` currently on the reader:
 ```shell
 jukebox-admin library add --from-current --uri /path/to/media.mp3
@@ -210,9 +203,9 @@ Other commands are available, use `--help` to see them.
 
 ## The library file
 
-The `library.json` file is a JSON file that contains the artists, albums and tags.
+The `library.json` file is a JSON file that maps each NFC tag to what to play.
 It is used by the `jukebox` command to find the corresponding metadata for each tag.
-And the `jukebox-admin library` command help you to managed this file with a CLI, an interactive CLI, an API or an UI (see `jukebox-admin --help`).
+The `jukebox-admin library` command helps you manage this file with a CLI, an interactive CLI, an API or a UI (see `jukebox-admin --help`).
 
 By default, this file should be placed at `~/.config/jukebox/library.json`. But you can use another path by creating a `JUKEBOX_LIBRARY_PATH` environment variable or with the `--library` argument.
 
@@ -236,7 +229,6 @@ Each UID is associated with an URI.
 URIs are the URIs of the music providers (Spotify, Apple Music, etc.) and relate to tracks, albums, playlists, etc.
 
 `metadata` is an optional section where the names of the artist, album, song, or playlist are entered:
-
 ```json
     "a:tag:uid": {
       "uri": "uri",
@@ -245,7 +237,6 @@ URIs are the URIs of the music providers (Spotify, Apple Music, etc.) and relate
 ```
 
 It is also possible to use the `shuffle` key to play the album in shuffle mode:
-
 ```json
     "a:tag:uid": {
       "uri": "uri",
@@ -254,7 +245,6 @@ It is also possible to use the `shuffle` key to play the album in shuffle mode:
 ```
 
 To summarize, for example, if you have the following `~/.config/jukebox/library.json` file:
-
 ```json
 {
   "discs": {
@@ -278,7 +268,6 @@ Then, the jukebox will find the metadata for the tag `ta:g2:id` and will send th
 ### Install
 
 Install the project by cloning it and using [uv](https://github.com/astral-sh/uv) to install the dependencies:
-
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
 uv sync
@@ -286,9 +275,11 @@ uv sync
 
 To install dependencies for all extras (`api`, `ui` and `pn532`):
 ```shell
-uv sync --extra api --extra ui --extra pn532
+uv sync --extra api --extra ui # --extra pn532
 ```
-Note: the `pn532` extra requires compatible hardware and is intentionally excluded from this command.
+
+> [!NOTE]
+> The `pn532` extra requires compatible hardware and is intentionally excluded from this command.
 
 If needed, you can use a `.env` file and `uv run --env-file .env <command to run>`.
 A `.env.example` file is available, you can copy it and modify it to use it.
@@ -299,19 +290,16 @@ Take a look at `library.example.json` and the [The library file](#the-library-fi
 ### Usage
 
 Start the jukebox with `uv` and use `--help` to show help message
-
 ```shell
 uv run jukebox --player PLAYER_TO_USE --reader READER_TO_USE
 ```
 
 Use `jukebox-admin` for admin commands:
-
 ```shell
 uv run jukebox-admin settings show
 ```
 
 For the server-backed admin commands, include the matching extra:
-
 ```shell
 uv run --extra api jukebox-admin api
 uv run --extra ui jukebox-admin ui
