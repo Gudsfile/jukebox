@@ -20,6 +20,13 @@ def sample_discs() -> dict[str, Disc]:
     }
 
 
+@pytest.fixture
+def console_capture() -> tuple[Console, StringIO]:
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    return console, buf
+
+
 def capture_output(func, *args, **kwargs):
     old_stdout = sys.stdout
     sys.stdout = StringIO()
@@ -56,9 +63,8 @@ ID : xyz789
     )
 
 
-def test_display_library_table(sample_discs):
-    buf = StringIO()
-    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+def test_display_library_table(sample_discs, console_capture):
+    console, buf = console_capture
     display_library_table(sample_discs, console=console)
     output = buf.getvalue()
 
@@ -72,10 +78,9 @@ def test_display_library_table(sample_discs):
     assert "URI" in output
 
 
-def test_display_disc(sample_discs):
+def test_display_disc(sample_discs, console_capture):
     disc = sample_discs["abc123"]
-    buf = StringIO()
-    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    console, buf = console_capture
     display_disc("abc123", disc, console=console)
     output = buf.getvalue()
 
@@ -88,10 +93,9 @@ def test_display_disc(sample_discs):
     assert "True" in output
 
 
-def test_display_disc_shows_fallback_for_missing_metadata():
+def test_display_disc_shows_fallback_for_missing_metadata(console_capture):
     disc = Disc(uri="/track.mp3", metadata=DiscMetadata(), option=DiscOption())
-    buf = StringIO()
-    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    console, buf = console_capture
     display_disc("tag-1", disc, console=console)
     output = buf.getvalue()
 
