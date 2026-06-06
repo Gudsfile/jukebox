@@ -27,6 +27,7 @@
 
 - [Install](#install)
 - [First steps](#first-steps)
+- [Manage the library with the Admin UI](#manage-the-library-with-the-admin-ui)
 - [Usage](#usage)
 - [Readers](#readers)
 - [Players](#players)
@@ -78,7 +79,7 @@ source jukebox/bin/activate
 
 3. Install `gukebox` into the virtual environment:
 ```shell
-pip install "gukebox[pn532]"
+pip install "gukebox[pn532,ui]"
 ```
 
 > [!IMPORTANT]
@@ -109,50 +110,17 @@ uv sync
 
 Initialize the library file with `jukebox-admin` or manually create it at `~/.config/jukebox/library.json`.
 
-### Manage the library with the Admin CLI
+### Manage the library with the Admin UI
 
-To associate an URI with an NFC tag:
-
-```shell
-jukebox-admin library add tag_id --uri /path/to/media.mp3
-```
-or to pull the `tag_id` currently on the reader:
-```shell
-jukebox-admin library add --from-current --uri /path/to/media.mp3
-```
-
-Other commands are available, use `--help` to see them.
-
-### Admin CLI
-
-Use `jukebox-admin` for admin workflows such as settings inspection and the
-admin API/UI servers.
+Launch the web UI (requires the `ui` extra):
 
 ```shell
-jukebox-admin settings show
-jukebox-admin settings show --effective
+jukebox-admin ui
 ```
 
-To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
+![Jukebox Admin UI showing a disc library table with three entries and a yellow warning banner indicating an unknown NFC tag is on the reader, ready to be added](docs/img/ui-library-index-unknown-nfc-tag-banner.png)
 
-```shell
-uv tool install gukebox[api]
-
-# ui includes the api extra
-uv tool install gukebox[ui]
-```
-
-When running from this repository with `uv`, include the extra on the command as well:
-
-```shell
-uv run --extra api jukebox-admin api
-uv run --extra ui jukebox-admin ui
-```
-
-### Manage the library manually
-
-Complete your `~/.config/jukebox/library.json` file with each tag id and the expected media URI.
-Take a look at `library.example.json` and the [The library file](#the-library-file) section for more information.
+![Add disc form with the NFC tag ID pre-filled, and empty fields for URI, artist, album, track and shuffle](docs/img/ui-add-disc-form.png)
 
 ## Usage
 
@@ -196,6 +164,49 @@ jukebox --player PLAYER --reader READER
 
 > [!NOTE]
 > See [docs/players.md](docs/players.md) for the full configuration reference.
+
+### Admin CLI
+
+Use `jukebox-admin` for admin workflows such as settings inspection and the admin API/UI servers.
+
+#### `settings`
+
+```shell
+jukebox-admin settings show
+jukebox-admin settings show --effective
+```
+
+#### `api` and `ui`
+
+To use the `api` and `ui` commands, additional packages are required. You can install the `package[extra]` syntax regardless of the package manager you use, for example:
+
+```shell
+uv tool install gukebox[api]
+
+# ui includes the api extra
+uv tool install gukebox[ui]
+```
+
+When running from this repository with `uv`, include the extra on the command as well:
+
+```shell
+uv run --extra api jukebox-admin api
+uv run --extra ui jukebox-admin ui
+```
+
+#### `library`
+
+The `library` command lets you manage the library through a CLI or an interactive CLI:
+
+```shell
+jukebox-admin library add tag_id --uri /path/to/media.mp3
+```
+or to pull the `tag_id` currently on the reader:
+```shell
+jukebox-admin library add --from-current --uri /path/to/media.mp3
+```
+
+Other commands are available, use `--help` to see them.
 
 ## The library file
 
