@@ -1,5 +1,3 @@
-import logging
-
 import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
@@ -19,8 +17,6 @@ from jukebox.domain.use_cases.library.list_discs import ListDiscs
 from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
 from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
 from jukebox.domain.use_cases.library.search_discs import SearchDiscs
-
-LOGGER = logging.getLogger("jukebox.admin")
 
 
 class CLIController:
@@ -59,8 +55,6 @@ class CLIController:
                 self.get_disc_flow(command)
             case CliSearchCommand():
                 self.search_discs_flow(command)
-            case _:
-                LOGGER.error("Command not implemented yet: command='%s'", command)
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)

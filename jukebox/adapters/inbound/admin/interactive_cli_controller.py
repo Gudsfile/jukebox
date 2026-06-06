@@ -1,5 +1,3 @@
-import logging
-
 import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
@@ -9,8 +7,6 @@ from jukebox.domain.use_cases.library.edit_disc import EditDisc
 from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
 from jukebox.domain.use_cases.library.list_discs import ListDiscs
 from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
-
-LOGGER = logging.getLogger("jukebox.admin")
 
 
 class InteractiveCLIController:
@@ -56,7 +52,6 @@ class InteractiveCLIController:
                 return
             except Exception as err:
                 typer.echo(f"Error: {err}", err=True)
-                LOGGER.error("Error during handling command: %s", err)
 
     def add_disc_flow(self) -> None:
         import questionary
