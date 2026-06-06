@@ -1,4 +1,4 @@
-import logging
+import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
@@ -8,13 +8,8 @@ from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTa
 from jukebox.domain.use_cases.library.list_discs import ListDiscs
 from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
 
-LOGGER = logging.getLogger("discstore")
-
 
 class InteractiveCLIController:
-    available_commands = "\n* " + "\n* ".join(["add", "remove", "list", "edit", "current", "exit", "help"])
-    help_message = f"\nAvailable commands: {available_commands}"
-
     def __init__(
         self,
         add_disc: AddDisc,
@@ -30,76 +25,76 @@ class InteractiveCLIController:
         self.get_current_tag_status = get_current_tag_status
 
     def run(self) -> None:
-        print(self.help_message)
-        while True:
-            command = input("discstore> ")
-            self.handle_command(command)
+        import questionary
 
-    def handle_command(self, command: str) -> None:
-        try:
-            match command:
-                case "add":
-                    self.add_disc_flow()
-                case "remove":
-                    self.remove_disc_flow()
-                case "list":
-                    self.list_discs_flow()
-                case "edit":
-                    self.edit_disc_flow()
-                case "current":
-                    self.current_tag_flow()
-                case "exit":
-                    print("See you soon!")
-                    exit(0)
-                case "help":
-                    print(self.help_message)
-                case _:
-                    print(f"Invalid command `{command}`")
-                    print(self.help_message)
-        except Exception as err:
-            print(f"Error: {err}")
-            LOGGER.error("Error during handling command: %s", err)
+        while True:
+            try:
+                command = questionary.select(
+                    "What do you want to do?",
+                    choices=["add", "remove", "list", "edit", "current"],
+                ).unsafe_ask()
+            except KeyboardInterrupt:
+                return
+
+            try:
+                match command:
+                    case "add":
+                        self.add_disc_flow()
+                    case "remove":
+                        self.remove_disc_flow()
+                    case "list":
+                        self.list_discs_flow()
+                    case "edit":
+                        self.edit_disc_flow()
+                    case "current":
+                        self.current_tag_flow()
+            except KeyboardInterrupt:
+                return
+            except Exception as err:
+                typer.echo(f"Error: {err}", err=True)
 
     def add_disc_flow(self) -> None:
+        import questionary
+
         print("\n-- Add a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="add")
-        uri = input("discstore> add uri> ").strip()
-        option = DiscOption()
-        metadata = DiscMetadata()
-
-        disc = Disc(uri=uri, metadata=metadata, option=option)
+        uri = questionary.text("URI:").unsafe_ask()
+        disc = Disc(uri=uri.strip(), metadata=DiscMetadata(), option=DiscOption())
         self.add_disc.execute(tag, disc)
         print("✅ Disc successfully added")
 
     def list_discs_flow(self) -> None:
+        import questionary
+
         print("\n-- List all discs --")
-        mode = input("discstore> list mode(table/line)> ").strip()
+        mode = questionary.select(
+            "Display mode:",
+            choices=["table", "line"],
+        ).unsafe_ask()
 
         discs = self.list_discs.execute()
-        if mode == "table" or mode == "":
+        if mode == "table":
             display_library_table(discs)
-            return
-        if mode == "line":
+        else:
             display_library_line(discs)
-            return
-        print(f"Displaying mode not implemented yet: `{mode}`")
 
     def remove_disc_flow(self) -> None:
+        import questionary
+
         print("\n-- Remove a disc --")
-        tag = input("discstore> remove tag> ").strip()
-        self.remove_disc.execute(tag)
+        tag = questionary.text("Tag ID:").unsafe_ask()
+        self.remove_disc.execute(tag.strip())
         print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:
+        import questionary
+
         print("\n-- Edit a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="edit")
-        uri = input("discstore> edit uri> ").strip()
-        option = DiscOption()
-        metadata = DiscMetadata()
-
-        self.edit_disc.execute(tag, uri, metadata, option)
+        uri = questionary.text("URI:").unsafe_ask()
+        self.edit_disc.execute(tag, uri.strip(), DiscMetadata(), DiscOption())
         print("✅ Disc successfully edited")
 
     def current_tag_flow(self) -> None:
@@ -113,20 +108,17 @@ class InteractiveCLIController:
         print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
 
     def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
+        import questionary
+
         default_tag = ""
         if current_tag_status is not None and (
             (action == "add" and not current_tag_status.known_in_library)
             or (action == "edit" and current_tag_status.known_in_library)
         ):
             default_tag = current_tag_status.tag_id
-        prompt = f"discstore> {action} tag"
-        if default_tag:
-            prompt += f" [{default_tag}]"
-        prompt += "> "
 
-        entered_tag = input(prompt).strip()
-        tag = entered_tag or default_tag
+        entered_tag = questionary.text(f"Tag ID ({action}):", default=default_tag).unsafe_ask()
+        tag = (entered_tag or "").strip() or default_tag
         if not tag:
             raise ValueError("A tag ID is required.")
-
         return tag
