@@ -4,7 +4,7 @@ from io import StringIO
 import pytest
 from rich.console import Console
 
-from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.adapters.inbound.admin.cli_display import display_disc, display_library_line, display_library_table
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
 
@@ -70,3 +70,33 @@ def test_display_library_table(sample_discs):
     assert "Another Artist" in output
     assert "ID" in output
     assert "URI" in output
+
+
+def test_display_disc(sample_discs):
+    disc = sample_discs["abc123"]
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    display_disc("abc123", disc, console=console)
+    output = buf.getvalue()
+
+    assert "📀 Disc: abc123" in output
+    assert "/path/to/music.mp3" in output
+    assert "Test Artist" in output
+    assert "Test Album" in output
+    assert "Test Track" in output
+    assert "Playlist : /" in output
+    assert "True" in output
+
+
+def test_display_disc_shows_fallback_for_missing_metadata():
+    disc = Disc(uri="/track.mp3", metadata=DiscMetadata(), option=DiscOption())
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    display_disc("tag-1", disc, console=console)
+    output = buf.getvalue()
+
+    assert "tag-1" in output
+    assert "Artist   : /" in output
+    assert "Album    : /" in output
+    assert "Track    : /" in output
+    assert "Playlist : /" in output
