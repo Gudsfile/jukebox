@@ -123,7 +123,7 @@ def test_get_disc_flow_logs_error_when_current_tag_is_missing(caplog, capsys):
     controller.resolve_tag_id.execute.side_effect = ValueError("No current tag is available.")
     command = CliGetCommand(type="get", use_current_tag=True)
 
-    with caplog.at_level("ERROR", logger="discstore"):
+    with caplog.at_level("ERROR", logger="jukebox.admin"):
         controller.get_disc_flow(command)
 
     controller.get_disc.execute.assert_not_called()
@@ -137,7 +137,7 @@ def test_get_disc_flow_logs_error_when_tag_is_missing(caplog, capsys):
     controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing-tag'")
     command = CliGetCommand(type="get", tag="missing-tag")
 
-    with caplog.at_level("ERROR", logger="discstore"):
+    with caplog.at_level("ERROR", logger="jukebox.admin"):
         controller.get_disc_flow(command)
 
     controller.get_disc.execute.assert_called_once_with("missing-tag")

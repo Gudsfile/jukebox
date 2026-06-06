@@ -18,7 +18,7 @@ from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
 from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
 from jukebox.domain.use_cases.library.search_discs import SearchDiscs
 
-LOGGER = logging.getLogger("discstore")
+LOGGER = logging.getLogger("jukebox.admin")
 
 
 class CLIController:
