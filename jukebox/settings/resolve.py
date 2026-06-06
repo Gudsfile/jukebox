@@ -316,10 +316,7 @@ def _collect_patch_paths(node: JsonObject, prefix: str | None = None) -> set[str
             paths.update(_collect_patch_paths(value, dotted_path))
             continue
 
-        if not is_editable_setting_path(dotted_path):
-            raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
-
-        paths.add(dotted_path)
+        raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
 
     return paths
 
