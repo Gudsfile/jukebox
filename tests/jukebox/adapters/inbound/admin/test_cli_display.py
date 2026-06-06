@@ -1,11 +1,10 @@
 import sys
 from io import StringIO
-from unittest.mock import MagicMock, patch
 
 import pytest
-from rich.table import Table
+from rich.console import Console
 
-from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.adapters.inbound.admin.cli_display import display_disc, display_library_line, display_library_table
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
 
@@ -19,6 +18,13 @@ def sample_discs() -> dict[str, Disc]:
         ),
         "xyz789": Disc(uri="/another/track.mp3", metadata=DiscMetadata(artist="Another Artist")),
     }
+
+
+@pytest.fixture
+def console_capture() -> tuple[Console, StringIO]:
+    buf = StringIO()
+    console = Console(file=buf, force_terminal=False, no_color=True, width=200)
+    return console, buf
 
 
 def capture_output(func, *args, **kwargs):
@@ -57,19 +63,50 @@ ID : xyz789
     )
 
 
-def test_display_library_table(sample_discs):
-    with patch("jukebox.adapters.inbound.admin.cli_display.Console") as mock_console_cls:
-        mock_console = MagicMock()
-        mock_console_cls.return_value = mock_console
-        display_library_table(sample_discs)
+def test_display_library_table_empty(console_capture):
+    console, buf = console_capture
+    display_library_table({}, console=console)
+    assert "The library is empty" in buf.getvalue()
 
-    mock_console.print.assert_called_once()
-    table = mock_console.print.call_args[0][0]
 
-    assert isinstance(table, Table)
-    assert table.title == "Discs Library"
-    assert table.row_count == 2
-    assert [col.header for col in table.columns] == ["ID", "URI", "Artist", "Album", "Track", "Playlist", "Shuffle"]
-    assert list(table.columns[0]._cells) == ["abc123", "xyz789"]
-    assert list(table.columns[1]._cells) == ["/path/to/music.mp3", "/another/track.mp3"]
-    assert list(table.columns[2]._cells) == ["Test Artist", "Another Artist"]
+def test_display_library_table(sample_discs, console_capture):
+    console, buf = console_capture
+    display_library_table(sample_discs, console=console)
+    output = buf.getvalue()
+
+    assert "Discs Library" in output
+    assert "abc123" in output
+    assert "xyz789" in output
+    assert "/path/to/music.mp3" in output
+    assert "Test Artist" in output
+    assert "Another Artist" in output
+    assert "ID" in output
+    assert "URI" in output
+
+
+def test_display_disc(sample_discs, console_capture):
+    disc = sample_discs["abc123"]
+    console, buf = console_capture
+    display_disc("abc123", disc, console=console)
+    output = buf.getvalue()
+
+    assert "📀 Disc: abc123" in output
+    assert "/path/to/music.mp3" in output
+    assert "Test Artist" in output
+    assert "Test Album" in output
+    assert "Test Track" in output
+    assert "Playlist : /" in output
+    assert "True" in output
+
+
+def test_display_disc_shows_fallback_for_missing_metadata(console_capture):
+    disc = Disc(uri="/track.mp3", metadata=DiscMetadata(), option=DiscOption())
+    console, buf = console_capture
+    display_disc("tag-1", disc, console=console)
+    output = buf.getvalue()
+
+    assert "tag-1" in output
+    assert "Artist   : /" in output
+    assert "Album    : /" in output
+    assert "Track    : /" in output
+    assert "Playlist : /" in output
