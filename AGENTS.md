@@ -57,14 +57,22 @@ uv run --extra ui pytest
 `jukebox` follows **Hexagonal Architecture** (Ports & Adapters):
 
 ```
-<module>/
+jukebox/
 ├── domain/
 │   ├── entities/        # Pydantic value objects
-│   ├── repositories/    # Abstract port interfaces
+│   ├── ports/           # Abstract port interfaces (PlayerPort, ReaderPort)
+│   ├── repositories/    # Abstract repository interfaces (LibraryRepository, CurrentTagRepository)
 │   └── use_cases/       # Business logic (no external deps)
 ├── adapters/
 │   ├── inbound/         # CLI, API, UI controllers
-│   └── outbound/        # Players, readers, JSON persistence
+│   │   └── admin/       # Admin-specific inbound adapters (CLI, API, UI)
+│   └── outbound/        # Persistence and external service adapters
+│       ├── players/     # Player adapters (dryrun, sonos)
+│       └── readers/     # Reader adapters (dryrun, pn532)
+├── admin/               # Admin app wiring and command handlers
+├── settings/            # Settings resolution, persistence, and validation
+├── shared/              # Cross-cutting utilities (logger, timing, errors)
+├── sonos/               # Sonos-specific domain logic
 └── di_container.py      # Wires all dependencies
 ```
 
