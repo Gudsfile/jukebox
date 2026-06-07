@@ -21,6 +21,10 @@ class DiscMetadata(BaseModel):
         if self.playlist:
             owner = f" ({self.artist})" if self.artist else ""
             return f"{self.playlist}{owner}"
+        if self.artist and not self.album:
+            if self.track:
+                return f"{self.artist} — {self.track}"
+            return self.artist
         parts = [self.artist, self.album]
         composed = " — ".join(p for p in parts if p)
         return composed or self.track or "—"
@@ -29,6 +33,10 @@ class DiscMetadata(BaseModel):
     def display_type(self) -> str:
         if self.playlist:
             return "\U0001f3a7 Playlist"
+        if self.artist and not self.album and not self.track:
+            return "\U0001f3a4 Artist"
+        if self.track and not self.album:
+            return "\U0001f3b5 Track"
         return "\U0001f4bf Album"
 
 

@@ -48,12 +48,17 @@ def test_display_title(playlist, artist, album, track, expected):
 
 
 @pytest.mark.parametrize(
-    ("playlist", "expected"),
+    ("playlist", "artist", "album", "track", "expected"),
     [
-        ("My Mix", "🎧 Playlist"),
-        (None, "💿 Album"),
+        ("playlist", None, None, None, "🎧 Playlist"),
+        (None, "artist", None, None, "🎤 Artist"),
+        (None, "artist", None, "track", "🎵 Track"),
+        (None, None, None, "track", "🎵 Track"),
+        (None, "artist", "album", None, "💿 Album"),
+        (None, "artist", "album", "track", "💿 Album"),
+        (None, None, None, None, "💿 Album"),
     ],
 )
-def test_display_type(playlist, expected):
-    metadata = DiscMetadata(playlist=playlist)
+def test_display_type(playlist, artist, album, track, expected):
+    metadata = DiscMetadata(playlist=playlist, artist=artist, album=album, track=track)
     assert metadata.display_type == expected
