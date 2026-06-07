@@ -1,3 +1,5 @@
+import pytest
+
 from jukebox.domain.entities import DiscMetadata
 
 
@@ -26,3 +28,32 @@ def test_full_metadata():
     assert metadata.album == "album"
     assert metadata.track == "track"
     assert metadata.playlist == "playlist"
+
+
+@pytest.mark.parametrize(
+    ("playlist", "artist", "album", "track", "expected"),
+    [
+        ("playlist", "artist", None, None, "playlist (artist)"),
+        ("playlist", None, None, None, "playlist"),
+        (None, "artist", "album", None, "artist — album"),
+        (None, "artist", None, None, "artist"),
+        (None, None, "album", None, "album"),
+        (None, None, None, "track", "track"),
+        (None, None, None, None, "—"),
+    ],
+)
+def test_display_title(playlist, artist, album, track, expected):
+    metadata = DiscMetadata(playlist=playlist, artist=artist, album=album, track=track)
+    assert metadata.display_title == expected
+
+
+@pytest.mark.parametrize(
+    ("playlist", "expected"),
+    [
+        ("My Mix", "🎧 Playlist"),
+        (None, "💿 Album"),
+    ],
+)
+def test_display_type(playlist, expected):
+    metadata = DiscMetadata(playlist=playlist)
+    assert metadata.display_type == expected
