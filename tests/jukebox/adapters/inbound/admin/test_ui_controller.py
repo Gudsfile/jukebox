@@ -814,6 +814,53 @@ async def test_delete_disc_returns_404_when_disc_not_found():
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
+async def test_create_disc_saves_playlist_field():
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+
+    controller = build_controller()
+    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs")
+
+    await route.endpoint(DiscForm(tag="tag-123", uri="spotify:playlist:abc", playlist="My Mix", artist="Spotify"))
+
+    controller.add_disc.execute.assert_called_once_with(
+        "tag-123",
+        Disc(
+            uri="spotify:playlist:abc",
+            metadata=DiscMetadata(playlist="My Mix", artist="Spotify"),
+            option=DiscOption(shuffle=False),
+        ),
+    )
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+@pytest.mark.anyio
+async def test_update_disc_saves_playlist_field():
+    from jukebox.adapters.inbound.admin.ui_controller import DiscForm
+    from jukebox.domain.entities import DiscMetadata, DiscOption
+
+    controller = build_controller()
+    route = next(
+        route
+        for route in controller.app.routes
+        if getattr(route, "path", None) == "/api/ui/discs/{tag_id}" and "POST" in route.methods
+    )
+
+    await route.endpoint(
+        "tag-123",
+        DiscForm(tag="tag-123", uri="spotify:playlist:abc", playlist="My Mix", artist="Spotify"),
+    )
+
+    controller.edit_disc.execute.assert_called_once_with(
+        tag_id="tag-123",
+        uri="spotify:playlist:abc",
+        metadata=DiscMetadata(playlist="My Mix", artist="Spotify"),
+        option=DiscOption(shuffle=False),
+    )
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+@pytest.mark.anyio
 async def test_form_parsing_does_not_lack_python_multipart():
     """Verify that python-multipart is installed.
 

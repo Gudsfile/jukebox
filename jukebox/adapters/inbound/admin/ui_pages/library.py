@@ -25,6 +25,11 @@ class DiscForm(BaseModel):
     artist: str | None = Field(None, title="Artist")
     album: str | None = Field(None, title="Album")
     track: str | None = Field(None, title="Track")
+    playlist: str | None = Field(
+        None,
+        title="Playlist",
+        description="Playlist name. If filled, artist field is treated as the playlist owner.",
+    )
     shuffle: bool = Field(False, title="Shuffle")
 
 
