@@ -33,13 +33,13 @@ def test_full_metadata():
 @pytest.mark.parametrize(
     ("playlist", "artist", "album", "track", "expected"),
     [
-        ("playlist", "artist", None, None, "playlist (artist)"),
-        ("playlist", None, None, None, "playlist"),
-        (None, "artist", "album", None, "artist — album"),
-        (None, "artist", None, None, "artist"),
-        (None, None, "album", None, "album"),
-        (None, None, None, "track", "track"),
-        (None, None, None, None, "—"),
+        pytest.param("playlist", "artist", None, None, "playlist (artist)", id="playlist+artist"),
+        pytest.param("playlist", None, None, None, "playlist", id="playlist"),
+        pytest.param(None, "artist", "album", None, "artist — album", id="artist+album"),
+        pytest.param(None, "artist", None, None, "artist", id="artist"),
+        pytest.param(None, None, "album", None, "album", id="album"),
+        pytest.param(None, None, None, "track", "track", id="track"),
+        pytest.param(None, None, None, None, "—", id="empty"),
     ],
 )
 def test_display_title(playlist, artist, album, track, expected):
@@ -50,13 +50,13 @@ def test_display_title(playlist, artist, album, track, expected):
 @pytest.mark.parametrize(
     ("playlist", "artist", "album", "track", "expected"),
     [
-        ("playlist", None, None, None, "🎧 Playlist"),
-        (None, "artist", None, None, "🎤 Artist"),
-        (None, "artist", None, "track", "🎵 Track"),
-        (None, None, None, "track", "🎵 Track"),
-        (None, "artist", "album", None, "💿 Album"),
-        (None, "artist", "album", "track", "💿 Album"),
-        (None, None, None, None, "💿 Album"),
+        pytest.param("playlist", None, None, None, "🎧 Playlist", id="playlist"),
+        pytest.param(None, "artist", None, None, "🎤 Artist", id="artist"),
+        pytest.param(None, "artist", None, "track", "🎵 Track", id="artist+track"),
+        pytest.param(None, None, None, "track", "🎵 Track", id="track"),
+        pytest.param(None, "artist", "album", None, "💿 Album", id="artist+album"),
+        pytest.param(None, "artist", "album", "track", "💿 Album", id="artist+album+track"),
+        pytest.param(None, None, None, None, "💿 Album", id="empty"),
     ],
 )
 def test_display_type(playlist, artist, album, track, expected):
