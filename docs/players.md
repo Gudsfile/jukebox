@@ -2,13 +2,11 @@
 
 A player is an outbound adapter that receives playback commands from the jukebox (play, pause, resume, stop).
 Select a player with `--player`:
-
 ```shell
 jukebox --player PLAYER --reader READER
 ```
 
 You can also persist the choice so you don't need to pass it each time:
-
 ```shell
 jukebox-admin settings set jukebox.player.type PLAYER
 ```
@@ -32,7 +30,9 @@ No configuration required.
 
 ## Sonos (`sonos`) [![SoCo](https://img.shields.io/badge/based%20on-SoCo-000)](https://github.com/SoCo/SoCo)
 
-Plays music through a Sonos speaker.
+Plays music through a Sonos speaker or group.
+
+A **group** is one or more speakers from the same Sonos household, with one speaker designated as coordinator. A household is one physical Sonos system; multiple households can coexist on the same network (e.g. two homes sharing Wi-Fi).
 
 ### Ways to set the target
 
@@ -47,6 +47,30 @@ The jukebox will automatically discover available devices on your network and se
 `--sonos-host` and `--sonos-name` (and their env equivalents) are mutually exclusive. CLI enforces this directly; if both appear via env or persisted data, runtime resolution fails.
 
 In summary: `( CLI | Environment ) > Persisted > Auto-discovery`.
+
+### CLI
+
+Use `jukebox-admin sonos` to discover and persist a speaker or group.
+
+```shell
+# List all discovered speakers, grouped by household
+jukebox-admin sonos list
+
+# Select interactively: prompts for household (if multiple), then speakers, then coordinator
+jukebox-admin sonos select
+
+# Narrow interactive selection to a specific household
+jukebox-admin sonos select --household <household_id>
+
+# Select by UID(s) directly (first UID becomes coordinator)
+jukebox-admin sonos select --uids <uid>
+jukebox-admin sonos select --uids <uid1>,<uid2> --coordinator <uid1>
+
+# Show the currently persisted selection and its availability
+jukebox-admin sonos show
+```
+
+`sonos select` writes the chosen group to `jukebox.player.sonos.selected_group`. At startup, the jukebox reads that group and enforces it on the Sonos system.
 
 ### Developer documentation
 
@@ -85,7 +109,7 @@ Short version: `CLI host/name > env host/name > persisted selected_group`, then 
 | Settings path | Description | Value | 
 | --- | --- | --- |
 | `jukebox.player.type` | Persists the player choice across restarts | sonos |
-| `jukebox.player.sonos.selected_group` | Persisted Sonos group written automatically at startup — do not edit manually | |
+| `jukebox.player.sonos.selected_group` | Persisted Sonos group written by `sonos select` — contains coordinator and member UIDs; do not edit manually | |
 
 > [!TIP]
 > `manual_host` and `manual_name` cannot be set via `jukebox-admin settings set` (they are not in the editable definitions). Use CLI flags or environment variables for process-local host/name overrides.
