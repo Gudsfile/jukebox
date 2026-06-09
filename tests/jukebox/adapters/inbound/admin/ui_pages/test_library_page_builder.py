@@ -138,10 +138,66 @@ def test_edit_disc_form_components_prefill_existing_disc():
         "artist": "Artist",
         "album": "Album",
         "track": "Track",
+        "playlist": None,
         "shuffle": True,
     }
     assert delete_button.text == "🗑️ Delete this disc"
     assert delete_button.on_click.url == "/discs/tag-123/delete"
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+def test_edit_disc_form_components_prefill_playlist_disc():
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+
+    page_builder = build_library_page_builder()
+    page_builder.get_disc.execute.return_value = Disc(
+        uri="spotify:playlist:abc",
+        metadata=DiscMetadata(playlist="My Mix", artist="Spotify"),
+        option=DiscOption(shuffle=True),
+    )
+
+    components = page_builder.build_edit_disc_form_components("tag-123")
+    form = components[0]
+
+    assert form.initial == {
+        "tag": "tag-123",
+        "uri": "spotify:playlist:abc",
+        "artist": "Spotify",
+        "album": None,
+        "track": None,
+        "playlist": "My Mix",
+        "shuffle": True,
+    }
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+def test_disc_table_shows_type_and_title_columns_for_album(walk_components):
+    from jukebox.adapters.inbound.admin.ui_pages.library import DiscTable
+
+    page_builder = build_library_page_builder()
+    components = page_builder.build_disc_library_components(
+        [DiscTable(tag="tag-123", uri="/music/song.mp3", artist="abcd", album="efgh ijkl", shuffle=False)]
+    )
+    all_texts = [c.text for c in walk_components(components) if hasattr(c, "text") and c.text]
+
+    assert "💿 Album" in all_texts
+    assert "abcd — efgh ijkl" in all_texts
+    assert "Artist" not in all_texts
+    assert "Album" not in all_texts
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+def test_disc_table_shows_type_and_title_columns_for_playlist(walk_components):
+    from jukebox.adapters.inbound.admin.ui_pages.library import DiscTable
+
+    page_builder = build_library_page_builder()
+    components = page_builder.build_disc_library_components(
+        [DiscTable(tag="tag-123", uri="spotify:playlist:abc", playlist="My Mix", artist="Spotify", shuffle=False)]
+    )
+    all_texts = [c.text for c in walk_components(components) if hasattr(c, "text") and c.text]
+
+    assert "🎧 Playlist" in all_texts
+    assert "My Mix (Spotify)" in all_texts
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")

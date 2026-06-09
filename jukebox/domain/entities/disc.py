@@ -16,6 +16,26 @@ class DiscMetadata(BaseModel):
     track: str | None = Field(default=None, description="Name of the track", examples=["dey ok", None])
     playlist: str | None = Field(default=None, description="Name of the playlist", examples=["dey ok", None])
 
+    @property
+    def display_title(self) -> str:
+        if self.playlist:
+            owner = f" ({self.artist})" if self.artist else ""
+            return f"{self.playlist}{owner}"
+        subject = self.track or self.album
+        if subject and self.artist:
+            return f"{self.artist} — {subject}"
+        return subject or self.artist or "—"
+
+    @property
+    def display_type(self) -> str:
+        if self.playlist:
+            return "\U0001f3a7 Playlist"
+        if self.track:
+            return "\U0001f3b5 Track"
+        if self.artist and not self.album:
+            return "\U0001f3a4 Artist"
+        return "\U0001f4bf Album"
+
 
 class Disc(BaseModel):
     """A disc entity representing a music item with metadata and playback options."""

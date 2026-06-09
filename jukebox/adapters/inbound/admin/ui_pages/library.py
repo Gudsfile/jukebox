@@ -25,6 +25,11 @@ class DiscForm(BaseModel):
     artist: str | None = Field(None, title="Artist")
     album: str | None = Field(None, title="Album")
     track: str | None = Field(None, title="Track")
+    playlist: str | None = Field(
+        None,
+        title="Playlist",
+        description="Playlist name. If filled, artist field is treated as the playlist owner.",
+    )
     shuffle: bool = Field(False, title="Shuffle")
 
 
@@ -229,6 +234,7 @@ class LibraryUIPageBuilder:
                     "artist": disc.metadata.artist,
                     "album": disc.metadata.album,
                     "track": disc.metadata.track,
+                    "playlist": disc.metadata.playlist,
                     "shuffle": disc.option.shuffle,
                 },
             ),
@@ -303,9 +309,8 @@ class LibraryUIPageBuilder:
                     components=[
                         self._build_disc_header_cell("Tag ID", "col-lg"),
                         self._build_disc_header_cell("URI / Path", "col-lg-3"),
-                        self._build_disc_header_cell("Artist", "col-lg-2 text-lg-center"),
-                        self._build_disc_header_cell("Album", "col-lg-2 text-lg-center"),
-                        self._build_disc_header_cell("Track", "col-lg-2 text-lg-center"),
+                        self._build_disc_header_cell("Type", "col-lg-1 text-lg-center"),
+                        self._build_disc_header_cell("Title", "col-lg-3 text-lg-center"),
                         self._build_disc_header_cell("Shuffle", "col-lg-1 text-lg-center"),
                         c.Div(
                             class_name="col-lg-auto d-flex justify-content-lg-end",
@@ -330,9 +335,12 @@ class LibraryUIPageBuilder:
                     components=[
                         self._build_disc_value_cell("Tag ID", disc.tag, "col-12 col-lg"),
                         self._build_disc_value_cell("URI / Path", disc.uri, "col-12 col-lg-3"),
-                        self._build_disc_value_cell("Artist", disc.artist, "col-6 col-md-3 col-lg-2 text-lg-center"),
-                        self._build_disc_value_cell("Album", disc.album, "col-6 col-md-3 col-lg-2 text-lg-center"),
-                        self._build_disc_value_cell("Track", disc.track, "col-6 col-md-3 col-lg-2 text-lg-center"),
+                        self._build_disc_value_cell(
+                            "Type", disc.display_type, "col-6 col-md-auto col-lg-1 text-lg-center"
+                        ),
+                        self._build_disc_value_cell(
+                            "Title", disc.display_title, "col-6 col-md col-lg-3 text-lg-center"
+                        ),
                         self._build_disc_value_cell(
                             "Shuffle", "✓" if disc.shuffle else "×", "col-6 col-md-3 col-lg-1 text-lg-center"
                         ),

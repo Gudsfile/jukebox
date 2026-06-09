@@ -103,6 +103,7 @@ class UIController(APIController):
                 artist=disc.artist,
                 album=disc.album,
                 track=disc.track,
+                playlist=disc.playlist,
             )
             option = DiscOption(shuffle=disc.shuffle)
 
@@ -133,6 +134,7 @@ class UIController(APIController):
                 artist=disc.artist,
                 album=disc.album,
                 track=disc.track,
+                playlist=disc.playlist,
             )
             option = DiscOption(shuffle=disc.shuffle)
 
