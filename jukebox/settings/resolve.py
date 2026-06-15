@@ -31,16 +31,18 @@ _MISSING = object()
 
 
 def build_environment_settings_overrides() -> JsonObject:
-    overrides = {}
+    overrides: JsonObject = {}
 
     library_path = os.environ.get("JUKEBOX_LIBRARY_PATH")
     if library_path is not None:
-        overrides.setdefault("paths", {})["library_path"] = library_path
+        cast(JsonObject, overrides.setdefault("paths", {}))["library_path"] = library_path
 
     sonos_host = os.environ.get("JUKEBOX_SONOS_HOST")
     sonos_name = os.environ.get("JUKEBOX_SONOS_NAME")
     if sonos_host is not None or sonos_name is not None:
-        sonos_overrides = overrides.setdefault("jukebox", {}).setdefault("player", {}).setdefault("sonos", {})
+        jukebox = cast(JsonObject, overrides.setdefault("jukebox", {}))
+        player = cast(JsonObject, jukebox.setdefault("player", {}))
+        sonos_overrides = cast(JsonObject, player.setdefault("sonos", {}))
         sonos_overrides["manual_host"] = sonos_host
         sonos_overrides["manual_name"] = sonos_name
         sonos_overrides["selected_group"] = None
