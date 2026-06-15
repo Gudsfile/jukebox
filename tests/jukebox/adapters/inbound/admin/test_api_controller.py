@@ -384,28 +384,21 @@ def test_patch_current_tag_disc_returns_422_when_null_assigned_to_non_nullable_o
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_patch_current_tag_disc_clears_nullable_metadata_field():
+def test_patch_current_tag_disc_forwards_null_metadata_to_edit_disc():
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
     edit_disc = MagicMock()
     edit_disc.execute.return_value = Disc(
         uri="/music/song.mp3",
-        metadata=DiscMetadata(artist=None, album="Album", track="Track"),
-        option=DiscOption(shuffle=False),
+        metadata=DiscMetadata(album="Album", track="Track"),
+        option=DiscOption(),
     )
     controller = build_controller(get_current_tag_status=get_current_tag_status, edit_disc=edit_disc)
     route = get_route(controller, "/api/v1/current-tag/disc", "PATCH")
 
     response = route.endpoint(DiscPatchInput(metadata=DiscPatchMetadataInput(artist=None)))
 
-    assert response.model_dump() == {
-        "disc": {
-            "metadata": {"album": "Album", "artist": None, "playlist": None, "track": "Track"},
-            "option": {"is_test": False, "shuffle": False},
-            "uri": "/music/song.mp3",
-        },
-        "tag_id": "tag-123",
-    }
+    assert response.tag_id == "tag-123"
     edit_disc.execute.assert_called_once_with(
         "tag-123",
         None,
@@ -600,7 +593,7 @@ def test_patch_disc_returns_404_when_missing():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_patch_disc_clears_nullable_metadata_field():
+def test_patch_disc_forwards_null_metadata_to_edit_disc():
     edit_disc = MagicMock()
     edit_disc.execute.return_value = "the_value_returned_by_the_EditDisc_use_case"
     controller = build_controller(edit_disc=edit_disc)
