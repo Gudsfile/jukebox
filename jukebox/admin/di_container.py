@@ -1,3 +1,5 @@
+from typing import cast
+
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
@@ -13,6 +15,7 @@ from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.settings.types import JsonObject
 from jukebox.shared.config_utils import get_current_tag_path
 from jukebox.sonos.service import DefaultSonosService, SonosService
 
@@ -24,16 +27,18 @@ def build_settings_service(
     library: str | None,
     command: object | None,
 ) -> SettingsService:
-    cli_overrides = {}
+    cli_overrides: JsonObject = {}
 
     if library is not None:
-        cli_overrides.setdefault("paths", {})["library_path"] = library
+        cast(JsonObject, cli_overrides.setdefault("paths", {}))["library_path"] = library
 
     if isinstance(command, ApiCommand) and command.port is not None:
-        cli_overrides.setdefault("admin", {}).setdefault("api", {})["port"] = command.port
+        admin = cast(JsonObject, cli_overrides.setdefault("admin", {}))
+        cast(JsonObject, admin.setdefault("api", {}))["port"] = command.port
 
     if isinstance(command, UiCommand) and command.port is not None:
-        cli_overrides.setdefault("admin", {}).setdefault("ui", {})["port"] = command.port
+        admin = cast(JsonObject, cli_overrides.setdefault("admin", {}))
+        cast(JsonObject, admin.setdefault("ui", {}))["port"] = command.port
 
     return SettingsServiceImpl(
         repository=FileSettingsRepository(),
