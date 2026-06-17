@@ -10,7 +10,7 @@ on:
       - ".github/workflows/python.yml"
   pull_request:
     branches: ["main"]
-    types: [opened, synchronize, reopened, unlabeled]
+    types: [opened, synchronize, reopened]
     paths:
       - "**/*.py"
       - "pyproject.toml"
@@ -37,7 +37,6 @@ jobs:
   test-and-lint:
     name: Run Tests & Linting
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || !contains(github.event.pull_request.labels.*.name, 'no-ci')
 
     strategy:
       matrix:
