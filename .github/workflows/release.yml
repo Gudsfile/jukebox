@@ -2,7 +2,7 @@ name: release
 
 on:
   push:
-    tags: ['v*']
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       dry-run:
@@ -36,11 +36,16 @@ jobs:
         with:
           enable-cache: true
 
-      - run: uv sync --locked --all-extras --dev
-      - run: uv run ruff format --check
-      - run: uv run ruff check
-      - run: uv run pytest
-      - run: uv run ty check --output-format github | grep -v "::warning " || true
+      - name: Install the project
+        run: uv sync --locked --all-extras --dev
+      - name: Check format with ruff
+        run: uv run ruff format --check
+      - name: Lint with ruff
+        run: uv run ruff check
+      - name: Test with pytest
+        run: uv run pytest
+      - name: Type check with ty
+        run: uv run ty check --output-format github
 
   publish:
     name: Publish to PyPI & GitHub
