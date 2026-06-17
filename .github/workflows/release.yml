@@ -16,17 +16,17 @@ on:
 permissions:
   contents: write
   id-token: write
+  actions: read
 
-env:
-  UV_PROJECT_ENVIRONMENT: $pythonLocation
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-and-publish:
-    name: Build & Publish to PyPI
+  publish:
+    name: Publish to PyPI & GitHub
     runs-on: ubuntu-latest
     environment: prod
-    outputs:
-      is_stable: ${{ steps.check-stable.outputs.is_stable }}
     if: |
       github.event_name == 'workflow_dispatch'
       || (
@@ -40,78 +40,40 @@ jobs:
         with:
           ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
+      - name: Download artifact from CI
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v8
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: built-package
+          path: dist/
+
       - name: Build package
+        if: github.event_name == 'workflow_dispatch'
         run: uv build
 
       - name: Publish to PyPI
         run: uv publish ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
 
-      - name: Upload package artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: built-package
-          path: dist/
-
       - name: Get version
         id: version
         run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
 
-      - name: Create and push tag
+      - name: Tag & GitHub Release
         if: github.event_name == 'workflow_run'
-        run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}" ${{ github.event.inputs.dry-run == 'true' && '--dry-run' || '' }}
-
-      - name: Check if stable release
-        id: check-stable
-        run: |
-          if uv version --short | grep -q '\.dev'; then
-            echo "is_stable=false" >> $GITHUB_OUTPUT
-          else
-            echo "is_stable=true" >> $GITHUB_OUTPUT
-          fi
-
-  github-release:
-    name: Create GitHub Release
-    needs: build-and-publish
-    runs-on: ubuntu-latest
-    if: needs.build-and-publish.outputs.is_stable == 'true' && github.event_name == 'workflow_run'
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Download built package
-        uses: actions/download-artifact@v8
-        with:
-          name: built-package
-          path: dist/
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          enable-cache: true
-
-      - name: Get version
-        id: version
-        run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.version.outputs.version }}" \
-            --title "v${{ steps.version.outputs.version }}" \
-            --generate-notes \
-            dist/*
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
+          if ! echo "${{ steps.version.outputs.version }}" | grep -q '\.dev'; then
+            gh release create "v${{ steps.version.outputs.version }}" \
+              --title "v${{ steps.version.outputs.version }}" \
+              --generate-notes \
+              dist/*
+          fi
