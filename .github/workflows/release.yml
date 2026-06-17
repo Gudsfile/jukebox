@@ -1,10 +1,8 @@
 name: release
 
 on:
-  workflow_run:
-    workflows: ["ci"]
-    types: [completed]
-    branches: [main]
+  push:
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       dry-run:
@@ -16,45 +14,48 @@ on:
 permissions:
   contents: write
   id-token: write
-  actions: read
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  publish:
-    name: Publish to PyPI & GitHub
+  test:
+    name: Run Tests & Linting
     runs-on: ubuntu-latest
-    environment: prod
-    if: |
-      github.event_name == 'workflow_dispatch'
-      || (
-        github.event_name == 'workflow_run'
-        && github.event.workflow_run.conclusion == 'success'
-        && startsWith(github.event.workflow_run.head_commit.message, '🔖 v')
-      )
-
     steps:
       - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || '' }}
+          python-version: "3.13"
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
 
-      - name: Download artifact from CI
-        if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v8
+      - run: uv sync --locked --all-extras --dev
+      - run: uv run ruff format --check
+      - run: uv run ruff check
+      - run: uv run pytest
+      - run: uv run ty check --output-format github | grep -v "::warning " || true
+
+  publish:
+    name: Publish to PyPI & GitHub
+    needs: test
+    runs-on: ubuntu-latest
+    environment: prod
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
         with:
-          run-id: ${{ github.event.workflow_run.id }}
-          name: built-package
-          path: dist/
+          enable-cache: true
 
       - name: Build package
-        if: github.event_name == 'workflow_dispatch'
         run: uv build
 
       - name: Publish to PyPI
@@ -64,16 +65,12 @@ jobs:
         id: version
         run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
 
-      - name: Tag & GitHub Release
-        if: github.event_name == 'workflow_run'
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && !contains(steps.version.outputs.version, '.dev')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
-          if ! echo "${{ steps.version.outputs.version }}" | grep -q '\.dev'; then
-            gh release create "v${{ steps.version.outputs.version }}" \
-              --title "v${{ steps.version.outputs.version }}" \
-              --generate-notes \
-              dist/*
-          fi
+          gh release create "v${{ steps.version.outputs.version }}" \
+            --title "v${{ steps.version.outputs.version }}" \
+            --generate-notes \
+            dist/*

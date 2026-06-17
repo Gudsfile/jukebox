@@ -80,3 +80,8 @@ jobs:
           git add pyproject.toml uv.lock
           git commit -m "🔖 v${{ steps.version.outputs.version }}"
           git push origin HEAD:${{ github.ref_name }}
+
+      - name: Push release tag
+        run: |
+          git tag "v${{ steps.version.outputs.version }}"
+          git push origin "v${{ steps.version.outputs.version }}"
