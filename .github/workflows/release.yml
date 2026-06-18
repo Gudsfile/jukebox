@@ -112,9 +112,8 @@ jobs:
           git config user.email '${{ steps.user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
           git add pyproject.toml uv.lock
           git commit -m "🔖 v${{ steps.version.outputs.version }}"
-          git push origin HEAD:${{ github.ref_name }}
           git tag "v${{ steps.version.outputs.version }}"
-          git push origin "v${{ steps.version.outputs.version }}"
+          git push origin HEAD:${{ github.ref_name }} "v${{ steps.version.outputs.version }}"
 
       - name: Build package
         run: uv build
