@@ -1,13 +1,6 @@
 name: ci
 
 on:
-  push:
-    branches: ["main"]
-    paths:
-      - "**/*.py"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/python.yml"
   pull_request:
     branches: ["main"]
     types: [opened, synchronize, reopened]
