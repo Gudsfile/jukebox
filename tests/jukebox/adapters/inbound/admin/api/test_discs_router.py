@@ -11,6 +11,7 @@ if FASTAPI_INSTALLED:
     from jukebox.adapters.inbound.admin.api.discs_router import build_discs_router
     from jukebox.adapters.inbound.admin.api.models import (
         DiscInput,
+        DiscOutput,
         DiscPatchInput,
         DiscPatchMetadataInput,
         DiscPatchOptionInput,
@@ -19,6 +20,7 @@ if FASTAPI_INSTALLED:
     from jukebox.domain.use_cases.library.add_disc import AddDisc
     from jukebox.domain.use_cases.library.edit_disc import EditDisc
     from jukebox.domain.use_cases.library.get_disc import GetDisc
+    from jukebox.domain.use_cases.library.list_discs import ListDiscs
     from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
 
 
@@ -37,6 +39,23 @@ def build_router(
         edit_disc=edit_disc if edit_disc is not None else MagicMock(),
         get_disc=get_disc if get_disc is not None else MagicMock(),
     )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_list_discs_returns_disc_list(get_route):
+    list_discs = create_autospec(ListDiscs, instance=True)
+    list_discs.execute.return_value = {
+        "tag-1": Disc(uri="/music/song1.mp3", metadata=DiscMetadata(artist="Artist 1"), option=DiscOption()),
+        "tag-2": Disc(uri="/music/song2.mp3", metadata=DiscMetadata(artist="Artist 2"), option=DiscOption()),
+    }
+    router = build_router(list_discs=list_discs)
+    route = get_route(router, "/api/v1/discs", "GET")
+
+    response = route.endpoint()
+
+    assert route.response_model == dict[str, DiscOutput]
+    assert response == list_discs.execute.return_value
+    list_discs.execute.assert_called_once_with()
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
