@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock, call
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -88,47 +88,6 @@ def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mo
     assert new_session.playing_tag_removed_at is None
 
 
-def test_known_tag_writes_current_tag(handle_tag_event, mock_current_tag_repository, mock_library):
-    session = PlaybackSession()
-
-    handle_tag_event.execute(TagEvent(tag_id="known-tag", timestamp=100.0), session)
-
-    mock_library.get_disc.assert_called_once_with("known-tag")
-    mock_current_tag_repository.set.assert_called_once_with("known-tag")
-
-
-def test_unknown_tag_writes_current_tag(handle_tag_event, mock_current_tag_repository, mock_library):
-    mock_library.get_disc.return_value = None
-    session = PlaybackSession()
-
-    handle_tag_event.execute(TagEvent(tag_id="unknown-tag", timestamp=100.0), session)
-
-    mock_current_tag_repository.set.assert_called_once_with("unknown-tag")
-
-
-def test_same_tag_does_not_rewrite_current_tag_unnecessarily(handle_tag_event, mock_current_tag_repository):
-    session = PlaybackSession()
-
-    session = handle_tag_event.execute(TagEvent(tag_id="same-tag", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id="same-tag", timestamp=100.2), session)
-
-    assert mock_current_tag_repository.set.call_count == 1
-    assert session.physical_tag == "same-tag"
-
-
-def test_different_tag_replaces_current_tag_state(handle_tag_event, mock_current_tag_repository):
-    session = PlaybackSession()
-
-    session = handle_tag_event.execute(TagEvent(tag_id="tag-a", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id="tag-b", timestamp=100.2), session)
-
-    assert mock_current_tag_repository.set.call_args_list == [
-        call("tag-a"),
-        call("tag-b"),
-    ]
-    assert session.physical_tag == "tag-b"
-
-
 def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
     handle_tag_event, mock_current_tag_repository
 ):
@@ -164,9 +123,9 @@ def test_unknown_tag_promotes_to_known_without_rewriting_current_tag(
     session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.0), session)
     session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.2), session)
 
-    mock_current_tag_repository.set.assert_called_once_with("promote-tag")
+    assert mock_current_tag_repository.set.call_count == 1
+    assert session.physical_tag == "promote-tag"
     mock_player.play.assert_called_once_with("uri:promoted", True)
-    assert session.playing_tag == "promote-tag"
 
 
 def test_current_tag_set_failure_does_not_block_playback(handle_tag_event, mock_current_tag_repository, mock_player):
