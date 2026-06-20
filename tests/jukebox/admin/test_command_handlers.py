@@ -956,3 +956,39 @@ def test_execute_server_command_propagates_missing_optional_dependency_error(moc
         )
 
     assert str(err.value) == str(expected)
+
+
+@pytest.mark.parametrize(
+    ("command", "extra_name", "builder_name", "missing_module"),
+    [
+        (ApiCommand(type="api", port=1234), "api", "build_api_app", "fastapi"),
+        (UiCommand(type="ui", port=1234), "ui", "build_ui_app", "fastui"),
+    ],
+)
+def test_execute_server_command_reports_missing_optional_dependencies_from_build_app(
+    mocker, command, extra_name, builder_name, missing_module
+):
+    services = build_services()
+    services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
+        library_path="/resolved/library.json",
+        api_port=8000,
+        ui_port=9000,
+        verbose=False,
+    )
+    mocker.patch.dict("sys.modules", {"uvicorn": MagicMock()})
+    build_api_app = MagicMock()
+    build_ui_app = MagicMock()
+    target_builder = build_api_app if builder_name == "build_api_app" else build_ui_app
+    target_builder.side_effect = ModuleNotFoundError(f"No module named '{missing_module}'", name=missing_module)
+
+    with pytest.raises(MissingOptionalDependencyError) as exc_info:
+        execute_server_command(
+            verbose=False,
+            command=command,
+            services=services,
+            build_api_app=build_api_app,
+            build_ui_app=build_ui_app,
+            source_command="jukebox-admin",
+        )
+
+    assert f"`jukebox-admin {extra_name}` requires the optional `{extra_name}` dependencies." in str(exc_info.value)
