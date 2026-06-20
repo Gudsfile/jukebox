@@ -2,7 +2,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from jukebox.domain.entities import CurrentTagAction, PlaybackSession, TagEvent
+from jukebox.domain.entities import CurrentTagAction, CurrentTagSession, TagEvent
 from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
@@ -29,7 +29,7 @@ def sync(mock_determine, mock_apply):
 
 
 def test_execute_calls_determine_then_apply(sync, mock_determine, mock_apply):
-    session = PlaybackSession()
+    session = CurrentTagSession()
     event = TagEvent(tag_id="tag-1", timestamp=100.0)
 
     sync.execute(event, session)
@@ -41,7 +41,7 @@ def test_execute_calls_determine_then_apply(sync, mock_determine, mock_apply):
 def test_execute_swallows_exception_from_determine(sync, mock_determine, mock_apply):
     mock_determine.execute.side_effect = RuntimeError("boom")
 
-    sync.execute(TagEvent(tag_id="tag-1", timestamp=100.0), PlaybackSession())
+    sync.execute(TagEvent(tag_id="tag-1", timestamp=100.0), CurrentTagSession())
 
     mock_apply.execute.assert_not_called()
 
@@ -49,7 +49,7 @@ def test_execute_swallows_exception_from_determine(sync, mock_determine, mock_ap
 def test_execute_swallows_exception_from_apply(sync, mock_determine, mock_apply):
     mock_apply.execute.side_effect = OSError("disk full")
 
-    sync.execute(TagEvent(tag_id="tag-1", timestamp=100.0), PlaybackSession())
+    sync.execute(TagEvent(tag_id="tag-1", timestamp=100.0), CurrentTagSession())
 
 
 # Integration tests — real use cases, mock repository only
@@ -69,14 +69,12 @@ def sync_integration(mock_repository):
 
 
 def _sync(sync_integration, session, tag_id, timestamp):
-    """Simulate one CLIController loop iteration: sync then advance last_event_timestamp."""
-    event = TagEvent(tag_id=tag_id, timestamp=timestamp)
-    sync_integration.execute(event, session)
-    session.last_event_timestamp = timestamp  # normally set by HandleTagEvent
+    """Simulate one CLIController loop iteration."""
+    sync_integration.execute(TagEvent(tag_id=tag_id, timestamp=timestamp), session)
 
 
 def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(sync_integration, mock_repository):
-    session = PlaybackSession()
+    session = CurrentTagSession()
 
     _sync(sync_integration, session, "tag-1", 100.0)
     _sync(sync_integration, session, None, 100.4)
@@ -98,11 +96,11 @@ def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
     assert session.physical_tag is None
 
 
-def test_unknown_tag_promotes_to_known_without_rewriting_current_tag(sync_integration, mock_repository):
-    session = PlaybackSession()
+def test_keep_action_does_not_rewrite_repository(sync_integration, mock_repository):
+    session = CurrentTagSession()
 
-    _sync(sync_integration, session, "promote-tag", 100.0)
-    _sync(sync_integration, session, "promote-tag", 100.2)
+    _sync(sync_integration, session, "tag-1", 100.0)
+    _sync(sync_integration, session, "tag-1", 100.2)
 
     assert mock_repository.set.call_count == 1
-    assert session.physical_tag == "promote-tag"
+    assert session.physical_tag == "tag-1"

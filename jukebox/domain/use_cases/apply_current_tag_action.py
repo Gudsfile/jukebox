@@ -1,6 +1,6 @@
 import logging
 
-from jukebox.domain.entities import CurrentTagAction, PlaybackSession, TagEvent
+from jukebox.domain.entities import CurrentTagAction, CurrentTagSession, TagEvent
 from jukebox.domain.repositories import CurrentTagRepository
 
 LOGGER = logging.getLogger("jukebox")
@@ -12,7 +12,7 @@ class ApplyCurrentTagAction:
     def __init__(self, current_tag_repository: CurrentTagRepository):
         self.current_tag_repository = current_tag_repository
 
-    def execute(self, action: CurrentTagAction, tag_event: TagEvent, session: PlaybackSession) -> None:
+    def execute(self, action: CurrentTagAction, tag_event: TagEvent, session: CurrentTagSession) -> None:
         match action:
             case CurrentTagAction.SET:
                 if tag_event.tag_id is None:

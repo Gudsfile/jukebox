@@ -132,7 +132,6 @@ def test_handle_pause_action(handle_tag_event, mock_player):
         playing_tag="test-tag",
         paused_at=None,
         playing_tag_removed_at=5.0,
-        last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.2)
 
@@ -152,7 +151,6 @@ def test_handle_pause_then_stop_after_max_pause_duration(handle_tag_event, mock_
         playing_tag="test-tag",
         paused_at=None,
         playing_tag_removed_at=99.76,
-        last_event_timestamp=100.0,
     )
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.02), session)
@@ -212,7 +210,6 @@ def test_handle_waiting_action(handle_tag_event, mock_player):
         playing_tag="test-tag",
         paused_at=None,
         playing_tag_removed_at=None,
-        last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.25)
 
@@ -232,7 +229,6 @@ def test_handle_waiting_preserves_removal_timestamp_on_subsequent_occurrences(ha
         playing_tag="test-tag",
         paused_at=None,
         playing_tag_removed_at=99.25,
-        last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.25)
 
@@ -247,7 +243,6 @@ def test_handle_idle_action(handle_tag_event):
     """Should not overwrite paused timestamp when action is IDLE."""
     session = PlaybackSession(
         paused_at=10.0,
-        last_event_timestamp=100.0,
     )
     tag_event = TagEvent(tag_id=None, timestamp=100.25)
 
@@ -288,7 +283,6 @@ def test_same_tag_detection_resets_logical_removal_grace_period(handle_tag_event
         playing_tag="test-tag",
         paused_at=None,
         playing_tag_removed_at=None,
-        last_event_timestamp=99.75,
     )
 
     session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.0), session)
@@ -307,8 +301,6 @@ def test_same_tag_detection_resets_logical_removal_grace_period(handle_tag_event
 def test_same_tag_returns_after_pause_resumes_immediately(handle_tag_event, mock_player):
     session = PlaybackSession(
         playing_tag="test-tag",
-        physical_tag="test-tag",
-        last_event_timestamp=100.0,
     )
 
     # First missed read starts the grace window.

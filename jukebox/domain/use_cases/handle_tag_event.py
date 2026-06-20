@@ -119,7 +119,6 @@ class HandleTagEvent:
             case _:
                 LOGGER.warning("`%s` action is not implemented yet", action.value)
 
-        session.last_event_timestamp = tag_event.timestamp
         return session
 
     def _run_playback_command(

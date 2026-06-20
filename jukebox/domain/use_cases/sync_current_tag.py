@@ -1,6 +1,6 @@
 import logging
 
-from jukebox.domain.entities import PlaybackSession, TagEvent
+from jukebox.domain.entities import CurrentTagSession, TagEvent
 from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 
@@ -18,10 +18,10 @@ class SyncCurrentTag:
         self.determine_current_tag_action = determine_current_tag_action
         self.apply_current_tag_action = apply_current_tag_action
 
-    def execute(self, tag_event: TagEvent, session: PlaybackSession) -> None:
+    def execute(self, tag_event: TagEvent, current_tag_session: CurrentTagSession) -> None:
         try:
-            action = self.determine_current_tag_action.execute(tag_event, session)
-            self.apply_current_tag_action.execute(action, tag_event, session)
+            action = self.determine_current_tag_action.execute(tag_event, current_tag_session)
+            self.apply_current_tag_action.execute(action, tag_event, current_tag_session)
         except Exception as err:
             LOGGER.warning(
                 "Failed to sync current tag state; continuing, tag state may be stale: tag_id=%r, error=%s",

@@ -1,4 +1,5 @@
 from .current_tag_action import CurrentTagAction
+from .current_tag_session import CurrentTagSession
 from .current_tag_status import CurrentTagStatus
 from .disc import Disc, DiscMetadata, DiscOption
 from .library import Library
@@ -8,6 +9,7 @@ from .tag_event import TagEvent
 
 __all__ = [
     "CurrentTagAction",
+    "CurrentTagSession",
     "CurrentTagStatus",
     "PlaybackAction",
     "PlaybackCommandRetry",
