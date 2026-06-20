@@ -1,10 +1,11 @@
 import logging
 from collections.abc import Callable
 
-from jukebox.domain.entities import CurrentTagAction, PlaybackAction, PlaybackCommandRetry, PlaybackSession, TagEvent
+from jukebox.domain.entities import PlaybackAction, PlaybackCommandRetry, PlaybackSession, TagEvent
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
-from jukebox.domain.repositories import CurrentTagRepository, LibraryRepository
+from jukebox.domain.repositories import LibraryRepository
+from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 
@@ -19,22 +20,22 @@ class HandleTagEvent:
         self,
         player: PlayerPort,
         library: LibraryRepository,
-        current_tag_repository: CurrentTagRepository,
         determine_action: DetermineAction,
         determine_current_tag_action: DetermineCurrentTagAction,
+        apply_current_tag_action: ApplyCurrentTagAction,
         retry_delays_seconds: tuple[float, ...] = PLAYBACK_RETRY_DELAYS_SECONDS,
     ):
         self.player = player
         self.library = library
-        self.current_tag_repository = current_tag_repository
         self.determine_action = determine_action
         self.determine_current_tag_action = determine_current_tag_action
+        self.apply_current_tag_action = apply_current_tag_action
         if not retry_delays_seconds:
             raise ValueError("retry_delays_seconds must not be empty")
         self.retry_delays_seconds = retry_delays_seconds
 
     def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
-        self._apply_current_tag_action_best_effort(tag_event, session)
+        self._sync_current_tag_best_effort(tag_event, session)
         action = self.determine_action.execute(tag_event, session)
 
         LOGGER.debug(
@@ -128,45 +129,16 @@ class HandleTagEvent:
         session.last_event_timestamp = tag_event.timestamp
         return session
 
-    def _apply_current_tag_action_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
+    def _sync_current_tag_best_effort(self, tag_event: TagEvent, session: PlaybackSession) -> None:
         try:
             action = self.determine_current_tag_action.execute(tag_event, session)
-            self._apply_current_tag_action(action, tag_event, session)
+            self.apply_current_tag_action.execute(action, tag_event, session)
         except Exception as err:
             LOGGER.warning(
                 "Failed to sync current tag state; continuing tag handling: tag_id=%r, error=%s",
                 tag_event.tag_id,
                 err,
             )
-
-    def _apply_current_tag_action(
-        self, action: CurrentTagAction, tag_event: TagEvent, session: PlaybackSession
-    ) -> None:
-        match action:
-            case CurrentTagAction.SET:
-                if tag_event.tag_id is None:
-                    LOGGER.error(
-                        "`SET` action without tag_id",
-                        extra={"event": tag_event, "session": session},
-                    )
-                    return
-                self.current_tag_repository.set(tag_event.tag_id)
-                session.physical_tag = tag_event.tag_id
-                session.physical_tag_removed_at = None
-
-            case CurrentTagAction.CLEAR:
-                self.current_tag_repository.clear()
-                session.physical_tag = None
-                session.physical_tag_removed_at = None
-
-            case CurrentTagAction.RESTORE:
-                session.physical_tag_removed_at = None
-
-            case CurrentTagAction.REMOVE:
-                session.physical_tag_removed_at = tag_event.timestamp
-
-            case CurrentTagAction.KEEP:
-                pass  # No state changed
 
     def _run_playback_command(
         self,
