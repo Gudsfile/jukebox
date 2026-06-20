@@ -185,7 +185,7 @@ class TestBuildJukebox:
     @patch("jukebox.di_container.DryrunReaderAdapter")
     @patch("jukebox.di_container.TextCurrentTagAdapter")
     @patch("jukebox.di_container.JsonLibraryAdapter")
-    def test_build_jukebox_passes_correct_parameters_to_determine_action(
+    def test_build_jukebox_passes_correct_parameters_to_transition_context(
         self, mock_library, mock_current_tag, mock_reader, mock_player
     ):
         config = ResolvedJukeboxRuntimeConfig(
@@ -205,9 +205,12 @@ class TestBuildJukebox:
 
         reader, handle_tag_event, sync_current_tag = build_jukebox(config)
 
+        from jukebox.domain.entities import PLAYBACK_RETRY_DELAYS_SECONDS
+
         assert reader == mock_reader.return_value
-        assert handle_tag_event.determine_action.pause_delay == 0.2
-        assert handle_tag_event.determine_action.max_pause_duration == 200
+        assert handle_tag_event.ctx.pause_delay == 0.2
+        assert handle_tag_event.ctx.max_pause_duration == 200
+        assert handle_tag_event.ctx.retry_delays == PLAYBACK_RETRY_DELAYS_SECONDS
 
 
 class TestBuildSettingService:

@@ -234,10 +234,12 @@ def test_cli_arguments_override_persisted_settings(tmp_path, mocker, persisted_v
     )
     mocker.patch("jukebox.di_container.FileSettingsRepository", return_value=FileSettingsRepository(str(settings_path)))
     mocker.patch("jukebox.app.CLIController")
-    determine_action_class = mocker.patch("jukebox.di_container.DetermineAction")
+    transition_context_class = mocker.patch("jukebox.di_container.TransitionContext")
 
     cli_args = ["--pause-duration", str(cli_value)] if cli_value is not None else []
     result = runner.invoke(app.app, cli_args)
 
     assert result.exit_code == 0
-    determine_action_class.assert_called_once_with(pause_delay=mocker.ANY, max_pause_duration=expected)
+    transition_context_class.assert_called_once_with(
+        pause_delay=mocker.ANY, max_pause_duration=expected, retry_delays=mocker.ANY
+    )
