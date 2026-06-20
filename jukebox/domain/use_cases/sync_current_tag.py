@@ -1,32 +1,34 @@
+import dataclasses
 import logging
 
-from jukebox.domain.entities import CurrentTagSession, TagEvent
-from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
-from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
+from jukebox.domain.entities import CurrentTagContext, CurrentTagState, TagEvent
+from jukebox.domain.repositories import CurrentTagRepository
+from jukebox.domain.use_cases.transition_current_tag import transition_current_tag
 
 LOGGER = logging.getLogger("jukebox")
 
 
 class SyncCurrentTag:
-    """Best-effort sync of physical current tag state with repository and session."""
+    """Best-effort sync of physical current tag state with the repository."""
 
-    def __init__(
-        self,
-        determine_current_tag_action: DetermineCurrentTagAction,
-        apply_current_tag_action: ApplyCurrentTagAction,
-    ):
-        self.determine_current_tag_action = determine_current_tag_action
-        self.apply_current_tag_action = apply_current_tag_action
+    def __init__(self, repository: CurrentTagRepository, ctx: CurrentTagContext):
+        self.repository = repository
+        self.ctx = ctx
 
-    def execute(self, tag_event: TagEvent, current_tag_session: CurrentTagSession) -> None:
+    def execute(self, tag_event: TagEvent, state: CurrentTagState) -> CurrentTagState:
         try:
-            action = self.determine_current_tag_action.execute(tag_event, current_tag_session)
-            self.apply_current_tag_action.execute(action, tag_event, current_tag_session)
+            (success_state, command) = transition_current_tag(state, tag_event, self.ctx)
+            if command == "set":
+                assert tag_event.tag_id is not None
+                self.repository.set(tag_event.tag_id)
+            elif command == "clear":
+                self.repository.clear()
+            next_state = success_state
         except Exception as err:
             LOGGER.warning(
                 "Failed to sync current tag state; continuing, tag state may be stale: tag_id=%r, error=%s",
                 tag_event.tag_id,
                 err,
             )
-        finally:
-            current_tag_session.last_event_timestamp = tag_event.timestamp
+            next_state = state
+        return dataclasses.replace(next_state, last_event_timestamp=tag_event.timestamp)

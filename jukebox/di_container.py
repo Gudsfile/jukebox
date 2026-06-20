@@ -6,9 +6,12 @@ from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAd
 from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReaderAdapter
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
-from jukebox.domain.entities import PLAYBACK_RETRY_DELAYS_SECONDS, TransitionContext
-from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
-from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
+from jukebox.domain.entities import (
+    CURRENT_TAG_ABSENCE_GRACE_SECONDS,
+    PLAYBACK_RETRY_DELAYS_SECONDS,
+    CurrentTagContext,
+    TransitionContext,
+)
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
@@ -142,8 +145,8 @@ def build_jukebox(
         retry_delays=PLAYBACK_RETRY_DELAYS_SECONDS,
     )
     sync_current_tag = SyncCurrentTag(
-        determine_current_tag_action=DetermineCurrentTagAction(),
-        apply_current_tag_action=ApplyCurrentTagAction(current_tag_repository=current_tag_repository),
+        repository=current_tag_repository,
+        ctx=CurrentTagContext(grace_seconds=CURRENT_TAG_ABSENCE_GRACE_SECONDS),
     )
     handle_tag_event = HandleTagEvent(
         player=player,
