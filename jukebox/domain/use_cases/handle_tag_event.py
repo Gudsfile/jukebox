@@ -14,7 +14,7 @@ from jukebox.domain.entities import (
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import LibraryRepository
-from jukebox.domain.use_cases.transition_playback import transition
+from jukebox.domain.use_cases.transition_playback import transition_playback
 
 LOGGER = logging.getLogger("jukebox")
 
@@ -38,7 +38,7 @@ class HandleTagEvent:
         if tag_id is not None and not (isinstance(state, (Playing, Waiting)) and state.tag == tag_id):
             disc = self.library.get_disc(tag_id)
 
-        (success_state, command) = transition(state, tag_event, disc, self.ctx)
+        (success_state, command) = transition_playback(state, tag_event, disc, self.ctx)
 
         LOGGER.debug("%s  %s | %s", (command or "none").upper(), tag_id, type(state).__name__)
 

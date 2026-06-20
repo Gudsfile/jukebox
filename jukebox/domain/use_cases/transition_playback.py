@@ -20,7 +20,7 @@ def _play_or_stay(
     return fallback, None
 
 
-def transition(
+def transition_playback(
     state: PlaybackState,
     tag_event: TagEvent,
     disc: Disc | None,

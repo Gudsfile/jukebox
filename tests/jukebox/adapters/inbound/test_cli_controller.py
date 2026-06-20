@@ -3,7 +3,7 @@ from unittest.mock import create_autospec, patch
 import pytest
 
 from jukebox.adapters.inbound.cli_controller import CLIController
-from jukebox.domain.entities import CurrentTagSession, Idle
+from jukebox.domain.entities import Idle, NoTag
 from jukebox.domain.ports import ReaderPort
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
@@ -58,13 +58,17 @@ def test_run_skips_sleep_when_reader_already_used_the_interval():
 
 def test_sync_current_tag_called_before_handle_tag_event():
     call_order = []
-    captured_sessions = []
     reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", "tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
     handle_tag_event.execute.side_effect = lambda *_: call_order.append("handle") or Idle()
     sync_current_tag = create_autospec(SyncCurrentTag, instance=True, spec_set=True)
-    sync_current_tag.execute.side_effect = lambda _ev, sess: (call_order.append("sync"), captured_sessions.append(sess))
+    captured_states = []
+    sync_current_tag.execute.side_effect = lambda ev, s: (
+        call_order.append("sync"),
+        captured_states.append(s),
+        NoTag(last_event_timestamp=ev.timestamp),
+    )[-1]
     controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event, sync_current_tag=sync_current_tag)
 
     with (
@@ -75,5 +79,5 @@ def test_sync_current_tag_called_before_handle_tag_event():
         controller.run()
 
     assert call_order == ["sync", "handle", "sync", "handle"]
-    assert all(isinstance(s, CurrentTagSession) for s in captured_sessions)
-    assert captured_sessions[0] is captured_sessions[1]
+    assert all(isinstance(s, NoTag) for s in captured_states)
+    assert captured_states[0] is not captured_states[1]
