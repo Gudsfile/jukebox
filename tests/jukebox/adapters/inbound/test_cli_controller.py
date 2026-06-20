@@ -1,11 +1,25 @@
-from unittest.mock import create_autospec, patch
+from unittest.mock import MagicMock, create_autospec, patch
 
 import pytest
 
 from jukebox.adapters.inbound.cli_controller import CLIController
 from jukebox.domain.entities import PlaybackSession
 from jukebox.domain.ports import ReaderPort
+from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
+from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
+from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
+
+
+def _make_controller(reader, handle_tag_event, sync_current_tag=None, loop_interval_seconds=0.1):
+    if sync_current_tag is None:
+        sync_current_tag = create_autospec(SyncCurrentTag, instance=True, spec_set=True)
+    return CLIController(
+        reader=reader,
+        handle_tag_event=handle_tag_event,
+        sync_current_tag=sync_current_tag,
+        loop_interval_seconds=loop_interval_seconds,
+    )
 
 
 def test_run_sleeps_only_for_remaining_loop_interval():
@@ -13,7 +27,7 @@ def test_run_sleeps_only_for_remaining_loop_interval():
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
     handle_tag_event.execute.return_value = PlaybackSession()
-    controller = CLIController(reader=reader, handle_tag_event=handle_tag_event, loop_interval_seconds=0.1)
+    controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event)
 
     with (
         patch("jukebox.adapters.inbound.cli_controller.time.monotonic", side_effect=[100.0, 100.03, 100.04, 100.1]),
@@ -31,7 +45,7 @@ def test_run_skips_sleep_when_reader_already_used_the_interval():
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
     handle_tag_event.execute.return_value = PlaybackSession()
-    controller = CLIController(reader=reader, handle_tag_event=handle_tag_event, loop_interval_seconds=0.1)
+    controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event)
 
     with (
         patch("jukebox.adapters.inbound.cli_controller.time.monotonic", side_effect=[100.0, 100.11, 100.12, 100.2]),
@@ -42,3 +56,46 @@ def test_run_skips_sleep_when_reader_already_used_the_interval():
 
     mock_sleep.assert_not_called()
     handle_tag_event.execute.assert_called_once()
+
+
+def test_sync_current_tag_failure_does_not_block_playback():
+    reader = create_autospec(ReaderPort, instance=True, spec_set=True)
+    reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
+    handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
+    handle_tag_event.execute.return_value = PlaybackSession()
+    mock_repository = MagicMock()
+    mock_repository.set.side_effect = OSError("disk full")
+    sync_current_tag = SyncCurrentTag(
+        determine_current_tag_action=DetermineCurrentTagAction(),
+        apply_current_tag_action=ApplyCurrentTagAction(current_tag_repository=mock_repository),
+    )
+    controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event, sync_current_tag=sync_current_tag)
+
+    with (
+        patch("jukebox.adapters.inbound.cli_controller.time.monotonic", return_value=100.0),
+        patch("jukebox.adapters.inbound.cli_controller.sleep"),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        controller.run()
+
+    handle_tag_event.execute.assert_called_once()
+
+
+def test_sync_current_tag_called_before_handle_tag_event():
+    call_order = []
+    reader = create_autospec(ReaderPort, instance=True, spec_set=True)
+    reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
+    handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
+    handle_tag_event.execute.side_effect = lambda *_: call_order.append("handle") or PlaybackSession()
+    sync_current_tag = create_autospec(SyncCurrentTag, instance=True, spec_set=True)
+    sync_current_tag.execute.side_effect = lambda *_: call_order.append("sync")
+    controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event, sync_current_tag=sync_current_tag)
+
+    with (
+        patch("jukebox.adapters.inbound.cli_controller.time.monotonic", return_value=100.0),
+        patch("jukebox.adapters.inbound.cli_controller.sleep"),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        controller.run()
+
+    assert call_order == ["sync", "handle"]

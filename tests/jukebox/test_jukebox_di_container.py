@@ -53,7 +53,7 @@ class TestBuildJukebox:
             verbose=False,
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, sync_current_tag = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
@@ -95,7 +95,7 @@ class TestBuildJukebox:
         )
         sonos_playback_target_resolver = MagicMock()
 
-        reader, handle_tag_event = build_jukebox(
+        reader, handle_tag_event, sync_current_tag = build_jukebox(
             config,
             sonos_playback_target_resolver=sonos_playback_target_resolver,
         )
@@ -134,7 +134,7 @@ class TestBuildJukebox:
         )
         sonos_playback_target_resolver = MagicMock()
 
-        reader, handle_tag_event = build_jukebox(
+        reader, handle_tag_event, sync_current_tag = build_jukebox(
             config,
             sonos_playback_target_resolver=sonos_playback_target_resolver,
         )
@@ -171,7 +171,7 @@ class TestBuildJukebox:
             verbose=False,
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, sync_current_tag = build_jukebox(config)
 
         mock_library.assert_called_once_with("/test/library.json")
         mock_current_tag.assert_called_once_with("/test/current-tag.txt")
@@ -203,7 +203,7 @@ class TestBuildJukebox:
             verbose=False,
         )
 
-        reader, handle_tag_event = build_jukebox(config)
+        reader, handle_tag_event, sync_current_tag = build_jukebox(config)
 
         assert reader == mock_reader.return_value
         assert handle_tag_event.determine_action.pause_delay == 0.2

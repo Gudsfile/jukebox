@@ -11,9 +11,7 @@ from jukebox.domain.entities import (
     TagEvent,
 )
 from jukebox.domain.errors import PlaybackError
-from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
 from jukebox.domain.use_cases.determine_action import DetermineAction
-from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
 
@@ -43,32 +41,12 @@ def determine_action():
 
 
 @pytest.fixture
-def determine_current_tag_action():
-    """Create a DetermineCurrentTagAction instance."""
-    return DetermineCurrentTagAction()
-
-
-@pytest.fixture
-def mock_current_tag_repository():
-    return MagicMock()
-
-
-@pytest.fixture
-def apply_current_tag_action(mock_current_tag_repository):
-    return ApplyCurrentTagAction(current_tag_repository=mock_current_tag_repository)
-
-
-@pytest.fixture
-def handle_tag_event(
-    mock_player, mock_library, determine_action, determine_current_tag_action, apply_current_tag_action
-):
+def handle_tag_event(mock_player, mock_library, determine_action):
     """Create a HandleTagEvent instance."""
     return HandleTagEvent(
         player=mock_player,
         library=mock_library,
         determine_action=determine_action,
-        determine_current_tag_action=determine_current_tag_action,
-        apply_current_tag_action=apply_current_tag_action,
     )
 
 
@@ -86,73 +64,6 @@ def test_handle_play_action_with_existing_disc(handle_tag_event, mock_player, mo
     assert new_session.playing_tag == "test-tag"
     assert new_session.paused_at is None
     assert new_session.playing_tag_removed_at is None
-
-
-def test_current_tag_survives_brief_missed_reads_and_clears_after_absence_grace(
-    handle_tag_event, mock_current_tag_repository
-):
-    session = PlaybackSession()
-
-    session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.4), session)
-
-    mock_current_tag_repository.clear.assert_not_called()
-    assert session.physical_tag_removed_at == pytest.approx(100.4)
-
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.6), session)
-    mock_current_tag_repository.clear.assert_not_called()
-    assert session.physical_tag_removed_at == pytest.approx(100.4)
-
-    session = handle_tag_event.execute(TagEvent(tag_id="tag-1", timestamp=100.8), session)
-    assert mock_current_tag_repository.set.call_count == 1
-    assert session.physical_tag_removed_at is None
-
-    session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=101.9), session)
-
-    mock_current_tag_repository.clear.assert_called_once_with()
-    assert session.physical_tag is None
-
-
-def test_unknown_tag_promotes_to_known_without_rewriting_current_tag(
-    handle_tag_event, mock_current_tag_repository, mock_library, mock_player
-):
-    promoted_disc = Disc(uri="uri:promoted", metadata=DiscMetadata(), option=DiscOption(shuffle=True))
-    mock_library.get_disc.side_effect = [None, promoted_disc]
-    session = PlaybackSession()
-
-    session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.0), session)
-    session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.2), session)
-
-    assert mock_current_tag_repository.set.call_count == 1
-    assert session.physical_tag == "promote-tag"
-    mock_player.play.assert_called_once_with("uri:promoted", True)
-
-
-def test_current_tag_set_failure_does_not_block_playback(handle_tag_event, mock_current_tag_repository, mock_player):
-    mock_current_tag_repository.set.side_effect = OSError("disk full")
-    session = PlaybackSession()
-
-    new_session = handle_tag_event.execute(TagEvent(tag_id="known-tag", timestamp=100.0), session)
-
-    mock_player.play.assert_called_once_with("uri:123", False)
-    assert new_session.playing_tag == "known-tag"
-
-
-def test_current_tag_clear_failure_does_not_block_pause(handle_tag_event, mock_current_tag_repository, mock_player):
-    handle_tag_event.determine_action.pause_delay = 0.25
-    mock_current_tag_repository.clear.side_effect = OSError("permission denied")
-    session = PlaybackSession(
-        playing_tag="known-tag",
-        physical_tag="known-tag",
-        physical_tag_removed_at=0.99,
-        playing_tag_removed_at=0.24,
-        last_event_timestamp=100.0,
-    )
-
-    new_session = handle_tag_event.execute(TagEvent(tag_id=None, timestamp=100.02), session)
-
-    mock_player.pause.assert_called_once()
-    assert new_session.paused_at == 100.02
 
 
 def test_handle_play_action_with_shuffle(handle_tag_event, mock_player, mock_library):
@@ -181,6 +92,23 @@ def test_handle_play_action_with_nonexistent_disc(handle_tag_event, mock_player,
     handle_tag_event.execute(tag_event, session)
 
     mock_player.play.assert_not_called()
+
+
+def test_tag_without_disc_plays_when_disc_becomes_available(handle_tag_event, mock_player, mock_library):
+    """Should play on second read when disc wasn't in library on first read."""
+    promoted_disc = Disc(
+        uri="uri:promoted",
+        metadata=DiscMetadata(),
+        option=DiscOption(shuffle=True),
+    )
+    mock_library.get_disc.side_effect = [None, promoted_disc]
+    session = PlaybackSession()
+
+    session = handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.0), session)
+    mock_player.play.assert_not_called()
+
+    handle_tag_event.execute(TagEvent(tag_id="promote-tag", timestamp=100.2), session)
+    mock_player.play.assert_called_once_with("uri:promoted", True)
 
 
 def test_handle_resume_action(handle_tag_event, mock_player):
