@@ -1,193 +1,128 @@
+import dataclasses
 import logging
-from collections.abc import Callable
 
-from jukebox.domain.entities import PlaybackAction, PlaybackCommandRetry, PlaybackSession, TagEvent
+from jukebox.domain.entities import (
+    Disc,
+    PlaybackCommand,
+    PlaybackState,
+    Playing,
+    RetryState,
+    TagEvent,
+    TransitionContext,
+    Waiting,
+)
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import LibraryRepository
-from jukebox.domain.use_cases.determine_action import DetermineAction
+from jukebox.domain.use_cases.transition_playback import transition
 
 LOGGER = logging.getLogger("jukebox")
-PLAYBACK_RETRY_DELAYS_SECONDS = (0.1, 0.25, 0.5, 1.0, 2.0, 5.0, 10.0, 30.0)
 
 
 class HandleTagEvent:
-    """Orchestrates playback handling for a tag detection event."""
+    """Executes playback commands determined by the state transition function."""
 
     def __init__(
         self,
         player: PlayerPort,
         library: LibraryRepository,
-        determine_action: DetermineAction,
-        retry_delays_seconds: tuple[float, ...] = PLAYBACK_RETRY_DELAYS_SECONDS,
+        ctx: TransitionContext,
     ):
         self.player = player
         self.library = library
-        self.determine_action = determine_action
-        if not retry_delays_seconds:
-            raise ValueError("retry_delays_seconds must not be empty")
-        self.retry_delays_seconds = retry_delays_seconds
+        self.ctx = ctx
 
-    def execute(self, tag_event: TagEvent, session: PlaybackSession) -> PlaybackSession:
-        action = self.determine_action.execute(tag_event, session)
+    def execute(self, tag_event: TagEvent, state: PlaybackState) -> PlaybackState:
+        tag_id = tag_event.tag_id
+        disc: Disc | None = None
+        if tag_id is not None and not (isinstance(state, (Playing, Waiting)) and state.tag == tag_id):
+            disc = self.library.get_disc(tag_id)
 
-        LOGGER.debug(
-            "%s \t\t %s | %s | %s | %s",
-            action.value,
-            tag_event.tag_id,
-            session.playing_tag,
-            session.paused_at,
-            session.playing_tag_removed_at,
-        )
+        (success_state, command) = transition(state, tag_event, disc, self.ctx)
 
-        match action:
-            case PlaybackAction.CONTINUE:
-                # Reset when tag is present
-                session.playing_tag_removed_at = None
-                if (
-                    session.playback_command_retry is not None
-                    and session.playback_command_retry.action == PlaybackAction.PAUSE
-                ):
-                    session.playback_command_retry = None
+        LOGGER.debug("%s  %s | %s", (command or "none").upper(), tag_id, type(state).__name__)
 
-            case PlaybackAction.RESUME:
-                if self._run_playback_command(
-                    action=PlaybackAction.RESUME,
-                    timestamp=tag_event.timestamp,
-                    session=session,
-                    error_message="Playback operation `RESUME` failed; stopping session update",
-                    command=self.player.resume,
-                ):
-                    session.paused_at = None
-                    session.playing_tag_removed_at = None
+        if command is None:
+            return success_state
 
-            case PlaybackAction.PLAY:
-                LOGGER.info("Found card with UID: %s", tag_event.tag_id)
+        if command == "play":
+            LOGGER.info("Found card with UID: %s", tag_id)
+            LOGGER.info("Found corresponding disc: %s", disc)
 
-                disc = self.library.get_disc(tag_event.tag_id) if tag_event.tag_id is not None else None
-                if disc is not None:
-                    LOGGER.info("Found corresponding disc: %s", disc)
-                    if self._run_playback_command(
-                        action=PlaybackAction.PLAY,
-                        tag_id=tag_event.tag_id,
-                        timestamp=tag_event.timestamp,
-                        session=session,
-                        error_message=(
-                            f"Playback operation `PLAY` failed for tag_id='{tag_event.tag_id}'; stopping session update"
-                        ),
-                        command=lambda: self.player.play(disc.uri, disc.option.shuffle),
-                    ):
-                        session.playing_tag = tag_event.tag_id
-                        session.paused_at = None
-                        session.playing_tag_removed_at = None
-                else:
-                    session.playback_command_retry = None
-                    LOGGER.warning("No disc found for UID: %s", tag_event.tag_id)
+        return self._try_execute(state, success_state, command, tag_event, disc)
 
-            case PlaybackAction.WAITING:
-                # Grace period - tag removed but not pausing yet
-                if session.playing_tag_removed_at is None:
-                    session.playing_tag_removed_at = tag_event.timestamp
-                grace_period_elapsed = tag_event.timestamp - session.playing_tag_removed_at
-                LOGGER.debug("Grace period: %.3fs / %gs", grace_period_elapsed, self.determine_action.pause_delay)
-
-            case PlaybackAction.PAUSE:
-                if self._run_playback_command(
-                    action=PlaybackAction.PAUSE,
-                    timestamp=tag_event.timestamp,
-                    session=session,
-                    error_message="Playback operation `PAUSE` failed; stopping session update",
-                    command=self.player.pause,
-                ):
-                    session.paused_at = tag_event.timestamp
-
-            case PlaybackAction.STOP:
-                if self._run_playback_command(
-                    action=PlaybackAction.STOP,
-                    timestamp=tag_event.timestamp,
-                    session=session,
-                    error_message="Playback operation `STOP` failed; stopping session update",
-                    command=self.player.stop,
-                ):
-                    session.playing_tag = None
-                    session.paused_at = None
-                    session.playing_tag_removed_at = None
-
-            case PlaybackAction.IDLE:
-                pass
-
-            case _:
-                LOGGER.warning("`%s` action is not implemented yet", action.value)
-
-        return session
-
-    def _run_playback_command(
+    def _try_execute(
         self,
-        *,
-        action: PlaybackAction,
-        timestamp: float,
-        session: PlaybackSession,
-        error_message: str,
-        command: Callable[[], None],
-        tag_id: str | None = None,
-    ) -> bool:
-        retry = session.playback_command_retry
-        retry_matches = retry is not None and retry.matches(action=action, tag_id=tag_id)
+        current_state: PlaybackState,
+        success_state: PlaybackState,
+        command: PlaybackCommand,
+        tag_event: TagEvent,
+        disc: Disc | None,
+    ) -> PlaybackState:
+        tag_id = tag_event.tag_id if command == "play" else None
+        timestamp = tag_event.timestamp
+        retry = current_state.retry
+        retry_matches = retry is not None and retry.matches(action=command, tag_id=tag_id)
+
         if retry_matches and retry.exhausted:
             LOGGER.debug(
-                "Skipping playback operation `%s`; retry exhausted after %d attempts",
-                action.value.upper(),
+                "Skipping %s; retry exhausted after %d attempts",
+                command.upper(),
                 retry.attempt_count,
             )
-            return False
+            return current_state
 
         if retry_matches and retry.next_retry_at is not None and timestamp < retry.next_retry_at:
-            LOGGER.debug(
-                "Skipping playback operation `%s` until retry time %.3f",
-                action.value.upper(),
-                retry.next_retry_at,
-            )
-            return False
+            LOGGER.debug("Skipping %s until retry time %.3f", command.upper(), retry.next_retry_at)
+            return current_state
 
         try:
-            command()
+            match command:
+                case "play":
+                    assert disc is not None
+                    self.player.play(disc.uri, disc.option.shuffle)
+                case "pause":
+                    self.player.pause()
+                case "resume":
+                    self.player.resume()
+                case "stop":
+                    self.player.stop()
         except PlaybackError:
-            retry = self._record_playback_command_failure(
-                action=action,
-                timestamp=timestamp,
-                session=session,
+            new_retry = self._build_retry(
+                existing=retry if retry_matches else None,
+                action=command,
                 tag_id=tag_id,
+                timestamp=timestamp,
             )
-            if retry.exhausted:
-                LOGGER.warning("%s; retry exhausted after %d attempts", error_message, retry.attempt_count)
+            if new_retry.exhausted:
+                LOGGER.warning(
+                    "Playback %s failed; retry exhausted after %d attempts", command, new_retry.attempt_count
+                )
             else:
-                next_retry_at = retry.next_retry_at
-                if next_retry_at is None:
-                    raise RuntimeError("retry is not exhausted but next_retry_at is missing")
-                LOGGER.warning("%s; retrying in %.3fs", error_message, next_retry_at - timestamp)
-            return False
+                LOGGER.warning(
+                    "Playback %s failed; retrying in %.3fs", command, (new_retry.next_retry_at or 0) - timestamp
+                )
+            return dataclasses.replace(current_state, retry=new_retry)
 
-        session.playback_command_retry = None
-        return True
+        return success_state
 
-    def _record_playback_command_failure(
+    def _build_retry(
         self,
         *,
-        action: PlaybackAction,
+        existing: RetryState | None,
+        action: PlaybackCommand,
+        tag_id: str | None,
         timestamp: float,
-        session: PlaybackSession,
-        tag_id: str | None = None,
-    ) -> PlaybackCommandRetry:
-        existing_retry = session.playback_command_retry
-        if existing_retry is None or not existing_retry.matches(action=action, tag_id=tag_id):
+    ) -> RetryState:
+        if existing is None:
             attempt_count = 1
             first_failed_at = timestamp
         else:
-            attempt_count = existing_retry.attempt_count + 1
-            first_failed_at = existing_retry.first_failed_at
+            attempt_count = existing.attempt_count + 1
+            first_failed_at = existing.first_failed_at
 
         retry_delay = self._retry_delay_for_attempt(attempt_count)
-        retry = PlaybackCommandRetry(
+        return RetryState(
             action=action,
             tag_id=tag_id,
             first_failed_at=first_failed_at,
@@ -196,11 +131,9 @@ class HandleTagEvent:
             next_retry_at=None if retry_delay is None else timestamp + retry_delay,
             exhausted=retry_delay is None,
         )
-        session.playback_command_retry = retry
-        return retry
 
     def _retry_delay_for_attempt(self, attempt_count: int) -> float | None:
         delay_index = attempt_count - 1
-        if delay_index >= len(self.retry_delays_seconds):
+        if delay_index >= len(self.ctx.retry_delays):
             return None
-        return self.retry_delays_seconds[delay_index]
+        return self.ctx.retry_delays[delay_index]

@@ -3,7 +3,7 @@ from unittest.mock import create_autospec, patch
 import pytest
 
 from jukebox.adapters.inbound.cli_controller import CLIController
-from jukebox.domain.entities import CurrentTagSession, PlaybackSession
+from jukebox.domain.entities import CurrentTagSession, Idle
 from jukebox.domain.ports import ReaderPort
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
@@ -24,7 +24,7 @@ def test_run_sleeps_only_for_remaining_loop_interval():
     reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
-    handle_tag_event.execute.return_value = PlaybackSession()
+    handle_tag_event.execute.return_value = Idle()
     controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event)
 
     with (
@@ -42,7 +42,7 @@ def test_run_skips_sleep_when_reader_already_used_the_interval():
     reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
-    handle_tag_event.execute.return_value = PlaybackSession()
+    handle_tag_event.execute.return_value = Idle()
     controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event)
 
     with (
@@ -62,7 +62,7 @@ def test_sync_current_tag_called_before_handle_tag_event():
     reader = create_autospec(ReaderPort, instance=True, spec_set=True)
     reader.read.side_effect = ["tag-1", "tag-1", KeyboardInterrupt()]
     handle_tag_event = create_autospec(HandleTagEvent, instance=True, spec_set=True)
-    handle_tag_event.execute.side_effect = lambda *_: call_order.append("handle") or PlaybackSession()
+    handle_tag_event.execute.side_effect = lambda *_: call_order.append("handle") or Idle()
     sync_current_tag = create_autospec(SyncCurrentTag, instance=True, spec_set=True)
     sync_current_tag.execute.side_effect = lambda _ev, sess: (call_order.append("sync"), captured_sessions.append(sess))
     controller = _make_controller(reader=reader, handle_tag_event=handle_tag_event, sync_current_tag=sync_current_tag)

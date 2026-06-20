@@ -6,8 +6,8 @@ from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAd
 from jukebox.adapters.outbound.readers.dryrun_reader_adapter import DryrunReaderAdapter
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
+from jukebox.domain.entities import PLAYBACK_RETRY_DELAYS_SECONDS, TransitionContext
 from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAction
-from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
@@ -136,9 +136,10 @@ def build_jukebox(
         case _:
             raise ValueError(f"Unknown reader type: {config.reader_type}")
 
-    determine_action = DetermineAction(
+    ctx = TransitionContext(
         pause_delay=config.pause_delay_seconds,
         max_pause_duration=config.pause_duration_seconds,
+        retry_delays=PLAYBACK_RETRY_DELAYS_SECONDS,
     )
     sync_current_tag = SyncCurrentTag(
         determine_current_tag_action=DetermineCurrentTagAction(),
@@ -147,7 +148,7 @@ def build_jukebox(
     handle_tag_event = HandleTagEvent(
         player=player,
         library=library,
-        determine_action=determine_action,
+        ctx=ctx,
     )
 
     return reader, handle_tag_event, sync_current_tag
