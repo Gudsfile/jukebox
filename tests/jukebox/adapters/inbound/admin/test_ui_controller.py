@@ -268,7 +268,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
 @pytest.mark.anyio
 async def test_update_sonos_selection_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
     from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     controller = build_controller()
 
@@ -288,7 +288,9 @@ async def test_update_sonos_selection_redirects_when_write_succeeds_but_effectiv
                 }
             },
         }
-        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+        raise InvalidSettingsError(
+            "Invalid effective settings after environment overrides.", code=ErrorCode.INVALID_EFFECTIVE
+        )
 
     controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
     route = next(
@@ -471,7 +473,7 @@ async def test_update_setting_returns_field_error_for_non_object_json():
 @pytest.mark.anyio
 async def test_update_setting_redirects_when_write_succeeds_but_effective_settings_stay_invalid():
     from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     controller = build_controller()
 
@@ -493,7 +495,9 @@ async def test_update_setting_redirects_when_write_succeeds_but_effective_settin
                 }
             },
         }
-        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+        raise InvalidSettingsError(
+            "Invalid effective settings after environment overrides.", code=ErrorCode.INVALID_EFFECTIVE
+        )
 
     controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
     route = next(
@@ -516,10 +520,12 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
     from fastapi import HTTPException
 
     from jukebox.adapters.inbound.admin.ui_controller import SettingValueForm
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     controller = build_controller()
-    controller.settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Invalid settings update.")
+    controller.settings_service.patch_persisted_settings.side_effect = InvalidSettingsError(
+        "Invalid settings update.", code=ErrorCode.INVALID_UPDATE
+    )
     route = next(
         route
         for route in controller.app.routes
@@ -543,7 +549,7 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_setting_redirects_when_reset_succeeds_but_effective_settings_stay_invalid():
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     controller = build_controller()
 
@@ -566,7 +572,9 @@ async def test_reset_setting_redirects_when_reset_succeeds_but_effective_setting
                 }
             },
         }
-        raise InvalidSettingsError("Invalid effective settings after environment overrides.")
+        raise InvalidSettingsError(
+            "Invalid effective settings after environment overrides.", code=ErrorCode.INVALID_EFFECTIVE
+        )
 
     controller.settings_service.reset_persisted_value.side_effect = raise_after_reset
     route = next(
@@ -604,10 +612,12 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 @pytest.mark.anyio
 async def test_reset_setting_rerenders_edit_page_with_visible_error(walk_components):
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     controller = build_controller()
-    controller.settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Invalid settings update.")
+    controller.settings_service.reset_persisted_value.side_effect = InvalidSettingsError(
+        "Invalid settings update.", code=ErrorCode.INVALID_UPDATE
+    )
     route = next(
         route
         for route in controller.app.routes

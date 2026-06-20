@@ -11,6 +11,7 @@ from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, Set
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.settings.errors import (
+    ErrorCode,
     InvalidSettingsError,
     MalformedSettingsFileError,
     UnsupportedSettingsVersionError,
@@ -610,7 +611,13 @@ def test_render_settings_output_json_mode_preserves_payload_shape():
 
 
 def test_render_cli_error_for_unsupported_settings_path_is_actionable():
-    message = render_cli_error(InvalidSettingsError("Unsupported settings path for write: 'admin.api.host'"))
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Unsupported settings path for write: 'admin.api.host'",
+            code=ErrorCode.UNSUPPORTED_PATH,
+            path="admin.api.host",
+        )
+    )
 
     assert "Unsupported settings path: 'admin.api.host'." in message
     assert "`jukebox-admin settings show --effective --json`" in message
@@ -618,7 +625,11 @@ def test_render_cli_error_for_unsupported_settings_path_is_actionable():
 
 def test_render_cli_error_for_invalid_json_value_is_concise():
     message = render_cli_error(
-        InvalidSettingsError("Settings value for 'jukebox.player.sonos.selected_group' must be valid JSON.")
+        InvalidSettingsError(
+            "Settings value for 'jukebox.player.sonos.selected_group' must be valid JSON.",
+            code=ErrorCode.INVALID_JSON_VALUE,
+            path="jukebox.player.sonos.selected_group",
+        )
     )
 
     assert message == "Invalid value for 'jukebox.player.sonos.selected_group'. Pass a JSON object or `null`."
@@ -649,7 +660,9 @@ def test_render_cli_error_for_invalid_settings_file_preserves_failing_path():
             "admin.api.port\n"
             "  Input should be a valid integer, unable to parse string as an integer "
             "[type=int_parsing, input_value='bad', input_type=str]\n"
-            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing",
+            code=ErrorCode.INVALID_FILE,
+            path="/tmp/settings.json",
         )
     )
 
@@ -668,7 +681,8 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
             "[type=int_parsing, input_value='bad', input_type=str]\n"
             "admin.ui.port\n"
             "  Input should be less than or equal to 65535 [type=less_than_equal, input_value=70000, input_type=int]\n"
-            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing",
+            code=ErrorCode.INVALID_EFFECTIVE,
         )
     )
 

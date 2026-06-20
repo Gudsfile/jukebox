@@ -7,7 +7,7 @@ from pydantic import ValidationError
 
 from .dict_utils import deep_merge
 from .entities import PersistedAppSettings, SparsePersistedAppSettings
-from .errors import InvalidSettingsError, MalformedSettingsFileError
+from .errors import ErrorCode, InvalidSettingsError, MalformedSettingsFileError
 from .migration import CURRENT_SETTINGS_SCHEMA_VERSION, migrate_settings_data
 from .types import JsonObject
 
@@ -30,7 +30,10 @@ class FileSettingsRepository:
         except json.JSONDecodeError as err:
             raise MalformedSettingsFileError(f"Malformed settings file at '{self.filepath}': {err}") from err
 
-        migrated_data, migrated = migrate_settings_data(raw_data)
+        try:
+            migrated_data, migrated = migrate_settings_data(raw_data)
+        except InvalidSettingsError as err:
+            raise InvalidSettingsError(str(err), code=err.code, path=self.filepath) from err
 
         try:
             SparsePersistedAppSettings.model_validate(migrated_data)
@@ -38,7 +41,11 @@ class FileSettingsRepository:
                 deep_merge(PersistedAppSettings().model_dump(mode="python"), migrated_data)
             )
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
+            raise InvalidSettingsError(
+                f"Invalid settings file at '{self.filepath}': {err}",
+                code=ErrorCode.INVALID_FILE,
+                path=self.filepath,
+            ) from err
 
         if migrated:
             self._write_data(migrated_data)
@@ -53,7 +60,11 @@ class FileSettingsRepository:
                 deep_merge(PersistedAppSettings().model_dump(mode="python"), raw_data)
             )
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid settings file at '{self.filepath}': {err}") from err
+            raise InvalidSettingsError(
+                f"Invalid settings file at '{self.filepath}': {err}",
+                code=ErrorCode.INVALID_FILE,
+                path=self.filepath,
+            ) from err
 
     def save_persisted_settings_data(self, data: JsonObject) -> None:
         self._write_data(data)

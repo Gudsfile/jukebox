@@ -7,7 +7,7 @@ from typer.testing import CliRunner
 from jukebox import app
 from jukebox.pn532.profiles import SpiConnectionParams
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
-from jukebox.settings.errors import InvalidSettingsError
+from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 
 runner = CliRunner()
@@ -61,7 +61,9 @@ def test_main_uses_resolved_runtime_config(app_mocks):
 
 
 def test_main_exits_on_settings_error(app_mocks):
-    app_mocks.build_settings_service.side_effect = InvalidSettingsError("broken settings")
+    app_mocks.build_settings_service.side_effect = InvalidSettingsError(
+        "broken settings", code=ErrorCode.INVALID_EFFECTIVE
+    )
 
     result = runner.invoke(app.app)
 
@@ -72,7 +74,9 @@ def test_main_exits_on_settings_error(app_mocks):
 def test_main_exits_on_runtime_resolver_settings_error(app_mocks):
     settings_service = MagicMock()
     app_mocks.build_settings_service.return_value = settings_service
-    app_mocks.build_runtime_resolver.side_effect = InvalidSettingsError("resolver failed")
+    app_mocks.build_runtime_resolver.side_effect = InvalidSettingsError(
+        "resolver failed", code=ErrorCode.INVALID_EFFECTIVE
+    )
 
     result = runner.invoke(app.app)
 
@@ -98,7 +102,7 @@ def test_main_exits_on_build_jukebox_settings_error(app_mocks):
     runtime_resolver.resolve.return_value = runtime_config
     app_mocks.build_settings_service.return_value = settings_service
     app_mocks.build_runtime_resolver.return_value = runtime_resolver
-    app_mocks.build_jukebox.side_effect = InvalidSettingsError("sonos startup failed")
+    app_mocks.build_jukebox.side_effect = InvalidSettingsError("sonos startup failed", code=ErrorCode.INVALID_EFFECTIVE)
 
     result = runner.invoke(app.app)
 

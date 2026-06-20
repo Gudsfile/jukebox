@@ -10,7 +10,7 @@ if FASTAPI_INSTALLED:
 
     from jukebox.adapters.inbound.admin.api.models import SettingsPatchInput, SettingsResetInput
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
 
 def build_router(*, settings_service=None):
@@ -190,7 +190,9 @@ def test_patch_settings_updates_player_settings(get_route):
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_settings_returns_400_for_invalid_settings_write(get_route):
     settings_service = MagicMock()
-    settings_service.patch_persisted_settings.side_effect = InvalidSettingsError("Unsupported settings path")
+    settings_service.patch_persisted_settings.side_effect = InvalidSettingsError(
+        "Unsupported settings path", code=ErrorCode.UNSUPPORTED_PATH
+    )
     router = build_router(settings_service=settings_service)
     route = get_route(router, "/api/v1/settings", "PATCH")
 
@@ -277,7 +279,9 @@ def test_reset_settings_accepts_section_path(get_route):
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_reset_settings_returns_400_for_invalid_reset_path(get_route):
     settings_service = MagicMock()
-    settings_service.reset_persisted_value.side_effect = InvalidSettingsError("Unsupported settings path")
+    settings_service.reset_persisted_value.side_effect = InvalidSettingsError(
+        "Unsupported settings path", code=ErrorCode.UNSUPPORTED_PATH
+    )
     router = build_router(settings_service=settings_service)
     route = get_route(router, "/api/v1/settings/reset", "POST")
 

@@ -86,6 +86,17 @@ def test_repository_rejects_legacy_selected_group_fields(tmp_path):
         repository.load_persisted_settings_data()
 
 
+def test_repository_migration_error_carries_filepath(tmp_path):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(json.dumps([1, 2, 3]), encoding="utf-8")
+    repository = FileSettingsRepository(str(settings_path))
+
+    with pytest.raises(InvalidSettingsError) as exc_info:
+        repository.load_persisted_settings_data()
+
+    assert exc_info.value.path == str(settings_path)
+
+
 def test_repository_accepts_selected_group_household_id(tmp_path):
     settings_path = tmp_path / "settings.json"
     settings_path.write_text(

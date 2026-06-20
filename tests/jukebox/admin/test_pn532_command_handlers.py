@@ -12,7 +12,7 @@ from jukebox.admin.pn532_command_handlers import (
 )
 from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
 from jukebox.pn532.profiles import PN532_PROFILES, SpiConnectionParams
-from jukebox.settings.errors import InvalidSettingsError
+from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 from jukebox.shared.errors import MissingOptionalDependencyError
 
 
@@ -224,7 +224,9 @@ def test_execute_pn532_command_select_cancel_does_not_write_settings():
 
 def test_execute_pn532_command_select_interactive_invalid_pin_propagates_settings_error():
     service = MagicMock()
-    service.set_persisted_value.side_effect = InvalidSettingsError("invalid value for spi.cs")
+    service.set_persisted_value.side_effect = InvalidSettingsError(
+        "invalid value for spi.cs", code=ErrorCode.INVALID_UPDATE
+    )
     profile_prompt_fn = MagicMock(return_value="waveshare_hat")
     pin_prompt_fn = MagicMock(side_effect=["20", "not_a_number", ""])
 

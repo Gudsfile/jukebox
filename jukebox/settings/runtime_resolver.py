@@ -7,7 +7,7 @@ from jukebox.pn532.profiles import SpiConnectionParams, resolve_connection_param
 from jukebox.sonos.service import SonosService
 
 from .entities import AppSettings, Pn532ReaderSettings, ResolvedJukeboxRuntimeConfig, ResolvedSonosGroupRuntime
-from .errors import InvalidSettingsError
+from .errors import ErrorCode, InvalidSettingsError
 from .service_protocols import RuntimeSettingsService
 from .validation_rules import validate_settings_rules
 
@@ -43,7 +43,10 @@ class JukeboxRuntimeResolver:
                 verbose=verbose,
             )
         except (ValidationError, ValueError) as err:
-            raise InvalidSettingsError(self.settings_service.format_invalid_settings_error(str(err))) from err
+            raise InvalidSettingsError(
+                self.settings_service.format_invalid_settings_error(str(err)),
+                code=ErrorCode.INVALID_EFFECTIVE,
+            ) from err
 
     def _resolve_active_sonos_target(self, effective_settings: AppSettings) -> ActiveSonosTarget:
         player_settings = effective_settings.jukebox.player
