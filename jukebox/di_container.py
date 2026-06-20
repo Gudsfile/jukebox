@@ -10,6 +10,7 @@ from jukebox.domain.use_cases.apply_current_tag_action import ApplyCurrentTagAct
 from jukebox.domain.use_cases.determine_action import DetermineAction
 from jukebox.domain.use_cases.determine_current_tag_action import DetermineCurrentTagAction
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
+from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
@@ -139,18 +140,17 @@ def build_jukebox(
         pause_delay=config.pause_delay_seconds,
         max_pause_duration=config.pause_duration_seconds,
     )
-    determine_current_tag_action = DetermineCurrentTagAction()
-    apply_current_tag_action = ApplyCurrentTagAction(current_tag_repository=current_tag_repository)
-
+    sync_current_tag = SyncCurrentTag(
+        determine_current_tag_action=DetermineCurrentTagAction(),
+        apply_current_tag_action=ApplyCurrentTagAction(current_tag_repository=current_tag_repository),
+    )
     handle_tag_event = HandleTagEvent(
         player=player,
         library=library,
         determine_action=determine_action,
-        determine_current_tag_action=determine_current_tag_action,
-        apply_current_tag_action=apply_current_tag_action,
     )
 
-    return reader, handle_tag_event
+    return reader, handle_tag_event, sync_current_tag
 
 
 def build_sonos_playback_target_resolver() -> SonosPlaybackTargetResolver:

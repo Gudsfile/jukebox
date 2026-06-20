@@ -115,13 +115,14 @@ def _run(state: JukeboxCliState) -> None:
         settings_service = build_settings_service(**{k: v for k, v in asdict(state).items() if k != "verbose"})
         runtime_resolver = build_runtime_resolver(settings_service)
         runtime_config = runtime_resolver.resolve(verbose=state.verbose)
-        reader, handle_tag_event = build_jukebox(runtime_config)
+        reader, handle_tag_event, sync_current_tag = build_jukebox(runtime_config)
     except SettingsError as err:
         _exit_error(str(err))
 
     controller = CLIController(
         reader=reader,
         handle_tag_event=handle_tag_event,
+        sync_current_tag=sync_current_tag,
         loop_interval_seconds=runtime_config.loop_interval_seconds,
     )
     controller.run()

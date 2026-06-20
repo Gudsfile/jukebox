@@ -43,7 +43,7 @@ def test_main_uses_resolved_runtime_config(app_mocks):
     runtime_resolver.resolve.return_value = runtime_config
     app_mocks.build_settings_service.return_value = settings_service
     app_mocks.build_runtime_resolver.return_value = runtime_resolver
-    app_mocks.build_jukebox.return_value = (MagicMock(), MagicMock())
+    app_mocks.build_jukebox.return_value = (MagicMock(), MagicMock(), MagicMock())
 
     result = runner.invoke(app.app)
 
@@ -160,8 +160,8 @@ def test_main_builds_runtime_from_cli_arguments(mocker, app_mocks, args, expecte
     runtime_resolver = MagicMock()
     runtime_resolver.resolve.return_value = runtime_config
     app_mocks.build_runtime_resolver.return_value = runtime_resolver
-    reader, handle_tag_event = MagicMock(), MagicMock()
-    app_mocks.build_jukebox.return_value = (reader, handle_tag_event)
+    reader, handle_tag_event, sync_current_tag = MagicMock(), MagicMock(), MagicMock()
+    app_mocks.build_jukebox.return_value = (reader, handle_tag_event, sync_current_tag)
     controller = MagicMock()
     app_mocks.controller_class.return_value = controller
 
@@ -178,6 +178,7 @@ def test_main_builds_runtime_from_cli_arguments(mocker, app_mocks, args, expecte
     app_mocks.controller_class.assert_called_once_with(
         reader=reader,
         handle_tag_event=handle_tag_event,
+        sync_current_tag=sync_current_tag,
         loop_interval_seconds=loop_interval_seconds,
     )
     controller.run.assert_called_once()
