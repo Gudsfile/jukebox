@@ -3,6 +3,8 @@ import re
 from collections.abc import Iterable, Mapping
 from typing import cast
 
+from pydantic import ValidationError
+
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
     ErrorCode,
@@ -399,16 +401,32 @@ def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
         case ErrorCode.INVALID_JSON_TYPE:
             return f"Invalid value for '{err.path or 'setting'}'. Expected a JSON object or `null`."
         case ErrorCode.INVALID_UPDATE:
-            return f"Settings update rejected: {_extract_compact_detail(str(err))}"
+            return f"Settings update rejected: {_extract_error_detail(err)}"
         case ErrorCode.INVALID_FILE:
-            detail = _extract_compact_detail(str(err))
+            detail = _extract_error_detail(err)
             if err.path is not None:
                 return f"Persisted settings are invalid at '{err.path}': {detail}"
             return f"Persisted settings are invalid: {detail}"
         case ErrorCode.INVALID_EFFECTIVE:
-            return f"Effective settings are invalid: {_extract_compact_detail(str(err))}"
+            return f"Effective settings are invalid: {_extract_error_detail(err)}"
+        case ErrorCode.UNKNOWN_PATH:
+            return str(err)
         case _:
             return str(err)
+
+
+def _extract_error_detail(err: InvalidSettingsError) -> str:
+    if isinstance(err.__cause__, ValidationError):
+        return _format_validation_errors(err.__cause__)
+    return _extract_compact_detail(str(err))
+
+
+def _format_validation_errors(cause: ValidationError) -> str:
+    parts = []
+    for error in cause.errors(include_url=False):
+        location = ".".join(str(loc) for loc in error["loc"])
+        parts.append(f"{location}: {error['msg']}" if location else error["msg"])
+    return "; ".join(parts)
 
 
 def _extract_compact_detail(message: str) -> str:

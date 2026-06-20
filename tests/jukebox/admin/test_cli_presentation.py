@@ -705,6 +705,86 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
     )
 
 
+def test_render_cli_error_uses_structured_validation_errors_when_cause_is_available():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        field_a: int
+        field_b: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"field_a": "bad", "field_b": "also_bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(f"Invalid settings update: {cause}", code=ErrorCode.INVALID_UPDATE) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Settings update rejected: "
+        "field_a: Input should be a valid integer, unable to parse string as an integer; "
+        "field_b: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
+def test_render_cli_error_uses_structured_validation_errors_for_invalid_file():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        port: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"port": "bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(
+            f"Invalid settings file at '/tmp/settings.json': {cause}",
+            code=ErrorCode.INVALID_FILE,
+            path="/tmp/settings.json",
+        ) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Persisted settings are invalid at '/tmp/settings.json': "
+        "port: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
+def test_render_cli_error_uses_structured_validation_errors_for_invalid_effective():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        port: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"port": "bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(
+            f"Invalid effective settings from persisted settings: {cause}",
+            code=ErrorCode.INVALID_EFFECTIVE,
+        ) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Effective settings are invalid: port: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
 def test_render_cli_error_for_optional_dependency_error_is_concise():
     message = render_cli_error(MissingOptionalDependencyError("`jukebox-admin ui`", "ui", "jukebox-admin ui"))
 
