@@ -3,8 +3,6 @@ from .current_tag_session import CurrentTagSession
 from .current_tag_status import CurrentTagStatus
 from .disc import Disc, DiscMetadata, DiscOption
 from .library import Library
-from .playback_action import PlaybackAction
-from .playback_session import PlaybackCommandRetry, PlaybackSession
 from .playback_state import (
     PLAYBACK_RETRY_DELAYS_SECONDS,
     Idle,
@@ -22,9 +20,6 @@ __all__ = [
     "CurrentTagAction",
     "CurrentTagSession",
     "CurrentTagStatus",
-    "PlaybackAction",
-    "PlaybackCommandRetry",
-    "PlaybackSession",
     "Idle",
     "Playing",
     "Waiting",
