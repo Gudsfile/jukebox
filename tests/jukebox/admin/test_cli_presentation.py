@@ -635,6 +635,18 @@ def test_render_cli_error_for_invalid_json_value_is_concise():
     assert message == "Invalid value for 'jukebox.player.sonos.selected_group'. Pass a JSON object or `null`."
 
 
+def test_render_cli_error_for_invalid_json_type_is_concise():
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Settings value for 'jukebox.player.sonos.selected_group' must be a JSON object or null.",
+            code=ErrorCode.INVALID_JSON_TYPE,
+            path="jukebox.player.sonos.selected_group",
+        )
+    )
+
+    assert message == "Invalid value for 'jukebox.player.sonos.selected_group'. Expected a JSON object or `null`."
+
+
 def test_render_cli_error_for_malformed_settings_file_is_friendly():
     message = render_cli_error(
         MalformedSettingsFileError("Malformed settings file at '/tmp/settings.json': Expecting value: line 1 column 1")

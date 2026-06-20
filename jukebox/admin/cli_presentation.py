@@ -5,6 +5,7 @@ from typing import cast
 
 from jukebox.settings.definitions import SETTINGS, get_setting_definition, is_editable_setting_path
 from jukebox.settings.errors import (
+    ErrorCode,
     InvalidSettingsError,
     MalformedSettingsFileError,
     SettingsError,
@@ -385,40 +386,29 @@ def _render_cli_error_message(err: BaseException) -> str:
 
 
 def _render_invalid_settings_error(err: InvalidSettingsError) -> str:
-    message = str(err)
-
-    if message.startswith("Unsupported settings path for write: '") or message.startswith(
-        "Unsupported settings path for reset: '"
-    ):
-        dotted_path = _extract_quoted_path(message)
-        if dotted_path is not None:
-            return (
-                f"Unsupported settings path: '{dotted_path}'. Use `jukebox-admin settings show --effective --json` "
-                "to inspect supported editable paths."
-            )
-        return "Unsupported settings path."
-
-    if message.startswith("Settings value for '"):
-        dotted_path = _extract_quoted_path(message)
-        if "must be valid JSON" in message:
-            return f"Invalid value for '{dotted_path or 'setting'}'. Pass a JSON object or `null`."
-        if "must be a JSON object or null" in message:
-            return f"Invalid value for '{dotted_path or 'setting'}'. Expected a JSON object or `null`."
-
-    if message.startswith("Invalid settings update:"):
-        return f"Settings update rejected: {_extract_compact_detail(message)}"
-
-    if message.startswith("Invalid settings file at '"):
-        filepath = _extract_quoted_path(message)
-        detail = _extract_compact_detail(message)
-        if filepath is not None:
-            return f"Persisted settings are invalid at '{filepath}': {detail}"
-        return f"Persisted settings are invalid: {detail}"
-
-    if message.startswith("Invalid effective settings"):
-        return f"Effective settings are invalid: {_extract_compact_detail(message)}"
-
-    return message
+    match err.code:
+        case ErrorCode.UNSUPPORTED_PATH:
+            if err.path is not None:
+                return (
+                    f"Unsupported settings path: '{err.path}'. Use `jukebox-admin settings show --effective --json` "
+                    "to inspect supported editable paths."
+                )
+            return "Unsupported settings path."
+        case ErrorCode.INVALID_JSON_VALUE:
+            return f"Invalid value for '{err.path or 'setting'}'. Pass a JSON object or `null`."
+        case ErrorCode.INVALID_JSON_TYPE:
+            return f"Invalid value for '{err.path or 'setting'}'. Expected a JSON object or `null`."
+        case ErrorCode.INVALID_UPDATE:
+            return f"Settings update rejected: {_extract_compact_detail(str(err))}"
+        case ErrorCode.INVALID_FILE:
+            detail = _extract_compact_detail(str(err))
+            if err.path is not None:
+                return f"Persisted settings are invalid at '{err.path}': {detail}"
+            return f"Persisted settings are invalid: {detail}"
+        case ErrorCode.INVALID_EFFECTIVE:
+            return f"Effective settings are invalid: {_extract_compact_detail(str(err))}"
+        case _:
+            return str(err)
 
 
 def _extract_compact_detail(message: str) -> str:
