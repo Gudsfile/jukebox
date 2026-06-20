@@ -184,7 +184,7 @@ class SettingsService:
 
         try:
             validate_settings_rules(effective_settings.model_dump(mode="python"), updated_paths)
-        except ValueError as err:
+        except (ValueError, KeyError) as err:
             raise InvalidSettingsError(f"Invalid settings update: {err}") from err
 
         persisted_after = _build_updated_persisted_settings(

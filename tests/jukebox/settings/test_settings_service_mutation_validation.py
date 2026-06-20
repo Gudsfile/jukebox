@@ -2,6 +2,7 @@ import json
 
 import pytest
 
+from jukebox.settings import resolve as resolve_module
 from jukebox.settings.errors import InvalidSettingsError
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService
@@ -296,6 +297,20 @@ def test_settings_service_preserves_inactive_reader_subtree_when_switching_reade
     runtime_config = resolve_jukebox_runtime(service)
     assert runtime_config.reader_type == "pn532"
     assert runtime_config.pn532_read_timeout_seconds == 0.2
+
+
+def test_settings_service_set_wraps_validation_rule_key_error_as_invalid_settings_error(tmp_path, mocker):
+    settings_path = tmp_path / "settings.json"
+    settings_path.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+    service = SettingsService(repository=FileSettingsRepository(str(settings_path)))
+    mocker.patch.object(
+        resolve_module, "validate_settings_rules", side_effect=KeyError("jukebox.runtime.loop_interval_seconds")
+    )
+
+    with pytest.raises(InvalidSettingsError, match="Invalid settings update"):
+        service.set_persisted_value("jukebox.playback.pause_delay_seconds", "5.0")
+
+    assert json.loads(settings_path.read_text(encoding="utf-8")) == {"schema_version": 1}
 
 
 def test_settings_service_patch_rejects_malformed_inactive_reader_branch_transactionally(tmp_path):
