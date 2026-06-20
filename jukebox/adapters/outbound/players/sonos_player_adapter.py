@@ -11,7 +11,7 @@ from urllib3.exceptions import HTTPError
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
-from jukebox.settings.errors import InvalidSettingsError
+from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 from jukebox.sonos.service import (
     SonosPlaybackTarget,
     SonosPlaybackTargetResolver,
@@ -66,7 +66,10 @@ class SonosPlayerAdapter(PlayerPort):
 
             speaker_info = self._refresh_speaker_metadata()
         except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
-            raise InvalidSettingsError(f"Failed to initialize Sonos player: {err}") from err
+            raise InvalidSettingsError(
+                f"Failed to initialize Sonos player: {err}",
+                code=ErrorCode.INVALID_EFFECTIVE,
+            ) from err
 
         LOGGER.info(
             "Found `%s` with software version: %s",

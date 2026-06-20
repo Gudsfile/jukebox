@@ -189,11 +189,11 @@ def test_settings_edit_pages_render_select_text_and_json_fields(walk_components)
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
 def test_settings_pages_render_error_banner_when_effective_settings_are_unavailable(walk_components):
-    from jukebox.settings.errors import InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
 
     page_builder = build_settings_page_builder()
     page_builder.settings_service.get_effective_settings_view.side_effect = InvalidSettingsError(
-        "Invalid effective settings after environment overrides."
+        "Invalid effective settings after environment overrides.", code=ErrorCode.INVALID_EFFECTIVE
     )
 
     settings_page = page_builder.build_settings_page_components()[0]

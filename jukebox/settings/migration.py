@@ -1,6 +1,6 @@
 import copy
 
-from .errors import InvalidSettingsError, UnsupportedSettingsVersionError
+from .errors import ErrorCode, InvalidSettingsError, UnsupportedSettingsVersionError
 from .types import JsonObject, JsonValue
 
 CURRENT_SETTINGS_SCHEMA_VERSION = 1
@@ -8,7 +8,7 @@ CURRENT_SETTINGS_SCHEMA_VERSION = 1
 
 def migrate_settings_data(data: JsonValue) -> tuple[JsonObject, bool]:
     if not isinstance(data, dict):
-        raise InvalidSettingsError("The settings file root must be a JSON object.")
+        raise InvalidSettingsError("The settings file root must be a JSON object.", code=ErrorCode.INVALID_FILE)
 
     migrated_data = copy.deepcopy(data)
     schema_version = migrated_data.get("schema_version")
@@ -18,7 +18,7 @@ def migrate_settings_data(data: JsonValue) -> tuple[JsonObject, bool]:
         return migrated_data, True
 
     if not isinstance(schema_version, int):
-        raise InvalidSettingsError("The settings file schema_version must be an integer.")
+        raise InvalidSettingsError("The settings file schema_version must be an integer.", code=ErrorCode.INVALID_FILE)
 
     if schema_version == CURRENT_SETTINGS_SCHEMA_VERSION:
         return migrated_data, False

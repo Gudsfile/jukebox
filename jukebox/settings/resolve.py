@@ -22,7 +22,7 @@ from .entities import (
     PersistedAppSettings,
     ResolvedAdminRuntimeConfig,
 )
-from .errors import InvalidSettingsError
+from .errors import ErrorCode, InvalidSettingsError
 from .repositories import SettingsRepository
 from .types import JsonObject, JsonValue
 from .validation_rules import validate_settings_rules
@@ -104,7 +104,11 @@ class SettingsService:
 
     def set_persisted_value(self, dotted_path: str, raw_value: str) -> JsonObject:
         if not is_editable_setting_path(dotted_path):
-            raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+            raise InvalidSettingsError(
+                f"Unsupported settings path for write: '{dotted_path}'",
+                code=ErrorCode.UNSUPPORTED_PATH,
+                path=dotted_path,
+            )
 
         current_data = self.repository.load_persisted().model_dump(mode="python")
         updated_data = copy.deepcopy(current_data)
@@ -114,7 +118,11 @@ class SettingsService:
     def reset_persisted_value(self, dotted_path: str) -> JsonObject:
         editable_paths = get_editable_paths_for_prefix(dotted_path)
         if not editable_paths:
-            raise InvalidSettingsError(f"Unsupported settings path for reset: '{dotted_path}'")
+            raise InvalidSettingsError(
+                f"Unsupported settings path for reset: '{dotted_path}'",
+                code=ErrorCode.UNSUPPORTED_PATH,
+                path=dotted_path,
+            )
 
         current_data = self.repository.load_persisted().model_dump(mode="python")
         defaults_data = PersistedAppSettings().model_dump(mode="python")
@@ -126,11 +134,13 @@ class SettingsService:
 
     def patch_persisted_settings(self, patch: JsonObject) -> JsonObject:
         if not isinstance(patch, dict) or not patch:
-            raise InvalidSettingsError("Settings patch must be a non-empty JSON object.")
+            raise InvalidSettingsError("Settings patch must be a non-empty JSON object.", code=ErrorCode.INVALID_UPDATE)
 
         updated_paths = sorted(_collect_patch_paths(patch))
         if not updated_paths:
-            raise InvalidSettingsError("Settings patch must include at least one editable field.")
+            raise InvalidSettingsError(
+                "Settings patch must include at least one editable field.", code=ErrorCode.INVALID_UPDATE
+            )
 
         current_data = self.repository.load_persisted().model_dump(mode="python")
         updated_data = deep_merge(current_data, patch)
@@ -146,19 +156,28 @@ class SettingsService:
         try:
             AppSettings.model_validate(file_merged)
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid effective settings from persisted settings: {err}") from err
+            raise InvalidSettingsError(
+                f"Invalid effective settings from persisted settings: {err}",
+                code=ErrorCode.INVALID_EFFECTIVE,
+            ) from err
 
         env_merged = deep_merge(file_merged, self.env_overrides)
         try:
             AppSettings.model_validate(env_merged)
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid effective settings after environment overrides: {err}") from err
+            raise InvalidSettingsError(
+                f"Invalid effective settings after environment overrides: {err}",
+                code=ErrorCode.INVALID_EFFECTIVE,
+            ) from err
 
         cli_merged = deep_merge(env_merged, self.cli_overrides)
         try:
             effective_settings = AppSettings.model_validate(cli_merged)
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid effective settings after CLI overrides: {err}") from err
+            raise InvalidSettingsError(
+                f"Invalid effective settings after CLI overrides: {err}",
+                code=ErrorCode.INVALID_EFFECTIVE,
+            ) from err
 
         return effective_settings
 
@@ -173,19 +192,20 @@ class SettingsService:
         try:
             persisted_settings = PersistedAppSettings.model_validate(updated_data)
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+            raise InvalidSettingsError(f"Invalid settings update: {err}", code=ErrorCode.INVALID_UPDATE) from err
 
         try:
             effective_settings = AppSettings.model_validate(
                 deep_merge(AppSettings().model_dump(mode="python"), persisted_settings.model_dump(mode="python"))
             )
         except ValidationError as err:
-            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+            raise InvalidSettingsError(f"Invalid settings update: {err}", code=ErrorCode.INVALID_UPDATE) from err
 
         try:
             validate_settings_rules(effective_settings.model_dump(mode="python"), updated_paths)
         except (ValueError, KeyError) as err:
-            raise InvalidSettingsError(f"Invalid settings update: {err}") from err
+            # Rule validation raises plain exceptions, not ValidationError — presentation falls back to text parsing.
+            raise InvalidSettingsError(f"Invalid settings update: {err}", code=ErrorCode.INVALID_UPDATE) from err
 
         persisted_after = _build_updated_persisted_settings(
             persisted_before,
@@ -314,11 +334,19 @@ def _collect_patch_paths(node: JsonObject, prefix: str | None = None) -> set[str
 
         if isinstance(value, dict):
             if not has_editable_setting_descendants(dotted_path):
-                raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+                raise InvalidSettingsError(
+                    f"Unsupported settings path for write: '{dotted_path}'",
+                    code=ErrorCode.UNSUPPORTED_PATH,
+                    path=dotted_path,
+                )
             paths.update(_collect_patch_paths(value, dotted_path))
             continue
 
-        raise InvalidSettingsError(f"Unsupported settings path for write: '{dotted_path}'")
+        raise InvalidSettingsError(
+            f"Unsupported settings path for write: '{dotted_path}'",
+            code=ErrorCode.UNSUPPORTED_PATH,
+            path=dotted_path,
+        )
 
     return paths
 
@@ -328,7 +356,11 @@ def _get_dotted_path(data: JsonObject, dotted_path: str) -> JsonValue:
 
     for part in dotted_path.split("."):
         if not isinstance(current, dict) or part not in current:
-            raise InvalidSettingsError(f"Unknown settings path: '{dotted_path}'")
+            raise InvalidSettingsError(
+                f"Unknown settings path: '{dotted_path}'",
+                code=ErrorCode.UNKNOWN_PATH,
+                path=dotted_path,
+            )
         current = current[part]
 
     return copy.deepcopy(current)
@@ -406,9 +438,17 @@ def _parse_raw_setting_value(dotted_path: str, raw_value: str) -> JsonValue:
     try:
         parsed_value = json.loads(raw_value)
     except json.JSONDecodeError as err:
-        raise InvalidSettingsError(f"Settings value for '{dotted_path}' must be valid JSON.") from err
+        raise InvalidSettingsError(
+            f"Settings value for '{dotted_path}' must be valid JSON.",
+            code=ErrorCode.INVALID_JSON_VALUE,
+            path=dotted_path,
+        ) from err
 
     if parsed_value is not None and not isinstance(parsed_value, dict):
-        raise InvalidSettingsError(f"Settings value for '{dotted_path}' must be a JSON object or null.")
+        raise InvalidSettingsError(
+            f"Settings value for '{dotted_path}' must be a JSON object or null.",
+            code=ErrorCode.INVALID_JSON_TYPE,
+            path=dotted_path,
+        )
 
     return cast(JsonValue, parsed_value)

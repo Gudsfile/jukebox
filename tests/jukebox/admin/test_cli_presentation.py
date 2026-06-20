@@ -11,6 +11,7 @@ from jukebox.admin.commands import SettingsResetCommand, SettingsSetCommand, Set
 from jukebox.admin.sonos_households import GroupedSonosHousehold
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
 from jukebox.settings.errors import (
+    ErrorCode,
     InvalidSettingsError,
     MalformedSettingsFileError,
     UnsupportedSettingsVersionError,
@@ -610,7 +611,13 @@ def test_render_settings_output_json_mode_preserves_payload_shape():
 
 
 def test_render_cli_error_for_unsupported_settings_path_is_actionable():
-    message = render_cli_error(InvalidSettingsError("Unsupported settings path for write: 'admin.api.host'"))
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Unsupported settings path for write: 'admin.api.host'",
+            code=ErrorCode.UNSUPPORTED_PATH,
+            path="admin.api.host",
+        )
+    )
 
     assert "Unsupported settings path: 'admin.api.host'." in message
     assert "`jukebox-admin settings show --effective --json`" in message
@@ -618,10 +625,26 @@ def test_render_cli_error_for_unsupported_settings_path_is_actionable():
 
 def test_render_cli_error_for_invalid_json_value_is_concise():
     message = render_cli_error(
-        InvalidSettingsError("Settings value for 'jukebox.player.sonos.selected_group' must be valid JSON.")
+        InvalidSettingsError(
+            "Settings value for 'jukebox.player.sonos.selected_group' must be valid JSON.",
+            code=ErrorCode.INVALID_JSON_VALUE,
+            path="jukebox.player.sonos.selected_group",
+        )
     )
 
     assert message == "Invalid value for 'jukebox.player.sonos.selected_group'. Pass a JSON object or `null`."
+
+
+def test_render_cli_error_for_invalid_json_type_is_concise():
+    message = render_cli_error(
+        InvalidSettingsError(
+            "Settings value for 'jukebox.player.sonos.selected_group' must be a JSON object or null.",
+            code=ErrorCode.INVALID_JSON_TYPE,
+            path="jukebox.player.sonos.selected_group",
+        )
+    )
+
+    assert message == "Invalid value for 'jukebox.player.sonos.selected_group'. Expected a JSON object or `null`."
 
 
 def test_render_cli_error_for_malformed_settings_file_is_friendly():
@@ -649,7 +672,9 @@ def test_render_cli_error_for_invalid_settings_file_preserves_failing_path():
             "admin.api.port\n"
             "  Input should be a valid integer, unable to parse string as an integer "
             "[type=int_parsing, input_value='bad', input_type=str]\n"
-            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing",
+            code=ErrorCode.INVALID_FILE,
+            path="/tmp/settings.json",
         )
     )
 
@@ -668,7 +693,8 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
             "[type=int_parsing, input_value='bad', input_type=str]\n"
             "admin.ui.port\n"
             "  Input should be less than or equal to 65535 [type=less_than_equal, input_value=70000, input_type=int]\n"
-            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing"
+            "For further information visit https://errors.pydantic.dev/2.11/v/int_parsing",
+            code=ErrorCode.INVALID_EFFECTIVE,
         )
     )
 
@@ -676,6 +702,86 @@ def test_render_cli_error_for_invalid_effective_settings_preserves_failing_paths
         "Effective settings are invalid: "
         "admin.api.port: Input should be a valid integer, unable to parse string as an integer; "
         "admin.ui.port: Input should be less than or equal to 65535"
+    )
+
+
+def test_render_cli_error_uses_structured_validation_errors_when_cause_is_available():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        field_a: int
+        field_b: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"field_a": "bad", "field_b": "also_bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(f"Invalid settings update: {cause}", code=ErrorCode.INVALID_UPDATE) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Settings update rejected: "
+        "field_a: Input should be a valid integer, unable to parse string as an integer; "
+        "field_b: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
+def test_render_cli_error_uses_structured_validation_errors_for_invalid_file():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        port: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"port": "bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(
+            f"Invalid settings file at '/tmp/settings.json': {cause}",
+            code=ErrorCode.INVALID_FILE,
+            path="/tmp/settings.json",
+        ) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Persisted settings are invalid at '/tmp/settings.json': "
+        "port: Input should be a valid integer, unable to parse string as an integer"
+    )
+
+
+def test_render_cli_error_uses_structured_validation_errors_for_invalid_effective():
+    from pydantic import BaseModel, ValidationError
+
+    class FakeModel(BaseModel):
+        port: int
+
+    cause = None
+    try:
+        FakeModel.model_validate({"port": "bad"})
+    except ValidationError as e:
+        cause = e
+
+    assert cause is not None
+    try:
+        raise InvalidSettingsError(
+            f"Invalid effective settings from persisted settings: {cause}",
+            code=ErrorCode.INVALID_EFFECTIVE,
+        ) from cause
+    except InvalidSettingsError as err:
+        message = render_cli_error(err)
+
+    assert message == (
+        "Effective settings are invalid: port: Input should be a valid integer, unable to parse string as an integer"
     )
 
 
