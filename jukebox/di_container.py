@@ -12,8 +12,7 @@ from jukebox.domain.entities import (
     CurrentTagContext,
     TransitionContext,
 )
-from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
-from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
+from jukebox.domain.use_cases import HandleTagEvent, SyncCurrentTag
 from jukebox.settings.entities import ResolvedJukeboxRuntimeConfig
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl

@@ -6,15 +6,7 @@ DOMAIN_MODULES = [
     "jukebox.domain.entities",
     "jukebox.domain.ports",
     "jukebox.domain.repositories",
-    pytest.param(
-        "jukebox.domain.use_cases",
-        marks=pytest.mark.xfail(
-            reason=(
-                "adapters and composition roots also import sub-modules directly"
-            ),
-            strict=True,
-        ),
-    ),
+    "jukebox.domain.use_cases",
 ]
 
 

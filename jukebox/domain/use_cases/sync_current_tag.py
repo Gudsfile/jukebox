@@ -3,7 +3,8 @@ import logging
 
 from jukebox.domain.entities import CurrentTagContext, CurrentTagState, TagEvent
 from jukebox.domain.repositories import CurrentTagRepository
-from jukebox.domain.use_cases.transition_current_tag import transition_current_tag
+
+from .transition_current_tag import transition_current_tag
 
 LOGGER = logging.getLogger("jukebox")
 
