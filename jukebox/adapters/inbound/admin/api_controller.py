@@ -21,12 +21,7 @@ except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
     raise MissingOptionalDependencyError("The `api_controller` module", "api", "jukebox-admin api") from e
-from jukebox.domain.use_cases.library.add_disc import AddDisc
-from jukebox.domain.use_cases.library.edit_disc import EditDisc
-from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
-from jukebox.domain.use_cases.library.get_disc import GetDisc
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
-from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
 from jukebox.settings.entities import SelectedSonosGroupSettings
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService

@@ -19,12 +19,7 @@ from jukebox.adapters.inbound.admin.ui_pages.library import DiscForm, LibraryUIP
 from jukebox.adapters.inbound.admin.ui_pages.settings import SettingsUIPageBuilder
 from jukebox.adapters.inbound.admin.ui_pages.sonos import SonosSelectionForm, SonosUIPageBuilder
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
-from jukebox.domain.use_cases.library.add_disc import AddDisc
-from jukebox.domain.use_cases.library.edit_disc import EditDisc
-from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
-from jukebox.domain.use_cases.library.get_disc import GetDisc
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
-from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
 from jukebox.settings.definitions import get_setting_definition
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository

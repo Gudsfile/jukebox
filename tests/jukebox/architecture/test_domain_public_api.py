@@ -10,7 +10,6 @@ DOMAIN_MODULES = [
         "jukebox.domain.use_cases",
         marks=pytest.mark.xfail(
             reason=(
-                "library/ use cases not re-exported from use_cases/__init__.py; "
                 "adapters and composition roots also import sub-modules directly"
             ),
             strict=True,
