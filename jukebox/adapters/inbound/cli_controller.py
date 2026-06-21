@@ -3,8 +3,7 @@ from time import sleep
 
 from jukebox.domain.entities import CurrentTagState, Idle, NoTag, PlaybackState, TagEvent
 from jukebox.domain.ports import ReaderPort
-from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
-from jukebox.domain.use_cases.sync_current_tag import SyncCurrentTag
+from jukebox.domain.use_cases import HandleTagEvent, SyncCurrentTag
 from jukebox.shared.timing import DEFAULT_LOOP_INTERVAL_SECONDS
 
 

@@ -2,11 +2,7 @@ import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
-from jukebox.domain.use_cases.library.add_disc import AddDisc
-from jukebox.domain.use_cases.library.edit_disc import EditDisc
-from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
-from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, ListDiscs, RemoveDisc
 
 
 class InteractiveCLIController:

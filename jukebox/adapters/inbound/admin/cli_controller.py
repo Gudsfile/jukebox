@@ -10,13 +10,7 @@ from jukebox.admin.library_commands import (
     CliSearchCommand,
 )
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
-from jukebox.domain.use_cases.library.add_disc import AddDisc
-from jukebox.domain.use_cases.library.edit_disc import EditDisc
-from jukebox.domain.use_cases.library.get_disc import GetDisc
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
-from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
-from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
-from jukebox.domain.use_cases.library.search_discs import SearchDiscs
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetDisc, ListDiscs, RemoveDisc, ResolveTagId, SearchDiscs
 
 
 class CLIController:

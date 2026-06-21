@@ -3,14 +3,16 @@ from typing import cast
 from jukebox.adapters.outbound.json_library_adapter import JsonLibraryAdapter
 from jukebox.adapters.outbound.sonos_discovery_adapter import SoCoSonosDiscoveryAdapter
 from jukebox.adapters.outbound.text_current_tag_adapter import TextCurrentTagAdapter
-from jukebox.domain.use_cases.library.add_disc import AddDisc
-from jukebox.domain.use_cases.library.edit_disc import EditDisc
-from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
-from jukebox.domain.use_cases.library.get_disc import GetDisc
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
-from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
-from jukebox.domain.use_cases.library.resolve_tag_id import ResolveTagId
-from jukebox.domain.use_cases.library.search_discs import SearchDiscs
+from jukebox.domain.use_cases import (
+    AddDisc,
+    EditDisc,
+    GetCurrentTagStatus,
+    GetDisc,
+    ListDiscs,
+    RemoveDisc,
+    ResolveTagId,
+    SearchDiscs,
+)
 from jukebox.settings.file_settings_repository import FileSettingsRepository
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides

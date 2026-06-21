@@ -14,7 +14,8 @@ from jukebox.domain.entities import (
 from jukebox.domain.errors import PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import LibraryRepository
-from jukebox.domain.use_cases.transition_playback import transition_playback
+
+from .transition_playback import transition_playback
 
 LOGGER = logging.getLogger("jukebox")
 

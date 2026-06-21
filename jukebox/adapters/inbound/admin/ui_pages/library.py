@@ -9,9 +9,7 @@ from fastui.events import BackEvent, GoToEvent, PageEvent
 from pydantic import BaseModel, Field
 
 from jukebox.domain.entities import CurrentTagStatus, DiscMetadata, DiscOption
-from jukebox.domain.use_cases.library.get_current_tag_status import GetCurrentTagStatus
-from jukebox.domain.use_cases.library.get_disc import GetDisc
-from jukebox.domain.use_cases.library.list_discs import ListDiscs
+from jukebox.domain.use_cases import GetCurrentTagStatus, GetDisc, ListDiscs
 
 
 class DiscTable(DiscMetadata, DiscOption):
