@@ -1,6 +1,7 @@
 import importlib.util
 import sys
-from typing import cast
+from collections.abc import Iterator
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,7 +12,10 @@ FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 
 if FASTAPI_INSTALLED:
     from fastapi import HTTPException
-    from fastapi.routing import APIRoute
+    from fastapi.routing import APIRoute, iter_route_contexts
+
+    def _iter_routes(controller: Any) -> Iterator[Any]:
+        return iter_route_contexts(controller.app.routes)
 
     from jukebox.adapters.inbound.admin.api_controller import (
         APIController,
@@ -89,7 +93,7 @@ def get_route(controller, path, method):
         APIRoute,
         next(
             route
-            for route in controller.app.routes
+            for route in _iter_routes(controller)
             if getattr(route, "path", None) == path and method in getattr(route, "methods", set())
         ),
     )
@@ -129,7 +133,7 @@ def test_disc_routes_register_explicit_crud_paths():
 
     route_index = {
         (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if hasattr(route, "path")
     }
 
@@ -170,7 +174,7 @@ def test_get_sonos_speakers_returns_normalized_discovered_speakers():
     controller = build_controller(sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
     )
 
     response = route.endpoint()
@@ -195,7 +199,7 @@ def test_get_sonos_speakers_returns_empty_results():
     controller = build_controller(sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
     )
 
     assert route.endpoint() == []
@@ -211,7 +215,7 @@ def test_get_sonos_speakers_returns_502_on_discovery_failure():
     controller = build_controller(sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/speakers"),
     )
 
     with pytest.raises(HTTPException) as err:
@@ -229,7 +233,7 @@ def test_get_sonos_selection_returns_not_selected_without_discovery():
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
     response = route.endpoint()
@@ -285,7 +289,7 @@ def test_get_sonos_selection_returns_available_saved_selection():
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
     response = route.endpoint()
@@ -360,7 +364,7 @@ def test_get_sonos_selection_returns_partially_available_saved_selection():
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
     response = route.endpoint()
@@ -429,7 +433,7 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
     response = route.endpoint()
@@ -488,7 +492,7 @@ def test_get_sonos_selection_returns_502_on_discovery_failure():
     controller = build_controller(settings_service=settings_service, sonos_service=sonos_service)
     route = cast(
         APIRoute,
-        next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/v1/sonos/selection"),
+        next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
     with pytest.raises(HTTPException) as err:
@@ -527,7 +531,7 @@ def test_put_sonos_selection_persists_multi_speaker_selection():
         APIRoute,
         next(
             route
-            for route in controller.app.routes
+            for route in _iter_routes(controller)
             if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
         ),
     )
@@ -602,7 +606,7 @@ def test_put_sonos_selection_rejects_invalid_uid_payloads(payload_data, availabl
         APIRoute,
         next(
             route
-            for route in controller.app.routes
+            for route in _iter_routes(controller)
             if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
         ),
     )
@@ -625,7 +629,7 @@ def test_put_sonos_selection_rejects_unknown_uid():
         APIRoute,
         next(
             route
-            for route in controller.app.routes
+            for route in _iter_routes(controller)
             if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
         ),
     )
@@ -650,7 +654,7 @@ def test_put_sonos_selection_returns_502_on_discovery_failure():
         APIRoute,
         next(
             route
-            for route in controller.app.routes
+            for route in _iter_routes(controller)
             if getattr(route, "path", None) == "/api/v1/sonos/selection" and "PUT" in getattr(route, "methods", set())
         ),
     )
