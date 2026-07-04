@@ -1,5 +1,7 @@
 import sys
+from collections.abc import Iterator
 from importlib import util
+from typing import Any
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -7,6 +9,12 @@ import pytest
 from jukebox.shared.errors import MissingOptionalDependencyError
 
 FASTUI_INSTALLED = util.find_spec("fastui") is not None
+
+if FASTUI_INSTALLED:
+    from fastapi.routing import iter_route_contexts
+
+    def _iter_routes(controller: Any) -> Iterator[Any]:
+        return iter_route_contexts(controller.app.routes)
 
 
 def build_speaker(uid, name, host, household_id):
@@ -132,7 +140,7 @@ def test_ui_controller_registers_routes():
 
     route_index = {
         (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if hasattr(route, "path")
     }
 
@@ -160,7 +168,7 @@ def test_ui_controller_registers_routes():
     assert ("/api/v1/discs/{tag_id}", ("DELETE",)) in route_index
     assert ("/api/v1/current-tag", ("GET",)) in route_index
 
-    html_route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/{path:path}")
+    html_route = next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/{path:path}")
     html_response = html_route.endpoint("discs/new")
     assert html_response.status_code == 200
     assert "/api/ui" in html_response.body.decode("utf-8")
@@ -177,7 +185,7 @@ async def test_update_sonos_selection_saves_and_redirects():
     }
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
     )
 
@@ -213,7 +221,7 @@ async def test_update_sonos_selection_returns_field_error_for_invalid_coordinato
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
     )
 
@@ -238,7 +246,7 @@ async def test_update_sonos_selection_saves_single_speaker_selection():
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
     )
 
@@ -295,7 +303,7 @@ async def test_update_sonos_selection_redirects_when_write_succeeds_but_effectiv
     controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
     )
 
@@ -314,7 +322,7 @@ async def test_reset_sonos_selection_calls_service_and_redirects():
     controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/sonos/reset" and "POST" in route.methods
     )
 
@@ -337,7 +345,7 @@ async def test_update_setting_builds_scalar_patch_and_redirects_with_service_mes
     }
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -359,7 +367,7 @@ async def test_update_setting_builds_object_patch_from_json_text():
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -394,7 +402,7 @@ async def test_update_setting_treats_blank_object_text_as_none():
     controller.settings_service.patch_persisted_settings.return_value = {"message": "Settings saved."}
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -423,7 +431,7 @@ async def test_update_setting_returns_field_error_for_invalid_json():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -451,7 +459,7 @@ async def test_update_setting_returns_field_error_for_non_object_json():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -502,7 +510,7 @@ async def test_update_setting_redirects_when_write_succeeds_but_effective_settin
     controller.settings_service.patch_persisted_settings.side_effect = raise_after_persist
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -528,7 +536,7 @@ async def test_update_setting_returns_field_error_for_shared_validation_failure(
     )
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}" and "POST" in route.methods
     )
 
@@ -579,7 +587,7 @@ async def test_reset_setting_redirects_when_reset_succeeds_but_effective_setting
     controller.settings_service.reset_persisted_value.side_effect = raise_after_reset
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
     )
 
@@ -598,7 +606,7 @@ async def test_reset_setting_calls_service_and_returns_refreshed_settings_page()
     controller.settings_service.reset_persisted_value.return_value = {"message": "Settings saved."}
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
     )
 
@@ -620,7 +628,7 @@ async def test_reset_setting_rerenders_edit_page_with_visible_error(walk_compone
     )
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset" and "POST" in route.methods
     )
 
@@ -644,7 +652,7 @@ def test_ui_controller_does_not_register_get_reset_setting_route():
     assert not any(
         getattr(route, "path", None) == "/api/ui/settings/{setting_path}/reset"
         and "GET" in getattr(route, "methods", set())
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
     )
 
 
@@ -655,7 +663,7 @@ async def test_create_disc_returns_success_toast():
     from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs")
+    route = next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/ui/discs")
 
     response = await route.endpoint(
         DiscForm(tag="tag-123", uri="/music/song.mp3", artist="Artist", album="Album", track="Track", shuffle=True)
@@ -683,7 +691,7 @@ async def test_create_disc_returns_conflict_when_add_fails():
 
     controller = build_controller()
     controller.add_disc.execute.side_effect = ValueError("Already existing tag")
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs")
+    route = next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/ui/discs")
 
     with pytest.raises(HTTPException) as err:
         await route.endpoint(DiscForm(tag="tag-123", uri="/music/song.mp3"))
@@ -708,7 +716,7 @@ async def test_update_disc_uses_edit_path():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}" and "POST" in route.methods
     )
 
@@ -737,7 +745,7 @@ async def test_update_disc_rejects_tag_changes():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}" and "POST" in route.methods
     )
 
@@ -766,7 +774,7 @@ async def test_update_disc_returns_field_error_when_edit_target_is_missing():
     controller.edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='tag-123'")
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}" and "POST" in route.methods
     )
 
@@ -790,7 +798,7 @@ async def test_delete_disc_endpoint_calls_remove_use_case():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "POST" in getattr(route, "methods", [])
     )
 
@@ -811,7 +819,7 @@ async def test_delete_disc_returns_404_when_disc_not_found():
     controller.remove_disc.execute.side_effect = ValueError("Disc not found: tag_id='tag-456'")
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}/delete" and "POST" in getattr(route, "methods", [])
     )
 
@@ -829,7 +837,7 @@ async def test_create_disc_saves_playlist_field():
     from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 
     controller = build_controller()
-    route = next(route for route in controller.app.routes if getattr(route, "path", None) == "/api/ui/discs")
+    route = next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/ui/discs")
 
     await route.endpoint(DiscForm(tag="tag-123", uri="spotify:playlist:abc", playlist="My Mix", artist="Spotify"))
 
@@ -852,7 +860,7 @@ async def test_update_disc_saves_playlist_field():
     controller = build_controller()
     route = next(
         route
-        for route in controller.app.routes
+        for route in _iter_routes(controller)
         if getattr(route, "path", None) == "/api/ui/discs/{tag_id}" and "POST" in route.methods
     )
 
