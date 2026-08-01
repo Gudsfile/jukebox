@@ -64,7 +64,7 @@ jobs:
         run: uv sync --locked ${{ matrix.extras }} --dev
 
       - name: Check format with ruff
-        run: uv run ruff format --check
+        run: uv run ruff format --check --output-format github
 
       - name: Lint with ruff
         run: uv run ruff check
