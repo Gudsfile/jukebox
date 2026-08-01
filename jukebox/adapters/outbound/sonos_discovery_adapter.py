@@ -333,7 +333,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
         return ip_address
 
     try:
-        uid = getattr(speaker, "uid")
+        uid = speaker.uid
     except Exception:
         return "unknown speaker"
 
@@ -353,7 +353,7 @@ def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
 
 def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> str | None:
     try:
-        return str(getattr(speaker, "uid"))
+        return str(speaker.uid)
     except Exception:
         return None
 
