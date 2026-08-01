@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
@@ -91,6 +92,33 @@ def test_soco_sonos_discovery_adapter_normalizes_and_sorts_speakers(mocker):
         ("Kitchen", "192.168.1.40", "speaker-2"),
         ("Living Room", "192.168.1.30", "speaker-1"),
     ]
+
+
+def test_soco_sonos_discovery_adapter_logs_zone_expansion_failure(mocker, caplog):
+    class FlakyZoneSpeaker:
+        def __init__(self, uid, name, host, household_id):
+            self.uid = uid
+            self.player_name = name
+            self.ip_address = host
+            self.household_id = household_id
+            self.is_visible = True
+
+        @property
+        def all_zones(self):
+            raise OSError("zone expansion failed")
+
+        def __hash__(self):
+            return hash((self.uid, self.ip_address))
+
+    speaker = FlakyZoneSpeaker("speaker-1", "Kitchen", "192.168.1.30", "household-1")
+    mocker.patch.object(SoCoSonosDiscoveryAdapter, "_discover_multicast_network_speakers", return_value={speaker})
+    mocker.patch.dict("sys.modules", build_fake_soco_module(scan_network=lambda **kwargs: {speaker}))
+
+    with caplog.at_level(logging.DEBUG, logger="jukebox"):
+        speakers = SoCoSonosDiscoveryAdapter().discover_speakers()
+
+    assert [discovered_speaker.uid for discovered_speaker in speakers] == ["speaker-1"]
+    assert any("Failed to expand zones" in message for message in caplog.messages)
 
 
 def test_soco_sonos_discovery_adapter_uses_multicast_discovery_before_scan_fallback(mocker):
