@@ -272,8 +272,8 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             self.title = title
             self.value = value
 
-    setattr(fake_questionary, "select", select)
-    setattr(fake_questionary, "Choice", FakeChoice)
+    fake_questionary.select = select
+    fake_questionary.Choice = FakeChoice
     mocker.patch.dict("sys.modules", {"questionary": fake_questionary})
 
     result = _prompt_for_sonos_household_selection(

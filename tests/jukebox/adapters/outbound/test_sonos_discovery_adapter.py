@@ -26,21 +26,17 @@ class FakeSpeaker:
 
 def build_fake_soco_module(scan_network, soco_constructor=None, discover=None, find_ipv4_addresses=None):
     fake_soco = ModuleType("soco")
-    setattr(fake_soco, "SoCo", soco_constructor or (lambda host: None))
+    fake_soco.SoCo = soco_constructor or (lambda host: None)
 
     fake_discovery = ModuleType("soco.discovery")
-    setattr(fake_discovery, "scan_network", scan_network)
-    setattr(fake_discovery, "_find_ipv4_addresses", find_ipv4_addresses or (lambda: {"192.168.1.10"}))
-    setattr(
-        fake_discovery,
-        "discover",
-        discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
+    fake_discovery.scan_network = scan_network
+    fake_discovery._find_ipv4_addresses = find_ipv4_addresses or (lambda: {"192.168.1.10"})
+    fake_discovery.discover = discover or (
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))
     )
-    setattr(fake_soco, "discovery", fake_discovery)
-    setattr(
-        fake_soco,
-        "discover",
-        discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
+    fake_soco.discovery = fake_discovery
+    fake_soco.discover = discover or (
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))
     )
 
     fake_exceptions = ModuleType("soco.exceptions")
@@ -51,8 +47,8 @@ def build_fake_soco_module(scan_network, soco_constructor=None, discover=None, f
     class FakeSoCoUPnPException(FakeSoCoException):
         pass
 
-    setattr(fake_exceptions, "SoCoException", FakeSoCoException)
-    setattr(fake_exceptions, "SoCoUPnPException", FakeSoCoUPnPException)
+    fake_exceptions.SoCoException = FakeSoCoException
+    fake_exceptions.SoCoUPnPException = FakeSoCoUPnPException
     return {
         "soco": fake_soco,
         "soco.discovery": fake_discovery,
