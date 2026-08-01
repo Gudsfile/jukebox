@@ -246,7 +246,7 @@ def test_parse_pin_blank_returns_none():
 
 
 def test_parse_pin_cancel_returns_not_ok():
-    ok, value = _parse_pin(None)
+    ok, _value = _parse_pin(None)
     assert ok is False
 
 
