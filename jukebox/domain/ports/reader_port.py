@@ -7,4 +7,3 @@ class ReaderPort(ABC):
     @abstractmethod
     def read(self) -> str | None:
         """Read a tag ID. Returns None if no tag detected."""
-        pass
