@@ -376,7 +376,7 @@ def test_execute_pn532_command_probe_gpio_error_shows_friendly_message(raw_error
     service = _make_settings_service()
 
     def failing_builder(**_kwargs):
-        raise Exception(raw_error)
+        raise OSError(raw_error)
 
     with pytest.raises(RuntimeError, match="GPIO error"):
         execute_pn532_command(
