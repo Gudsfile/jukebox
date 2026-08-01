@@ -90,7 +90,7 @@ def test_resolve_connection_params_raises_for_mismatched_override_type():
         tx: int | None
         rx: int | None
 
-    with pytest.raises(ValueError, match="Expected overrides of type SpiConnectionParams"):
+    with pytest.raises(TypeError, match="Expected overrides of type SpiConnectionParams"):
         resolve_connection_params(
             "waveshare_hat",
             "spi",

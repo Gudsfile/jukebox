@@ -59,7 +59,7 @@ def resolve_connection_params(
         )
     defaults = profile.connections[protocol]
     if not isinstance(overrides, type(defaults)):
-        raise ValueError(
+        raise TypeError(
             f"Expected overrides of type {type(defaults).__name__} for protocol '{protocol}', "
             f"got {type(overrides).__name__}"
         )
