@@ -109,7 +109,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-add-disc-success")
 
@@ -152,7 +152,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-edit-disc-success")
 
@@ -172,7 +172,7 @@ class UIController(APIController):
             except ValueError as err:
                 raise HTTPException(status_code=404, detail=str(err))
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-remove-disc-success")
 
@@ -209,7 +209,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self.settings_pages.build_settings_success_response(str(result["message"]))
 
@@ -268,7 +268,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self.sonos_pages.build_sonos_success_response(str(result.settings_message))
 
@@ -299,7 +299,7 @@ class UIController(APIController):
         except HTTPException:
             raise
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
         return self.sonos_pages.build_sonos_success_response(str(result.get("message", "Settings saved.")))
 

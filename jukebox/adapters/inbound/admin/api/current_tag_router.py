@@ -36,7 +36,7 @@ def build_current_tag_router(
         if actual_tag_id != expected_tag_id:
             raise HTTPException(
                 status_code=409,
-                detail=f"Current tag changed: expected_tag_id='{expected_tag_id}', actual_tag_id={repr(actual_tag_id)}",
+                detail=f"Current tag changed: expected_tag_id='{expected_tag_id}', actual_tag_id={actual_tag_id!r}",
             )
 
     def build_current_tag_disc_output(tag_id: str, disc: Disc) -> CurrentTagDiscOutput:
@@ -94,7 +94,7 @@ def build_current_tag_router(
         except ValueError as value_err:
             raise HTTPException(status_code=409, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.patch(
         "/current-tag/disc",
@@ -131,7 +131,7 @@ def build_current_tag_router(
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.delete(
         "/current-tag/disc",
@@ -155,6 +155,6 @@ def build_current_tag_router(
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     return router

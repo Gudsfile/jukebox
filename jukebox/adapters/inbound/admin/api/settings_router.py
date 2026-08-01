@@ -16,14 +16,14 @@ def build_settings_router(settings_service: SettingsService) -> APIRouter:
         try:
             return settings_service.get_persisted_settings_view()
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.get("/settings/effective", response_model=dict[str, Any], summary="Get effective settings")
     def get_effective_settings() -> JsonObject:
         try:
             return settings_service.get_effective_settings_view()
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.patch("/settings", response_model=dict[str, Any], summary="Patch persisted settings")
     def patch_settings(patch: SettingsPatchInput) -> JsonObject:
@@ -32,7 +32,7 @@ def build_settings_router(settings_service: SettingsService) -> APIRouter:
         except SettingsError as err:
             raise HTTPException(status_code=400, detail=str(err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.post("/settings/reset", response_model=dict[str, Any], summary="Reset a persisted setting")
     def reset_settings(payload: SettingsResetInput) -> JsonObject:
@@ -41,6 +41,6 @@ def build_settings_router(settings_service: SettingsService) -> APIRouter:
         except SettingsError as err:
             raise HTTPException(status_code=400, detail=str(err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     return router

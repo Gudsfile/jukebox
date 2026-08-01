@@ -53,7 +53,7 @@ class SettingsUIPageBuilder:
         except HTTPException:
             raise
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
         return self.build_settings_success_response(str(result["message"]))
 

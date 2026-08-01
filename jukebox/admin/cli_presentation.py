@@ -50,7 +50,7 @@ def render_settings_output(
 def render_cli_error(err: BaseException, verbose: bool = False) -> str:
     message = _render_cli_error_message(err)
     if verbose and str(err) and str(err) != message:
-        return f"{message}\n\nDetails: {str(err)}"
+        return f"{message}\n\nDetails: {err!s}"
     return message
 
 
@@ -376,7 +376,7 @@ def _render_cli_error_message(err: BaseException) -> str:
                 return f"Malformed settings file at '{filepath}'. Fix the JSON syntax and try again."
             return "Malformed settings file. Fix the JSON syntax and try again."
         case UnsupportedSettingsVersionError():
-            return f"Unsupported settings file version. {str(err)}"
+            return f"Unsupported settings file version. {err!s}"
         case InvalidSettingsError():
             return _render_invalid_settings_error(err)
         case SettingsError():
