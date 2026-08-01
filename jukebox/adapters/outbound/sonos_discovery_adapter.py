@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import re
 import select
 import socket
@@ -13,6 +14,8 @@ from jukebox.sonos.discovery import (
     SonosDiscoveryPort,
     sort_sonos_speakers,
 )
+
+LOGGER = logging.getLogger("jukebox")
 
 
 @dataclass(frozen=True)
@@ -374,6 +377,7 @@ def _build_private_ipv4_networks_to_scan() -> list[str]:
             try:
                 ipv4_address = ipaddress.IPv4Address(adapter_ip.ip)
             except Exception:
+                LOGGER.debug("Skipping non-IPv4 network adapter address: %r", adapter_ip.ip)
                 continue
 
             if adapter_ip.network_prefix >= 32:
