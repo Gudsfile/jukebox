@@ -59,6 +59,20 @@ def test_list_discs_returns_disc_list(get_route):
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_list_discs_returns_500_on_unexpected_error(get_route):
+    list_discs = create_autospec(ListDiscs, instance=True)
+    list_discs.execute.side_effect = RuntimeError("boom")
+    router = build_router(list_discs=list_discs)
+    route = get_route(router, "/api/v1/discs", "GET")
+
+    with pytest.raises(HTTPException) as err:
+        route.endpoint()
+
+    assert err.value.status_code == 500
+    assert err.value.detail == "Server error: boom"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_disc_returns_disc_payload(get_route):
     get_disc = create_autospec(GetDisc, instance=True)
     get_disc.execute.return_value = Disc(
