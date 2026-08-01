@@ -34,7 +34,7 @@ def test_dependencies_import_failure(mocker):
     mocker.patch.dict("sys.modules", {"fastui": None})
 
     with pytest.raises(MissingOptionalDependencyError) as err:
-        import jukebox.adapters.inbound.admin.ui_controller  # noqa: F401
+        import jukebox.adapters.inbound.admin.ui_controller  # ruff: ignore[F401]
 
     assert "The `ui_controller` module requires the optional `ui` dependencies." in str(err.value)
     assert "pip install 'gukebox[ui]'" in str(err.value)

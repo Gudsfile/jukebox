@@ -119,7 +119,7 @@ def test_dependencies_import_failure(mocker):
     mocker.patch.dict("sys.modules", {"fastapi": None})
 
     with pytest.raises(MissingOptionalDependencyError) as err:
-        import jukebox.adapters.inbound.admin.api_controller  # noqa: F401
+        import jukebox.adapters.inbound.admin.api_controller  # ruff: ignore[F401]
 
     assert "The `api_controller` module requires the optional `api` dependencies." in str(err.value)
     assert "pip install 'gukebox[api]'" in str(err.value)
