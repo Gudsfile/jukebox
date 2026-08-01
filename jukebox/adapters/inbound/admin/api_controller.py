@@ -101,8 +101,8 @@ class APIController:
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
-            docs_url="/docs",
-            redoc_url="/redoc",
+            docs_url=None,
+            redoc_url=None,
         )
         self.register_routes()
 
