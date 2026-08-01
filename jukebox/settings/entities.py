@@ -105,6 +105,7 @@ class JukeboxSettings(PersistedJukeboxSettings):
 
 
 class ServerSettings(StrictModel):
+    host: str = "127.0.0.1"
     port: int = Field(default=8000, ge=1, le=65535)
 
 
@@ -284,6 +285,8 @@ class ResolvedJukeboxRuntimeConfig(StrictModel):
 
 class ResolvedAdminRuntimeConfig(StrictModel):
     library_path: str
+    api_host: str
     api_port: int
+    ui_host: str
     ui_port: int
     verbose: bool = False

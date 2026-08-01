@@ -847,18 +847,22 @@ def test_execute_sonos_command_rejects_duplicate_scripted_uids():
 
 
 @pytest.mark.parametrize(
-    ("command", "builder_name", "expected_port"),
+    ("command", "builder_name", "expected_host", "expected_port"),
     [
-        (ApiCommand(type="api", port=1111), "build_api_app", 7777),
-        (UiCommand(type="ui", port=2222), "build_ui_app", 8888),
+        (ApiCommand(type="api", port=1111), "build_api_app", "10.0.0.7", 7777),
+        (UiCommand(type="ui", port=2222), "build_ui_app", "10.0.0.8", 8888),
     ],
 )
-def test_execute_server_command_starts_server_with_resolved_runtime(mocker, command, builder_name, expected_port):
+def test_execute_server_command_starts_server_with_resolved_runtime(
+    mocker, command, builder_name, expected_host, expected_port
+):
     mock_uvicorn = mocker.patch.dict("sys.modules", {"uvicorn": MagicMock()})["uvicorn"]
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="10.0.0.7",
         api_port=7777,
+        ui_host="10.0.0.8",
         ui_port=8888,
         verbose=True,
     )
@@ -882,7 +886,7 @@ def test_execute_server_command_starts_server_with_resolved_runtime(mocker, comm
     else:
         build_ui_app.assert_called_once_with("/resolved/library.json", services)
         build_api_app.assert_not_called()
-    mock_uvicorn.run.assert_called_once_with(fake_app.app, host="0.0.0.0", port=expected_port)
+    mock_uvicorn.run.assert_called_once_with(fake_app.app, host=expected_host, port=expected_port)
 
 
 @pytest.mark.parametrize(
@@ -896,7 +900,9 @@ def test_execute_server_command_reports_missing_optional_dependencies(mocker, co
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="127.0.0.1",
         api_port=8000,
+        ui_host="127.0.0.1",
         ui_port=9000,
         verbose=False,
     )
@@ -929,7 +935,9 @@ def test_execute_server_command_propagates_missing_optional_dependency_error(moc
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="127.0.0.1",
         api_port=8000,
+        ui_host="127.0.0.1",
         ui_port=9000,
         verbose=False,
     )
@@ -971,7 +979,9 @@ def test_execute_server_command_reports_missing_optional_dependencies_from_build
     services = build_services()
     services.settings.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="127.0.0.1",
         api_port=8000,
+        ui_host="127.0.0.1",
         ui_port=9000,
         verbose=False,
     )

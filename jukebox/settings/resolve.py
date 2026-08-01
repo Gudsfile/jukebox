@@ -97,7 +97,9 @@ class SettingsService:
         effective_settings = self._resolve_effective_settings()
         return ResolvedAdminRuntimeConfig(
             library_path=_expand_path(effective_settings.paths.library_path),
+            api_host=effective_settings.admin.api.host,
             api_port=effective_settings.admin.api.port,
+            ui_host=effective_settings.admin.ui.host,
             ui_port=effective_settings.admin.ui.port,
             verbose=verbose,
         )

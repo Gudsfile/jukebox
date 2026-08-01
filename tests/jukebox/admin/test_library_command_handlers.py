@@ -14,7 +14,9 @@ def test_execute_library_command_runs_standard_cli_with_resolved_library_path():
     settings_service = create_autospec(SettingsService)
     settings_service.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="127.0.0.1",
         api_port=8000,
+        ui_host="127.0.0.1",
         ui_port=9000,
         verbose=True,
     )
@@ -41,7 +43,9 @@ def test_execute_library_command_runs_interactive_cli_with_resolved_library_path
     settings_service = create_autospec(SettingsService)
     settings_service.resolve_admin_runtime.return_value = ResolvedAdminRuntimeConfig(
         library_path="/resolved/library.json",
+        api_host="127.0.0.1",
         api_port=8000,
+        ui_host="127.0.0.1",
         ui_port=9000,
         verbose=False,
     )

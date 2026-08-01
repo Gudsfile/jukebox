@@ -231,7 +231,7 @@ def execute_server_command(
             extra_name="api",
             source_command=source_command,
         )
-        uvicorn.run(api.app, host="0.0.0.0", port=runtime_config.api_port)
+        uvicorn.run(api.app, host=runtime_config.api_host, port=runtime_config.api_port)
         return
 
     if isinstance(command, UiCommand):
@@ -244,7 +244,7 @@ def execute_server_command(
             extra_name="ui",
             source_command=source_command,
         )
-        uvicorn.run(ui.app, host="0.0.0.0", port=runtime_config.ui_port)
+        uvicorn.run(ui.app, host=runtime_config.ui_host, port=runtime_config.ui_port)
         return
 
     raise TypeError("Unsupported server command")
