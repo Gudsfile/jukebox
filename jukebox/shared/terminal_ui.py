@@ -7,6 +7,6 @@ def table(headers, rows, indexed=False):
     widths = [max(len(str(x)) for x in col) for col in cols]
 
     def fmt(row):
-        return "  ".join(f"{str(val):<{widths[i]}}" for i, val in enumerate(row))
+        return "  ".join(f"{val!s:<{widths[i]}}" for i, val in enumerate(row))
 
     return "\n".join([fmt(headers), *map(fmt, rows)])

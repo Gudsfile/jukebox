@@ -67,7 +67,7 @@ def _version_callback(value: bool) -> None:
 def _get_state(ctx: typer.Context) -> AdminCliState:
     state = ctx.obj
     if not isinstance(state, AdminCliState):
-        raise RuntimeError("Admin CLI state was not initialized")
+        raise TypeError("Admin CLI state was not initialized")
     return state
 
 

@@ -1,4 +1,5 @@
 import ipaddress
+import logging
 import re
 import select
 import socket
@@ -7,12 +8,19 @@ import time
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from requests.exceptions import RequestException
+from soco.exceptions import SoCoException, SoCoUPnPException
+from urllib3.exceptions import HTTPError
+
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
     SonosDiscoveryPort,
     sort_sonos_speakers,
 )
+
+LOGGER = logging.getLogger("jukebox")
+_SONOS_TRANSPORT_ERRORS = (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException)
 
 
 @dataclass(frozen=True)
@@ -217,7 +225,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         for speaker in list(discovered):
             try:
                 available_speakers.update(speaker.all_zones)
-            except Exception:
+            except _SONOS_TRANSPORT_ERRORS:
                 available_speakers.add(speaker)
 
         if not available_speakers:
@@ -333,8 +341,8 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
         return ip_address
 
     try:
-        uid = getattr(speaker, "uid")
-    except Exception:
+        uid = speaker.uid
+    except _SONOS_TRANSPORT_ERRORS:
         return "unknown speaker"
 
     return str(uid)
@@ -343,7 +351,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
 def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
     try:
         ip_address = getattr(speaker, "ip_address", None)
-    except Exception:
+    except _SONOS_TRANSPORT_ERRORS:
         return None
 
     if ip_address:
@@ -353,8 +361,8 @@ def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
 
 def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> str | None:
     try:
-        return str(getattr(speaker, "uid"))
-    except Exception:
+        return str(speaker.uid)
+    except _SONOS_TRANSPORT_ERRORS:
         return None
 
 
@@ -373,15 +381,15 @@ def _build_private_ipv4_networks_to_scan() -> list[str]:
         for adapter_ip in adapter.ips:
             try:
                 ipv4_address = ipaddress.IPv4Address(adapter_ip.ip)
-            except Exception:
+            except ValueError:
+                LOGGER.debug("Skipping non-IPv4 network adapter address: %r", adapter_ip.ip)
                 continue
 
             if adapter_ip.network_prefix >= 32:
                 continue
 
             network_prefix = adapter_ip.network_prefix
-            if network_prefix < _MAX_SCAN_NETWORK_PREFIX:
-                network_prefix = _MAX_SCAN_NETWORK_PREFIX
+            network_prefix = max(network_prefix, _MAX_SCAN_NETWORK_PREFIX)
 
             ipv4_network = ipaddress.ip_network(f"{ipv4_address}/{network_prefix}", strict=False)
             if not ipv4_network.is_private or ipv4_network.is_loopback or ipv4_network.is_link_local:

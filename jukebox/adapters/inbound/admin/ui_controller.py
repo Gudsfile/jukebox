@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated
 
 from jukebox.shared.errors import MissingOptionalDependencyError
@@ -12,7 +13,7 @@ try:
 except ModuleNotFoundError as e:
     raise MissingOptionalDependencyError("The `ui_controller` module", "ui", "jukebox-admin ui") from e
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from jukebox.adapters.inbound.admin.api_controller import APIController
 from jukebox.adapters.inbound.admin.ui_pages.library import DiscForm, LibraryUIPageBuilder
@@ -27,6 +28,8 @@ from jukebox.settings.service_protocols import SettingsService
 from jukebox.sonos.discovery import SonosDiscoveryError
 from jukebox.sonos.selection import SaveSonosSelection
 from jukebox.sonos.service import SonosService
+
+LOGGER = logging.getLogger("jukebox")
 
 
 class SettingValueForm(BaseModel):
@@ -109,7 +112,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-add-disc-success")
 
@@ -152,7 +155,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-edit-disc-success")
 
@@ -172,7 +175,7 @@ class UIController(APIController):
             except ValueError as err:
                 raise HTTPException(status_code=404, detail=str(err))
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self._build_success_response("toast-remove-disc-success")
 
@@ -209,7 +212,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self.settings_pages.build_settings_success_response(str(result["message"]))
 
@@ -268,7 +271,7 @@ class UIController(APIController):
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
             return self.sonos_pages.build_sonos_success_response(str(result.settings_message))
 
@@ -299,14 +302,15 @@ class UIController(APIController):
         except HTTPException:
             raise
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
         return self.sonos_pages.build_sonos_success_response(str(result.get("message", "Settings saved.")))
 
     def _persisted_sonos_selection_matches(self, uids: list[str], coordinator_uid: str | None) -> bool:
         try:
             selected_group = SettingsSelectedSonosGroupRepository(self.settings_service).get_selected_group()
-        except Exception:
+        except (OSError, ValueError, ValidationError) as err:
+            LOGGER.warning("Failed to read persisted Sonos selection: %s", err)
             return False
 
         if selected_group is None:
@@ -325,7 +329,8 @@ class UIController(APIController):
 
         try:
             speakers = self.sonos_service.list_network_speakers()
-        except Exception:
+        except SonosDiscoveryError as err:
+            LOGGER.warning("Failed to list network speakers while building Sonos error message: %s", err)
             return message
 
         speaker = next((speaker for speaker in speakers if speaker.uid == coordinator_uid), None)

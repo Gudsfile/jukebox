@@ -10,7 +10,7 @@ dependencies = [
     "pydantic==2.13.4",
     "questionary==2.1.1",
     "soco==0.31.1",
-    "typer==0.26.8",
+    "typer==0.27.0",
 ]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -28,8 +28,8 @@ Repository = "https://github.com/Gudsfile/jukebox"
 
 [project.optional-dependencies]
 api = [
-    "fastapi==0.138.2",
-    "uvicorn==0.49.0",
+    "fastapi==0.140.13",
+    "uvicorn==0.51.0",
 ]
 ui = [
     "gukebox[api]",
@@ -47,8 +47,8 @@ pn532 = [
 dev = [
     "pytest==9.1.1",
     "pytest-mock==3.15.1",
-    "ruff==0.15.20",
-    "ty==0.0.55",
+    "ruff==0.16.0",
+    "ty==0.0.64",
 ]
 
 [tool.ruff]
@@ -64,6 +64,20 @@ extend-select = [
     "UP",
     "G",
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# These inbound adapters (HTTP routers, UI/API controllers, CLI entry points) are the
+# boundary layer whose job is to convert any unexpected failure into a safe response
+# (an HTTP 500, a CLI error message) after more specific exceptions are already handled.
+# A blind `except Exception` there is the intended last-resort safety net, not a bug.
+"jukebox/adapters/inbound/admin/api/current_tag_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api/discs_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api/settings_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/interactive_cli_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/ui_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/ui_pages/settings.py" = ["BLE001"]
+"jukebox/admin/app.py" = ["BLE001"]
 
 [tool.ty.src]
 exclude = ["pn532/"]

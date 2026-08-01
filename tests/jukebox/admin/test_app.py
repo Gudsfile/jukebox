@@ -1,4 +1,6 @@
-from types import ModuleType
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 from unittest.mock import ANY, MagicMock
 
 import pytest
@@ -264,7 +266,6 @@ def test_sonos_select_command_rejects_coordinator_without_uids():
 
 
 def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_labels(mocker, capsys):
-    fake_questionary = ModuleType("questionary")
     select = MagicMock(return_value=MagicMock(ask=MagicMock(return_value="household-1")))
 
     class FakeChoice:
@@ -272,8 +273,12 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             self.title = title
             self.value = value
 
-    setattr(fake_questionary, "select", select)
-    setattr(fake_questionary, "Choice", FakeChoice)
+    @dataclass
+    class _FakeQuestionaryModule:
+        select: Callable[..., Any]
+        Choice: type
+
+    fake_questionary = _FakeQuestionaryModule(select=select, Choice=FakeChoice)
     mocker.patch.dict("sys.modules", {"questionary": fake_questionary})
 
     result = _prompt_for_sonos_household_selection(

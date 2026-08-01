@@ -10,11 +10,11 @@ from .library.search_discs import SearchDiscs
 from .sync_current_tag import SyncCurrentTag
 
 __all__ = [
-    "HandleTagEvent",
     "AddDisc",
     "EditDisc",
     "GetCurrentTagStatus",
     "GetDisc",
+    "HandleTagEvent",
     "ListDiscs",
     "RemoveDisc",
     "ResolveTagId",

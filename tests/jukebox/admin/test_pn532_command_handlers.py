@@ -246,7 +246,7 @@ def test_parse_pin_blank_returns_none():
 
 
 def test_parse_pin_cancel_returns_not_ok():
-    ok, value = _parse_pin(None)
+    ok, _value = _parse_pin(None)
     assert ok is False
 
 
@@ -376,7 +376,7 @@ def test_execute_pn532_command_probe_gpio_error_shows_friendly_message(raw_error
     service = _make_settings_service()
 
     def failing_builder(**_kwargs):
-        raise Exception(raw_error)
+        raise OSError(raw_error)
 
     with pytest.raises(RuntimeError, match="GPIO error"):
         execute_pn532_command(

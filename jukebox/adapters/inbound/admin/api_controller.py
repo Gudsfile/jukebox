@@ -134,7 +134,7 @@ class APIController:
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
         @self.app.get("/api/v1/sonos/selection", response_model=SonosSelectionOutput)
         def get_sonos_selection():
@@ -146,7 +146,7 @@ class APIController:
             except SonosDiscoveryError as err:
                 raise HTTPException(status_code=502, detail=str(err))
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
         @self.app.put("/api/v1/sonos/selection", response_model=SonosSelectionUpdateOutput)
         def put_sonos_selection(payload: SonosSelectionInput):
@@ -178,4 +178,4 @@ class APIController:
             except HTTPException:
                 raise
             except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")

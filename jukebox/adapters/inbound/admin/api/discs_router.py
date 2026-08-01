@@ -26,7 +26,7 @@ def build_discs_router(
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.post("/discs/{tag_id}", response_model=DiscOutput, status_code=201, summary="Create a disc")
     def create_disc_route(tag_id: str, disc: DiscInput) -> Disc:
@@ -36,7 +36,7 @@ def build_discs_router(
         except ValueError as value_err:
             raise HTTPException(status_code=409, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.patch("/discs/{tag_id}", response_model=DiscOutput, summary="Update a disc")
     def update_disc_route(tag_id: str, disc_patch: DiscPatchInput) -> Disc:
@@ -55,7 +55,7 @@ def build_discs_router(
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.delete("/discs/{tag_id}", status_code=204, summary="Delete a disc")
     def remove_disc_route(tag_id: str) -> Response:
@@ -65,6 +65,6 @@ def build_discs_router(
         except ValueError as value_err:
             raise HTTPException(status_code=404, detail=str(value_err))
         except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {str(err)}")
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     return router

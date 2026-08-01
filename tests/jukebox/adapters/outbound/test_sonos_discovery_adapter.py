@@ -1,4 +1,6 @@
-from types import ModuleType
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 import ifaddr
 import pytest
@@ -24,26 +26,38 @@ class FakeSpeaker:
         return hash((self.uid, self.ip_address))
 
 
+@dataclass
+class _FakeSocoDiscoveryModule:
+    scan_network: Callable[..., Any]
+    discover: Callable[..., Any]
+    _find_ipv4_addresses: Callable[[], set[str]]
+
+
+@dataclass
+class _FakeSocoModule:
+    SoCo: Callable[[str], Any]
+    discovery: _FakeSocoDiscoveryModule
+    discover: Callable[..., Any]
+
+
+@dataclass
+class _FakeSocoExceptionsModule:
+    SoCoException: type[Exception]
+    SoCoUPnPException: type[Exception]
+
+
 def build_fake_soco_module(scan_network, soco_constructor=None, discover=None, find_ipv4_addresses=None):
-    fake_soco = ModuleType("soco")
-    setattr(fake_soco, "SoCo", soco_constructor or (lambda host: None))
-
-    fake_discovery = ModuleType("soco.discovery")
-    setattr(fake_discovery, "scan_network", scan_network)
-    setattr(fake_discovery, "_find_ipv4_addresses", find_ipv4_addresses or (lambda: {"192.168.1.10"}))
-    setattr(
-        fake_discovery,
-        "discover",
-        discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
+    discover_fn = discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called")))
+    fake_discovery = _FakeSocoDiscoveryModule(
+        scan_network=scan_network,
+        discover=discover_fn,
+        _find_ipv4_addresses=find_ipv4_addresses or (lambda: {"192.168.1.10"}),
     )
-    setattr(fake_soco, "discovery", fake_discovery)
-    setattr(
-        fake_soco,
-        "discover",
-        discover or (lambda **kwargs: (_ for _ in ()).throw(AssertionError("discover should not be called"))),
+    fake_soco = _FakeSocoModule(
+        SoCo=soco_constructor or (lambda host: None),
+        discovery=fake_discovery,
+        discover=discover_fn,
     )
-
-    fake_exceptions = ModuleType("soco.exceptions")
 
     class FakeSoCoException(Exception):
         pass
@@ -51,8 +65,10 @@ def build_fake_soco_module(scan_network, soco_constructor=None, discover=None, f
     class FakeSoCoUPnPException(FakeSoCoException):
         pass
 
-    setattr(fake_exceptions, "SoCoException", FakeSoCoException)
-    setattr(fake_exceptions, "SoCoUPnPException", FakeSoCoUPnPException)
+    fake_exceptions = _FakeSocoExceptionsModule(
+        SoCoException=FakeSoCoException,
+        SoCoUPnPException=FakeSoCoUPnPException,
+    )
     return {
         "soco": fake_soco,
         "soco.discovery": fake_discovery,
@@ -266,7 +282,7 @@ def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 
     class StaleSpeaker:
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):
@@ -437,7 +453,7 @@ def test_soco_sonos_discovery_adapter_ignores_mismatched_host_retry_results(mock
 def test_soco_sonos_discovery_adapter_raises_when_all_discovered_speakers_fail_normalization(mocker):
     class UnreachableSpeaker:
         ip_address = "10.1.10.87"
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):
@@ -468,7 +484,7 @@ def test_soco_sonos_discovery_adapter_keeps_reachable_speakers_when_some_fail_no
 
     class UnreachableSpeaker:
         ip_address = "10.1.10.87"
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):

@@ -92,7 +92,9 @@ def test_read_with_duration(monkeypatch):
     assert adapter.hold_until == 102.0
 
     for now in (100.0, 100.5, 101.99):
-        monkeypatch.setattr("jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda: now)
+        monkeypatch.setattr(
+            "jukebox.adapters.outbound.readers.dryrun_reader_adapter.time.monotonic", lambda now=now: now
+        )
         result = adapter.read()
         assert adapter.uid == "uri"
         assert adapter.hold_until == 102.0

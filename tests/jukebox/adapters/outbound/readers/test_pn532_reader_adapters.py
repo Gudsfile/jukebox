@@ -30,7 +30,7 @@ def test_dependencies_import_failure(mocker):
     mocker.patch.dict("sys.modules", {"pn532": None})
 
     with pytest.raises(MissingOptionalDependencyError) as err:
-        import jukebox.adapters.outbound.readers.pn532_reader_adapter  # noqa: F401
+        import jukebox.adapters.outbound.readers.pn532_reader_adapter  # ruff: ignore[F401]
 
     assert "The `pn532` reader requires the optional `pn532` dependencies." in str(err.value)
     assert "pip install 'gukebox[pn532]'" in str(err.value)
