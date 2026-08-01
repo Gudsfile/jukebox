@@ -380,8 +380,7 @@ def _build_private_ipv4_networks_to_scan() -> list[str]:
                 continue
 
             network_prefix = adapter_ip.network_prefix
-            if network_prefix < _MAX_SCAN_NETWORK_PREFIX:
-                network_prefix = _MAX_SCAN_NETWORK_PREFIX
+            network_prefix = max(network_prefix, _MAX_SCAN_NETWORK_PREFIX)
 
             ipv4_network = ipaddress.ip_network(f"{ipv4_address}/{network_prefix}", strict=False)
             if not ipv4_network.is_private or ipv4_network.is_loopback or ipv4_network.is_link_local:
