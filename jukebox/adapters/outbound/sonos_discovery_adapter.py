@@ -350,7 +350,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
 
 def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
     try:
-        ip_address = getattr(speaker, "ip_address", None)
+        ip_address = speaker.ip_address
     except _SONOS_TRANSPORT_ERRORS:
         return None
 
