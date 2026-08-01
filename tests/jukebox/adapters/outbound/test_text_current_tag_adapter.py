@@ -83,7 +83,7 @@ def test_no_partial_text_observed_during_writes(tmp_path, monkeypatch):
         try:
             with open(adapter.filepath, encoding="utf-8") as current_tag_file:
                 observed_payloads.append(current_tag_file.read())
-        except Exception as err:  # pragma: no cover - exercised only on failure
+        except Exception as err:  # pragma: no cover - exercised only on failure  # ruff: ignore[BLE001]
             observed_errors.append(err)
 
     finish_write.set()

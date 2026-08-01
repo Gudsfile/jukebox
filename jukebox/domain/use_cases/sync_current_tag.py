@@ -25,7 +25,7 @@ class SyncCurrentTag:
             elif command == "clear":
                 self.repository.clear()
             next_state = success_state
-        except Exception as err:
+        except Exception as err:  # ruff: ignore[BLE001]
             LOGGER.warning(
                 "Failed to sync current tag state; continuing, tag state may be stale: tag_id=%r, error=%s",
                 tag_event.tag_id,

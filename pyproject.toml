@@ -65,6 +65,20 @@ extend-select = [
     "G",
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# These inbound adapters (HTTP routers, UI/API controllers, CLI entry points) are the
+# boundary layer whose job is to convert any unexpected failure into a safe response
+# (an HTTP 500, a CLI error message) after more specific exceptions are already handled.
+# A blind `except Exception` there is the intended last-resort safety net, not a bug.
+"jukebox/adapters/inbound/admin/api/current_tag_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api/discs_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api/settings_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/interactive_cli_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/ui_controller.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/ui_pages/settings.py" = ["BLE001"]
+"jukebox/admin/app.py" = ["BLE001"]
+
 [tool.ty.src]
 exclude = ["pn532/"]
 

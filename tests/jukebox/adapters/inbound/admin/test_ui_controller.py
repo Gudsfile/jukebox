@@ -1,3 +1,4 @@
+import logging
 import sys
 from collections.abc import Iterator
 from importlib import util
@@ -6,7 +7,9 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
+from jukebox.settings.errors import SettingsError
 from jukebox.shared.errors import MissingOptionalDependencyError
+from jukebox.sonos.discovery import SonosDiscoveryError
 
 FASTUI_INSTALLED = util.find_spec("fastui") is not None
 
@@ -235,6 +238,39 @@ async def test_update_sonos_selection_returns_field_error_for_invalid_coordinato
     )
     assert "uids=speaker-1" in response[0].event.url
     assert "coordinator_uid=speaker-2" in response[0].event.url
+
+
+@pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
+@pytest.mark.anyio
+async def test_update_sonos_selection_logs_and_degrades_when_fallback_lookups_fail(caplog):
+    from jukebox.adapters.inbound.admin.ui_controller import SonosSelectionForm
+
+    controller = build_controller()
+    available_speakers = controller.sonos_service.list_network_speakers.return_value
+    controller.sonos_service.list_network_speakers.side_effect = [available_speakers, SonosDiscoveryError("boom")]
+    controller.settings_service.patch_persisted_settings.side_effect = SettingsError(
+        "Selected Sonos coordinator must be one of the selected speakers: speaker-2"
+    )
+    controller.settings_service.get_persisted_settings_view.side_effect = OSError("disk error")
+    route = next(
+        route
+        for route in _iter_routes(controller)
+        if getattr(route, "path", None) == "/api/ui/sonos/edit" and "POST" in route.methods
+    )
+
+    with caplog.at_level(logging.WARNING):
+        response = await route.endpoint(
+            SonosSelectionForm(uids=["speaker-1", "speaker-2"], coordinator_uid="speaker-2")
+        )
+
+    assert response[0].type == "FireEvent"
+    assert response[0].event.url.startswith("/sonos/edit?")
+    assert (
+        "error_message=Selected+Sonos+coordinator+must+be+one+of+the+selected+speakers%3A+speaker-2"
+        in response[0].event.url
+    )
+    assert "Failed to list network speakers while building Sonos error message" in caplog.text
+    assert "Failed to read persisted Sonos selection" in caplog.text
 
 
 @pytest.mark.skipif(not FASTUI_INSTALLED, reason="FastUI dependencies are not installed")
