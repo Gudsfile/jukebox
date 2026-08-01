@@ -159,7 +159,7 @@ class SonosPlayerAdapter(PlayerPort):
                         speaker.player_name,
                     )
                     speaker.join(coordinator)
-            except Exception as err:
+            except (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException) as err:
                 LOGGER.warning(
                     "Failed to roll back Sonos group change `%s` for `%s`: %s",
                     operation,

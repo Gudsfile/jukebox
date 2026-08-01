@@ -8,6 +8,10 @@ import time
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+from requests.exceptions import RequestException
+from soco.exceptions import SoCoException, SoCoUPnPException
+from urllib3.exceptions import HTTPError
+
 from jukebox.sonos.discovery import (
     DiscoveredSonosSpeaker,
     SonosDiscoveryError,
@@ -16,6 +20,7 @@ from jukebox.sonos.discovery import (
 )
 
 LOGGER = logging.getLogger("jukebox")
+_SONOS_TRANSPORT_ERRORS = (HTTPError, OSError, RequestException, RuntimeError, SoCoException, SoCoUPnPException)
 
 
 @dataclass(frozen=True)
@@ -220,7 +225,7 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         for speaker in list(discovered):
             try:
                 available_speakers.update(speaker.all_zones)
-            except Exception:
+            except _SONOS_TRANSPORT_ERRORS:
                 available_speakers.add(speaker)
 
         if not available_speakers:
@@ -337,7 +342,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
 
     try:
         uid = speaker.uid
-    except Exception:
+    except _SONOS_TRANSPORT_ERRORS:
         return "unknown speaker"
 
     return str(uid)
@@ -346,7 +351,7 @@ def _safe_speaker_identifier(speaker: "_SonosSpeakerLike") -> str:
 def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
     try:
         ip_address = getattr(speaker, "ip_address", None)
-    except Exception:
+    except _SONOS_TRANSPORT_ERRORS:
         return None
 
     if ip_address:
@@ -357,7 +362,7 @@ def _safe_speaker_host(speaker: "_SonosSpeakerLike") -> str | None:
 def _safe_speaker_uid(speaker: "_SonosSpeakerLike") -> str | None:
     try:
         return str(speaker.uid)
-    except Exception:
+    except _SONOS_TRANSPORT_ERRORS:
         return None
 
 
@@ -376,7 +381,7 @@ def _build_private_ipv4_networks_to_scan() -> list[str]:
         for adapter_ip in adapter.ips:
             try:
                 ipv4_address = ipaddress.IPv4Address(adapter_ip.ip)
-            except Exception:
+            except ValueError:
                 LOGGER.debug("Skipping non-IPv4 network adapter address: %r", adapter_ip.ip)
                 continue
 
