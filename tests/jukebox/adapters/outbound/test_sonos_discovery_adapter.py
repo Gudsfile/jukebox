@@ -262,7 +262,7 @@ def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
     living_room = FakeSpeaker("speaker-1", "Living Room", "192.168.1.20", "household-1")
 
     class StaleSpeaker:
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):
@@ -433,7 +433,7 @@ def test_soco_sonos_discovery_adapter_ignores_mismatched_host_retry_results(mock
 def test_soco_sonos_discovery_adapter_raises_when_all_discovered_speakers_fail_normalization(mocker):
     class UnreachableSpeaker:
         ip_address = "10.1.10.87"
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):
@@ -464,7 +464,7 @@ def test_soco_sonos_discovery_adapter_keeps_reachable_speakers_when_some_fail_no
 
     class UnreachableSpeaker:
         ip_address = "10.1.10.87"
-        all_zones = set()
+        all_zones = frozenset()
 
         @property
         def uid(self):
