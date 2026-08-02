@@ -17,7 +17,10 @@ def build_discs_router(
 
     @router.get("/discs", response_model=dict[str, DiscOutput], summary="List discs")
     def list_discs_route() -> dict[str, Disc]:
-        return list_discs.execute()
+        try:
+            return list_discs.execute()
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     @router.get("/discs/{tag_id}", response_model=DiscOutput, summary="Get a disc")
     def get_disc_route(tag_id: str) -> Disc:
