@@ -225,7 +225,8 @@ class SoCoSonosDiscoveryAdapter(SonosDiscoveryPort):
         for speaker in list(discovered):
             try:
                 available_speakers.update(speaker.all_zones)
-            except _SONOS_TRANSPORT_ERRORS:
+            except _SONOS_TRANSPORT_ERRORS as exc:
+                LOGGER.debug("Failed to expand zones for %s: %s", speaker, exc)
                 available_speakers.add(speaker)
 
         if not available_speakers:
