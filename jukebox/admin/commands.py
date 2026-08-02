@@ -1,4 +1,4 @@
-from typing import Literal, Self, TypeAlias
+from typing import Literal, Self
 
 from pydantic import BaseModel, model_validator
 
@@ -51,34 +51,6 @@ class SettingsResetCommand(BaseModel):
     type: Literal["settings_reset"]
     dotted_path: str
     json_output: bool = False
-
-
-AdminCommand: TypeAlias = (
-    ApiCommand
-    | SettingsResetCommand
-    | SettingsSetCommand
-    | SettingsShowCommand
-    | SonosListCommand
-    | SonosSelectCommand
-    | SonosShowCommand
-    | UiCommand
-)
-
-
-def is_admin_command(command: object) -> bool:
-    return isinstance(
-        command,
-        (
-            ApiCommand,
-            SettingsResetCommand,
-            SettingsSetCommand,
-            SettingsShowCommand,
-            SonosListCommand,
-            SonosSelectCommand,
-            SonosShowCommand,
-            UiCommand,
-        ),
-    )
 
 
 def is_sonos_command(command: object) -> bool:
