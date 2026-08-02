@@ -288,6 +288,10 @@ def test_soco_sonos_discovery_adapter_ignores_stale_discovered_zones(mocker):
         def uid(self):
             raise OSError("stale zone")
 
+        @property
+        def ip_address(self):
+            raise OSError("stale zone")
+
         def __hash__(self):
             return hash("stale")
 
