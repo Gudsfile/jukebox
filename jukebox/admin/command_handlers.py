@@ -167,6 +167,7 @@ def execute_sonos_command(
         if settings_service is None:
             raise TypeError("settings_service is required for Sonos show commands")
 
+        _emit_status(status_fn, "Checking Sonos selection...")
         status = GetSonosSelectionStatus(
             selected_group_repository=SettingsSelectedSonosGroupRepository(settings_service),
             sonos_service=sonos_service,
