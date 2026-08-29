@@ -1,9 +1,12 @@
 import sys
 import traceback
+from contextlib import contextmanager
 from typing import Annotated, Never
 
 import typer
 from pydantic import ValidationError
+from rich.console import Console
+from rich.status import Status
 
 from jukebox.admin.library_command_handlers import execute_library_command
 from jukebox.admin.library_commands import (
@@ -108,15 +111,16 @@ def _run_command(ctx: typer.Context, command: object) -> None:
         )
         try:
             if is_sonos_command(command):
-                execute_sonos_command(
-                    command=command,
-                    sonos_service=services.sonos,
-                    settings_service=services.settings,
-                    household_prompt_fn=_prompt_for_sonos_household_selection,
-                    speaker_prompt_fn=_prompt_for_sonos_speaker_selection,
-                    coordinator_prompt_fn=_prompt_for_sonos_group_coordinator,
-                    status_fn=_emit_cli_status,
-                )
+                with _sonos_command_status() as (status_update, status):
+                    execute_sonos_command(
+                        command=command,
+                        sonos_service=services.sonos,
+                        settings_service=services.settings,
+                        household_prompt_fn=_pausing_for_prompt(status, _prompt_for_sonos_household_selection),
+                        speaker_prompt_fn=_pausing_for_prompt(status, _prompt_for_sonos_speaker_selection),
+                        coordinator_prompt_fn=_pausing_for_prompt(status, _prompt_for_sonos_group_coordinator),
+                        status_fn=status_update,
+                    )
             elif is_pn532_command(command):
                 execute_pn532_command(
                     command=command,
@@ -284,10 +288,27 @@ def _prompt_for_sonos_group_coordinator(speakers: list[DiscoveredSonosSpeaker]) 
         return None
 
 
-def _emit_cli_status(message: str) -> None:
+@contextmanager
+def _sonos_command_status():
     if not sys.stderr.isatty():
+        yield None, None
         return
-    typer.echo(message, err=True)
+    console = Console(stderr=True)
+    with console.status("Preparing...", spinner="dots") as status:
+        yield status.update, status
+
+
+def _pausing_for_prompt(status: Status | None, prompt_fn):
+    def wrapped(*args, **kwargs):
+        if status is not None:
+            status.stop()
+        try:
+            return prompt_fn(*args, **kwargs)
+        finally:
+            if status is not None:
+                status.start()
+
+    return wrapped
 
 
 app = typer.Typer(help="Admin CLI for jukebox")
