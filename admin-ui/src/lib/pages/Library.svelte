@@ -3,10 +3,12 @@
   import { apiDelete, apiGet } from '../api.js'
   import DiscForm from '../components/DiscForm.svelte'
 
+  let { intent = null, onIntentConsumed } = $props()
+
   let discs = $state({})
   let loading = $state(true)
   let error = $state(null)
-  let formMode = $state(null) // null | 'create' | { tagId, disc }
+  let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
 
   async function loadDiscs() {
     loading = true
@@ -22,12 +24,24 @@
 
   onMount(loadDiscs)
 
-  function openCreate() {
-    formMode = 'create'
+  // Lets the current-tag banner (in App.svelte) jump here with "edit this disc" / "add this
+  // disc" intent — consumed once discs are loaded, then cleared so it doesn't re-fire.
+  $effect(() => {
+    if (!intent || loading) return
+    if (intent.type === 'edit') {
+      openEdit(intent.tagId)
+    } else {
+      openCreate(intent.tagId)
+    }
+    onIntentConsumed?.()
+  })
+
+  function openCreate(prefillTagId = '') {
+    formMode = { type: 'create', tagId: prefillTagId }
   }
 
   function openEdit(tagId) {
-    formMode = { tagId, disc: discs[tagId] }
+    formMode = { type: 'edit', tagId, disc: discs[tagId] }
   }
 
   function closeForm() {
@@ -48,12 +62,12 @@
 
 <h2>Library</h2>
 
-{#if formMode === 'create'}
-  <DiscForm mode="create" onSaved={handleSaved} onCancel={closeForm} />
-{:else if formMode}
+{#if formMode?.type === 'create'}
+  <DiscForm mode="create" tagId={formMode.tagId} onSaved={handleSaved} onCancel={closeForm} />
+{:else if formMode?.type === 'edit'}
   <DiscForm mode="edit" tagId={formMode.tagId} disc={formMode.disc} onSaved={handleSaved} onCancel={closeForm} />
 {:else}
-  <button onclick={openCreate}>Add disc</button>
+  <button onclick={() => openCreate()}>Add disc</button>
 
   {#if loading}
     <p>Loading…</p>

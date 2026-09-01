@@ -4,15 +4,27 @@
   import Settings from './lib/pages/Settings.svelte'
   import Sonos from './lib/pages/Sonos.svelte'
 
-  const pages = { library: Library, settings: Settings, sonos: Sonos }
+  const pageKeys = ['library', 'settings', 'sonos']
   let currentPage = $state('library')
-  let Page = $derived(pages[currentPage])
+  let libraryIntent = $state(null)
+
+  function goToLibrary(intent) {
+    libraryIntent = intent
+    currentPage = 'library'
+  }
+
+  function clearLibraryIntent() {
+    libraryIntent = null
+  }
 </script>
 
-<CurrentTagBanner />
+<CurrentTagBanner
+  onEditDisc={(tagId) => goToLibrary({ type: 'edit', tagId })}
+  onAddDisc={(tagId) => goToLibrary({ type: 'create', tagId })}
+/>
 
 <nav>
-  {#each Object.keys(pages) as page (page)}
+  {#each pageKeys as page (page)}
     <button class:active={currentPage === page} onclick={() => (currentPage = page)}>
       {page}
     </button>
@@ -20,5 +32,11 @@
 </nav>
 
 <main>
-  <Page />
+  {#if currentPage === 'library'}
+    <Library intent={libraryIntent} onIntentConsumed={clearLibraryIntent} />
+  {:else if currentPage === 'settings'}
+    <Settings />
+  {:else if currentPage === 'sonos'}
+    <Sonos />
+  {/if}
 </main>
