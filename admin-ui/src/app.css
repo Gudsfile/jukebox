@@ -94,6 +94,14 @@ main {
   text-align: center;
 }
 
+.type {
+  white-space: nowrap;
+}
+
+.title {
+  text-align: center;
+}
+
 .banner {
   display: flex;
   flex-wrap: wrap;
