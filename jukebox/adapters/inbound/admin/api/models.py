@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import BaseModel, RootModel
+from pydantic import BaseModel, RootModel, computed_field
 
 from jukebox.domain.entities import CurrentTagStatus, Disc
 
@@ -10,7 +10,15 @@ class DiscInput(Disc):
 
 
 class DiscOutput(Disc):
-    pass
+    @computed_field
+    @property
+    def display_type(self) -> str:
+        return self.metadata.display_type
+
+    @computed_field
+    @property
+    def display_title(self) -> str:
+        return self.metadata.display_title
 
 
 class DiscPatchMetadataInput(BaseModel):
