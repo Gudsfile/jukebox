@@ -123,6 +123,8 @@ def test_get_current_tag_disc_returns_tag_and_disc_payload(get_route):
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
             "option": {"shuffle": True, "is_test": False},
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Track",
         },
     }
     get_disc.execute.assert_called_once_with("tag-123")
@@ -173,7 +175,11 @@ def test_create_current_tag_disc_returns_created_disc_payload(get_route):
 
     assert response.model_dump() == {
         "tag_id": "tag-123",
-        "disc": request.model_dump(),
+        "disc": {
+            **request.model_dump(),
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Track",
+        },
     }
     add_disc.execute.assert_called_once_with("tag-123", Disc(**request.model_dump()))
 
@@ -235,6 +241,8 @@ def test_patch_current_tag_disc_partially_updates_existing_disc(get_route):
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
             "option": {"shuffle": False, "is_test": False},
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Updated Track",
         },
     }
     edit_disc.execute.assert_called_once_with(
