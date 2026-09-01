@@ -35,6 +35,31 @@ h2 {
   font-weight: 500;
 }
 
+button {
+  font: inherit;
+  color: var(--bg);
+  background: var(--text-h);
+  border: 1px solid var(--text-h);
+  border-radius: 6px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.85;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.btn-danger {
+  color: #fff;
+  background: #c0392b;
+  border-color: #c0392b;
+}
+
 nav {
   display: flex;
   gap: 8px;
@@ -43,13 +68,9 @@ nav {
 }
 
 nav button {
-  font: inherit;
   color: inherit;
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 12px;
-  cursor: pointer;
+  border-color: var(--border);
   text-transform: capitalize;
 }
 
@@ -61,6 +82,16 @@ nav button.active {
 
 main {
   padding: 20px;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.shuffle {
+  text-align: center;
 }
 
 .banner {
