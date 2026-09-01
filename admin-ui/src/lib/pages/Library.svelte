@@ -76,7 +76,15 @@
   {:else if Object.keys(discs).length === 0}
     <p>No disc found</p>
   {:else}
-    <table>
+    <table class="discs">
+      <colgroup>
+        <col style="width: 14%" />
+        <col />
+        <col style="width: 90px" />
+        <col style="width: 28%" />
+        <col style="width: 70px" />
+        <col style="width: 130px" />
+      </colgroup>
       <thead>
         <tr>
           <th>Tag</th>
@@ -91,7 +99,7 @@
         {#each Object.entries(discs) as [tagId, disc] (tagId)}
           <tr>
             <td>{tagId}</td>
-            <td>{disc.uri}</td>
+            <td class="uri" title={disc.uri}>{disc.uri}</td>
             <td class="type">{disc.display_type}</td>
             <td class="title">{disc.display_title}</td>
             <td class="shuffle">{disc.option.shuffle ? '✓' : '×'}</td>
