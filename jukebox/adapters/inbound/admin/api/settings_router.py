@@ -1,8 +1,14 @@
+import dataclasses
 from typing import Any, cast
 
 from fastapi import APIRouter, HTTPException
 
-from jukebox.adapters.inbound.admin.api.models import SettingsPatchInput, SettingsResetInput
+from jukebox.adapters.inbound.admin.api.models import (
+    SettingsDisplaysOutput,
+    SettingsPatchInput,
+    SettingsResetInput,
+)
+from jukebox.settings.definitions import build_editable_setting_displays
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.settings.types import JsonObject
@@ -24,6 +30,32 @@ def build_settings_router(settings_service: SettingsService) -> APIRouter:
             return settings_service.get_effective_settings_view()
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+
+    @router.get(
+        "/settings/displays",
+        response_model=SettingsDisplaysOutput,
+        summary="Get settings with display metadata (labels, choices, provenance)",
+    )
+    def get_settings_displays() -> SettingsDisplaysOutput:
+        try:
+            persisted_settings = settings_service.get_persisted_settings_view()
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+
+        effective_settings_error: str | None = None
+        try:
+            effective_settings_view = settings_service.get_effective_settings_view()
+        except SettingsError as err:
+            effective_settings_view = {}
+            effective_settings_error = str(err)
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+
+        displays = build_editable_setting_displays(persisted_settings, effective_settings_view)
+        return SettingsDisplaysOutput(
+            settings=[dataclasses.asdict(display) for display in displays],
+            effective_settings_error=effective_settings_error,
+        )
 
     @router.patch("/settings", response_model=dict[str, Any], summary="Patch persisted settings")
     def patch_settings(patch: SettingsPatchInput) -> JsonObject:

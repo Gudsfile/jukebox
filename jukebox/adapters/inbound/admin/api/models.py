@@ -46,3 +46,33 @@ class SettingsResetInput(BaseModel):
 
 class SettingsPatchInput(RootModel[dict[str, Any]]):
     pass
+
+
+class SettingChoiceOutput(BaseModel):
+    value: str
+    label: str
+
+
+class EditableSettingDisplayOutput(BaseModel):
+    path: str
+    label: str
+    description: str
+    field_type: str
+    section: str
+    section_label: str
+    section_description: str
+    section_sort_order: int
+    requires_restart: bool
+    advanced: bool
+    choices: list[SettingChoiceOutput]
+    default_value: Any
+    persisted_value: Any
+    effective_value: Any
+    provenance: str
+    is_persisted: bool
+    is_pinned_default: bool
+
+
+class SettingsDisplaysOutput(BaseModel):
+    settings: list[EditableSettingDisplayOutput]
+    effective_settings_error: str | None = None

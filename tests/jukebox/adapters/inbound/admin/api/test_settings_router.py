@@ -10,7 +10,7 @@ if FASTAPI_INSTALLED:
 
     from jukebox.adapters.inbound.admin.api.models import SettingsPatchInput, SettingsResetInput
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
-    from jukebox.settings.errors import ErrorCode, InvalidSettingsError
+    from jukebox.settings.errors import ErrorCode, InvalidSettingsError, SettingsError
 
 
 def build_router(*, settings_service=None):
@@ -43,6 +43,43 @@ def test_get_effective_settings_returns_effective_settings_payload(get_route):
 
     assert response == {"settings": {}, "provenance": {}, "derived": {}}
     settings_service.get_effective_settings_view.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_settings_displays_returns_labeled_settings_with_values(get_route):
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {"admin": {"api": {"port": 8100}}}
+    settings_service.get_effective_settings_view.return_value = {
+        "settings": {"admin": {"api": {"port": 8100}}},
+        "provenance": {"admin": {"api": {"port": "file"}}},
+    }
+    router = build_router(settings_service=settings_service)
+    route = get_route(router, "/api/v1/settings/displays", "GET")
+
+    response = route.endpoint()
+
+    assert response.effective_settings_error is None
+    admin_api_port = next(setting for setting in response.settings if setting.path == "admin.api.port")
+    assert admin_api_port.persisted_value == 8100
+    assert admin_api_port.effective_value == 8100
+    assert admin_api_port.provenance == "file"
+    assert admin_api_port.is_persisted is True
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_get_settings_displays_degrades_gracefully_when_effective_settings_fail(get_route):
+    settings_service = MagicMock()
+    settings_service.get_persisted_settings_view.return_value = {"admin": {"api": {"port": 8100}}}
+    settings_service.get_effective_settings_view.side_effect = SettingsError("Settings file is corrupted.")
+    router = build_router(settings_service=settings_service)
+    route = get_route(router, "/api/v1/settings/displays", "GET")
+
+    response = route.endpoint()
+
+    assert response.effective_settings_error == "Settings file is corrupted."
+    admin_api_port = next(setting for setting in response.settings if setting.path == "admin.api.port")
+    assert admin_api_port.persisted_value == 8100
+    assert admin_api_port.is_persisted is True
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
