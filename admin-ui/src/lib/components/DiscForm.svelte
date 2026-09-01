@@ -1,15 +1,18 @@
 <script>
+  import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
 
   let { mode, tagId: initialTagId = '', disc = null, onSaved, onCancel } = $props()
 
-  let tagId = $state(initialTagId)
-  let uri = $state(disc?.uri ?? '')
-  let artist = $state(disc?.metadata.artist ?? '')
-  let album = $state(disc?.metadata.album ?? '')
-  let track = $state(disc?.metadata.track ?? '')
-  let playlist = $state(disc?.metadata.playlist ?? '')
-  let shuffle = $state(disc?.option.shuffle ?? false)
+  // Prefill from props once at mount — Library.svelte always remounts this component
+  // (different {#if} branch) rather than updating `disc` in place, so a one-time read is correct.
+  let tagId = $state(untrack(() => initialTagId))
+  let uri = $state(untrack(() => disc?.uri ?? ''))
+  let artist = $state(untrack(() => disc?.metadata.artist ?? ''))
+  let album = $state(untrack(() => disc?.metadata.album ?? ''))
+  let track = $state(untrack(() => disc?.metadata.track ?? ''))
+  let playlist = $state(untrack(() => disc?.metadata.playlist ?? ''))
+  let shuffle = $state(untrack(() => disc?.option.shuffle ?? false))
   let error = $state(null)
   let saving = $state(false)
 
