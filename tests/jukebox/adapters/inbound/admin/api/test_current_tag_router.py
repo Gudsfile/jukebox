@@ -1,5 +1,5 @@
 import importlib.util
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import AsyncMock, MagicMock, create_autospec
 
 import pytest
 
@@ -65,6 +65,39 @@ def test_get_current_tag_returns_no_content_when_absent(get_route):
     assert response.status_code == 204
     assert response.body == b""
     get_current_tag_status.execute.assert_called_once_with()
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+@pytest.mark.anyio
+async def test_get_current_tag_events_streams_serialized_status(get_route):
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.side_effect = [CurrentTagStatus(tag_id="tag-123", known_in_library=True)]
+    router = build_router(get_current_tag_status=get_current_tag_status)
+    route = get_route(router, "/api/v1/current-tag/events", "GET")
+    request = MagicMock()
+    request.is_disconnected = AsyncMock(side_effect=[False])
+
+    response = await route.endpoint(request)
+    first_chunk = await anext(response.body_iterator)
+
+    assert response.media_type == "text/event-stream"
+    assert first_chunk == b'data: {"tag_id":"tag-123","known_in_library":true}\n\n'
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+@pytest.mark.anyio
+async def test_get_current_tag_events_streams_null_when_no_current_tag(get_route):
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.side_effect = [None]
+    router = build_router(get_current_tag_status=get_current_tag_status)
+    route = get_route(router, "/api/v1/current-tag/events", "GET")
+    request = MagicMock()
+    request.is_disconnected = AsyncMock(side_effect=[False])
+
+    response = await route.endpoint(request)
+    first_chunk = await anext(response.body_iterator)
+
+    assert first_chunk == b"data: null\n\n"
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
