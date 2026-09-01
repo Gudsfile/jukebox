@@ -132,7 +132,7 @@ def test_disc_routes_register_explicit_crud_paths():
     controller = build_controller()
 
     route_index = {
-        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
+        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", None) or [])))
         for route in _iter_routes(controller)
         if hasattr(route, "path")
     }

@@ -142,7 +142,7 @@ def test_ui_controller_registers_routes():
     controller = build_controller()
 
     route_index = {
-        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
+        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", None) or [])))
         for route in _iter_routes(controller)
         if hasattr(route, "path")
     }
