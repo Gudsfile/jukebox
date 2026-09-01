@@ -115,6 +115,27 @@ jobs:
           git tag "v${{ steps.version.outputs.version }}"
           git push origin HEAD:${{ github.ref_name }} "v${{ steps.version.outputs.version }}"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-ui/package-lock.json
+
+      - name: Install admin-ui dependencies
+        run: npm ci
+        working-directory: admin-ui
+
+      - name: Build admin-ui
+        run: npm run build
+        working-directory: admin-ui
+
+      - name: Copy admin-ui bundle into the package
+        run: |
+          rm -rf jukebox/adapters/inbound/admin/static
+          mkdir -p jukebox/adapters/inbound/admin/static
+          cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
+
       - name: Build package
         run: uv build
 
