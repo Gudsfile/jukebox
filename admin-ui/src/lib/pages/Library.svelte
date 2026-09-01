@@ -102,7 +102,7 @@
             <td class="uri" title={disc.uri}>{disc.uri}</td>
             <td class="type">{disc.display_type}</td>
             <td class="title">{disc.display_title}</td>
-            <td class="shuffle">{disc.option.shuffle ? '✓' : '×'}</td>
+            <td class="center">{disc.option.shuffle ? '✓' : '×'}</td>
             <td class="row-actions">
               <button onclick={() => openEdit(tagId)}>Edit</button>
               <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
