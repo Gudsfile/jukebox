@@ -62,3 +62,53 @@ nav button.active {
 main {
   padding: 20px;
 }
+
+.banner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.banner h4 {
+  margin: 0;
+  color: var(--text-h);
+}
+
+.banner p {
+  margin: 4px 0 0;
+}
+
+.banner-info {
+  background: var(--accent-bg);
+}
+
+.banner-warning {
+  background: rgba(230, 160, 30, 0.15);
+}
+
+.error {
+  color: #d33;
+}
+
+.path {
+  color: var(--text);
+  font-size: 0.85em;
+  opacity: 0.75;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
