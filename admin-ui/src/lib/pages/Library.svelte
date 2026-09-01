@@ -81,10 +81,8 @@
         <tr>
           <th>Tag</th>
           <th>URI</th>
-          <th>Artist</th>
-          <th>Album</th>
-          <th>Track</th>
-          <th>Playlist</th>
+          <th>Type</th>
+          <th>Title</th>
           <th>Shuffle</th>
           <th></th>
         </tr>
@@ -94,14 +92,12 @@
           <tr>
             <td>{tagId}</td>
             <td>{disc.uri}</td>
-            <td>{disc.metadata.artist ?? ''}</td>
-            <td>{disc.metadata.album ?? ''}</td>
-            <td>{disc.metadata.track ?? ''}</td>
-            <td>{disc.metadata.playlist ?? ''}</td>
-            <td>{disc.option.shuffle ? 'yes' : 'no'}</td>
-            <td>
+            <td>{disc.display_type}</td>
+            <td>{disc.display_title}</td>
+            <td class="shuffle">{disc.option.shuffle ? '✓' : '×'}</td>
+            <td class="row-actions">
               <button onclick={() => openEdit(tagId)}>Edit</button>
-              <button onclick={() => handleDelete(tagId)}>Delete</button>
+              <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
             </td>
           </tr>
         {/each}
