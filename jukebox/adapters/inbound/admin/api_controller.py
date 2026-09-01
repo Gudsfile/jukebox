@@ -6,6 +6,7 @@ from jukebox.shared.errors import MissingOptionalDependencyError
 
 try:
     from fastapi import FastAPI, HTTPException
+    from fastapi.responses import RedirectResponse
     from fastapi.staticfiles import StaticFiles
 
     from jukebox.adapters.inbound.admin.api.current_tag_router import build_current_tag_router
@@ -185,5 +186,9 @@ class APIController:
                 raise
             except Exception as err:
                 raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+
+        @self.app.get("/ui", include_in_schema=False)
+        def redirect_to_admin_ui():
+            return RedirectResponse(url="/ui/")
 
         self.app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="admin-ui")

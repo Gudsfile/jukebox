@@ -674,3 +674,14 @@ def test_admin_ui_static_bundle_is_mounted():
     mount = next(route for route in controller.app.routes if isinstance(route, Mount) and route.path == "/ui")
 
     assert mount.name == "admin-ui"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_bare_ui_path_redirects_to_trailing_slash():
+    controller = build_controller()
+    route = get_route(controller, "/ui", "GET")
+
+    response = route.endpoint()
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "/ui/"
