@@ -81,15 +81,18 @@
   }
 </script>
 
-<h2>Library</h2>
+<div class="page-header">
+  <h2>Library</h2>
+  {#if !formMode}
+    <button onclick={() => openCreate()}>Add disc</button>
+  {/if}
+</div>
 
 {#if formMode?.type === 'create'}
   <DiscForm mode="create" tagId={formMode.tagId} onSaved={handleSaved} onCancel={closeForm} />
 {:else if formMode?.type === 'edit'}
   <DiscForm mode="edit" tagId={formMode.tagId} disc={formMode.disc} onSaved={handleSaved} onCancel={closeForm} />
 {:else}
-  <button onclick={() => openCreate()}>Add disc</button>
-
   {#if loading}
     <p>Loading…</p>
   {:else if error}

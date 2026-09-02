@@ -54,6 +54,18 @@ h2 {
   font-weight: 500;
 }
 
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.page-header h2 {
+  margin: 0;
+}
+
 button {
   font: inherit;
   color: var(--bg);
