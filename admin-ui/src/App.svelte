@@ -40,3 +40,9 @@
     <Sonos />
   {/if}
 </main>
+
+<footer>
+  <a href="https://github.com/Gudsfile/jukebox" target="_blank" rel="noopener noreferrer">
+    Jukebox made with ❤️ & 💿 · View on GitHub
+  </a>
+</footer>

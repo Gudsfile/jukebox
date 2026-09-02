@@ -36,8 +36,16 @@
   }
 }
 
+html,
 body {
+  height: 100%;
   margin: 0;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 }
 
 h1,
@@ -105,7 +113,24 @@ nav button.active {
 }
 
 main {
+  flex: 1;
   padding: 20px;
+}
+
+footer {
+  padding: 16px 20px 24px;
+  text-align: center;
+  font-size: 0.75em;
+}
+
+footer a {
+  color: var(--text);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+footer a:hover {
+  color: var(--text-h);
 }
 
 .row-actions {
