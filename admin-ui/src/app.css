@@ -12,6 +12,7 @@
   --state-unknown-bg: rgba(147, 48, 125, 0.12);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   font: 16px/145% var(--sans);
   color-scheme: light dark;
@@ -107,6 +108,12 @@ main {
 
 .type {
   white-space: nowrap;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--text);
 }
 
 .title {

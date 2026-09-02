@@ -98,7 +98,7 @@
       <tbody>
         {#each Object.entries(discs) as [tagId, disc] (tagId)}
           <tr>
-            <td>{tagId}</td>
+            <td class="tag">{tagId}</td>
             <td class="uri" title={disc.uri}>{disc.uri}</td>
             <td class="type">{disc.display_type}</td>
             <td class="title">{disc.display_title}</td>
