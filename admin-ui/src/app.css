@@ -113,6 +113,16 @@ main {
   text-align: center;
 }
 
+.shuffle-icon {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.shuffle-icon.active {
+  opacity: 1;
+  filter: none;
+}
+
 .uri {
   overflow: hidden;
   text-overflow: ellipsis;
