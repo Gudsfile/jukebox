@@ -10,6 +10,7 @@
   let error = $state(null)
   let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
   let currentTagId = $state(null)
+  let copiedTagId = $state(null)
 
   $effect(() => {
     // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
@@ -63,6 +64,14 @@
   async function handleSaved() {
     formMode = null
     await loadDiscs()
+  }
+
+  async function copyUri(tagId, uri) {
+    await navigator.clipboard.writeText(uri)
+    copiedTagId = tagId
+    setTimeout(() => {
+      if (copiedTagId === tagId) copiedTagId = null
+    }, 1500)
   }
 
   function typeIcon(displayType) {
@@ -130,7 +139,19 @@
               {/if}
             </td>
             <td class="tag">{tagId}</td>
-            <td class="uri" title={disc.uri}><span class="uri-text">{disc.uri}</span></td>
+            <td class="uri" title={disc.uri}>
+              <span class="uri-row">
+                <span class="uri-text">{disc.uri}</span>
+                <button
+                  type="button"
+                  class="uri-copy"
+                  onclick={() => copyUri(tagId, disc.uri)}
+                  aria-label={copiedTagId === tagId ? 'Copied' : 'Copy URI'}
+                >
+                  {copiedTagId === tagId ? '✅' : '📋'}
+                </button>
+              </span>
+            </td>
             <td class="type">
               <span class="type-icon">{typeIcon(disc.display_type)}</span>
               <span class="type-label">{typeLabel(disc.display_type)}</span>
