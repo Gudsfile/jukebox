@@ -131,6 +131,14 @@ main {
 }
 
 .uri {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  color: var(--text);
+}
+
+.uri-text {
+  display: block;
+  max-width: 40ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
