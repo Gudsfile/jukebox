@@ -1,10 +1,15 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
+  --text: #6b6153;
+  --text-h: #1e1912;
+  --bg: #fbf6ec;
+  --border: #e4dcc9;
+  --accent: #a6690e;
+  --accent-bg: rgba(166, 105, 14, 0.1);
+  --danger: #a83324;
+  --state-known: #1f8f80;
+  --state-known-bg: rgba(31, 143, 128, 0.12);
+  --state-unknown: #93307d;
+  --state-unknown-bg: rgba(147, 48, 125, 0.12);
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
 
@@ -16,12 +21,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
+    --text: #a79e8e;
+    --text-h: #f2ece1;
+    --bg: #17140f;
+    --border: #3a3327;
+    --accent: #e8a33d;
+    --accent-bg: rgba(232, 163, 61, 0.15);
+    --danger: #c4432e;
+    --state-known: #2fb8a6;
+    --state-known-bg: rgba(47, 184, 166, 0.15);
+    --state-unknown: #b3489a;
+    --state-unknown-bg: rgba(179, 72, 154, 0.15);
   }
 }
 
@@ -56,8 +66,8 @@ button:disabled {
 
 button.btn-danger {
   color: #fff;
-  background: #c0392b;
-  border-color: #c0392b;
+  background: var(--danger);
+  border-color: var(--danger);
 }
 
 nav {
@@ -133,11 +143,13 @@ table.discs {
 }
 
 .banner-info {
-  background: var(--accent-bg);
+  background: var(--state-known-bg);
+  border-left: 3px solid var(--state-known);
 }
 
 .banner-warning {
-  background: rgba(230, 160, 30, 0.15);
+  background: var(--state-unknown-bg);
+  border-left: 3px solid var(--state-unknown);
 }
 
 .error {
