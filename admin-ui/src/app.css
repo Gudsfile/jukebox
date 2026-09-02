@@ -71,6 +71,18 @@ button.btn-danger {
   border-color: var(--danger);
 }
 
+button.btn-primary {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+button.btn-secondary {
+  color: var(--text);
+  background: none;
+  border-color: var(--border);
+}
+
 nav {
   display: flex;
   flex-wrap: wrap;
