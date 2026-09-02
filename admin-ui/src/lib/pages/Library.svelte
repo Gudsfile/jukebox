@@ -65,6 +65,15 @@
     await loadDiscs()
   }
 
+  function typeIcon(displayType) {
+    return displayType.split(' ')[0]
+  }
+
+  function typeLabel(displayType) {
+    const spaceIndex = displayType.indexOf(' ')
+    return spaceIndex === -1 ? '' : displayType.slice(spaceIndex + 1)
+  }
+
   async function handleDelete(tagId) {
     if (!confirm(`Delete disc "${tagId}"?`)) return
     await apiDelete(`/discs/${tagId}`)
@@ -119,7 +128,10 @@
             </td>
             <td class="tag">{tagId}</td>
             <td class="uri" title={disc.uri}><span class="uri-text">{disc.uri}</span></td>
-            <td class="type">{disc.display_type}</td>
+            <td class="type">
+              <span class="type-icon">{typeIcon(disc.display_type)}</span>
+              <span class="type-label">{typeLabel(disc.display_type)}</span>
+            </td>
             <td class="title">{disc.display_title}</td>
             <td class="center">
               <span
