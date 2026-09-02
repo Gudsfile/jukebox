@@ -221,12 +221,35 @@ footer a:hover {
   color: var(--text);
 }
 
+.uri-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+}
+
 .uri-text {
   display: block;
   max-width: 40ch;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.uri-copy {
+  flex-shrink: 0;
+  padding: 0 2px;
+  font-size: 0.9em;
+  line-height: 1;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--text);
+}
+
+.uri-copy:hover {
+  color: var(--accent);
+  opacity: 1;
 }
 
 table.discs {
