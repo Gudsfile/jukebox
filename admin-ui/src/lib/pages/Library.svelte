@@ -9,6 +9,18 @@
   let loading = $state(true)
   let error = $state(null)
   let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
+  let currentTagId = $state(null)
+
+  $effect(() => {
+    // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
+    // no highlight — independent from the current-tag banner above.
+    const source = new EventSource('/api/v1/current-tag/events')
+    source.onmessage = (event) => {
+      const data = JSON.parse(event.data)
+      currentTagId = data?.known_in_library ? data.tag_id : null
+    }
+    return () => source.close()
+  })
 
   async function loadDiscs() {
     loading = true
@@ -78,6 +90,7 @@
   {:else}
     <table class="discs">
       <colgroup>
+        <col style="width: 24px" />
         <col style="width: 14%" />
         <col />
         <col style="width: 90px" />
@@ -87,6 +100,7 @@
       </colgroup>
       <thead>
         <tr>
+          <th></th>
           <th>Tag</th>
           <th>URI</th>
           <th>Type</th>
@@ -98,6 +112,11 @@
       <tbody>
         {#each Object.entries(discs) as [tagId, disc] (tagId)}
           <tr>
+            <td class="spin-cell">
+              {#if tagId === currentTagId}
+                <span class="tag-spin" aria-hidden="true">💿</span>
+              {/if}
+            </td>
             <td class="tag">{tagId}</td>
             <td class="uri" title={disc.uri}><span class="uri-text">{disc.uri}</span></td>
             <td class="type">{disc.display_type}</td>

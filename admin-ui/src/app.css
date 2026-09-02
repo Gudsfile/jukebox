@@ -116,6 +116,27 @@ main {
   color: var(--text);
 }
 
+.spin-cell {
+  text-align: center;
+}
+
+.tag-spin {
+  display: inline-block;
+  animation: spin 2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-spin {
+    animation: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .title {
   text-align: center;
 }
