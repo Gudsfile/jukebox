@@ -101,6 +101,7 @@
     <input
       bind:value={rawValue}
       type={setting.field_type === 'integer' || setting.field_type === 'number' ? 'number' : 'text'}
+      step={setting.field_type === 'number' ? 'any' : undefined}
     />
   {/if}
 
