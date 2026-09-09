@@ -9,4 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest-setup.js'],
   },
+  // Under Vitest, force the browser build of Svelte (and any package with separate
+  // server/browser exports) — otherwise component mounting picks the server build and throws
+  // "mount(...) is not available on the server".
+  resolve: process.env.VITEST ? { conditions: ['browser'] } : undefined,
 })
