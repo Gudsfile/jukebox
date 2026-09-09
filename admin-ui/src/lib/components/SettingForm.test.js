@@ -161,3 +161,29 @@ describe('SettingForm — reset and cancel', () => {
     expect(onCancel).toHaveBeenCalled()
   })
 })
+
+describe('SettingForm — server errors', () => {
+  it('shows the server error when saving fails and does not call onSaved', async () => {
+    apiPatch.mockRejectedValue({ body: { detail: 'Enter a valid integer.' } })
+    const onSaved = vi.fn()
+    render(SettingForm, { props: { setting: baseSetting(), onSaved, onCancel: vi.fn() } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Enter a valid integer.')).toBeInTheDocument()
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+
+  it('shows the server error when reset fails and does not call onSaved', async () => {
+    apiPost.mockRejectedValue({ body: { detail: 'Settings file is corrupted.' } })
+    const onSaved = vi.fn()
+    render(SettingForm, {
+      props: { setting: baseSetting({ is_persisted: true, persisted_value: 9000 }), onSaved, onCancel: vi.fn() },
+    })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+
+    expect(await screen.findByText('Settings file is corrupted.')).toBeInTheDocument()
+    expect(onSaved).not.toHaveBeenCalled()
+  })
+})
