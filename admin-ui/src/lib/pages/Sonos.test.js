@@ -17,6 +17,7 @@ vi.mock('../api.js', () => ({
 }))
 
 const speaker = { uid: 'RINCON_1', name: 'Kitchen', host: '192.168.1.10', household_id: 'h', is_visible: true }
+const speaker2 = { uid: 'RINCON_2', name: 'Living Room', host: '192.168.1.11', household_id: 'h', is_visible: true }
 
 beforeEach(() => {
   apiGet.mockReset()
@@ -54,6 +55,27 @@ describe('Sonos — saved selection', () => {
     expect(screen.getByText('Coordinator: Kitchen [RINCON_1]')).toBeInTheDocument()
     expect(screen.getByText('Selection', { selector: 'th' })).toBeInTheDocument()
     expect(screen.getByText('Coordinator', { selector: 'td' })).toBeInTheDocument()
+  })
+
+  it('shows Available when every selected member is currently discoverable', async () => {
+    const fullSelection = {
+      selected_group: { coordinator_uid: 'RINCON_1', members: [{ uid: 'RINCON_1' }, { uid: 'RINCON_2' }] },
+      availability: {
+        status: 'available',
+        members: [
+          { uid: 'RINCON_1', status: 'available', speaker },
+          { uid: 'RINCON_2', status: 'available', speaker: speaker2 },
+        ],
+      },
+    }
+    apiGet.mockImplementation((path) =>
+      path === '/sonos/selection' ? Promise.resolve(fullSelection) : Promise.resolve([speaker, speaker2]),
+    )
+    render(Sonos, { props: {} })
+
+    expect(await screen.findByText('Status: Available')).toBeInTheDocument()
+    expect(screen.getByText('Coordinator: Kitchen [RINCON_1]')).toBeInTheDocument()
+    expect(screen.getByText('Members: Kitchen [RINCON_1], Living Room [RINCON_2]')).toBeInTheDocument()
   })
 
   it('clears the saved selection and reloads', async () => {
