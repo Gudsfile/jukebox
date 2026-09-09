@@ -5,4 +5,8 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   base: '/ui/',
   plugins: [svelte()],
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['./vitest-setup.js'],
+  },
 })
