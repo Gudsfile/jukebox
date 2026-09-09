@@ -11,6 +11,7 @@
   let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
   let currentTagId = $state(null)
   let copiedTagId = $state(null)
+  let deleteError = $state(null)
 
   $effect(() => {
     // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
@@ -85,8 +86,13 @@
 
   async function handleDelete(tagId) {
     if (!confirm(`Delete disc "${tagId}"?`)) return
-    await apiDelete(`/discs/${tagId}`)
-    await loadDiscs()
+    try {
+      await apiDelete(`/discs/${tagId}`)
+      deleteError = null
+      await loadDiscs()
+    } catch (err) {
+      deleteError = err.body?.detail ?? err.message
+    }
   }
 </script>
 
@@ -109,6 +115,9 @@
   {:else if Object.keys(discs).length === 0}
     <p>No disc found</p>
   {:else}
+    {#if deleteError}
+      <p class="error">{deleteError}</p>
+    {/if}
     <table class="discs">
       <colgroup>
         <col style="width: 24px" />
