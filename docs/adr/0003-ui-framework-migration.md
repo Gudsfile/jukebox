@@ -60,3 +60,7 @@ Migration scope, for follow-up planning:
 - Confirm `/api/v1` already covers all CRUD/settings/Sonos operations the current `ui_pages/*` implement (initial scan: discs, settings, current-tag, and Sonos routers already exist — SSE is the one known gap).
 - Remove `jukebox/adapters/inbound/admin/ui_controller.py` and `ui_pages/` once the SPA replaces them; remove associated tests.
 - New Svelte project lives outside the `jukebox` Python package tree (e.g. a top-level `ui/` or `frontend/` directory), with its CI build output copied into the package's static assets at release time.
+
+**Known trade-off — package weight (confirmed on a first real release build):** Python extras (`pip install gukebox[ui]` vs. `gukebox[api]`) only gate *dependency* installation, not which files ship inside the wheel/sdist. Since the compiled Svelte bundle is packaged unconditionally under `jukebox/adapters/inbound/admin/static/`, an `api`-only install carries its weight too, even though it never serves it. Measured: sdist 78.2 kB → 107.7 kB, wheel 117.7 kB → 147.7 kB (~30 kB, matching the current bundle size).
+
+Accepted as-is: at this size the cost is negligible even on constrained hardware, and the alternative (a second PyPI package just to carry the static bundle, installed via the `ui` extra) would add real release/versioning overhead for a saving that doesn't matter in practice. Revisit only if the compiled bundle grows substantially larger than today.
