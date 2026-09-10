@@ -13,6 +13,7 @@ FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 if FASTAPI_INSTALLED:
     from fastapi import HTTPException
     from fastapi.routing import APIRoute, iter_route_contexts
+    from starlette.routing import Mount
 
     def _iter_routes(controller: Any) -> Iterator[Any]:
         return iter_route_contexts(controller.app.routes)
@@ -132,7 +133,7 @@ def test_disc_routes_register_explicit_crud_paths():
     controller = build_controller()
 
     route_index = {
-        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", []))))
+        (getattr(route, "path", None), tuple(sorted(getattr(route, "methods", None) or [])))
         for route in _iter_routes(controller)
         if hasattr(route, "path")
     }
@@ -664,3 +665,23 @@ def test_put_sonos_selection_returns_502_on_discovery_failure():
 
     assert err.value.status_code == 502
     assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_admin_ui_static_bundle_is_mounted():
+    controller = build_controller()
+
+    mount = next(route for route in controller.app.routes if isinstance(route, Mount) and route.path == "/ui")
+
+    assert mount.name == "admin-ui"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_bare_ui_path_redirects_to_trailing_slash():
+    controller = build_controller()
+    route = get_route(controller, "/ui", "GET")
+
+    response = route.endpoint()
+
+    assert response.status_code == 307
+    assert response.headers["location"] == "/ui/"

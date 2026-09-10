@@ -1,6 +1,9 @@
+import asyncio
+from collections.abc import AsyncIterator
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Response, status
+from fastapi import APIRouter, HTTPException, Request, Response, status
+from fastapi.responses import StreamingResponse
 from pydantic import ValidationError
 
 from jukebox.adapters.inbound.admin.api.models import (
@@ -42,6 +45,28 @@ def build_current_tag_router(
     def build_current_tag_disc_output(tag_id: str, disc: Disc) -> CurrentTagDiscOutput:
         return CurrentTagDiscOutput(tag_id=tag_id, disc=DiscOutput(**disc.model_dump()))
 
+    def serialize_current_tag_status(current_tag_status: CurrentTagStatus | None) -> str:
+        if current_tag_status is None:
+            return "null"
+        return CurrentTagStatusOutput(**current_tag_status.model_dump()).model_dump_json()
+
+    async def current_tag_status_event_stream(
+        request: Request,
+        poll_interval_seconds: float = 0.5,
+    ) -> AsyncIterator[bytes]:
+        previous_payload: str | None = None
+
+        while True:
+            payload = serialize_current_tag_status(read_current_tag_status())
+            if payload != previous_payload:
+                previous_payload = payload
+                yield f"data: {payload}\n\n".encode()
+
+            if await request.is_disconnected():
+                break
+
+            await asyncio.sleep(poll_interval_seconds)
+
     @router.get(
         "/current-tag",
         response_model=CurrentTagStatusOutput,
@@ -54,6 +79,21 @@ def build_current_tag_router(
             return Response(status_code=204)
 
         return CurrentTagStatusOutput(**current_tag_status.model_dump())
+
+    @router.get(
+        "/current-tag/events",
+        summary="Stream current NFC tag status changes as Server-Sent Events",
+    )
+    async def get_current_tag_events(request: Request) -> StreamingResponse:
+        return StreamingResponse(
+            current_tag_status_event_stream(request),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
+        )
 
     @router.get(
         "/current-tag/disc",

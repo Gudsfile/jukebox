@@ -8,6 +8,7 @@ on:
       - "**/*.py"
       - "pyproject.toml"
       - "uv.lock"
+      - "admin-ui/**"
       - ".github/workflows/python.yml"
   workflow_dispatch:
     inputs:
@@ -89,6 +90,27 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: admin-ui/package-lock.json
+
+      - name: Install admin-ui dependencies
+        run: npm ci
+        working-directory: admin-ui
+
+      - name: Build admin-ui
+        run: npm run build
+        working-directory: admin-ui
+
+      - name: Copy admin-ui bundle into the package
+        run: |
+          rm -rf jukebox/adapters/inbound/admin/static
+          mkdir -p jukebox/adapters/inbound/admin/static
+          cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
 
       - name: Set up Python
         uses: actions/setup-python@v7

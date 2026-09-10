@@ -11,6 +11,8 @@ built-package/
 dist/
 .pypirc
 
+jukebox/adapters/inbound/admin/static/
+
 library.json
 library/
 *.bak*

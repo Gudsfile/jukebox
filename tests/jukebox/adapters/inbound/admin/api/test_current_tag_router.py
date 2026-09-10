@@ -1,5 +1,5 @@
 import importlib.util
-from unittest.mock import MagicMock, create_autospec
+from unittest.mock import AsyncMock, MagicMock, create_autospec
 
 import pytest
 
@@ -68,6 +68,39 @@ def test_get_current_tag_returns_no_content_when_absent(get_route):
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+@pytest.mark.anyio
+async def test_get_current_tag_events_streams_serialized_status(get_route):
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.side_effect = [CurrentTagStatus(tag_id="tag-123", known_in_library=True)]
+    router = build_router(get_current_tag_status=get_current_tag_status)
+    route = get_route(router, "/api/v1/current-tag/events", "GET")
+    request = MagicMock()
+    request.is_disconnected = AsyncMock(side_effect=[False])
+
+    response = await route.endpoint(request)
+    first_chunk = await anext(response.body_iterator)
+
+    assert response.media_type == "text/event-stream"
+    assert first_chunk == b'data: {"tag_id":"tag-123","known_in_library":true}\n\n'
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+@pytest.mark.anyio
+async def test_get_current_tag_events_streams_null_when_no_current_tag(get_route):
+    get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
+    get_current_tag_status.execute.side_effect = [None]
+    router = build_router(get_current_tag_status=get_current_tag_status)
+    route = get_route(router, "/api/v1/current-tag/events", "GET")
+    request = MagicMock()
+    request.is_disconnected = AsyncMock(side_effect=[False])
+
+    response = await route.endpoint(request)
+    first_chunk = await anext(response.body_iterator)
+
+    assert first_chunk == b"data: null\n\n"
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_current_tag_disc_returns_tag_and_disc_payload(get_route):
     get_current_tag_status = create_autospec(GetCurrentTagStatus, instance=True, spec_set=True)
     get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
@@ -90,6 +123,8 @@ def test_get_current_tag_disc_returns_tag_and_disc_payload(get_route):
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
             "option": {"shuffle": True, "is_test": False},
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Track",
         },
     }
     get_disc.execute.assert_called_once_with("tag-123")
@@ -140,7 +175,11 @@ def test_create_current_tag_disc_returns_created_disc_payload(get_route):
 
     assert response.model_dump() == {
         "tag_id": "tag-123",
-        "disc": request.model_dump(),
+        "disc": {
+            **request.model_dump(),
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Track",
+        },
     }
     add_disc.execute.assert_called_once_with("tag-123", Disc(**request.model_dump()))
 
@@ -202,6 +241,8 @@ def test_patch_current_tag_disc_partially_updates_existing_disc(get_route):
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
             "option": {"shuffle": False, "is_test": False},
+            "display_type": "\U0001f3b5 Track",
+            "display_title": "Artist — Updated Track",
         },
     }
     edit_disc.execute.assert_called_once_with(
