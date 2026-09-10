@@ -295,6 +295,34 @@ table.discs {
   opacity: 0.75;
 }
 
+.badge {
+  display: inline-block;
+  font-size: 0.7em;
+  font-weight: 600;
+  line-height: 1.4;
+  padding: 1px 6px;
+  margin-left: 6px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.badge-configured {
+  color: var(--state-known);
+}
+
+.badge-pinned {
+  color: var(--text);
+}
+
+.badge-restart {
+  color: var(--danger);
+}
+
+.badge-advanced {
+  color: var(--accent);
+}
+
 table {
   display: block;
   overflow-x: auto;
