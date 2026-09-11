@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.svelte'
@@ -23,6 +23,9 @@ const displaysResponse = {
       effective_value: '/default/library.json',
       provenance: 'default',
       is_persisted: false,
+      is_pinned_default: false,
+      requires_restart: false,
+      advanced: false,
     },
     {
       path: 'admin.api.port',
@@ -37,6 +40,26 @@ const displaysResponse = {
       effective_value: 9000,
       provenance: 'file',
       is_persisted: true,
+      is_pinned_default: false,
+      requires_restart: true,
+      advanced: false,
+    },
+    {
+      path: 'jukebox.player.type',
+      label: 'Player Type',
+      description: 'Playback backend used by jukebox playback.',
+      field_type: 'string',
+      section: 'player',
+      section_label: 'Player',
+      choices: [],
+      default_value: 'sonos',
+      persisted_value: 'sonos',
+      effective_value: 'sonos',
+      provenance: 'env',
+      is_persisted: true,
+      is_pinned_default: true,
+      requires_restart: true,
+      advanced: true,
     },
   ],
   effective_settings_error: null,
@@ -91,6 +114,41 @@ describe('Settings — list', () => {
     render(Settings, { props: {} })
 
     expect(await screen.findByText('Network error')).toBeInTheDocument()
+  })
+})
+
+describe('Settings — badges', () => {
+  it('shows no badges for a setting that is neither persisted, pinned, restart-required nor advanced', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Library Path')).closest('tr')
+    expect(within(row).queryByText('Configured')).not.toBeInTheDocument()
+    expect(within(row).queryByText('Pinned default')).not.toBeInTheDocument()
+    expect(within(row).queryByText('Restart required')).not.toBeInTheDocument()
+    expect(within(row).queryByText('Advanced')).not.toBeInTheDocument()
+  })
+
+  it('shows Configured and Restart required badges for a persisted setting that requires a restart', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Admin API Port')).closest('tr')
+    expect(within(row).getByText('Configured')).toBeInTheDocument()
+    expect(within(row).getByText('Restart required')).toBeInTheDocument()
+    expect(within(row).queryByText('Pinned default')).not.toBeInTheDocument()
+    expect(within(row).queryByText('Advanced')).not.toBeInTheDocument()
+  })
+
+  it('shows all badges for a setting persisted at its pinned default value, requiring restart and advanced', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Player Type')).closest('tr')
+    expect(within(row).getByText('Configured')).toBeInTheDocument()
+    expect(within(row).getByText('Pinned default')).toBeInTheDocument()
+    expect(within(row).getByText('Restart required')).toBeInTheDocument()
+    expect(within(row).getByText('Advanced')).toBeInTheDocument()
   })
 })
 
