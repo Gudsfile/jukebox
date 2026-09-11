@@ -3,7 +3,7 @@ from unittest.mock import create_autospec
 import pytest
 
 from jukebox.settings.entities import SelectedSonosGroupSettings, SelectedSonosSpeakerSettings
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker
+from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from jukebox.sonos.selection import (
     GetSonosSelectionStatus,
     SaveSelectedSonosGroupResult,
@@ -375,6 +375,31 @@ def test_get_sonos_selection_status_reports_unavailable_selection_for_mixed_hous
     assert status.selected_group.coordinator_uid == "speaker-1"
     assert status.availability.status == "unavailable"
     assert [member.status for member in status.availability.members] == ["available", "available"]
+
+
+def test_get_sonos_selection_status_reports_unavailable_selection_on_total_discovery_failure():
+    selected_group_repository = create_autospec(SelectedSonosGroupRepository)
+    selected_group_repository.get_selected_group.return_value = SelectedSonosGroupSettings(
+        household_id="household-1",
+        coordinator_uid="speaker-1",
+        members=[
+            SelectedSonosSpeakerSettings(uid="speaker-1"),
+            SelectedSonosSpeakerSettings(uid="speaker-2"),
+        ],
+    )
+    sonos_service = create_autospec(SonosService)
+    sonos_service.inspect_selected_group.side_effect = SonosDiscoveryError("Failed to discover Sonos speakers.")
+
+    status = GetSonosSelectionStatus(
+        selected_group_repository=selected_group_repository,
+        sonos_service=sonos_service,
+    ).execute()
+
+    assert status.selected_group is not None
+    assert status.selected_group.coordinator_uid == "speaker-1"
+    assert status.availability.status == "unavailable"
+    assert [member.status for member in status.availability.members] == ["unavailable", "unavailable"]
+    assert all(member.speaker is None for member in status.availability.members)
 
 
 def test_get_sonos_selection_status_reports_unavailable_when_partial_group_spans_households():

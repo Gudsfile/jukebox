@@ -120,4 +120,22 @@ describe('Sonos — discovery failure', () => {
 
     expect(await screen.findByText('Network error')).toBeInTheDocument()
   })
+
+  it('still shows the saved selection when only speaker discovery fails', async () => {
+    const unavailableSelection = {
+      selected_group: { coordinator_uid: 'RINCON_1', members: [{ uid: 'RINCON_1' }] },
+      availability: { status: 'unavailable', members: [{ uid: 'RINCON_1', status: 'unavailable' }] },
+    }
+    apiGet.mockImplementation((path) =>
+      path === '/sonos/selection'
+        ? Promise.resolve(unavailableSelection)
+        : Promise.reject(new ApiError(502, { detail: 'Failed to discover Sonos speakers.' })),
+    )
+    render(Sonos, { props: {} })
+
+    expect(await screen.findByText(/Sonos discovery unavailable: Failed to discover Sonos speakers\./)).toBeInTheDocument()
+    expect(screen.getByText('Status: Unavailable')).toBeInTheDocument()
+    expect(screen.getByText('Coordinator: RINCON_1')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Discovered speakers' })).toBeNull()
+  })
 })

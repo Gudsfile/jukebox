@@ -7,7 +7,7 @@ from jukebox.settings.entities import (
     SelectedSonosSpeakerSettings,
 )
 
-from .discovery import DiscoveredSonosSpeaker
+from .discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
 from .service import SonosService
 
 
@@ -99,7 +99,18 @@ class GetSonosSelectionStatus:
                 availability=SonosSelectionAvailability(status="not_selected"),
             )
 
-        inspection = self.sonos_service.inspect_selected_group(selected_group)
+        try:
+            inspection = self.sonos_service.inspect_selected_group(selected_group)
+        except SonosDiscoveryError:
+            members = [
+                SonosSelectionMemberAvailability(uid=saved_member.uid, status="unavailable")
+                for saved_member in selected_group.members
+            ]
+            return SonosSelectionStatus(
+                selected_group=selected_group,
+                availability=SonosSelectionAvailability(status="unavailable", members=members),
+            )
+
         available_speakers = {speaker.uid: speaker for speaker in inspection.resolved_members}
         members = []
 

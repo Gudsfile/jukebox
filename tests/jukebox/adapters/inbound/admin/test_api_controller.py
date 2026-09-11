@@ -470,7 +470,7 @@ def test_get_sonos_selection_returns_unavailable_saved_selection_when_coordinato
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_get_sonos_selection_returns_502_on_discovery_failure():
+def test_get_sonos_selection_degrades_gracefully_on_discovery_failure():
     settings_service = MagicMock()
     settings_service.get_persisted_settings_view.return_value = {
         "schema_version": 1,
@@ -496,11 +496,12 @@ def test_get_sonos_selection_returns_502_on_discovery_failure():
         next(route for route in _iter_routes(controller) if getattr(route, "path", None) == "/api/v1/sonos/selection"),
     )
 
-    with pytest.raises(HTTPException) as err:
-        route.endpoint()
+    response = route.endpoint()
 
-    assert err.value.status_code == 502
-    assert err.value.detail == "Failed to discover Sonos speakers: network unavailable"
+    assert response.selected_group is not None
+    assert response.selected_group.coordinator_uid == "speaker-1"
+    assert response.availability.status == "unavailable"
+    assert [member.status for member in response.availability.members] == ["unavailable"]
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
