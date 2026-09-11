@@ -3,6 +3,10 @@
   import { apiGet } from '../api.js'
   import SettingForm from '../components/SettingForm.svelte'
 
+  const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
+
+  let { onManageSpeakers } = $props()
+
   let settings = $state([])
   let effectiveSettingsError = $state(null)
   let loading = $state(true)
@@ -108,7 +112,13 @@
             </td>
             <td>{formatValue(setting.effective_value)}</td>
             <td>{setting.provenance}</td>
-            <td><button onclick={() => openEdit(setting.path)}>Edit</button></td>
+            <td>
+              {#if setting.path === SONOS_SELECTED_GROUP_PATH}
+                <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>
+              {:else}
+                <button onclick={() => openEdit(setting.path)}>Edit</button>
+              {/if}
+            </td>
           </tr>
         {/each}
       </tbody>

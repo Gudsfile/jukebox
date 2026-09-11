@@ -61,6 +61,23 @@ const displaysResponse = {
       requires_restart: true,
       advanced: true,
     },
+    {
+      path: 'jukebox.player.sonos.selected_group',
+      label: 'Sonos Selected Group',
+      description: 'The Sonos speaker group used for playback.',
+      field_type: 'object',
+      section: 'player',
+      section_label: 'Player',
+      choices: [],
+      default_value: null,
+      persisted_value: { coordinator_uid: 'RINCON_1', members: [{ uid: 'RINCON_1' }] },
+      effective_value: { coordinator_uid: 'RINCON_1', members: [{ uid: 'RINCON_1' }] },
+      provenance: 'runtime',
+      is_persisted: true,
+      is_pinned_default: false,
+      requires_restart: false,
+      advanced: false,
+    },
   ],
   effective_settings_error: null,
 }
@@ -163,5 +180,35 @@ describe('Settings — edit flow', () => {
 
     expect(screen.getByRole('heading', { name: 'Edit Admin API Port' })).toBeInTheDocument()
     expect(screen.getByRole('spinbutton')).toHaveValue(9000)
+  })
+})
+
+describe('Settings — Sonos selected group row', () => {
+  it('shows a Manage Speakers button instead of Edit for the Sonos selected group row', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Sonos Selected Group')).closest('tr')
+    expect(within(row).getByRole('button', { name: 'Manage Speakers 🔊' })).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('calls onManageSpeakers when the Manage Speakers button is clicked', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    const onManageSpeakers = vi.fn()
+    render(Settings, { props: { onManageSpeakers } })
+
+    const row = (await screen.findByText('Sonos Selected Group')).closest('tr')
+    await fireEvent.click(within(row).getByRole('button', { name: 'Manage Speakers 🔊' }))
+
+    expect(onManageSpeakers).toHaveBeenCalledOnce()
+  })
+
+  it('still shows the normal Edit button for other rows', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Admin API Port')).closest('tr')
+    expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
   })
 })

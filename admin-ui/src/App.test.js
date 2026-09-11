@@ -64,4 +64,45 @@ describe('App', () => {
     const tagIdInput = await screen.findByLabelText('Tag ID')
     expect(tagIdInput).toHaveValue('tag-123')
   })
+
+  it('clicking Manage Speakers on the Settings page switches to the Sonos page', async () => {
+    globalThis.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/settings/displays')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              settings: [
+                {
+                  path: 'jukebox.player.sonos.selected_group',
+                  label: 'Sonos Selected Group',
+                  description: 'The Sonos speaker group used for playback.',
+                  field_type: 'object',
+                  section: 'player',
+                  section_label: 'Player',
+                  choices: [],
+                  default_value: null,
+                  persisted_value: null,
+                  effective_value: null,
+                  provenance: 'default',
+                  is_persisted: false,
+                  is_pinned_default: false,
+                  requires_restart: false,
+                  advanced: false,
+                },
+              ],
+              effective_settings_error: null,
+            }),
+        })
+      }
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) })
+    })
+    render(App)
+
+    await fireEvent.click(screen.getByRole('button', { name: 'settings' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Manage Speakers 🔊' }))
+
+    expect(await screen.findByRole('heading', { name: 'Sonos' })).toBeInTheDocument()
+  })
 })
