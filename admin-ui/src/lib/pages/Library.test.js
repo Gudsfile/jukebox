@@ -118,7 +118,7 @@ describe('Library — add/edit/delete flow', () => {
   it('shows an error and keeps the row when delete fails', async () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
-    apiDelete.mockRejectedValue({ body: { detail: 'Tag does not exist: tag_id=\'tag-1\'' } })
+    apiDelete.mockRejectedValue({ body: { detail: "Tag does not exist: tag_id='tag-1'" } })
     render(Library, { props: {} })
     const row1 = (await screen.findByText('tag-1')).closest('tr')
 

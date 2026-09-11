@@ -110,7 +110,9 @@ describe('Sonos — discovery failure', () => {
     apiGet.mockRejectedValue(new ApiError(502, { detail: 'Failed to discover Sonos speakers.' }))
     render(Sonos, { props: {} })
 
-    expect(await screen.findByText(/Sonos discovery unavailable: Failed to discover Sonos speakers\./)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Sonos discovery unavailable: Failed to discover Sonos speakers\./),
+    ).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Discovered speakers' })).toBeNull()
   })
 
@@ -133,7 +135,9 @@ describe('Sonos — discovery failure', () => {
     )
     render(Sonos, { props: {} })
 
-    expect(await screen.findByText(/Sonos discovery unavailable: Failed to discover Sonos speakers\./)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Sonos discovery unavailable: Failed to discover Sonos speakers\./),
+    ).toBeInTheDocument()
     expect(screen.getByText('Status: Unavailable')).toBeInTheDocument()
     expect(screen.getByText('Coordinator: RINCON_1')).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Discovered speakers' })).toBeNull()

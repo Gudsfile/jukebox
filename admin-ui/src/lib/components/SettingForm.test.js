@@ -147,7 +147,9 @@ describe('SettingForm — reset and cancel', () => {
   })
 
   it('hides Reset when the setting has no persisted override', () => {
-    render(SettingForm, { props: { setting: baseSetting({ is_persisted: false }), onSaved: vi.fn(), onCancel: vi.fn() } })
+    render(SettingForm, {
+      props: { setting: baseSetting({ is_persisted: false }), onSaved: vi.fn(), onCancel: vi.fn() },
+    })
 
     expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
   })

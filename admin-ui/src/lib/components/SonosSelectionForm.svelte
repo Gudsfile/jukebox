@@ -51,11 +51,7 @@
     <legend>Speakers</legend>
     {#each speakers as speaker (speaker.uid)}
       <label class="checkbox">
-        <input
-          type="checkbox"
-          checked={selectedUids.has(speaker.uid)}
-          onchange={() => toggleSpeaker(speaker.uid)}
-        />
+        <input type="checkbox" checked={selectedUids.has(speaker.uid)} onchange={() => toggleSpeaker(speaker.uid)} />
         {speaker.name} ({speaker.host})
       </label>
     {/each}
