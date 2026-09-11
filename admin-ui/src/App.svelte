@@ -16,6 +16,10 @@
   function clearLibraryIntent() {
     libraryIntent = null
   }
+
+  function goToSonos() {
+    currentPage = 'sonos'
+  }
 </script>
 
 <CurrentTagBanner
@@ -35,7 +39,7 @@
   {#if currentPage === 'library'}
     <Library intent={libraryIntent} onIntentConsumed={clearLibraryIntent} />
   {:else if currentPage === 'settings'}
-    <Settings />
+    <Settings onManageSpeakers={goToSonos} />
   {:else if currentPage === 'sonos'}
     <Sonos />
   {/if}
