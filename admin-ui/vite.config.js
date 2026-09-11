@@ -7,10 +7,10 @@ export default defineConfig({
   plugins: [svelte()],
   test: {
     environment: 'jsdom',
-    setupFiles: ['./vitest-setup.js'],
-    // Flags timers/effects left running after a test finishes (e.g. an unclosed EventSource),
-    // which would otherwise leak into and pollute later tests.
-    detectAsyncLeaks: true,
+    // Flags timers/sockets/watchers left running after a test finishes (e.g. an unclosed
+    // EventSource), which would otherwise leak into and pollute later tests.
+    setupFiles: ['./vitest-setup.js', 'vitest-leak-detector/setup'],
+    reporters: ['default', 'vitest-leak-detector/reporter'],
   },
   // Under Vitest, force the browser build of Svelte (and any package with separate
   // server/browser exports) — otherwise component mounting picks the server build and throws
