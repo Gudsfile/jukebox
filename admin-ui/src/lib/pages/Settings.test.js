@@ -54,8 +54,28 @@ describe('Settings — list', () => {
     expect(await screen.findByRole('heading', { name: 'Paths' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
     expect(screen.getByText('Library Path')).toBeInTheDocument()
-    expect(screen.getByText('9000')).toBeInTheDocument()
+    expect(screen.getAllByText('9000')).toHaveLength(2)
     expect(screen.getByText('file')).toBeInTheDocument()
+  })
+
+  it('shows the default and persisted values for a persisted override', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Admin API Port')).closest('tr')
+    const cells = row.querySelectorAll('td')
+    expect(cells[1]).toHaveTextContent('8000')
+    expect(cells[2]).toHaveTextContent('9000')
+  })
+
+  it('shows the default value and a placeholder for a non-persisted setting', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Library Path')).closest('tr')
+    const cells = row.querySelectorAll('td')
+    expect(cells[1]).toHaveTextContent('/default/library.json')
+    expect(cells[2]).toHaveTextContent('—')
   })
 
   it('shows the effective-settings-error banner while still listing persisted values', async () => {

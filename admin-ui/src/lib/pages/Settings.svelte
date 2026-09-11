@@ -80,6 +80,8 @@
       <thead>
         <tr>
           <th>Setting</th>
+          <th>Default</th>
+          <th>Persisted</th>
           <th>Effective value</th>
           <th>Source</th>
           <th></th>
@@ -91,6 +93,14 @@
             <td>
               <strong>{setting.label}</strong>
               <div class="path">{setting.path}</div>
+            </td>
+            <td>{formatValue(setting.default_value)}</td>
+            <td>
+              {#if setting.is_persisted}
+                {formatValue(setting.persisted_value)}
+              {:else}
+                <span class="path">—</span>
+              {/if}
             </td>
             <td>{formatValue(setting.effective_value)}</td>
             <td>{setting.provenance}</td>
