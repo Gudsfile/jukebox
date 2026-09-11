@@ -8,6 +8,7 @@ This file provides guidance to AI coding agents when working with code in this r
 
 - **jukebox** — Main music player app (reads NFC tags, controls playback)
 - **pn532** — NFC reader library (excluded from linting/type-checking)
+- **admin-ui** — Svelte SPA for the admin UI, replacing the legacy FastUI adapter (in progress, see below)
 
 ## Commands
 
@@ -50,6 +51,12 @@ uv run pytest -k "test_pattern"
 
 # Run tests including those needing specific extra
 uv run --extra ui pytest
+
+# admin-ui/ (Svelte SPA, from within admin-ui/)
+npm install
+npm run dev      # dev server
+npm run build    # static bundle consumed by the Python app
+npm test         # vitest
 ```
 
 ## Architecture
@@ -96,6 +103,10 @@ Pydantic-based config with union types + discriminators for plugin-style player/
 ### Persistence
 
 The library is stored as `library.json` via `json_library_adapter.py`. No database.
+
+### Admin UI migration
+
+The admin web UI is being migrated from FastUI to a Svelte SPA in `admin-ui/` (see `docs/adr/0003-ui-framework-migration.md`). Both coexist during the migration: within the `jukebox-admin ui` process, FastUI still serves `/`, and the built Svelte SPA is mounted at `/ui` (see `api_controller.py`). FastUI has not been removed yet.
 
 ## Code Style Guidelines
 

@@ -187,6 +187,9 @@ uv run --extra api jukebox-admin api
 uv run --extra ui jukebox-admin ui
 ```
 
+> [!NOTE]
+> The admin UI is being migrated from FastUI to a Svelte SPA (see `admin-ui/`). Both currently coexist within the `jukebox-admin ui` process: FastUI serves `/`, while the new SPA is mounted at `/ui`.
+
 #### `library`
 
 The `library` command lets you manage the library through a CLI or an interactive CLI:
@@ -313,6 +316,15 @@ uv run --extra ui jukebox-admin ui
 | `uv run ruff check` | Check the code. |
 | `uv run ruff check --fix` | Fix the code. |
 | `uv run pytest` | Run the tests. |
+
+The new admin UI, a Svelte + Vite SPA, lives in `admin-ui/` (see `admin-ui/README.md`):
+```shell
+cd admin-ui
+npm install
+npm run dev      # dev server
+npm run build    # static bundle for packaging into the Python app
+npm test         # vitest
+```
 
 ### Pre-commit
 
