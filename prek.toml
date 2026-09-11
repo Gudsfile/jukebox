@@ -24,3 +24,26 @@ hooks = [
     # Update the uv lockfile
     { id = "uv-lock" },
 ]
+
+[[repos]]
+repo = "local"
+hooks = [
+  {
+    id = "admin-ui-format",
+    name = "admin-ui prettier format",
+    language = "system",
+    entry = "npm --prefix admin-ui run format",
+    files = "^admin-ui/",
+    exclude = "^admin-ui/(dist|node_modules)/",
+    pass_filenames = false,
+  },
+  {
+    id = "admin-ui-lint",
+    name = "admin-ui eslint",
+    language = "system",
+    entry = "npm --prefix admin-ui run lint -- --fix",
+    files = "^admin-ui/",
+    exclude = "^admin-ui/(dist|node_modules)/",
+    pass_filenames = false,
+  },
+]
