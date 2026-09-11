@@ -55,7 +55,10 @@ describe('apiDelete', () => {
 
     const result = await apiDelete('/discs/tag-123')
 
-    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/discs/tag-123', expect.objectContaining({ method: 'DELETE' }))
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/v1/discs/tag-123',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
     expect(result).toBeNull()
   })
 })

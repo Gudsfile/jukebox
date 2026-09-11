@@ -14,7 +14,11 @@
 </script>
 
 {#if currentTag}
-  <div class="banner" class:banner-info={currentTag.known_in_library} class:banner-warning={!currentTag.known_in_library}>
+  <div
+    class="banner"
+    class:banner-info={currentTag.known_in_library}
+    class:banner-warning={!currentTag.known_in_library}
+  >
     <div>
       <h4>{currentTag.known_in_library ? 'Known disc on reader' : 'Unknown disc on reader'}</h4>
       <p>

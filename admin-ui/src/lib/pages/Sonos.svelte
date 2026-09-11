@@ -75,7 +75,7 @@
 
 {#if editing}
   <SonosSelectionForm
-    speakers={speakers}
+    {speakers}
     selectedGroup={selection?.selected_group ?? null}
     onSaved={handleSaved}
     onCancel={closeEdit}
