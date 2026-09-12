@@ -102,6 +102,7 @@ describe('Library — add/edit/delete flow', () => {
   })
 
   it('deletes a disc after confirmation and reloads', async () => {
+    vi.useFakeTimers()
     const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
     apiDelete.mockResolvedValue(null)
@@ -113,6 +114,7 @@ describe('Library — add/edit/delete flow', () => {
     expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-1"?')
     expect(apiDelete).toHaveBeenCalledWith('/discs/tag-1')
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    vi.runOnlyPendingTimers()
   })
 
   it('shows an error and keeps the row when delete fails', async () => {

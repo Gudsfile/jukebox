@@ -10,6 +10,8 @@
   --state-known-bg: rgba(31, 143, 128, 0.12);
   --state-unknown: #93307d;
   --state-unknown-bg: rgba(147, 48, 125, 0.12);
+  --success: #1f8f80;
+  --success-text: #fbf6ec;
 
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -33,6 +35,8 @@
     --state-known-bg: rgba(47, 184, 166, 0.15);
     --state-unknown: #b3489a;
     --state-unknown-bg: rgba(179, 72, 154, 0.15);
+    --success: #2fb8a6;
+    --success-text: #17140f;
   }
 }
 

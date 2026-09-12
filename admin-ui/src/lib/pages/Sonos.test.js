@@ -79,6 +79,7 @@ describe('Sonos — saved selection', () => {
   })
 
   it('clears the saved selection and reloads', async () => {
+    vi.useFakeTimers()
     apiGet.mockImplementation((path) =>
       path === '/sonos/selection' ? Promise.resolve(selection) : Promise.resolve([speaker]),
     )
@@ -90,6 +91,7 @@ describe('Sonos — saved selection', () => {
 
     expect(apiPost).toHaveBeenCalledWith('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/sonos/selection'))
+    vi.runOnlyPendingTimers()
   })
 
   it('opens the edit form and returns to the summary on save', async () => {

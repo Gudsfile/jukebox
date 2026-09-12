@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { apiGet } from '../api.js'
+  import { toastStore } from '../stores/toastStore.js'
   import SettingForm from '../components/SettingForm.svelte'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
@@ -59,9 +60,14 @@
     editingPath = null
   }
 
-  async function handleSaved() {
+  async function handleSaved(action) {
     editingPath = null
     await loadSettings()
+    if (action === 'save') {
+      toastStore.showToast('⚙️ Settings saved.')
+    } else if (action === 'reset') {
+      toastStore.showToast('⚙️ Settings reset to default.')
+    }
   }
 </script>
 

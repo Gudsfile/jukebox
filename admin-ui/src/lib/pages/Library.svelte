@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { apiDelete, apiGet } from '../api.js'
+  import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
 
   let { intent = null, onIntentConsumed } = $props()
@@ -65,6 +66,7 @@
   async function handleSaved() {
     formMode = null
     await loadDiscs()
+    toastStore.showToast('💿 Disc saved.')
   }
 
   async function copyUri(tagId, uri) {
@@ -90,6 +92,7 @@
       await apiDelete(`/discs/${tagId}`)
       deleteError = null
       await loadDiscs()
+      toastStore.showToast('💿 Disc deleted.')
     } catch (err) {
       deleteError = err.body?.detail ?? err.message
     }

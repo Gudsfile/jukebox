@@ -1,5 +1,6 @@
 <script>
   import CurrentTagBanner from './lib/components/CurrentTagBanner.svelte'
+  import Toast from './lib/components/Toast.svelte'
   import Library from './lib/pages/Library.svelte'
   import Settings from './lib/pages/Settings.svelte'
   import Sonos from './lib/pages/Sonos.svelte'
@@ -26,6 +27,7 @@
   onEditDisc={(tagId) => goToLibrary({ type: 'edit', tagId })}
   onAddDisc={(tagId) => goToLibrary({ type: 'create', tagId })}
 />
+<Toast />
 
 <nav>
   {#each pageKeys as page (page)}
