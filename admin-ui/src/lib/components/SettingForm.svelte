@@ -110,10 +110,10 @@
   {/if}
 
   <div class="actions">
-    <button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+    <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     {#if setting.is_persisted}
-      <button type="button" onclick={handleReset} disabled={saving}>Reset</button>
+      <button type="button" class="btn-danger" onclick={handleReset} disabled={saving}>Reset</button>
     {/if}
-    <button type="button" onclick={onCancel}>Cancel</button>
+    <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
