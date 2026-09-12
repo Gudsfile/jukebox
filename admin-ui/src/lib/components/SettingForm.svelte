@@ -61,7 +61,7 @@
     try {
       const value = coerceValue()
       await apiPatch('/settings', buildDottedPatch(setting.path, value))
-      onSaved()
+      onSaved('save')
     } catch (err) {
       error = err.body?.detail ?? err.message
     } finally {
@@ -74,7 +74,7 @@
     saving = true
     try {
       await apiPost('/settings/reset', { path: setting.path })
-      onSaved()
+      onSaved('reset')
     } catch (err) {
       error = err.body?.detail ?? err.message
     } finally {

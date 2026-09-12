@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { ApiError, apiGet, apiPost } from '../api.js'
+  import { toastStore } from '../stores/toastStore.js'
   import SonosSelectionForm from '../components/SonosSelectionForm.svelte'
 
   const STATUS_LABELS = {
@@ -63,11 +64,13 @@
   async function handleSaved() {
     editing = false
     await load()
+    toastStore.showToast('🔊 Sonos settings saved.')
   }
 
   async function handleClearSelection() {
     await apiPost('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
     await load()
+    toastStore.showToast('🔊 Selection cleared.')
   }
 </script>
 
