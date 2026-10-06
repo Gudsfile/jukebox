@@ -233,16 +233,21 @@ class SettingsService:
         self.repository.save_persisted_settings_data(persisted_after)
 
         restart_required_paths = get_restart_required_paths(actual_updated_paths)
-        return {
-            "persisted": self.get_persisted_settings_view(),
-            "effective": self.get_effective_settings_view(),
-            "updated_paths": actual_updated_paths,
-            "restart_required": bool(restart_required_paths),
-            "restart_required_paths": restart_required_paths,
-            "message": (
-                "Settings saved. Changes take effect after restart." if restart_required_paths else "Settings saved."
-            ),
-        }
+        return cast(
+            JsonObject,
+            {
+                "persisted": self.get_persisted_settings_view(),
+                "effective": self.get_effective_settings_view(),
+                "updated_paths": actual_updated_paths,
+                "restart_required": bool(restart_required_paths),
+                "restart_required_paths": restart_required_paths,
+                "message": (
+                    "Settings saved. Changes take effect after restart."
+                    if restart_required_paths
+                    else "Settings saved."
+                ),
+            },
+        )
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
