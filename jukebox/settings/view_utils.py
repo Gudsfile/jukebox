@@ -8,7 +8,7 @@ MISSING = object()
 def lookup_object(root: JsonObject, key: str) -> JsonObject:
     value = root.get(key, {})
     if isinstance(value, dict):
-        return cast(JsonObject, value)
+        return value
     return {}
 
 

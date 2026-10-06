@@ -1,5 +1,3 @@
-from typing import cast
-
 from jukebox.settings.entities import (
     ResolvedSonosGroupRuntime,
     ResolvedSonosSpeakerRuntime,
@@ -24,7 +22,7 @@ def lookup_json_value(root: JsonObject, *path: str) -> JsonValue:
 def lookup_json_object(root: JsonObject, *path: str) -> JsonObject:
     value = lookup_json_value(root, *path)
     assert isinstance(value, dict)
-    return cast(JsonObject, value)
+    return value
 
 
 def build_resolved_sonos_group_runtime(
