@@ -453,3 +453,34 @@ legend {
   gap: 8px;
   margin-top: 12px;
 }
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-weight: inherit;
+  white-space: nowrap;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.sort-button:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.sort-indicator {
+  font-size: 0.8em;
+  opacity: 0.4;
+}
+
+th[aria-sort] .sort-button {
+  color: var(--accent);
+}
+
+th[aria-sort] .sort-indicator {
+  opacity: 1;
+}

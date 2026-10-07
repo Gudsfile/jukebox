@@ -373,3 +373,87 @@ describe('Library — search combined with filters', () => {
     expect(screen.getByText('No disc matches “veridis” with the current filters')).toBeInTheDocument()
   })
 })
+
+describe('Library — column sorting', () => {
+  const rowTags = () =>
+    screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.querySelector('.tag').textContent)
+
+  it('keeps the library order and marks no column as sorted by default', async () => {
+    apiGet.mockResolvedValue({ 'tag-2': discs['tag-2'], 'tag-1': discs['tag-1'] })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    expect(rowTags()).toEqual(['tag-2', 'tag-1'])
+    expect(document.querySelector('th[aria-sort]')).toBeNull()
+  })
+
+  it('cycles a column through ascending, descending, then back to the default order', async () => {
+    apiGet.mockResolvedValue({ 'tag-2': discs['tag-2'], 'tag-1': discs['tag-1'] })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+    const tagButton = screen.getByRole('button', { name: 'Tag' })
+    const tagHeader = tagButton.closest('th')
+
+    await fireEvent.click(tagButton)
+    expect(rowTags()).toEqual(['tag-1', 'tag-2'])
+    expect(tagHeader).toHaveAttribute('aria-sort', 'ascending')
+    expect(tagHeader.querySelector('.sort-indicator')).toHaveTextContent('▲')
+
+    await fireEvent.click(tagButton)
+    expect(rowTags()).toEqual(['tag-2', 'tag-1'])
+    expect(tagHeader).toHaveAttribute('aria-sort', 'descending')
+    expect(tagHeader.querySelector('.sort-indicator')).toHaveTextContent('▼')
+
+    await fireEvent.click(tagButton)
+    expect(rowTags()).toEqual(['tag-2', 'tag-1'])
+    expect(tagHeader).not.toHaveAttribute('aria-sort')
+    expect(tagHeader.querySelector('.sort-indicator')).toHaveTextContent('↕')
+  })
+
+  it('moves aria-sort to the newly sorted column', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Tag' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Title' }))
+
+    expect(screen.getByRole('button', { name: 'Title' }).closest('th')).toHaveAttribute('aria-sort', 'ascending')
+    expect(screen.getByRole('button', { name: 'Tag' }).closest('th')).not.toHaveAttribute('aria-sort')
+    expect(rowTags()).toEqual(['tag-2', 'tag-1'])
+  })
+
+  it('does not make the URI column sortable', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    expect(screen.queryByRole('button', { name: 'URI' })).toBeNull()
+  })
+})
+
+describe('Library — sorting combined with search and filters', () => {
+  it('sorts only the rows left by the search and filters', async () => {
+    apiGet.mockResolvedValue({
+      ...discs,
+      'tag-3': { ...discs['tag-2'], display_title: 'Another Veridis mix', uri: 'spotify:playlist:def' },
+    })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'veridis' },
+    })
+    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Title' }))
+
+    const rowTags = screen
+      .getAllByRole('row')
+      .slice(1)
+      .map((row) => row.querySelector('.tag').textContent)
+    expect(rowTags).toEqual(['tag-3', 'tag-2'])
+  })
+})

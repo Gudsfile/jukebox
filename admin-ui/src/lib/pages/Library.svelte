@@ -6,6 +6,7 @@
   import { searchDiscs } from '../library/search.js'
   import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
+  import { nextSort, sortEntries } from '../library/sort.js'
 
   let { intent = null, onIntentConsumed } = $props()
 
@@ -20,11 +21,12 @@
   let typeFilter = $state(ALL)
   let shuffleFilter = $state(ALL)
   let typeSelect = $state(null)
+  let sort = $state(null) // null (default order) | { key, direction: 'asc' | 'desc' }
 
   const allEntries = $derived(Object.entries(discs))
   const availableTypes = $derived(typeOptions(allEntries))
   const visibleEntries = $derived(
-    filterDiscs(searchDiscs(allEntries, searchQuery), { type: typeFilter, shuffle: shuffleFilter }),
+    sortEntries(filterDiscs(searchDiscs(allEntries, searchQuery), { type: typeFilter, shuffle: shuffleFilter }), sort),
   )
   const filtering = $derived(isFiltering({ type: typeFilter, shuffle: shuffleFilter }))
   const noResultsMessage = $derived.by(() => {
@@ -38,6 +40,11 @@
     shuffleFilter = ALL
     // The Clear button disappears with the filters: keep keyboard focus in the toolbar.
     typeSelect?.focus()
+  }
+
+  function ariaSort(key) {
+    if (sort?.key !== key) return undefined
+    return sort.direction === 'asc' ? 'ascending' : 'descending'
   }
 
   $effect(() => {
@@ -119,6 +126,17 @@
   }
 </script>
 
+{#snippet sortableHeader(key, label)}
+  <th aria-sort={ariaSort(key)}>
+    <button type="button" class="sort-button" onclick={() => (sort = nextSort(sort, key))}>
+      {label}
+      <span class="sort-indicator" aria-hidden="true">
+        {sort?.key === key ? (sort.direction === 'asc' ? '▲' : '▼') : '↕'}
+      </span>
+    </button>
+  </th>
+{/snippet}
+
 <div class="page-header">
   <h2>Library</h2>
   {#if !formMode}
@@ -179,17 +197,17 @@
         <col />
         <col style="width: 90px" />
         <col style="width: 28%" />
-        <col style="width: 70px" />
+        <col style="width: 90px" />
         <col style="width: 130px" />
       </colgroup>
       <thead>
         <tr>
           <th></th>
-          <th>Tag</th>
+          {@render sortableHeader('tag', 'Tag')}
           <th>URI</th>
-          <th>Type</th>
-          <th>Title</th>
-          <th>Shuffle</th>
+          {@render sortableHeader('type', 'Type')}
+          {@render sortableHeader('title', 'Title')}
+          {@render sortableHeader('shuffle', 'Shuffle')}
           <th></th>
         </tr>
       </thead>
