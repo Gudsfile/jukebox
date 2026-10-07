@@ -821,15 +821,20 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
 
 
 @pytest.mark.parametrize(
-    "adapter_method, soco_method, args",
+    "adapter_method, soco_method, args, error_code, expected_message",
     [
-        ("play", "play_from_queue", ("uri",)),
-        ("pause", "pause", ()),
-        ("resume", "play", ()),
-        ("stop", "clear_queue", ()),
+        (adapter_method, soco_method, args, error_code, expected_message)
+        for adapter_method, soco_method, args in (
+            ("play", "play_from_queue", ("uri",)),
+            ("pause", "pause", ()),
+            ("resume", "play", ()),
+            ("stop", "clear_queue", ()),
+        )
+        for error_code, expected_message in (("804", "bad uri"), ("701", "not available transition"))
+        # pause tolerates 701, see test_pause_ignores_upnp_701_when_player_is_not_playing
+        if (adapter_method, error_code) != ("pause", "701")
     ],
 )
-@pytest.mark.parametrize("error_code, expected_message", (("804", "bad uri"), ("701", "not available transition")))
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 def test_methods_log_and_raise_on_known_upnp_error(
     mock_soco,
@@ -853,6 +858,23 @@ def test_methods_log_and_raise_on_known_upnp_error(
 
     assert expected_message in caplog.text
     getattr(mock_speaker, soco_method).assert_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+def test_pause_ignores_upnp_701_when_player_is_not_playing(mock_soco, caplog):
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.pause.side_effect = make_exception("701")
+
+    adapter = build_adapter(host="192.168.1.100")
+
+    with caplog.at_level("INFO"):
+        adapter.pause()
+
+    mock_speaker.pause.assert_called_once()
+    assert "nothing to pause" in caplog.text
+    assert not any(record.levelname == "WARNING" for record in caplog.records)
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
