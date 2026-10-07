@@ -4,6 +4,7 @@
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
   import { searchDiscs } from '../library/search.js'
+  import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
 
   let { intent = null, onIntentConsumed } = $props()
 
@@ -15,7 +16,25 @@
   let copiedTagId = $state(null)
   let deleteError = $state(null)
   let searchQuery = $state('')
-  let visibleEntries = $derived(searchDiscs(Object.entries(discs), searchQuery))
+  let typeFilter = $state(ALL)
+  let shuffleFilter = $state(ALL)
+
+  const allEntries = $derived(Object.entries(discs))
+  const availableTypes = $derived(typeOptions(allEntries))
+  const visibleEntries = $derived(
+    filterDiscs(searchDiscs(allEntries, searchQuery), { type: typeFilter, shuffle: shuffleFilter }),
+  )
+  const filtering = $derived(isFiltering({ type: typeFilter, shuffle: shuffleFilter }))
+  const noResultsMessage = $derived.by(() => {
+    const query = searchQuery.trim()
+    if (!query) return 'No disc matches the current filters'
+    return filtering ? `No disc matches “${query}” with the current filters` : `No disc matches “${query}”`
+  })
+
+  function clearFilters() {
+    typeFilter = ALL
+    shuffleFilter = ALL
+  }
 
   $effect(() => {
     // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
@@ -132,6 +151,28 @@
         aria-label="Search discs"
         bind:value={searchQuery}
       />
+      <div class="library-filters" role="group" aria-label="Filter discs">
+        <label>
+          Type
+          <select bind:value={typeFilter}>
+            <option value={ALL}>All types</option>
+            {#each availableTypes as displayType (displayType)}
+              <option value={displayType}>{displayType}</option>
+            {/each}
+          </select>
+        </label>
+        <label>
+          Shuffle
+          <select bind:value={shuffleFilter}>
+            <option value={ALL}>Any</option>
+            <option value={SHUFFLE_ON}>On</option>
+            <option value={SHUFFLE_OFF}>Off</option>
+          </select>
+        </label>
+        {#if filtering}
+          <button type="button" class="btn-secondary" onclick={clearFilters}>Clear filters</button>
+        {/if}
+      </div>
     </div>
     <table class="discs">
       <colgroup>
@@ -198,7 +239,7 @@
           </tr>
         {:else}
           <tr>
-            <td colspan="7" class="no-results">No disc matches “{searchQuery.trim()}”</td>
+            <td colspan="7" class="no-results">{noResultsMessage}</td>
           </tr>
         {/each}
       </tbody>

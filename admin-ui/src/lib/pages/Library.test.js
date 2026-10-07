@@ -262,3 +262,82 @@ describe('Library — intent routing', () => {
     expect(onIntentConsumed).toHaveBeenCalled()
   })
 })
+
+describe('Library — filters', () => {
+  it('shows every disc by default and offers only the types present in the library', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    expect(screen.getByText('tag-2')).toBeInTheDocument()
+    const typeSelect = screen.getByLabelText('Type')
+    expect(typeSelect).toHaveValue('')
+    expect(screen.getByLabelText('Shuffle')).toHaveValue('')
+    expect(
+      within(typeSelect)
+        .getAllByRole('option')
+        .map((option) => option.textContent),
+    ).toEqual(['All types', '💿 Album', '🎧 Playlist'])
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
+  })
+
+  it('filters rows by type', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+
+    expect(screen.queryByText('tag-1')).toBeNull()
+    expect(screen.getByText('tag-2')).toBeInTheDocument()
+  })
+
+  it('filters rows by shuffle state', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'off' } })
+
+    expect(screen.getByText('tag-1')).toBeInTheDocument()
+    expect(screen.queryByText('tag-2')).toBeNull()
+  })
+
+  it('shows a no-match message distinct from an empty library, and clears filters', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '💿 Album' } })
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'on' } })
+
+    expect(screen.getByText('No disc matches the current filters')).toBeInTheDocument()
+    expect(screen.queryByText('No disc found')).toBeNull()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+
+    expect(screen.getByText('tag-1')).toBeInTheDocument()
+    expect(screen.getByText('tag-2')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
+  })
+})
+
+describe('Library — search combined with filters', () => {
+  it('applies the search and the filters together, and names both when nothing matches', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'veridis' },
+    })
+    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+
+    expect(screen.queryByText('tag-1')).toBeNull()
+    expect(screen.getByText('tag-2')).toBeInTheDocument()
+
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'off' } })
+
+    expect(screen.getByText('No disc matches “veridis” with the current filters')).toBeInTheDocument()
+  })
+})

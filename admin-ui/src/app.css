@@ -263,7 +263,7 @@ table.discs {
 .library-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -271,6 +271,18 @@ table.discs {
 .library-search {
   max-width: 320px;
   margin-top: 0;
+}
+
+.library-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.library-filters select {
+  width: auto;
+  min-width: 10ch;
 }
 
 .no-results {
