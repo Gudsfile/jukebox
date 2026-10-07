@@ -77,6 +77,35 @@ describe('Library — table rendering', () => {
   })
 })
 
+describe('Library — search', () => {
+  it('narrows the table to matching rows as the query is typed', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'VOIR' },
+    })
+
+    expect(screen.getByText('tag-1')).toBeInTheDocument()
+    expect(screen.queryByText('tag-2')).toBeNull()
+  })
+
+  it('shows a no-results row distinct from the empty-library message', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'nothing here' },
+    })
+
+    expect(screen.getByText('No disc matches “nothing here”')).toBeInTheDocument()
+    expect(screen.queryByText('No disc found')).toBeNull()
+    expect(screen.getByRole('searchbox', { name: 'Search discs' })).toHaveValue('nothing here')
+  })
+})
+
 describe('Library — add/edit/delete flow', () => {
   it('opens the create form from the header action and hides it while a form is open', async () => {
     apiGet.mockResolvedValue(discs)

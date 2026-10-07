@@ -260,6 +260,24 @@ table.discs {
   table-layout: fixed;
 }
 
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.library-search {
+  max-width: 320px;
+  margin-top: 0;
+}
+
+.no-results {
+  text-align: center;
+  font-style: italic;
+}
+
 .banner {
   display: flex;
   flex-wrap: wrap;

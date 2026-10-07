@@ -3,6 +3,7 @@
   import { apiDelete, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
+  import { searchDiscs } from '../library/search.js'
 
   let { intent = null, onIntentConsumed } = $props()
 
@@ -13,6 +14,8 @@
   let currentTagId = $state(null)
   let copiedTagId = $state(null)
   let deleteError = $state(null)
+  let searchQuery = $state('')
+  let visibleEntries = $derived(searchDiscs(Object.entries(discs), searchQuery))
 
   $effect(() => {
     // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
@@ -121,6 +124,15 @@
     {#if deleteError}
       <p class="error">{deleteError}</p>
     {/if}
+    <div class="library-toolbar">
+      <input
+        type="search"
+        class="library-search"
+        placeholder="Search tag, title, artist, URI…"
+        aria-label="Search discs"
+        bind:value={searchQuery}
+      />
+    </div>
     <table class="discs">
       <colgroup>
         <col style="width: 24px" />
@@ -143,7 +155,7 @@
         </tr>
       </thead>
       <tbody>
-        {#each Object.entries(discs) as [tagId, disc] (tagId)}
+        {#each visibleEntries as [tagId, disc] (tagId)}
           <tr>
             <td class="spin-cell">
               {#if tagId === currentTagId}
@@ -183,6 +195,10 @@
               <button onclick={() => openEdit(tagId)}>Edit</button>
               <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
             </td>
+          </tr>
+        {:else}
+          <tr>
+            <td colspan="7" class="no-results">No disc matches “{searchQuery.trim()}”</td>
           </tr>
         {/each}
       </tbody>
