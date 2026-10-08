@@ -14,7 +14,7 @@ from jukebox.domain.entities import (
     TransitionContext,
     Waiting,
 )
-from jukebox.domain.errors import PlaybackError
+from jukebox.domain.errors import NothingToResumeError, PlaybackError
 from jukebox.domain.use_cases.handle_tag_event import HandleTagEvent
 
 
@@ -385,6 +385,57 @@ def test_handle_resume_failure_keeps_retry_after_brief_missed_read(handle_tag_ev
     assert state.retry.action == "resume"
     assert state.retry.tag_id is None
     assert state.retry.next_retry_at == pytest.approx(100.1)
+
+
+def test_handle_resume_generic_failure_does_not_fall_back_to_play(handle_tag_event, mock_player):
+    mock_player.resume.side_effect = PlaybackError("network down")
+    state = Paused(tag="test-tag", paused_at=60.0)
+
+    handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), state)
+
+    mock_player.play.assert_not_called()
+
+
+@pytest.mark.parametrize("shuffle", [False, True])
+def test_handle_resume_falls_back_to_play_when_nothing_to_resume(handle_tag_event, mock_player, mock_library, shuffle):
+    mock_library.get_disc.return_value.option.shuffle = shuffle
+    mock_player.resume.side_effect = NothingToResumeError("queue is empty")
+    state = Paused(tag="test-tag", paused_at=60.0)
+
+    new_state = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), state)
+
+    mock_player.resume.assert_called_once()
+    mock_player.play.assert_called_once_with("uri:123", shuffle)
+    assert isinstance(new_state, Playing)
+    assert new_state.tag == "test-tag"
+    assert new_state.retry is None
+
+
+def test_handle_resume_fallback_play_failure_keeps_resume_retry(handle_tag_event, mock_player):
+    mock_player.resume.side_effect = NothingToResumeError("queue is empty")
+    mock_player.play.side_effect = PlaybackError("cannot play")
+    state = Paused(tag="test-tag", paused_at=60.0)
+
+    new_state = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), state)
+
+    assert isinstance(new_state, Paused)
+    assert new_state.retry is not None
+    assert new_state.retry.action == "resume"
+    assert new_state.retry.tag_id is None
+    assert new_state.retry.next_retry_at == pytest.approx(100.1)
+
+
+def test_handle_resume_nothing_to_resume_without_disc_keeps_resume_retry(handle_tag_event, mock_player, mock_library):
+    mock_library.get_disc.return_value = None
+    mock_player.resume.side_effect = NothingToResumeError("queue is empty")
+    state = Paused(tag="test-tag", paused_at=60.0)
+
+    new_state = handle_tag_event.execute(TagEvent(tag_id="test-tag", timestamp=100.0), state)
+
+    mock_player.play.assert_not_called()
+    assert isinstance(new_state, Paused)
+    assert new_state.retry is not None
+    assert new_state.retry.action == "resume"
 
 
 # ---------------------------------------------------------------------------

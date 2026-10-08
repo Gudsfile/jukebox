@@ -8,7 +8,7 @@ from soco.exceptions import SoCoException, SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
 from urllib3.exceptions import HTTPError
 
-from jukebox.domain.errors import PlaybackError
+from jukebox.domain.errors import NothingToResumeError, PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import ErrorCode, InvalidSettingsError
@@ -337,7 +337,14 @@ class SonosPlayerAdapter(PlayerPort):
     def resume(self) -> None:
         def command() -> None:
             LOGGER.info("Resuming player `%s`", self.speaker_name)
-            self.speaker.play()
+            try:
+                self.speaker.play()
+            except SoCoUPnPException as err:
+                # 701: nothing to resume (e.g. the queue was cleared while paused)
+                if err.error_code != "701":
+                    raise
+                LOGGER.info("Player `%s` has nothing to resume", self.speaker_name)
+                raise NothingToResumeError(str(err)) from err
 
         self._execute_with_recovery("resume", command)
 
