@@ -18,6 +18,7 @@
 
   /* Derived shades: the palette stays as is, both themes follow since --bg and --text-h do. */
   --surface: color-mix(in srgb, var(--text-h) 4%, var(--bg));
+  --surface-2: color-mix(in srgb, var(--text-h) 7%, var(--bg));
   --hairline: color-mix(in srgb, var(--border) 65%, transparent);
 
   font: 15px/145% var(--sans);
@@ -372,10 +373,13 @@ table.discs {
   color: var(--accent);
 }
 
+/* Rows are separate cards. border-collapse and border-spacing are inherited, so they also reach
+   the anonymous table box of these display: block tables. */
 table {
   display: block;
   overflow-x: auto;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 6px;
   width: 100%;
   margin-bottom: 16px;
 }
@@ -383,8 +387,28 @@ table {
 th,
 td {
   text-align: left;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
+}
+
+th {
+  padding: 10px 14px 2px;
+}
+
+td {
+  padding: 14px;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+td:first-child {
+  border-radius: 14px 0 0 14px;
+}
+
+td:last-child {
+  border-radius: 0 14px 14px 0;
+}
+
+tbody tr:hover td {
+  background: var(--surface-2);
 }
 
 form {
