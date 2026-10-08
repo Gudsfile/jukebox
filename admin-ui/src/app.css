@@ -427,6 +427,26 @@ tbody tr:hover td {
   background: var(--surface-2);
 }
 
+/* Row buttons stay quiet on the card: plain text on the page background. */
+td > .row-actions {
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+td button {
+  padding: 5px 12px;
+  color: var(--text-h);
+  background: var(--bg);
+  border-color: transparent;
+  border-radius: 10px;
+}
+
+td button.btn-danger {
+  color: var(--danger);
+  background: var(--bg);
+  border-color: transparent;
+}
+
 form {
   max-width: 480px;
 }
