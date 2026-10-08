@@ -85,8 +85,9 @@ button {
   color: var(--bg);
   background: var(--text-h);
   border: 1px solid var(--text-h);
-  border-radius: 6px;
-  padding: 6px 14px;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 550;
   cursor: pointer;
 }
 
