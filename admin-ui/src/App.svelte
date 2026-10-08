@@ -1,5 +1,4 @@
 <script>
-  import CurrentTagBanner from './lib/components/CurrentTagBanner.svelte'
   import Toast from './lib/components/Toast.svelte'
   import Library from './lib/pages/Library.svelte'
   import Settings from './lib/pages/Settings.svelte'
@@ -7,26 +6,12 @@
 
   const pageKeys = ['library', 'settings', 'sonos']
   let currentPage = $state('library')
-  let libraryIntent = $state(null)
-
-  function goToLibrary(intent) {
-    libraryIntent = intent
-    currentPage = 'library'
-  }
-
-  function clearLibraryIntent() {
-    libraryIntent = null
-  }
 
   function goToSonos() {
     currentPage = 'sonos'
   }
 </script>
 
-<CurrentTagBanner
-  onEditDisc={(tagId) => goToLibrary({ type: 'edit', tagId })}
-  onAddDisc={(tagId) => goToLibrary({ type: 'create', tagId })}
-/>
 <Toast />
 
 <nav>
@@ -39,7 +24,7 @@
 
 <main>
   {#if currentPage === 'library'}
-    <Library intent={libraryIntent} onIntentConsumed={clearLibraryIntent} />
+    <Library />
   {:else if currentPage === 'settings'}
     <Settings onManageSpeakers={goToSonos} />
   {:else if currentPage === 'sonos'}

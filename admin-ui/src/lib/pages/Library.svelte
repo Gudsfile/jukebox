@@ -3,18 +3,17 @@
   import { apiDelete, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
+  import ReaderSlot from '../components/ReaderSlot.svelte'
   import { searchDiscs } from '../library/search.js'
   import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
   import { nextSort, sortEntries } from '../library/sort.js'
 
-  let { intent = null, onIntentConsumed } = $props()
-
   let discs = $state({})
   let loading = $state(true)
   let error = $state(null)
   let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
-  let currentTagId = $state(null)
+  let currentTag = $state(null) // null | { tag_id, known_in_library }, pushed by the SSE stream
   let copiedTagId = $state(null)
   let deleteError = $state(null)
   let searchQuery = $state('')
@@ -23,6 +22,7 @@
   let typeSelect = $state(null)
   let sort = $state(null) // null (default order) | { key, direction: 'asc' | 'desc' }
 
+  const currentTagId = $derived(currentTag?.known_in_library ? currentTag.tag_id : null)
   const allEntries = $derived(Object.entries(discs))
   const availableTypes = $derived(typeOptions(allEntries))
   const visibleEntries = $derived(
@@ -48,18 +48,17 @@
   }
 
   $effect(() => {
-    // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
-    // no highlight — independent from the current-tag banner above.
+    // Feeds both the ReaderSlot console and the spinning disc next to the matching row.
     const source = new EventSource('/api/v1/current-tag/events')
     source.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      currentTagId = data?.known_in_library ? data.tag_id : null
+      currentTag = JSON.parse(event.data)
     }
     return () => source.close()
   })
 
-  async function loadDiscs() {
-    loading = true
+  // `silent` refreshes in place: no "Loading…" swap of the table, and a failure keeps the current list.
+  async function loadDiscs({ silent = false } = {}) {
+    if (!silent) loading = true
     try {
       discs = await apiGet('/discs')
       // A delete or edit can remove the last disc of the filtered type: don't keep an
@@ -67,24 +66,23 @@
       if (typeFilter !== ALL && !availableTypes.includes(typeFilter)) typeFilter = ALL
       error = null
     } catch (err) {
-      error = err.message
+      if (!silent) error = err.message
     } finally {
       loading = false
     }
   }
 
-  onMount(loadDiscs)
+  onMount(() => loadDiscs())
 
-  // Lets the current-tag banner (in App.svelte) jump here with "edit this disc" / "add this
-  // disc" intent — consumed once discs are loaded, then cleared so it doesn't re-fire.
+  // The SSE stream can report a tag as known before this page knows about it (e.g. a disc added
+  // from the CLI after the page loaded): `discs[currentTagId]` is then undefined, the ReaderSlot
+  // falls back to the tag id until a silent refresh brings the entry in. Once per tag: if the
+  // entry is still missing afterwards, don't loop on refreshes.
+  let refreshedForTagId = null // plain variable: must not re-trigger the effect
   $effect(() => {
-    if (!intent || loading) return
-    if (intent.type === 'edit') {
-      openEdit(intent.tagId)
-    } else {
-      openCreate(intent.tagId)
-    }
-    onIntentConsumed?.()
+    if (!currentTagId || loading || discs[currentTagId] || refreshedForTagId === currentTagId) return
+    refreshedForTagId = currentTagId
+    loadDiscs({ silent: true })
   })
 
   function openCreate(prefillTagId = '') {
@@ -266,3 +264,11 @@
     </div>
   {/if}
 {/if}
+
+<ReaderSlot
+  {currentTag}
+  disc={currentTagId ? discs[currentTagId] : undefined}
+  actionsEnabled={!formMode}
+  onAdd={openCreate}
+  onEdit={openEdit}
+/>

@@ -260,14 +260,69 @@ describe('Library — current-tag spin indicator', () => {
   })
 })
 
-describe('Library — intent routing', () => {
-  it('opens the edit form when given an edit intent once discs are loaded', async () => {
+describe('Library — reader slot', () => {
+  const emitCurrentTag = (data) => globalThis.EventSource.instances[0].onmessage({ data: JSON.stringify(data) })
+  const readerSlot = () => screen.getByRole('region', { name: 'Reader' })
+
+  it('opens the create form prefilled with an unknown tag from the reader', async () => {
     apiGet.mockResolvedValue(discs)
-    const onIntentConsumed = vi.fn()
-    render(Library, { props: { intent: { type: 'edit', tagId: 'tag-1' }, onIntentConsumed } })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-new', known_in_library: false })
+    await fireEvent.click(await within(readerSlot()).findByRole('button', { name: 'Add this disc' }))
+
+    expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-new')
+  })
+
+  it('shows the library entry of a known tag and opens its edit form', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-1', known_in_library: true })
+    expect(await within(readerSlot()).findByText('Veridis Project — Voir le soleil')).toBeInTheDocument()
+    expect(within(readerSlot()).getByText('spotify:album:abc')).toBeInTheDocument()
+    await fireEvent.click(within(readerSlot()).getByRole('button', { name: 'Edit' }))
 
     expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-1')
-    expect(onIntentConsumed).toHaveBeenCalled()
+  })
+
+  it('refreshes the library once when the reader reports a known tag it has not loaded yet', async () => {
+    const cliDisc = { ...discs['tag-1'], display_title: 'Added from the CLI' }
+    apiGet.mockResolvedValueOnce(discs).mockResolvedValue({ ...discs, 'tag-cli': cliDisc })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-cli', known_in_library: true })
+
+    expect(await within(readerSlot()).findByText('Added from the CLI')).toBeInTheDocument()
+    expect(within(readerSlot()).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(apiGet).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not loop on refreshes when the known tag is still missing afterwards', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-ghost', known_in_library: true })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('tag-2')).toBeInTheDocument() // table never swapped for "Loading…"
+  })
+
+  it('hides the reader actions while a form is open', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-new', known_in_library: false })
+    await fireEvent.click(await within(readerSlot()).findByRole('button', { name: 'Add this disc' }))
+
+    expect(within(readerSlot()).queryByRole('button')).toBeNull()
   })
 })
 

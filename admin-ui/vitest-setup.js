@@ -4,8 +4,8 @@ import '@testing-library/jest-dom/vitest'
 
 afterEach(() => cleanup())
 
-// jsdom has no EventSource implementation — CurrentTagBanner (and anything that mounts it,
-// e.g. App) needs a stub so component tests don't throw. Instances are tracked so tests can
+// jsdom has no EventSource implementation — the Library page (and anything that mounts
+// it, e.g. App) needs a stub so component tests don't throw. Instances are tracked so tests can
 // grab the latest one and call `.onmessage({ data })` to simulate a server push.
 if (!globalThis.EventSource) {
   class FakeEventSource {
