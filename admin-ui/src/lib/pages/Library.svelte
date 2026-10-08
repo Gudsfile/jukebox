@@ -248,9 +248,11 @@
                 🔀
               </span>
             </td>
-            <td class="row-actions">
-              <button onclick={() => openEdit(tagId)}>Edit</button>
-              <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
+            <td>
+              <div class="row-actions">
+                <button onclick={() => openEdit(tagId)}>Edit</button>
+                <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
+              </div>
             </td>
           </tr>
         {:else}
