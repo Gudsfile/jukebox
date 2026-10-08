@@ -320,6 +320,24 @@ describe('Library — filters', () => {
     expect(screen.getByText('tag-2')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
   })
+
+  it('falls back to all types when the filtered type leaves the library', async () => {
+    vi.useFakeTimers()
+    apiGet.mockResolvedValueOnce(discs).mockResolvedValueOnce({ 'tag-1': discs['tag-1'] })
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
+    apiDelete.mockResolvedValue(null)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    const row2 = screen.getByText('tag-2').closest('tr')
+    await fireEvent.click(within(row2).getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('tag-1')).toBeInTheDocument()
+    expect(screen.getByLabelText('Type')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
+    vi.runOnlyPendingTimers()
+  })
 })
 
 describe('Library — search combined with filters', () => {

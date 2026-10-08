@@ -51,6 +51,9 @@
     loading = true
     try {
       discs = await apiGet('/discs')
+      // A delete or edit can remove the last disc of the filtered type: don't keep an
+      // invisible filter that hides everything.
+      if (typeFilter !== ALL && !availableTypes.includes(typeFilter)) typeFilter = ALL
       error = null
     } catch (err) {
       error = err.message
