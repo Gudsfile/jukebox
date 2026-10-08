@@ -85,7 +85,7 @@
     background: linear-gradient(90deg, var(--c-bg), transparent 70%), color-mix(in srgb, var(--bg) 88%, transparent);
     backdrop-filter: blur(12px);
     border: 1.5px solid color-mix(in srgb, var(--c) 70%, transparent);
-    border-radius: 999px;
+    border-radius: 26px;
     box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
     transition: border-color 0.3s;
   }
@@ -201,7 +201,7 @@
 
   .pill {
     padding: 10px 22px;
-    border-radius: 999px;
+    border-radius: 14px;
     font-weight: 600;
     white-space: nowrap;
     color: #fff;
@@ -230,7 +230,6 @@
         'action action';
       gap: 10px 12px;
       padding: 12px 16px;
-      border-radius: 24px;
     }
 
     .disc-thumb {
