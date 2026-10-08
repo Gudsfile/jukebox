@@ -345,9 +345,9 @@ describe('Library — filters', () => {
     await screen.findByText('tag-1')
 
     expect(screen.getByText('tag-2')).toBeInTheDocument()
-    const typeSelect = screen.getByLabelText('Type')
+    const typeSelect = screen.getByLabelText('Filter by type')
     expect(typeSelect).toHaveValue('')
-    expect(screen.getByLabelText('Shuffle')).toHaveValue('')
+    expect(screen.getByLabelText('Filter by shuffle')).toHaveValue('')
     expect(
       within(typeSelect)
         .getAllByRole('option')
@@ -356,12 +356,23 @@ describe('Library — filters', () => {
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
   })
 
+  it('puts each filter in its column header, next to the sort button', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    const typeHeader = screen.getByLabelText('Filter by type').closest('th')
+    expect(within(typeHeader).getByRole('button', { name: 'Type' })).toBeInTheDocument()
+    const shuffleHeader = screen.getByLabelText('Filter by shuffle').closest('th')
+    expect(within(shuffleHeader).getByRole('button', { name: 'Shuffle' })).toBeInTheDocument()
+  })
+
   it('filters rows by type', async () => {
     apiGet.mockResolvedValue(discs)
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '🎧 Playlist' } })
 
     expect(screen.queryByText('tag-1')).toBeNull()
     expect(screen.getByText('tag-2')).toBeInTheDocument()
@@ -372,7 +383,7 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_OFF } })
+    await fireEvent.change(screen.getByLabelText('Filter by shuffle'), { target: { value: SHUFFLE_OFF } })
 
     expect(screen.getByText('tag-1')).toBeInTheDocument()
     expect(screen.queryByText('tag-2')).toBeNull()
@@ -383,8 +394,8 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '💿 Album' } })
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_ON } })
+    await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '💿 Album' } })
+    await fireEvent.change(screen.getByLabelText('Filter by shuffle'), { target: { value: SHUFFLE_ON } })
 
     expect(screen.getByText('No disc matches the current filters')).toBeInTheDocument()
     expect(screen.queryByText('No disc found')).toBeNull()
@@ -401,12 +412,12 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_ON } })
+    await fireEvent.change(screen.getByLabelText('Filter by shuffle'), { target: { value: SHUFFLE_ON } })
     const clearButton = screen.getByRole('button', { name: 'Clear filters' })
     clearButton.focus()
     await fireEvent.click(clearButton)
 
-    expect(screen.getByLabelText('Type')).toHaveFocus()
+    expect(screen.getByLabelText('Filter by type')).toHaveFocus()
   })
 
   it('falls back to all types when the filtered type leaves the library', async () => {
@@ -417,12 +428,12 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '🎧 Playlist' } })
     const row2 = screen.getByText('tag-2').closest('tr')
     await fireEvent.click(within(row2).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText('tag-1')).toBeInTheDocument()
-    expect(screen.getByLabelText('Type')).toHaveValue('')
+    expect(screen.getByLabelText('Filter by type')).toHaveValue('')
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
     vi.runOnlyPendingTimers()
   })
@@ -437,12 +448,12 @@ describe('Library — search combined with filters', () => {
     await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
       target: { value: 'veridis' },
     })
-    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '🎧 Playlist' } })
 
     expect(screen.queryByText('tag-1')).toBeNull()
     expect(screen.getByText('tag-2')).toBeInTheDocument()
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_OFF } })
+    await fireEvent.change(screen.getByLabelText('Filter by shuffle'), { target: { value: SHUFFLE_OFF } })
 
     expect(screen.getByText('No disc matches “veridis” with the current filters')).toBeInTheDocument()
   })
@@ -515,7 +526,7 @@ describe('Library — sorting combined with search and filters', () => {
     await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
       target: { value: 'veridis' },
     })
-    await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
+    await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '🎧 Playlist' } })
     await fireEvent.click(screen.getByRole('button', { name: 'Title' }))
 
     expect(rowTags()).toEqual(['tag-3', 'tag-2'])

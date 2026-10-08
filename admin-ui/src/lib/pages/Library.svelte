@@ -42,7 +42,7 @@
   function clearFilters() {
     typeFilter = ALL
     shuffleFilter = ALL
-    // The Clear button disappears with the filters: keep keyboard focus in the toolbar.
+    // The Clear button disappears with the filters: move keyboard focus to the Type filter.
     typeSelect?.focus()
   }
 
@@ -128,7 +128,7 @@
   }
 </script>
 
-{#snippet sortableHeader(key, label, align = undefined)}
+{#snippet sortableHeader(key, label, align = undefined, filter = undefined)}
   <th class={align} aria-sort={ariaSort(key)}>
     <button type="button" class="sort-button" onclick={() => (sort = nextSort(sort, key))}>
       {label}
@@ -136,7 +136,37 @@
         {sort?.key === key ? (sort.direction === 'asc' ? '▲' : '▼') : '↕'}
       </span>
     </button>
+    {@render filter?.()}
   </th>
+{/snippet}
+
+<!-- Column filter: a funnel with the native select laid invisibly on top, so it stays a real,
+     keyboard- and screen-reader-usable select. -->
+{#snippet funnel()}
+  <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 2h14l-5.5 6.5V14l-3-1.5V8.5z" /></svg>
+{/snippet}
+
+{#snippet typeFilterControl()}
+  <span class="th-filter" class:active={typeFilter !== ALL}>
+    {@render funnel()}
+    <select aria-label="Filter by type" bind:this={typeSelect} bind:value={typeFilter}>
+      <option value={ALL}>All types</option>
+      {#each availableTypes as displayType (displayType)}
+        <option value={displayType}>{displayType}</option>
+      {/each}
+    </select>
+  </span>
+{/snippet}
+
+{#snippet shuffleFilterControl()}
+  <span class="th-filter" class:active={shuffleFilter !== ALL}>
+    {@render funnel()}
+    <select aria-label="Filter by shuffle" bind:value={shuffleFilter}>
+      <option value={ALL}>Any</option>
+      <option value={SHUFFLE_ON}>On</option>
+      <option value={SHUFFLE_OFF}>Off</option>
+    </select>
+  </span>
 {/snippet}
 
 {#snippet addDiscButton()}
@@ -166,6 +196,9 @@
       <p class="error">{deleteError}</p>
     {/if}
     <div class="library-toolbar">
+      {#if filtering}
+        <button type="button" class="btn-secondary" onclick={clearFilters}>Clear filters</button>
+      {/if}
       <input
         type="search"
         class="library-search"
@@ -173,28 +206,6 @@
         aria-label="Search discs"
         bind:value={searchQuery}
       />
-      <div class="library-filters" role="group" aria-label="Filter discs">
-        <label>
-          Type
-          <select bind:this={typeSelect} bind:value={typeFilter}>
-            <option value={ALL}>All types</option>
-            {#each availableTypes as displayType (displayType)}
-              <option value={displayType}>{displayType}</option>
-            {/each}
-          </select>
-        </label>
-        <label>
-          Shuffle
-          <select bind:value={shuffleFilter}>
-            <option value={ALL}>Any</option>
-            <option value={SHUFFLE_ON}>On</option>
-            <option value={SHUFFLE_OFF}>Off</option>
-          </select>
-        </label>
-        {#if filtering}
-          <button type="button" class="btn-secondary" onclick={clearFilters}>Clear filters</button>
-        {/if}
-      </div>
       {@render addDiscButton()}
     </div>
     <div class="discs-scroll">
@@ -203,9 +214,9 @@
           <col style="width: 24px" />
           <col style="width: 14%" />
           <col />
-          <col style="width: 90px" />
+          <col style="width: 120px" />
           <col style="width: 28%" />
-          <col style="width: 90px" />
+          <col style="width: 130px" />
           <col style="width: 170px" />
         </colgroup>
         <thead>
@@ -213,9 +224,9 @@
             <th></th>
             {@render sortableHeader('tag', 'Tag')}
             <th>URI</th>
-            {@render sortableHeader('type', 'Type')}
+            {@render sortableHeader('type', 'Type', undefined, typeFilterControl)}
             {@render sortableHeader('title', 'Title', 'center')}
-            {@render sortableHeader('shuffle', 'Shuffle', 'center')}
+            {@render sortableHeader('shuffle', 'Shuffle', 'center', shuffleFilterControl)}
             <th></th>
           </tr>
         </thead>

@@ -126,10 +126,6 @@ button.btn-add {
   font-weight: 700;
 }
 
-.library-toolbar .btn-add {
-  margin-left: auto;
-}
-
 button.btn-secondary {
   color: var(--text);
   background: none;
@@ -327,7 +323,8 @@ table.discs {
 .library-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -351,21 +348,8 @@ table.discs {
   }
 }
 
-.library-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.library-filters select {
-  width: auto;
-  min-width: 10ch;
-}
-
-/* Native selects ignore vertical padding on macOS: pin every toolbar control to one height. */
+/* Pin every toolbar control to one height. */
 .library-toolbar input,
-.library-toolbar select,
 .library-toolbar button {
   height: 2.4em;
   box-sizing: border-box;
@@ -589,4 +573,55 @@ th[aria-sort] .sort-button {
 
 th[aria-sort] .sort-indicator {
   opacity: 1;
+}
+
+/* Sort button and filter funnel stay on one line. */
+th:has(.th-filter) {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+.th-filter {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--text);
+  border-radius: 6px;
+  opacity: 0.45;
+}
+
+.th-filter:hover,
+.th-filter:focus-within {
+  background: var(--surface-2);
+  opacity: 1;
+}
+
+.th-filter:focus-within {
+  outline: 2px solid var(--accent);
+}
+
+.th-filter.active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  opacity: 1;
+}
+
+.th-filter svg {
+  width: 12px;
+  fill: currentColor;
+}
+
+.th-filter select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }
