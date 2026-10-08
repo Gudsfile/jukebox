@@ -45,10 +45,13 @@ describe('filterDiscs', () => {
   })
 
   it('preserves input order and does not mutate the input', () => {
-    const snapshot = structuredClone(entries)
-    const result = filterDiscs(entries, { shuffle: SHUFFLE_ON })
-    expect(result).not.toBe(entries)
-    expect(entries).toEqual(snapshot)
+    // Reversed so the expected order differs from the tag-id order a sort would produce.
+    const reversed = [...entries].reverse()
+    const snapshot = structuredClone(reversed)
+    const result = filterDiscs(reversed, { shuffle: SHUFFLE_ON })
+    expect(tagIds(result)).toEqual(['tag-3', 'tag-2'])
+    expect(result).not.toBe(reversed)
+    expect(reversed).toEqual(snapshot)
   })
 })
 

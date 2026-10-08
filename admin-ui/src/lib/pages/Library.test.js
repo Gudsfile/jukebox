@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Library from './Library.svelte'
+import { SHUFFLE_OFF, SHUFFLE_ON } from '../library/filter.js'
 import { apiDelete, apiGet } from '../api.js'
 
 vi.mock('../api.js', () => ({
@@ -297,7 +298,7 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'off' } })
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_OFF } })
 
     expect(screen.getByText('tag-1')).toBeInTheDocument()
     expect(screen.queryByText('tag-2')).toBeNull()
@@ -309,7 +310,7 @@ describe('Library — filters', () => {
     await screen.findByText('tag-1')
 
     await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '💿 Album' } })
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'on' } })
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_ON } })
 
     expect(screen.getByText('No disc matches the current filters')).toBeInTheDocument()
     expect(screen.queryByText('No disc found')).toBeNull()
@@ -326,7 +327,7 @@ describe('Library — filters', () => {
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'on' } })
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_ON } })
     const clearButton = screen.getByRole('button', { name: 'Clear filters' })
     clearButton.focus()
     await fireEvent.click(clearButton)
@@ -367,7 +368,7 @@ describe('Library — search combined with filters', () => {
     expect(screen.queryByText('tag-1')).toBeNull()
     expect(screen.getByText('tag-2')).toBeInTheDocument()
 
-    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'off' } })
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: SHUFFLE_OFF } })
 
     expect(screen.getByText('No disc matches “veridis” with the current filters')).toBeInTheDocument()
   })
