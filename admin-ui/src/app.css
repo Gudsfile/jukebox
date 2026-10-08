@@ -228,6 +228,11 @@ footer a:hover {
   text-align: center;
 }
 
+td.title {
+  font-weight: 550;
+  color: var(--text-h);
+}
+
 @media (max-width: 480px) {
   .type-label {
     display: none;
