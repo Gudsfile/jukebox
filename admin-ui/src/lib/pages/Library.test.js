@@ -27,6 +27,13 @@ const discs = {
   },
 }
 
+// Tag of each body row, in display order (the first row is the header).
+const rowTags = () =>
+  screen
+    .getAllByRole('row')
+    .slice(1)
+    .map((row) => row.querySelector('.tag').textContent)
+
 beforeEach(() => {
   apiGet.mockReset()
   apiDelete.mockReset()
@@ -375,12 +382,6 @@ describe('Library — search combined with filters', () => {
 })
 
 describe('Library — column sorting', () => {
-  const rowTags = () =>
-    screen
-      .getAllByRole('row')
-      .slice(1)
-      .map((row) => row.querySelector('.tag').textContent)
-
   it('keeps the library order and marks no column as sorted by default', async () => {
     apiGet.mockResolvedValue({ 'tag-2': discs['tag-2'], 'tag-1': discs['tag-1'] })
     render(Library, { props: {} })
@@ -450,10 +451,6 @@ describe('Library — sorting combined with search and filters', () => {
     await fireEvent.change(screen.getByLabelText('Type'), { target: { value: '🎧 Playlist' } })
     await fireEvent.click(screen.getByRole('button', { name: 'Title' }))
 
-    const rowTags = screen
-      .getAllByRole('row')
-      .slice(1)
-      .map((row) => row.querySelector('.tag').textContent)
-    expect(rowTags).toEqual(['tag-3', 'tag-2'])
+    expect(rowTags()).toEqual(['tag-3', 'tag-2'])
   })
 })
