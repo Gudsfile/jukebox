@@ -424,6 +424,7 @@ th {
 }
 
 td {
+  --quiet-button-bg: var(--bg);
   padding: 14px;
   background: var(--surface);
   transition: background 0.15s;
@@ -441,23 +442,24 @@ tbody tr:hover td {
   background: var(--surface-2);
 }
 
-/* Row buttons stay quiet on the card: plain text on the page background. */
+/* Row buttons stay quiet: plain text on a background one step off their container, the page
+   background on a row card (set by td), a darker shade straight on the page. */
 td > .row-actions {
   gap: 4px;
   justify-content: flex-end;
 }
 
-td button {
+:is(td, .row-actions) button {
   padding: 5px 12px;
   color: var(--text-h);
-  background: var(--bg);
+  background: var(--quiet-button-bg, var(--surface-2));
   border-color: transparent;
   border-radius: 10px;
 }
 
-td button.btn-danger {
+:is(td, .row-actions) button.btn-danger {
   color: var(--danger);
-  background: var(--bg);
+  background: var(--quiet-button-bg, var(--surface-2));
   border-color: transparent;
 }
 
