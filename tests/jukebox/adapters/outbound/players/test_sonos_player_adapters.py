@@ -823,16 +823,14 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
 @pytest.mark.parametrize(
     "adapter_method, soco_method, args, error_code, expected_message",
     [
-        (adapter_method, soco_method, args, error_code, expected_message)
-        for adapter_method, soco_method, args in (
-            ("play", "play_from_queue", ("uri",)),
-            ("pause", "pause", ()),
-            ("resume", "play", ()),
-            ("stop", "clear_queue", ()),
-        )
-        for error_code, expected_message in (("804", "bad uri"), ("701", "not available transition"))
+        ("play", "play_from_queue", ("uri",), "804", "bad uri"),
+        ("play", "play_from_queue", ("uri",), "701", "not available transition"),
+        ("pause", "pause", (), "804", "bad uri"),
         # pause tolerates 701, see test_pause_ignores_upnp_701_when_player_is_not_playing
-        if (adapter_method, error_code) != ("pause", "701")
+        ("resume", "play", (), "804", "bad uri"),
+        ("resume", "play", (), "701", "not available transition"),
+        ("stop", "clear_queue", (), "804", "bad uri"),
+        ("stop", "clear_queue", (), "701", "not available transition"),
     ],
 )
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
