@@ -196,7 +196,6 @@ footer a:hover {
 
 .title {
   text-align: center;
-  min-width: 180px;
 }
 
 @media (max-width: 480px) {
@@ -256,8 +255,16 @@ footer a:hover {
   opacity: 1;
 }
 
+/* The global table rule makes tables blocks, which disables fixed layout and the colgroup widths.
+   Scroll from a wrapper instead so the colgroup applies; below min-width the table scrolls. */
+.discs-scroll {
+  overflow-x: auto;
+}
+
 table.discs {
+  display: table;
   table-layout: fixed;
+  min-width: 760px;
 }
 
 .library-toolbar {

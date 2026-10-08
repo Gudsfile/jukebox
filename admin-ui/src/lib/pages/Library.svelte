@@ -190,77 +190,79 @@
         {/if}
       </div>
     </div>
-    <table class="discs">
-      <colgroup>
-        <col style="width: 24px" />
-        <col style="width: 14%" />
-        <col />
-        <col style="width: 90px" />
-        <col style="width: 28%" />
-        <col style="width: 90px" />
-        <col style="width: 130px" />
-      </colgroup>
-      <thead>
-        <tr>
-          <th></th>
-          {@render sortableHeader('tag', 'Tag')}
-          <th>URI</th>
-          {@render sortableHeader('type', 'Type')}
-          {@render sortableHeader('title', 'Title', 'center')}
-          {@render sortableHeader('shuffle', 'Shuffle', 'center')}
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each visibleEntries as [tagId, disc] (tagId)}
+    <div class="discs-scroll">
+      <table class="discs">
+        <colgroup>
+          <col style="width: 24px" />
+          <col style="width: 14%" />
+          <col />
+          <col style="width: 90px" />
+          <col style="width: 28%" />
+          <col style="width: 90px" />
+          <col style="width: 170px" />
+        </colgroup>
+        <thead>
           <tr>
-            <td class="spin-cell">
-              {#if tagId === currentTagId}
-                <span class="tag-spin" aria-hidden="true">💿</span>
-              {/if}
-            </td>
-            <td class="tag">{tagId}</td>
-            <td class="uri" title={disc.uri}>
-              <span class="uri-row">
-                <span class="uri-text">{disc.uri}</span>
-                <button
-                  type="button"
-                  class="uri-copy"
-                  onclick={() => copyUri(tagId, disc.uri)}
-                  aria-label={copiedTagId === tagId ? 'Copied' : 'Copy URI'}
+            <th></th>
+            {@render sortableHeader('tag', 'Tag')}
+            <th>URI</th>
+            {@render sortableHeader('type', 'Type')}
+            {@render sortableHeader('title', 'Title', 'center')}
+            {@render sortableHeader('shuffle', 'Shuffle', 'center')}
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each visibleEntries as [tagId, disc] (tagId)}
+            <tr>
+              <td class="spin-cell">
+                {#if tagId === currentTagId}
+                  <span class="tag-spin" aria-hidden="true">💿</span>
+                {/if}
+              </td>
+              <td class="tag">{tagId}</td>
+              <td class="uri" title={disc.uri}>
+                <span class="uri-row">
+                  <span class="uri-text">{disc.uri}</span>
+                  <button
+                    type="button"
+                    class="uri-copy"
+                    onclick={() => copyUri(tagId, disc.uri)}
+                    aria-label={copiedTagId === tagId ? 'Copied' : 'Copy URI'}
+                  >
+                    {copiedTagId === tagId ? '✅' : '📋'}
+                  </button>
+                </span>
+              </td>
+              <td class="type">
+                <span class="type-icon">{typeIcon(disc.display_type)}</span>
+                <span class="type-label">{typeLabel(disc.display_type)}</span>
+              </td>
+              <td class="title">{disc.display_title}</td>
+              <td class="center">
+                <span
+                  class="shuffle-icon"
+                  class:active={disc.option.shuffle}
+                  role="img"
+                  aria-label={disc.option.shuffle ? 'Shuffle on' : 'Shuffle off'}
                 >
-                  {copiedTagId === tagId ? '✅' : '📋'}
-                </button>
-              </span>
-            </td>
-            <td class="type">
-              <span class="type-icon">{typeIcon(disc.display_type)}</span>
-              <span class="type-label">{typeLabel(disc.display_type)}</span>
-            </td>
-            <td class="title">{disc.display_title}</td>
-            <td class="center">
-              <span
-                class="shuffle-icon"
-                class:active={disc.option.shuffle}
-                role="img"
-                aria-label={disc.option.shuffle ? 'Shuffle on' : 'Shuffle off'}
-              >
-                🔀
-              </span>
-            </td>
-            <td>
-              <div class="row-actions">
-                <button onclick={() => openEdit(tagId)}>Edit</button>
-                <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
-              </div>
-            </td>
-          </tr>
-        {:else}
-          <tr>
-            <td colspan="7" class="no-results">{noResultsMessage}</td>
-          </tr>
-        {/each}
-      </tbody>
-    </table>
+                  🔀
+                </span>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button onclick={() => openEdit(tagId)}>Edit</button>
+                  <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
+                </div>
+              </td>
+            </tr>
+          {:else}
+            <tr>
+              <td colspan="7" class="no-results">{noResultsMessage}</td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {/if}
 {/if}
