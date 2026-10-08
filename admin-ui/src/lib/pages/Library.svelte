@@ -126,8 +126,8 @@
   }
 </script>
 
-{#snippet sortableHeader(key, label)}
-  <th aria-sort={ariaSort(key)}>
+{#snippet sortableHeader(key, label, align = undefined)}
+  <th class={align} aria-sort={ariaSort(key)}>
     <button type="button" class="sort-button" onclick={() => (sort = nextSort(sort, key))}>
       {label}
       <span class="sort-indicator" aria-hidden="true">
@@ -206,8 +206,8 @@
           {@render sortableHeader('tag', 'Tag')}
           <th>URI</th>
           {@render sortableHeader('type', 'Type')}
-          {@render sortableHeader('title', 'Title')}
-          {@render sortableHeader('shuffle', 'Shuffle')}
+          {@render sortableHeader('title', 'Title', 'center')}
+          {@render sortableHeader('shuffle', 'Shuffle', 'center')}
           <th></th>
         </tr>
       </thead>
