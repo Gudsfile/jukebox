@@ -16,6 +16,9 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  /* Derived shades: the palette stays as is, both themes follow since --bg and --text-h do. */
+  --hairline: color-mix(in srgb, var(--border) 65%, transparent);
+
   font: 15px/145% var(--sans);
   letter-spacing: -0.01em;
   color-scheme: light dark;
@@ -114,25 +117,36 @@ button.btn-secondary {
   border-color: var(--border);
 }
 
+/* Floating dock: a centered, translucent pill that stays on top while the page scrolls. */
 nav {
+  position: sticky;
+  top: 12px;
+  z-index: 50;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
+  align-self: center;
+  gap: 2px;
+  margin-top: 14px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 nav button {
+  padding: 7px 18px;
   color: inherit;
   background: none;
-  border-color: var(--border);
+  border: none;
+  border-radius: 999px;
   text-transform: capitalize;
 }
 
 nav button.active {
-  color: var(--accent);
-  background: var(--accent-bg);
-  border-color: var(--accent);
+  color: var(--bg);
+  background: var(--text-h);
 }
 
 main {
