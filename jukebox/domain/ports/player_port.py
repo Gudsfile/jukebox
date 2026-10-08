@@ -14,7 +14,7 @@ class PlayerPort(ABC):
 
     @abstractmethod
     def resume(self) -> None:
-        """Resume playback."""
+        """Resume playback. Raises NothingToResumeError if there is nothing to resume."""
 
     @abstractmethod
     def stop(self) -> None:
