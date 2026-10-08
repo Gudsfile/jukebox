@@ -114,6 +114,10 @@ button.btn-primary {
   border-color: var(--accent);
 }
 
+.library-toolbar .btn-add {
+  margin-left: auto;
+}
+
 button.btn-secondary {
   color: var(--text);
   background: none;

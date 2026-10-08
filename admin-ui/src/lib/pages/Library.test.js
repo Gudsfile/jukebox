@@ -60,6 +60,15 @@ describe('Library — loading and empty/error states', () => {
     expect(await screen.findByText('No disc found')).toBeInTheDocument()
   })
 
+  it('offers "Add disc" in the page header for an empty library', async () => {
+    apiGet.mockResolvedValue({})
+    render(Library)
+
+    await screen.findByText('No disc found')
+    const addButton = screen.getByRole('button', { name: 'Add disc' })
+    expect(addButton.closest('.page-header')).not.toBeNull()
+  })
+
   it('shows the error message when loading fails', async () => {
     apiGet.mockRejectedValue(new Error('Network error'))
     render(Library, { props: {} })
@@ -163,12 +172,15 @@ describe('Library — search', () => {
 })
 
 describe('Library — add/edit/delete flow', () => {
-  it('opens the create form from the header action and hides it while a form is open', async () => {
+  it('opens the create form from the toolbar action and hides it while a form is open', async () => {
     apiGet.mockResolvedValue(discs)
     render(Library, { props: {} })
     await screen.findByText('tag-1')
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Add disc' }))
+    // getByRole also guards against a second copy left in the page header.
+    const addButton = screen.getByRole('button', { name: 'Add disc' })
+    expect(addButton.closest('.library-toolbar')).not.toBeNull()
+    await fireEvent.click(addButton)
 
     expect(screen.getByLabelText('Tag ID')).toHaveValue('')
     expect(screen.queryByRole('button', { name: 'Add disc' })).toBeNull()

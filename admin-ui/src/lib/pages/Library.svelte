@@ -29,6 +29,10 @@
     sortEntries(filterDiscs(searchDiscs(allEntries, searchQuery), { type: typeFilter, shuffle: shuffleFilter }), sort),
   )
   const filtering = $derived(isFiltering({ type: typeFilter, shuffle: shuffleFilter }))
+  const showToolbar = $derived(!loading && !error && allEntries.length > 0)
+  // "Add disc" lives in the toolbar; the page header only gets it when there is no toolbar (empty
+  // library, load error), not while loading: it would jump into the toolbar a moment later.
+  const showHeaderAdd = $derived(!formMode && !loading && !showToolbar)
   const noResultsMessage = $derived.by(() => {
     const query = searchQuery.trim()
     if (!query) return 'No disc matches the current filters'
@@ -135,10 +139,14 @@
   </th>
 {/snippet}
 
+{#snippet addDiscButton()}
+  <button class="btn-add" onclick={() => openCreate()}>Add disc</button>
+{/snippet}
+
 <div class="page-header">
   <h2>Library</h2>
-  {#if !formMode}
-    <button onclick={() => openCreate()}>Add disc</button>
+  {#if showHeaderAdd}
+    {@render addDiscButton()}
   {/if}
 </div>
 
@@ -151,7 +159,7 @@
     <p>Loading…</p>
   {:else if error}
     <p class="error">{error}</p>
-  {:else if Object.keys(discs).length === 0}
+  {:else if !showToolbar}
     <p>No disc found</p>
   {:else}
     {#if deleteError}
@@ -187,6 +195,7 @@
           <button type="button" class="btn-secondary" onclick={clearFilters}>Clear filters</button>
         {/if}
       </div>
+      {@render addDiscButton()}
     </div>
     <div class="discs-scroll">
       <table class="discs">
