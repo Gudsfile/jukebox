@@ -3,6 +3,7 @@
   import { apiDelete, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
+  import ReaderSlot from '../components/ReaderSlot.svelte'
   import { searchDiscs } from '../library/search.js'
   import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
@@ -14,7 +15,7 @@
   let loading = $state(true)
   let error = $state(null)
   let formMode = $state(null) // null | { type: 'create', tagId } | { type: 'edit', tagId, disc }
-  let currentTagId = $state(null)
+  let currentTag = $state(null) // null | { tag_id, known_in_library }, pushed by the SSE stream
   let copiedTagId = $state(null)
   let deleteError = $state(null)
   let searchQuery = $state('')
@@ -23,6 +24,7 @@
   let typeSelect = $state(null)
   let sort = $state(null) // null (default order) | { key, direction: 'asc' | 'desc' }
 
+  const currentTagId = $derived(currentTag?.known_in_library ? currentTag.tag_id : null)
   const allEntries = $derived(Object.entries(discs))
   const availableTypes = $derived(typeOptions(allEntries))
   const visibleEntries = $derived(
@@ -48,12 +50,10 @@
   }
 
   $effect(() => {
-    // Purely cosmetic: spins next to the matching row if it's on screen. No scroll,
-    // no highlight — independent from the current-tag banner above.
+    // Feeds both the ReaderSlot console and the spinning disc next to the matching row.
     const source = new EventSource('/api/v1/current-tag/events')
     source.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      currentTagId = data?.known_in_library ? data.tag_id : null
+      currentTag = JSON.parse(event.data)
     }
     return () => source.close()
   })
@@ -266,3 +266,11 @@
     </div>
   {/if}
 {/if}
+
+<ReaderSlot
+  {currentTag}
+  disc={currentTagId ? discs[currentTagId] : undefined}
+  actionsEnabled={!formMode}
+  onAdd={openCreate}
+  onEdit={openEdit}
+/>

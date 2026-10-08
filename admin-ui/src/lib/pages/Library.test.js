@@ -271,6 +271,46 @@ describe('Library — intent routing', () => {
   })
 })
 
+describe('Library — reader slot', () => {
+  const emitCurrentTag = (data) => globalThis.EventSource.instances[0].onmessage({ data: JSON.stringify(data) })
+  const readerSlot = () => screen.getByRole('region', { name: 'Reader' })
+
+  it('opens the create form prefilled with an unknown tag from the reader', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-new', known_in_library: false })
+    await fireEvent.click(await within(readerSlot()).findByRole('button', { name: 'Add this disc' }))
+
+    expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-new')
+  })
+
+  it('shows the library entry of a known tag and opens its edit form', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-1', known_in_library: true })
+    expect(await within(readerSlot()).findByText('Veridis Project — Voir le soleil')).toBeInTheDocument()
+    expect(within(readerSlot()).getByText('spotify:album:abc')).toBeInTheDocument()
+    await fireEvent.click(within(readerSlot()).getByRole('button', { name: 'Edit' }))
+
+    expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-1')
+  })
+
+  it('hides the reader actions while a form is open', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-new', known_in_library: false })
+    await fireEvent.click(await within(readerSlot()).findByRole('button', { name: 'Add this disc' }))
+
+    expect(within(readerSlot()).queryByRole('button')).toBeNull()
+  })
+})
+
 describe('Library — filters', () => {
   it('shows every disc by default and offers only the types present in the library', async () => {
     apiGet.mockResolvedValue(discs)
