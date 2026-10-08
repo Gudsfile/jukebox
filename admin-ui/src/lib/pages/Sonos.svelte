@@ -74,7 +74,9 @@
   }
 </script>
 
-<h2>Sonos</h2>
+<div class="page-header">
+  <h2>Sonos</h2>
+</div>
 
 {#if editing}
   <SonosSelectionForm

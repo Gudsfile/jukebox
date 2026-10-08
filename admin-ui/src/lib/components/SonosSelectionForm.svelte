@@ -42,7 +42,7 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
+<form class="form-card" onsubmit={handleSubmit}>
   <h3>Edit Sonos Selection</h3>
   <p>Choose one or more visible speakers and select the coordinator used for playback.</p>
   <p>Changes take effect after restart.</p>

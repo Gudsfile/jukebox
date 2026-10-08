@@ -42,12 +42,12 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
-  <label>
+<form class="form-card disc-form" onsubmit={handleSubmit}>
+  <label class="wide">
     Tag ID
     <input bind:value={tagId} disabled={mode === 'edit'} required />
   </label>
-  <label>
+  <label class="wide">
     URI / Path
     <input bind:value={uri} required />
   </label>
@@ -67,17 +67,47 @@
     Playlist
     <input bind:value={playlist} />
   </label>
-  <label class="checkbox">
+  <label class="checkbox wide">
     <input type="checkbox" bind:checked={shuffle} />
     Shuffle
   </label>
 
   {#if error}
-    <p class="error">{error}</p>
+    <p class="error wide">{error}</p>
   {/if}
 
-  <div class="actions">
+  <div class="actions wide">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
+
+<style>
+  /* Two columns pair Artist / Album and Track / Playlist; `.wide` items span both. */
+  .disc-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px 20px;
+  }
+
+  .disc-form > :is(label, .checkbox) {
+    margin: 0;
+    font-size: 0.85em;
+    color: var(--text);
+  }
+
+  .wide {
+    grid-column: 1 / -1;
+  }
+
+  .disc-form input:not([type='checkbox']) {
+    font-size: 1.15em;
+    color: var(--text-h);
+  }
+
+  @media (max-width: 640px) {
+    .disc-form {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

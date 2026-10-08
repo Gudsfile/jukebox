@@ -16,7 +16,13 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  font: 16px/145% var(--sans);
+  /* Derived shades: the palette stays as is, both themes follow since --bg and --text-h do. */
+  --surface: color-mix(in srgb, var(--text-h) 4%, var(--bg));
+  --surface-2: color-mix(in srgb, var(--text-h) 7%, var(--bg));
+  --hairline: color-mix(in srgb, var(--border) 65%, transparent);
+
+  font: 15px/145% var(--sans);
+  letter-spacing: -0.01em;
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -70,13 +76,20 @@ h2 {
   margin: 0;
 }
 
+h2 {
+  font-size: 2.1em;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
 button {
   font: inherit;
   color: var(--bg);
   background: var(--text-h);
   border: 1px solid var(--text-h);
-  border-radius: 6px;
-  padding: 6px 14px;
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-weight: 550;
   cursor: pointer;
 }
 
@@ -101,36 +114,65 @@ button.btn-primary {
   border-color: var(--accent);
 }
 
+/* Discreet "Add disc": a soft surface with an accent "+". */
+button.btn-add {
+  color: var(--text-h);
+  background: var(--surface-2);
+  border-color: transparent;
+}
+
+.btn-add > span {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 button.btn-secondary {
   color: var(--text);
   background: none;
   border-color: var(--border);
 }
 
+/* Floating dock: a centered, translucent pill that stays on top while the page scrolls. */
 nav {
+  position: sticky;
+  top: 12px;
+  z-index: 50;
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
+  align-self: center;
+  gap: 2px;
+  margin-top: 14px;
+  padding: 4px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 nav button {
+  padding: 7px 18px;
   color: inherit;
   background: none;
-  border-color: var(--border);
+  border: none;
+  border-radius: 999px;
   text-transform: capitalize;
 }
 
 nav button.active {
-  color: var(--accent);
-  background: var(--accent-bg);
-  border-color: var(--accent);
+  color: var(--bg);
+  background: var(--text-h);
 }
 
 main {
   flex: 1;
-  padding: 20px;
+  padding: 28px;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding-inline: 16px;
+  }
 }
 
 footer {
@@ -165,6 +207,12 @@ footer a:hover {
 
 .type-label {
   margin-left: 4px;
+  padding: 2px 9px;
+  font-size: 0.82em;
+  font-weight: 550;
+  color: var(--text-h);
+  background: var(--bg);
+  border-radius: 999px;
 }
 
 .tag {
@@ -196,6 +244,11 @@ footer a:hover {
 
 .title {
   text-align: center;
+}
+
+td.title {
+  font-weight: 550;
+  color: var(--text-h);
 }
 
 @media (max-width: 480px) {
@@ -270,31 +323,33 @@ table.discs {
 .library-toolbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
   margin-bottom: 12px;
 }
 
+/* Compact until used: widens on focus to leave room for the query. */
 .library-search {
-  max-width: 320px;
+  width: 220px;
   margin-top: 0;
+  transition: width 0.2s;
 }
 
-.library-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 12px;
+.library-search:focus {
+  width: 300px;
 }
 
-.library-filters select {
-  width: auto;
-  min-width: 10ch;
+@media (max-width: 640px) {
+  .library-search,
+  .library-search:focus {
+    flex: 1;
+    width: auto;
+  }
 }
 
-/* Native selects ignore vertical padding on macOS: pin every toolbar control to one height. */
+/* Pin every toolbar control to one height. */
 .library-toolbar input,
-.library-toolbar select,
 .library-toolbar button {
   height: 2.4em;
   box-sizing: border-box;
@@ -343,10 +398,13 @@ table.discs {
   color: var(--accent);
 }
 
+/* Rows are separate cards. border-collapse and border-spacing are inherited, so they also reach
+   the anonymous table box of these display: block tables. */
 table {
   display: block;
   overflow-x: auto;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 6px;
   width: 100%;
   margin-bottom: 16px;
 }
@@ -354,12 +412,84 @@ table {
 th,
 td {
   text-align: left;
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--border);
+}
+
+th {
+  padding: 10px 14px 2px;
+  font-size: 0.72em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+td {
+  --quiet-button-bg: var(--bg);
+  padding: 14px;
+  background: var(--surface);
+  transition: background 0.15s;
+}
+
+td:first-child {
+  border-radius: 14px 0 0 14px;
+}
+
+td:last-child {
+  border-radius: 0 14px 14px 0;
+}
+
+tbody tr:hover td {
+  background: var(--surface-2);
+}
+
+/* Row buttons stay quiet: plain text on a background one step off their container, the page
+   background on a row card (set by td), a darker shade straight on the page. */
+td > .row-actions {
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+:is(td, .row-actions) button {
+  padding: 5px 12px;
+  color: var(--text-h);
+  background: var(--quiet-button-bg, var(--surface-2));
+  border-color: transparent;
+  border-radius: 10px;
+}
+
+:is(td, .row-actions) button.btn-danger {
+  color: var(--danger);
+  background: var(--quiet-button-bg, var(--surface-2));
+  border-color: transparent;
 }
 
 form {
   max-width: 480px;
+}
+
+/* Edit forms: a card centered in the full-width page, its fields on the page background. */
+.form-card {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 28px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+}
+
+.form-card :is(input:not([type='checkbox']), select, textarea) {
+  background: var(--bg);
+}
+
+.form-card > h3:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .form-card {
+    padding: 18px;
+  }
 }
 
 form > label,
@@ -381,11 +511,20 @@ textarea {
   margin-top: 4px;
   font: inherit;
   color: inherit;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 9px 14px;
   box-sizing: border-box;
+}
+
+:is(input, select, textarea):focus-visible {
+  outline: 3px solid var(--accent-bg);
+  border-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }
 
 fieldset {
@@ -461,4 +600,55 @@ th[aria-sort] .sort-button {
 
 th[aria-sort] .sort-indicator {
   opacity: 1;
+}
+
+/* Sort button and filter funnel stay on one line. */
+th:has(.th-filter) {
+  padding-inline: 8px;
+  white-space: nowrap;
+}
+
+.th-filter {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  vertical-align: middle;
+  color: var(--text);
+  border-radius: 6px;
+  opacity: 0.45;
+}
+
+.th-filter:hover,
+.th-filter:focus-within {
+  background: var(--surface-2);
+  opacity: 1;
+}
+
+.th-filter:focus-within {
+  outline: 2px solid var(--accent);
+}
+
+.th-filter.active {
+  color: var(--accent);
+  background: var(--accent-bg);
+  opacity: 1;
+}
+
+.th-filter svg {
+  width: 12px;
+  fill: currentColor;
+}
+
+.th-filter select {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
 }

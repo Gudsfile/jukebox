@@ -69,7 +69,6 @@
 
   .reader-slot {
     --c: var(--border);
-    --c-bg: transparent;
     position: fixed;
     bottom: calc(16px + env(safe-area-inset-bottom, 0px));
     left: 50%;
@@ -82,22 +81,19 @@
     align-items: center;
     gap: 20px;
     padding: 12px 24px 12px 12px;
-    background: linear-gradient(90deg, var(--c-bg), transparent 70%), color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter: blur(12px);
-    border: 1.5px solid color-mix(in srgb, var(--c) 70%, transparent);
-    border-radius: 999px;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.16);
-    transition: border-color 0.3s;
+    background: color-mix(in srgb, var(--surface-2) 90%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid var(--hairline);
+    border-radius: 26px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
   }
 
   .reader-slot-known {
     --c: var(--state-known);
-    --c-bg: var(--state-known-bg);
   }
 
   .reader-slot-unknown {
     --c: var(--state-unknown);
-    --c-bg: var(--state-unknown-bg);
   }
 
   /* Disc thumbnail — type emoji until cover art exists (L9). */
@@ -106,8 +102,8 @@
     place-items: center;
     width: 72px;
     aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid color-mix(in srgb, var(--c) 60%, transparent);
+    border-radius: 28%;
+    border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
     background: color-mix(in srgb, var(--c) 18%, var(--bg));
   }
 
@@ -201,7 +197,7 @@
 
   .pill {
     padding: 10px 22px;
-    border-radius: 999px;
+    border-radius: 14px;
     font-weight: 600;
     white-space: nowrap;
     color: #fff;
@@ -230,7 +226,6 @@
         'action action';
       gap: 10px 12px;
       padding: 12px 16px;
-      border-radius: 24px;
     }
 
     .disc-thumb {

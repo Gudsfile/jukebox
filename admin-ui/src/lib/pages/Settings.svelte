@@ -71,7 +71,9 @@
   }
 </script>
 
-<h2>Settings</h2>
+<div class="page-header">
+  <h2>Settings</h2>
+</div>
 
 {#if editingSetting}
   <SettingForm setting={editingSetting} onSaved={handleSaved} onCancel={closeForm} />
