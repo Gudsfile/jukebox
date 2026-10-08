@@ -16,7 +16,8 @@
       known: disc?.display_title ?? currentTag?.tag_id,
     }[state],
   )
-  const action = $derived(actionsEnabled ? { unknown: 'add', known: 'edit' }[state] : undefined)
+  // No Edit without the library entry: it would open an empty edit form.
+  const action = $derived(actionsEnabled ? { unknown: 'add', known: disc ? 'edit' : undefined }[state] : undefined)
 </script>
 
 <section class="reader-slot reader-slot-{state}" aria-label="Reader" aria-live="polite">

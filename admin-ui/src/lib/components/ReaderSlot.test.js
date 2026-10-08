@@ -50,6 +50,7 @@ describe('ReaderSlot', () => {
 
     expect(screen.getByText('Disc detected')).toBeInTheDocument()
     expect(screen.getAllByText('tag-cli')).toHaveLength(2) // tag field + title fallback
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
   })
 
   it('hides the action when actions are disabled', () => {

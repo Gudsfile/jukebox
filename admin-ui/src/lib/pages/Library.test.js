@@ -288,6 +288,32 @@ describe('Library — reader slot', () => {
     expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-1')
   })
 
+  it('refreshes the library once when the reader reports a known tag it has not loaded yet', async () => {
+    const cliDisc = { ...discs['tag-1'], display_title: 'Added from the CLI' }
+    apiGet.mockResolvedValueOnce(discs).mockResolvedValue({ ...discs, 'tag-cli': cliDisc })
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-cli', known_in_library: true })
+
+    expect(await within(readerSlot()).findByText('Added from the CLI')).toBeInTheDocument()
+    expect(within(readerSlot()).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+    expect(apiGet).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not loop on refreshes when the known tag is still missing afterwards', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    emitCurrentTag({ tag_id: 'tag-ghost', known_in_library: true })
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('tag-2')).toBeInTheDocument() // table never swapped for "Loading…"
+  })
+
   it('hides the reader actions while a form is open', async () => {
     apiGet.mockResolvedValue(discs)
     render(Library, { props: {} })
