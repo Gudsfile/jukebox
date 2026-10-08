@@ -106,8 +106,8 @@
     place-items: center;
     width: 72px;
     aspect-ratio: 1;
-    border-radius: 50%;
-    border: 2px solid color-mix(in srgb, var(--c) 60%, transparent);
+    border-radius: 28%;
+    border: 1px solid color-mix(in srgb, var(--c) 60%, transparent);
     background: color-mix(in srgb, var(--c) 18%, var(--bg));
   }
 
