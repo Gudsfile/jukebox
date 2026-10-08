@@ -4,6 +4,7 @@
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
   import { searchDiscs } from '../library/search.js'
+  import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
 
   let { intent = null, onIntentConsumed } = $props()
@@ -103,15 +104,6 @@
     setTimeout(() => {
       if (copiedTagId === tagId) copiedTagId = null
     }, 1500)
-  }
-
-  function typeIcon(displayType) {
-    return displayType.split(' ')[0]
-  }
-
-  function typeLabel(displayType) {
-    const spaceIndex = displayType.indexOf(' ')
-    return spaceIndex === -1 ? '' : displayType.slice(spaceIndex + 1)
   }
 
   async function handleDelete(tagId) {
