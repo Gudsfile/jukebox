@@ -140,7 +140,7 @@
 {/snippet}
 
 {#snippet addDiscButton()}
-  <button class="btn-add" onclick={() => openCreate()}>Add disc</button>
+  <button class="btn-add" onclick={() => openCreate()}><span aria-hidden="true">+</span> Add disc</button>
 {/snippet}
 
 <div class="page-header">

@@ -114,6 +114,18 @@ button.btn-primary {
   border-color: var(--accent);
 }
 
+/* Discreet "Add disc": a soft surface with an accent "+". */
+button.btn-add {
+  color: var(--text-h);
+  background: var(--surface-2);
+  border-color: transparent;
+}
+
+.btn-add > span {
+  color: var(--accent);
+  font-weight: 700;
+}
+
 .library-toolbar .btn-add {
   margin-left: auto;
 }
