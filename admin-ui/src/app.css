@@ -195,6 +195,12 @@ footer a:hover {
 
 .type-label {
   margin-left: 4px;
+  padding: 2px 9px;
+  font-size: 0.82em;
+  font-weight: 550;
+  color: var(--text-h);
+  background: var(--bg);
+  border-radius: 999px;
 }
 
 .tag {
