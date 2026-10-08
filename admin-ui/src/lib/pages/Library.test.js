@@ -321,6 +321,19 @@ describe('Library — filters', () => {
     expect(screen.queryByRole('button', { name: 'Clear filters' })).toBeNull()
   })
 
+  it('moves focus to the Type filter after clearing, since the Clear button goes away', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.change(screen.getByLabelText('Shuffle'), { target: { value: 'on' } })
+    const clearButton = screen.getByRole('button', { name: 'Clear filters' })
+    clearButton.focus()
+    await fireEvent.click(clearButton)
+
+    expect(screen.getByLabelText('Type')).toHaveFocus()
+  })
+
   it('falls back to all types when the filtered type leaves the library', async () => {
     vi.useFakeTimers()
     apiGet.mockResolvedValueOnce(discs).mockResolvedValueOnce({ 'tag-1': discs['tag-1'] })

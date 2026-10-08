@@ -18,6 +18,7 @@
   let searchQuery = $state('')
   let typeFilter = $state(ALL)
   let shuffleFilter = $state(ALL)
+  let typeSelect = $state(null)
 
   const allEntries = $derived(Object.entries(discs))
   const availableTypes = $derived(typeOptions(allEntries))
@@ -34,6 +35,8 @@
   function clearFilters() {
     typeFilter = ALL
     shuffleFilter = ALL
+    // The Clear button disappears with the filters: keep keyboard focus in the toolbar.
+    typeSelect?.focus()
   }
 
   $effect(() => {
@@ -157,7 +160,7 @@
       <div class="library-filters" role="group" aria-label="Filter discs">
         <label>
           Type
-          <select bind:value={typeFilter}>
+          <select bind:this={typeSelect} bind:value={typeFilter}>
             <option value={ALL}>All types</option>
             {#each availableTypes as displayType (displayType)}
               <option value={displayType}>{displayType}</option>
