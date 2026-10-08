@@ -6,7 +6,7 @@ from requests.exceptions import ConnectionError as RequestConnectionError
 from soco.exceptions import SoCoUPnPException
 
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
-from jukebox.domain.errors import PlaybackError
+from jukebox.domain.errors import NothingToResumeError, PlaybackError
 from jukebox.settings.errors import InvalidSettingsError
 from tests.jukebox.settings._helpers import StubSonosService, build_resolved_sonos_group_runtime
 
@@ -790,6 +790,27 @@ def test_resume_calls_underlying_sonos_player(mock_sharelink, mock_soco):
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_on_upnp_701(mock_sharelink, mock_soco, caplog):
+    """Should report a 701 on resume as nothing to resume, without recovery or warning."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.play.side_effect = make_exception("701")
+    resolver = MagicMock()
+
+    adapter = build_adapter(host="192.168.1.100", sonos_playback_target_resolver=resolver)
+
+    with caplog.at_level("INFO", logger="jukebox"), pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_called_once()
+    resolver.assert_not_called()
+    assert "has nothing to resume" in caplog.text
+    assert not [record for record in caplog.records if record.levelname == "WARNING"]
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_stop_calls_underlying_sonos_player(mock_sharelink, mock_soco):
     """Should delegate stop to underlying Sonos player."""
     mock_speaker = MagicMock()
@@ -828,7 +849,7 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
         ("pause", "pause", (), "804", "bad uri"),
         # pause tolerates 701, see test_pause_ignores_upnp_701_when_player_is_not_playing
         ("resume", "play", (), "804", "bad uri"),
-        ("resume", "play", (), "701", "not available transition"),
+        # resume maps 701 to NothingToResumeError, see test_resume_raises_nothing_to_resume_on_upnp_701
         ("stop", "clear_queue", (), "804", "bad uri"),
         ("stop", "clear_queue", (), "701", "not available transition"),
     ],
