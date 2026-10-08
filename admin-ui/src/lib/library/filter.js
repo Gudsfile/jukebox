@@ -1,7 +1,7 @@
 // Pure filtering helpers for the Library table. They operate on `[tagId, disc]` entries
 // (as returned by `Object.entries(discs)`) and never mutate their input.
 
-import { typeLabel } from './discType.js'
+import { compareTypes } from './discType.js'
 
 export const ALL = ''
 export const SHUFFLE_ON = 'on'
@@ -13,7 +13,7 @@ export const SHUFFLE_OFF = 'off'
  */
 export function typeOptions(entries) {
   const types = new Set(entries.map(([, disc]) => disc.display_type))
-  return [...types].sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+  return [...types].sort(compareTypes)
 }
 
 /**
@@ -32,9 +32,4 @@ export function filterDiscs(entries, { type = ALL, shuffle = ALL } = {}) {
 
 export function isFiltering({ type = ALL, shuffle = ALL } = {}) {
   return type !== ALL || shuffle !== ALL
-}
-
-// Sort by the label after the leading emoji ("💿 Album" → "Album"), not by emoji code point.
-function sortKey(displayType) {
-  return typeLabel(displayType) || displayType
 }

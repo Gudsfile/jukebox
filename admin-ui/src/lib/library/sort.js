@@ -1,19 +1,13 @@
 // Column sorting for the Library table. Operates on `[tagId, disc]` entries (as returned by
 // `Object.entries(discs)`) and never mutates its input.
 
-import { typeLabel } from './discType.js'
+import { compareTypes } from './discType.js'
 
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
 
-// Compare types on their label, otherwise the emoji codepoint decides the order
-// (🎧 < 🎤 < 🎵 < 💿), which looks random to a user. A type without a label sorts by its whole value.
-function typeSortKey(displayType) {
-  return typeLabel(displayType) || displayType
-}
-
 const comparators = {
   tag: ([a], [b]) => collator.compare(a, b),
-  type: ([, a], [, b]) => collator.compare(typeSortKey(a.display_type), typeSortKey(b.display_type)),
+  type: ([, a], [, b]) => compareTypes(a.display_type, b.display_type),
   title: ([, a], [, b]) => collator.compare(a.display_title, b.display_title),
   shuffle: ([, a], [, b]) => Number(a.option.shuffle) - Number(b.option.shuffle),
 }

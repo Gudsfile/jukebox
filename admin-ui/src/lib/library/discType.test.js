@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { typeIcon, typeLabel } from './discType.js'
+import { compareTypes, typeIcon, typeLabel } from './discType.js'
 
 describe('typeIcon', () => {
   it('returns the leading emoji', () => {
@@ -19,5 +19,15 @@ describe('typeLabel', () => {
 
   it('returns an empty label when there is no space', () => {
     expect(typeLabel('💿')).toBe('')
+  })
+})
+
+describe('compareTypes', () => {
+  it('orders by label rather than by leading emoji', () => {
+    expect(['🎵 Track', '💿 Album', '🎧 Playlist'].sort(compareTypes)).toEqual(['💿 Album', '🎧 Playlist', '🎵 Track'])
+  })
+
+  it('orders a type without a label by its whole value', () => {
+    expect(['🎵 Track', 'Podcast', '💿 Album'].sort(compareTypes)).toEqual(['💿 Album', 'Podcast', '🎵 Track'])
   })
 })
