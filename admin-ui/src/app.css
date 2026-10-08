@@ -17,6 +17,7 @@
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Derived shades: the palette stays as is, both themes follow since --bg and --text-h do. */
+  --surface: color-mix(in srgb, var(--text-h) 4%, var(--bg));
   --hairline: color-mix(in srgb, var(--border) 65%, transparent);
 
   font: 15px/145% var(--sans);
@@ -409,11 +410,20 @@ textarea {
   margin-top: 4px;
   font: inherit;
   color: inherit;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 12px;
+  padding: 9px 14px;
   box-sizing: border-box;
+}
+
+:is(input, select, textarea):focus-visible {
+  outline: 3px solid var(--accent-bg);
+  border-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  accent-color: var(--accent);
 }
 
 fieldset {
