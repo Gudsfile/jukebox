@@ -47,6 +47,17 @@ describe('sortEntries', () => {
     expect(keys(sortEntries(entries, { key: 'type', direction: 'asc' }))).toEqual(['tag-10', 'tag-3', 'tag-2', 'Tag-1'])
   })
 
+  it('sorts a type without an emoji prefix by its whole value', () => {
+    const withBareType = [['bare', disc('Podcast', 'x')], ...entries]
+    expect(keys(sortEntries(withBareType, { key: 'type', direction: 'asc' }))).toEqual([
+      'tag-10',
+      'tag-3',
+      'tag-2',
+      'bare',
+      'Tag-1',
+    ])
+  })
+
   it('sorts titles case-insensitively', () => {
     expect(keys(sortEntries(entries, { key: 'title', direction: 'asc' }))).toEqual([
       'tag-2',
