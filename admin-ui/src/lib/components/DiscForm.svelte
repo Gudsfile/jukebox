@@ -42,7 +42,7 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
+<form class="disc-form" onsubmit={handleSubmit}>
   <label>
     Tag ID
     <input bind:value={tagId} disabled={mode === 'edit'} required />
@@ -81,3 +81,28 @@
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
+
+<style>
+  /* A card centered in the full-width page, its fields on the page background. */
+  .disc-form {
+    max-width: 720px;
+    margin-inline: auto;
+    padding: 28px;
+    box-sizing: border-box;
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-radius: 22px;
+  }
+
+  .disc-form input:not([type='checkbox']) {
+    font-size: 1.15em;
+    color: var(--text-h);
+    background: var(--bg);
+  }
+
+  @media (max-width: 640px) {
+    .disc-form {
+      padding: 18px;
+    }
+  }
+</style>
