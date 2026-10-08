@@ -465,6 +465,31 @@ form {
   max-width: 480px;
 }
 
+/* Edit forms: a card centered in the full-width page, its fields on the page background. */
+.form-card {
+  max-width: 720px;
+  margin-inline: auto;
+  padding: 28px;
+  box-sizing: border-box;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+}
+
+.form-card :is(input:not([type='checkbox']), select, textarea) {
+  background: var(--bg);
+}
+
+.form-card > h3:first-child {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .form-card {
+    padding: 18px;
+  }
+}
+
 form > label,
 form > .checkbox {
   display: block;

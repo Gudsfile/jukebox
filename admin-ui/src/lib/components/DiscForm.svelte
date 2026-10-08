@@ -42,7 +42,7 @@
   }
 </script>
 
-<form class="disc-form" onsubmit={handleSubmit}>
+<form class="form-card disc-form" onsubmit={handleSubmit}>
   <label class="wide">
     Tag ID
     <input bind:value={tagId} disabled={mode === 'edit'} required />
@@ -83,19 +83,11 @@
 </form>
 
 <style>
-  /* A card centered in the full-width page, its fields on the page background. Two columns pair
-     Artist / Album and Track / Playlist; `.wide` items span both. */
+  /* Two columns pair Artist / Album and Track / Playlist; `.wide` items span both. */
   .disc-form {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 18px 20px;
-    max-width: 720px;
-    margin-inline: auto;
-    padding: 28px;
-    box-sizing: border-box;
-    background: var(--surface);
-    border: 1px solid var(--hairline);
-    border-radius: 22px;
   }
 
   .disc-form > :is(label, .checkbox) {
@@ -111,13 +103,11 @@
   .disc-form input:not([type='checkbox']) {
     font-size: 1.15em;
     color: var(--text-h);
-    background: var(--bg);
   }
 
   @media (max-width: 640px) {
     .disc-form {
       grid-template-columns: 1fr;
-      padding: 18px;
     }
   }
 </style>
