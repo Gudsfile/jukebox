@@ -104,6 +104,54 @@ describe('Library — search', () => {
     expect(screen.queryByText('No disc found')).toBeNull()
     expect(screen.getByRole('searchbox', { name: 'Search discs' })).toHaveValue('nothing here')
   })
+
+  it('shows every row again once the query is cleared', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+    const searchbox = screen.getByRole('searchbox', { name: 'Search discs' })
+
+    await fireEvent.input(searchbox, { target: { value: 'VOIR' } })
+    expect(screen.queryByText('tag-2')).toBeNull()
+
+    await fireEvent.input(searchbox, { target: { value: '' } })
+    expect(screen.getByText('tag-1')).toBeInTheDocument()
+    expect(screen.getByText('tag-2')).toBeInTheDocument()
+  })
+
+  it('edits the disc of a row narrowed by the search', async () => {
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'playlist' },
+    })
+    const row = screen.getByText('tag-2').closest('tr')
+    await fireEvent.click(within(row).getByRole('button', { name: 'Edit' }))
+
+    expect(screen.getByLabelText('Tag ID')).toHaveValue('tag-2')
+  })
+
+  it('deletes the disc of a row narrowed by the search', async () => {
+    vi.useFakeTimers()
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
+    apiGet.mockResolvedValue(discs)
+    apiDelete.mockResolvedValue(null)
+    render(Library, { props: {} })
+    await screen.findByText('tag-1')
+
+    await fireEvent.input(screen.getByRole('searchbox', { name: 'Search discs' }), {
+      target: { value: 'playlist' },
+    })
+    const row = screen.getByText('tag-2').closest('tr')
+    await fireEvent.click(within(row).getByRole('button', { name: 'Delete' }))
+
+    expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-2"?')
+    expect(apiDelete).toHaveBeenCalledWith('/discs/tag-2')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
+    vi.runOnlyPendingTimers()
+  })
 })
 
 describe('Library — add/edit/delete flow', () => {
