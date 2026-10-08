@@ -83,7 +83,7 @@
   }
 </script>
 
-<form onsubmit={handleSubmit}>
+<form class="form-card" onsubmit={handleSubmit}>
   <h3>Edit {setting.label}</h3>
   <p class="path">{setting.path}</p>
   <p>{setting.description}</p>
