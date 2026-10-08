@@ -305,35 +305,6 @@ table.discs {
   font-style: italic;
 }
 
-.banner {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-}
-
-.banner h4 {
-  margin: 0;
-  color: var(--text-h);
-}
-
-.banner p {
-  margin: 4px 0 0;
-}
-
-.banner-info {
-  background: var(--state-known-bg);
-  border-left: 3px solid var(--state-known);
-}
-
-.banner-warning {
-  background: var(--state-unknown-bg);
-  border-left: 3px solid var(--state-unknown);
-}
-
 .error {
   color: #d33;
 }

@@ -9,8 +9,6 @@
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
   import { nextSort, sortEntries } from '../library/sort.js'
 
-  let { intent = null, onIntentConsumed } = $props()
-
   let discs = $state({})
   let loading = $state(true)
   let error = $state(null)
@@ -74,18 +72,6 @@
   }
 
   onMount(loadDiscs)
-
-  // Lets the current-tag banner (in App.svelte) jump here with "edit this disc" / "add this
-  // disc" intent — consumed once discs are loaded, then cleared so it doesn't re-fire.
-  $effect(() => {
-    if (!intent || loading) return
-    if (intent.type === 'edit') {
-      openEdit(intent.tagId)
-    } else {
-      openCreate(intent.tagId)
-    }
-    onIntentConsumed?.()
-  })
 
   function openCreate(prefillTagId = '') {
     formMode = { type: 'create', tagId: prefillTagId }

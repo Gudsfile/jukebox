@@ -260,17 +260,6 @@ describe('Library — current-tag spin indicator', () => {
   })
 })
 
-describe('Library — intent routing', () => {
-  it('opens the edit form when given an edit intent once discs are loaded', async () => {
-    apiGet.mockResolvedValue(discs)
-    const onIntentConsumed = vi.fn()
-    render(Library, { props: { intent: { type: 'edit', tagId: 'tag-1' }, onIntentConsumed } })
-
-    expect(await screen.findByLabelText('Tag ID')).toHaveValue('tag-1')
-    expect(onIntentConsumed).toHaveBeenCalled()
-  })
-})
-
 describe('Library — reader slot', () => {
   const emitCurrentTag = (data) => globalThis.EventSource.instances[0].onmessage({ data: JSON.stringify(data) })
   const readerSlot = () => screen.getByRole('region', { name: 'Reader' })
