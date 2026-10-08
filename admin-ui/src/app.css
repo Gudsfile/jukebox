@@ -137,7 +137,13 @@ nav button.active {
 
 main {
   flex: 1;
-  padding: 20px;
+  padding: 28px;
+}
+
+@media (max-width: 640px) {
+  main {
+    padding-inline: 16px;
+  }
 }
 
 footer {
