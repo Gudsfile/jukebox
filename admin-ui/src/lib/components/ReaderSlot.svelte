@@ -59,9 +59,11 @@
 </section>
 
 <style>
-  /* The console is fixed over the page: reserve room so the end of the page (footer included)
-     can still be scrolled into view above it. */
-  :global(body:has(.reader-slot)) {
+  /* The console is fixed over the page: reserve its room inside #app, which holds the footer and
+     the full-height min-height, so the footer sits right above the console. A body padding would
+     come after a full-height #app: the footer would hide under the console and every page scroll. */
+  :global(#app:has(.reader-slot)) {
+    box-sizing: border-box;
     padding-bottom: 140px;
   }
 
@@ -216,7 +218,7 @@
 
   /* Phones: disc first (what is it?), reader details below, full-width action last. */
   @media (max-width: 640px) {
-    :global(body:has(.reader-slot)) {
+    :global(#app:has(.reader-slot)) {
       padding-bottom: 240px;
     }
 
