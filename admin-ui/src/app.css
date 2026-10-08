@@ -196,7 +196,6 @@ footer a:hover {
 
 .title {
   text-align: center;
-  min-width: 180px;
 }
 
 @media (max-width: 480px) {
@@ -256,8 +255,54 @@ footer a:hover {
   opacity: 1;
 }
 
+/* The global table rule makes tables blocks, which disables fixed layout and the colgroup widths.
+   Scroll from a wrapper instead so the colgroup applies; below min-width the table scrolls. */
+.discs-scroll {
+  overflow-x: auto;
+}
+
 table.discs {
+  display: table;
   table-layout: fixed;
+  min-width: 760px;
+}
+
+.library-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.library-search {
+  max-width: 320px;
+  margin-top: 0;
+}
+
+.library-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.library-filters select {
+  width: auto;
+  min-width: 10ch;
+}
+
+/* Native selects ignore vertical padding on macOS: pin every toolbar control to one height. */
+.library-toolbar input,
+.library-toolbar select,
+.library-toolbar button {
+  height: 2.4em;
+  box-sizing: border-box;
+}
+
+.no-results {
+  text-align: center;
+  font-style: italic;
 }
 
 .banner {
@@ -414,4 +459,35 @@ legend {
   display: flex;
   gap: 8px;
   margin-top: 12px;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-weight: inherit;
+  white-space: nowrap;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
+}
+
+.sort-button:hover {
+  color: var(--accent);
+  opacity: 1;
+}
+
+.sort-indicator {
+  font-size: 0.8em;
+  opacity: 0.4;
+}
+
+th[aria-sort] .sort-button {
+  color: var(--accent);
+}
+
+th[aria-sort] .sort-indicator {
+  opacity: 1;
 }

@@ -14,5 +14,5 @@ dist/
 jukebox/adapters/inbound/admin/static/
 
 library.json
-library/
+/library/
 *.bak*
