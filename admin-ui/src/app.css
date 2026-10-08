@@ -285,6 +285,14 @@ table.discs {
   min-width: 10ch;
 }
 
+/* Native selects ignore vertical padding on macOS: pin every toolbar control to one height. */
+.library-toolbar input,
+.library-toolbar select,
+.library-toolbar button {
+  height: 2.4em;
+  box-sizing: border-box;
+}
+
 .no-results {
   text-align: center;
   font-style: italic;
