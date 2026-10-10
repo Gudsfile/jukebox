@@ -4,10 +4,15 @@
   import { toastStore } from '../stores/toastStore.js'
   import DiscForm from '../components/DiscForm.svelte'
   import ReaderSlot from '../components/ReaderSlot.svelte'
+  // PROTOTYPE: collapsed ReaderSlot variants, dev server only, on /ui/?variant=A
+  import ReaderSlotPrototype from '../components/reader-slot-prototype/ReaderSlotPrototype.svelte'
+  import { MOCK_DISCS } from '../components/reader-slot-prototype/mock.js'
   import { searchDiscs } from '../library/search.js'
   import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
   import { nextSort, sortEntries } from '../library/sort.js'
+
+  const PROTOTYPE = import.meta.env.DEV && new URLSearchParams(location.search).has('variant')
 
   let discs = $state({})
   let loading = $state(true)
@@ -52,6 +57,7 @@
   }
 
   $effect(() => {
+    if (PROTOTYPE) return
     // Feeds both the ReaderSlot console and the spinning disc next to the matching row.
     const source = new EventSource('/api/v1/current-tag/events')
     source.onmessage = (event) => {
@@ -64,7 +70,7 @@
   async function loadDiscs({ silent = false } = {}) {
     if (!silent) loading = true
     try {
-      discs = await apiGet('/discs')
+      discs = PROTOTYPE ? MOCK_DISCS : await apiGet('/discs')
       // A delete or edit can remove the last disc of the filtered type: don't keep an
       // invisible filter that hides everything.
       if (typeFilter !== ALL && !availableTypes.includes(typeFilter)) typeFilter = ALL
@@ -285,10 +291,20 @@
   {/if}
 {/if}
 
-<ReaderSlot
-  {currentTag}
-  disc={currentTagId ? discs[currentTagId] : undefined}
-  actionsEnabled={!formMode}
-  onAdd={openCreate}
-  onEdit={openEdit}
-/>
+{#if PROTOTYPE}
+  <ReaderSlotPrototype
+    bind:currentTag
+    disc={currentTagId ? discs[currentTagId] : undefined}
+    actionsEnabled={!formMode}
+    onAdd={openCreate}
+    onEdit={openEdit}
+  />
+{:else}
+  <ReaderSlot
+    {currentTag}
+    disc={currentTagId ? discs[currentTagId] : undefined}
+    actionsEnabled={!formMode}
+    onAdd={openCreate}
+    onEdit={openEdit}
+  />
+{/if}

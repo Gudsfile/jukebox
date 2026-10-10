@@ -5,7 +5,7 @@
 
   // currentTag: null (nothing on the reader) | { tag_id, known_in_library }
   // disc: the library entry for a known tag, if already loaded
-  let { currentTag = null, disc = undefined, actionsEnabled = true, onAdd, onEdit } = $props()
+  let { currentTag = null, disc = undefined, actionsEnabled = true, onAdd, onEdit, onCollapse = undefined } = $props()
 
   const state = $derived(!currentTag ? 'empty' : currentTag.known_in_library ? 'known' : 'unknown')
   const status = $derived({ empty: 'No disc detected', unknown: 'Unknown disc', known: 'Disc detected' }[state])
@@ -21,6 +21,10 @@
 </script>
 
 <section class="reader-slot reader-slot-{state}" aria-label="Reader" aria-live="polite">
+  {#if onCollapse}
+    <!-- PROTOTYPE: collapse toggle, see reader-slot-prototype/ -->
+    <button class="collapse-toggle" aria-expanded="true" aria-label="Collapse reader" onclick={onCollapse}>▾</button>
+  {/if}
   <div class="disc-thumb">
     {#if state === 'known' && disc}
       <span class="emoji" role="img" aria-label={typeLabel(disc.display_type)}>{typeIcon(disc.display_type)}</span>
@@ -86,6 +90,24 @@
     border: 1px solid var(--hairline);
     border-radius: 26px;
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+  }
+
+  /* PROTOTYPE: collapse toggle in the top-right corner. */
+  .collapse-toggle {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    padding: 0 8px;
+    font-size: 0.9em;
+    line-height: 1.6;
+    color: var(--text);
+    background: none;
+    border: none;
+    border-radius: 8px;
+  }
+
+  .collapse-toggle:hover {
+    background: var(--surface);
   }
 
   .reader-slot-known {
