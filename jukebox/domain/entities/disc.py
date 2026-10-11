@@ -42,4 +42,4 @@ class Disc(BaseModel):
 
     uri: str = Field(description="Path or URI of the media file", examples=["spotify:album:3IvUwbVgAZSqNh06PVxwG7"])
     option: DiscOption = Field(default=DiscOption(), description="Playback options for the disc")
-    metadata: DiscMetadata = Field(description="Metadata associated with the disc")
+    metadata: DiscMetadata = Field(default_factory=DiscMetadata, description="Metadata associated with the disc")
