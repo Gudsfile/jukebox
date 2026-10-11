@@ -201,7 +201,7 @@
       {/if}
       <input
         type="search"
-        class="library-search"
+        class="search-input"
         placeholder="Search tag, title, artist, URI…"
         aria-label="Search discs"
         bind:value={searchQuery}

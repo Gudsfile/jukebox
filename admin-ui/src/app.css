@@ -330,19 +330,19 @@ table.discs {
 }
 
 /* Compact until used: widens on focus to leave room for the query. */
-.library-search {
+.search-input {
   width: 220px;
   margin-top: 0;
   transition: width 0.2s;
 }
 
-.library-search:focus {
+.search-input:focus {
   width: 300px;
 }
 
 @media (max-width: 640px) {
-  .library-search,
-  .library-search:focus {
+  .search-input,
+  .search-input:focus {
     flex: 1;
     width: auto;
   }
