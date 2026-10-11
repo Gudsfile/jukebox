@@ -320,7 +320,7 @@ table.discs {
   min-width: 760px;
 }
 
-.library-toolbar {
+.page-toolbar {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -349,8 +349,8 @@ table.discs {
 }
 
 /* Pin every toolbar control to one height. */
-.library-toolbar input,
-.library-toolbar button {
+.page-toolbar input,
+.page-toolbar button {
   height: 2.4em;
   box-sizing: border-box;
 }

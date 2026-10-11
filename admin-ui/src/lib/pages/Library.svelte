@@ -195,7 +195,7 @@
     {#if deleteError}
       <p class="error">{deleteError}</p>
     {/if}
-    <div class="library-toolbar">
+    <div class="page-toolbar">
       {#if filtering}
         <button type="button" class="btn-secondary" onclick={clearFilters}>Clear filters</button>
       {/if}
