@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ReaderSlot from './ReaderSlot.svelte'
 
 const disc = {
@@ -12,6 +12,11 @@ const disc = {
 }
 
 describe('ReaderSlot', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
   it('invites to place a disc when nothing is on the reader, with no action', () => {
     render(ReaderSlot, { props: { currentTag: null } })
 
@@ -82,6 +87,42 @@ describe('ReaderSlot', () => {
 
     await fireEvent.click(expand)
     expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('keeps the chosen state across reloads', async () => {
+    const first = render(ReaderSlot, { props: { currentTag: null } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    first.unmount()
+
+    render(ReaderSlot, { props: { currentTag: null } })
+    expect(screen.getByRole('button', { name: /^Expand reader/ })).toBeInTheDocument()
+  })
+
+  it('saves the expanded state back when expanding', async () => {
+    render(ReaderSlot, { props: { currentTag: null } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    expect(localStorage.getItem('jukebox.readerSlot.collapsed')).toBe('true')
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Expand reader/ }))
+    expect(localStorage.getItem('jukebox.readerSlot.collapsed')).toBe('false')
+  })
+
+  it('starts expanded and still toggles when storage is unavailable', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    render(ReaderSlot, { props: { currentTag: null } })
+    expect(screen.getByRole('button', { name: 'Collapse reader' })).toHaveAttribute('aria-expanded', 'true')
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    expect(screen.getByRole('button', { name: /^Expand reader/ })).toBeInTheDocument()
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Expand reader/ }))
+    expect(screen.getByRole('button', { name: 'Collapse reader' })).toBeInTheDocument()
   })
 
   it('stays collapsed when the reader changes, updating its status', async () => {

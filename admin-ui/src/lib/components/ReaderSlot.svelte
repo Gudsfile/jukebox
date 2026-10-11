@@ -20,12 +20,26 @@
   // No Edit without the library entry: it would open an empty edit form.
   const action = $derived(actionsEnabled ? { unknown: 'add', known: disc ? 'edit' : undefined }[state] : undefined)
 
-  // Folded to a one-line bar on demand, so it stops covering the library on small screens. A reader
-  // change never unfolds it (the status dot and text still update).
-  let collapsed = $state(false)
+  // Folded to a one-line bar on demand, so it stops covering the library on small screens. The choice
+  // is kept per browser; a reader change never unfolds it (the status dot and text still update).
+  const COLLAPSED_KEY = 'jukebox.readerSlot.collapsed'
+  let collapsed = $state(readCollapsed())
+
+  function readCollapsed() {
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === 'true'
+    } catch {
+      return false
+    }
+  }
 
   function setCollapsed(value) {
     collapsed = value
+    try {
+      localStorage.setItem(COLLAPSED_KEY, String(value))
+    } catch {
+      // Storage unavailable (private mode, blocked site data): the choice lasts for this page only.
+    }
   }
 
   let collapseToggle = $state()
