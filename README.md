@@ -269,4 +269,4 @@ Then, the jukebox will find the metadata for the tag `ta:g2:id` and will send th
 
 ## Contributing
 
-Contributions are welcome! Open an issue or a pull request (read [CONTRIBUTING.md](CONTRIBUTING.md) first).
+Contributions are welcome! Found a bug, a typo, or something unclear? [Open an issue](https://github.com/Gudsfile/jukebox/issues) or suggest an edit, with the pencil icon on GitHub or a pull request. See [CONTRIBUTING.md](CONTRIBUTING.md).
