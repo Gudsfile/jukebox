@@ -35,10 +35,10 @@ def test_uri_required():
         Disc.model_validate({"metadata": DiscMetadata()})
 
 
-def test_metadata_required():
-    """Metadata should be required"""
-    with pytest.raises(ValidationError):
-        Disc.model_validate({"uri": "uri:123"})
+def test_metadata_optional():
+    """Metadata should default to empty metadata"""
+    disc = Disc.model_validate({"uri": "uri:123"})
+    assert disc.metadata == DiscMetadata()
 
 
 def test_empty_strings_in_metadata():

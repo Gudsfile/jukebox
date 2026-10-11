@@ -7,7 +7,11 @@
       }
     },
     "Another:tag:uid": {
-      "uri": "spotify:album:3IvUwbVgAZSqNh06PVxwG7"
+      "uri": "spotify:album:3IvUwbVgAZSqNh06PVxwG7",
+      "metadata": {
+        "artist": "Zubi",
+        "album": "Dear Z"
+      }
     },
     "A:third:tag:uid": {
       "uri": "x-rincon-playlist:RINCON_xxx#A:ALBUM/Added%20NAS%20Library"
