@@ -2,6 +2,18 @@
 
 Thanks for your interest in Jukebox! Contributions are welcome: bug reports, ideas, documentation, and code.
 
+---
+
+<div align="center">
+
+📋 Table of contents
+
+[Reporting issues and proposing changes](#reporting-issues-and-proposing-changes) • [Development setup](#development-setup) • [Checks](#checks) • [Project layout](#project-layout) • [Architecture Decision Records (ADRs)](#architecture-decision-records-adrs) • [Commits](#commits) • [Pull requests](#pull-requests) • [License](#license)
+
+</div>
+
+---
+
 ## Reporting issues and proposing changes
 
 - Search the [existing issues](https://github.com/Gudsfile/jukebox/issues) before opening a new one.
