@@ -132,6 +132,28 @@ The tests in `tests/jukebox/architecture/` check the import rules, and fail if:
 - inbound and outbound adapters import from each other,
 - a module imports a domain submodule directly instead of its public API (`jukebox.domain.entities`, `jukebox.domain.ports`, etc.).
 
+## Architecture Decision Records (ADRs)
+
+Significant technical decisions are recorded as ADRs in [`docs/adr/`](docs/adr/). They capture the context, the options considered and the rationale, so future contributors understand _why_ the project is built the way it is.
+
+Write an ADR when a change affects the architecture, adds a dependency or a framework, or changes a workflow (CI, release).
+
+To add one, create `docs/adr/NNNN-short-title.md` with the next number. For example, follow the structure of [ADR 0003](docs/adr/0003-ui-framework-migration.md):
+
+```markdown
+# ADR NNNN: Title
+
+## Status
+
+Proposed | Accepted | Deprecated | Superseded by ADR XXXX
+
+## Context and Problem Statement
+
+## Considered Options
+
+## Decision Outcome
+```
+
 ## Commits
 
 Commit messages use [gitmoji](https://gitmoji.dev/) followed by a short imperative sentence, for example:
