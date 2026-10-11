@@ -90,6 +90,7 @@ pip install "gukebox[pn532,ui]"
 For development, read [CONTRIBUTING.md](CONTRIBUTING.md#development-setup).
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
+cd jukebox
 uv sync
 ```
 
