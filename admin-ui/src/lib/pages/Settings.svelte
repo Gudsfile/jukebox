@@ -4,6 +4,7 @@
   import { toastStore } from '../stores/toastStore.js'
   import SettingForm from '../components/SettingForm.svelte'
   import { formatValue } from '../settings/format.js'
+  import { searchSettings } from '../settings/search.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
 
@@ -14,6 +15,7 @@
   let loading = $state(true)
   let error = $state(null)
   let editingPath = $state(null)
+  let searchQuery = $state('')
 
   async function loadSettings() {
     loading = true
@@ -44,7 +46,7 @@
     return sections
   }
 
-  let sections = $derived(groupBySection(settings))
+  let sections = $derived(groupBySection(searchSettings(settings, searchQuery)))
   let editingSetting = $derived(settings.find((setting) => setting.path === editingPath) ?? null)
 
   function openEdit(path) {
@@ -80,6 +82,15 @@
   {#if effectiveSettingsError}
     <p class="error">{effectiveSettingsError} Persisted overrides are still shown below.</p>
   {/if}
+  <div class="page-toolbar">
+    <input
+      type="search"
+      class="search-input"
+      placeholder="Search name, path, value, source…"
+      aria-label="Search settings"
+      bind:value={searchQuery}
+    />
+  </div>
 
   {#each sections as section (section.section)}
     <h3>{section.label}</h3>
@@ -126,5 +137,9 @@
         {/each}
       </tbody>
     </table>
+  {:else}
+    {#if searchQuery.trim()}
+      <p class="no-results">No setting matches “{searchQuery.trim()}”</p>
+    {/if}
   {/each}
 {/if}
