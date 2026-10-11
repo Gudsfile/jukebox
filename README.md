@@ -19,7 +19,7 @@ Pick an album, place it on the reader, and the music starts playing. Remove it, 
 
 📋 Table of contents
 
-[Install](#install) • [First steps](#first-steps) • [Usage](#usage) • [Readers](#readers) • [Players](#players) • [The library file](#the-library-file) • [Developer setup](#developer-setup)
+[Install](#install) • [First steps](#first-steps) • [Usage](#usage) • [Readers](#readers) • [Players](#players) • [The library file](#the-library-file) • [Contributing](#contributing)
 
 </div>
 
@@ -87,7 +87,7 @@ pip install "gukebox[pn532,ui]"
 
 ### Installation for development
 
-For development read the [Developer setup](#developer-setup) section.
+For development, read [CONTRIBUTING.md](CONTRIBUTING.md#development-setup).
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
 uv sync
@@ -266,76 +266,6 @@ To summarize, for example, if you have the following `~/.config/jukebox/library.
 
 Then, the jukebox will find the metadata for the tag `ta:g2:id` and will send the `uri2` to the speaker so that it plays playlist "b" in random order.
 
-## Developer setup
-
-### Install
-
-Install the project by cloning it and using [uv](https://github.com/astral-sh/uv) to install the dependencies:
-```shell
-git clone https://github.com/Gudsfile/jukebox.git
-uv sync
-```
-
-To install dependencies for all extras (`api`, `ui` and `pn532`):
-```shell
-uv sync --extra api --extra ui # --extra pn532
-```
-
-> [!NOTE]
-> The `pn532` extra requires compatible hardware and is intentionally excluded from this command.
-
-If needed, you can use a `.env` file and `uv run --env-file .env <command to run>`.
-A `.env.example` file is available, you can copy it and modify it to use it.
-
-Create a `library.json` file and complete it with the desired NFC tags and CDs.
-Take a look at `library.example.json` and the [The library file](#the-library-file) section for more information.
-
-### Usage
-
-Start the jukebox with `uv` and use `--help` to show help message
-```shell
-uv run jukebox --player PLAYER_TO_USE --reader READER_TO_USE
-```
-
-Use `jukebox-admin` for admin commands:
-```shell
-uv run jukebox-admin settings show
-```
-
-For the server-backed admin commands, include the matching extra:
-```shell
-uv run --extra api jukebox-admin api
-uv run --extra ui jukebox-admin ui
-```
-
-### Development commands
-
-| Command | Description |
-| --- | --- |
-| `uv run ruff format` | Format the code. |
-| `uv run ruff check` | Check the code. |
-| `uv run ruff check --fix` | Fix the code. |
-| `uv run pytest` | Run the tests. |
-
-The new admin UI, a Svelte + Vite SPA, lives in `admin-ui/` (see `admin-ui/README.md`):
-```shell
-cd admin-ui
-npm install
-npm run dev      # dev server
-npm run build    # static bundle for packaging into the Python app
-npm test         # vitest
-```
-
-### Pre-commit
-
-[prek](https://github.com/j178/prek) is configured; you can [install it](https://github.com/j178/prek?tab=readme-ov-file#installation) to automatically run validations on each commit.
-
-```shell
-uv tool install prek
-prek install
-```
-
 ## Contributing
 
-Contributions are welcome! Feel free to open an issue or a pull request.
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup, checks and conventions.
+Contributions are welcome! Open an issue or a pull request (read [CONTRIBUTING.md](CONTRIBUTING.md) first).

@@ -10,10 +10,12 @@ Thanks for your interest in Jukebox! Contributions are welcome: bug reports, ide
 
 ## Development setup
 
+The sections below are for code changes. You can skip them for doc fixes and issues.
+
 Requirements:
 
 - [uv](https://github.com/astral-sh/uv), which installs a compatible Python version
-- Node.js 22 and npm, only to work on the admin UI (`admin-ui/`)
+- Node.js 22 and npm, to work on the new admin UI (`admin-ui/`) and to run the pre-commit hooks on its files
 
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
@@ -29,11 +31,45 @@ uv sync --extra ui             # Web UI (includes api)
 uv sync --extra pn532          # NFC reading, requires compatible hardware
 ```
 
-> [!NOTE]
-> You do not need NFC hardware or a Sonos speaker to contribute.
-> Use the `dryrun` player and reader: `uv run jukebox --player dryrun --reader dryrun`.
+Copy `.env.example` to `.env` if you want to use `uv run --env-file .env <command>`.
 
-Copy `.env.example` to `.env` if you want to use `uv run --env-file .env <command>`, and `library.example.json` to create a test library.
+### Running locally
+
+```shell
+uv run jukebox --player PLAYER --reader READER
+uv run jukebox-admin settings show
+uv run --extra api jukebox-admin api   # REST API server
+uv run --extra ui jukebox-admin ui     # Web UI
+```
+
+> [!NOTE]
+> You do not need NFC hardware or a Sonos speaker to contribute. Use the `dryrun` player and reader with the example library:
+>
+> ```shell
+> uv run jukebox --player dryrun --reader dryrun --library library.example.json
+> ```
+>
+> Then type a tag id on stdin to simulate a tag on the reader (see [docs/readers.md](docs/readers.md#dry-run-dryrun)).
+
+### New admin UI
+
+The current admin web UI is built with FastUI, served at `/` by `jukebox-admin ui`.
+A new admin UI is a work in progress in `admin-ui/` (Svelte), and will replace FastUI once complete (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)).
+Until then, it is served at `/ui` next to FastUI.
+
+The Python app serves the new admin UI from `jukebox/adapters/inbound/admin/static/`, which is not versioned. To see your changes in the app, build the UI and copy it there:
+
+```shell
+cd admin-ui
+npm install
+npm run build
+rm -rf ../jukebox/adapters/inbound/admin/static
+cp -r dist ../jukebox/adapters/inbound/admin/static
+cd ..
+uv run --extra ui jukebox-admin ui     # then open /ui
+```
+
+`npm run dev` starts a Vite dev server, but it has no proxy to the API: calls to `/api/v1` fail there.
 
 ### Pre-commit hooks
 
@@ -44,20 +80,7 @@ uv tool install prek
 prek install
 ```
 
-## Project layout
-
-| Path | Content |
-| --- | --- |
-| `jukebox/` | Main application, following a hexagonal architecture (ports and adapters) |
-| `jukebox/domain/` | Entities, ports, repositories and use cases, without external dependencies |
-| `jukebox/adapters/` | Inbound (CLI, API, UI) and outbound (players, readers, persistence) adapters |
-| `jukebox/di_container.py` | Dependency wiring |
-| `admin-ui/` | Svelte + Vite SPA, replacing the FastUI admin UI (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)) |
-| `pn532/` | NFC reader library, excluded from linting and type checking |
-| `tests/` | Tests, mirroring the source structure |
-| `docs/` | User documentation and [architecture decision records](docs/adr/) |
-
-Keep business logic in `jukebox/domain/` and free of external dependencies. New players and readers go in `jukebox/adapters/outbound/`.
+The hooks on `admin-ui/` files call npm, so run `npm install` in `admin-ui/` first.
 
 ## Checks
 
@@ -68,13 +91,11 @@ Python:
 ```shell
 uv run ruff format --check
 uv run ruff check
-uv run pytest
-uv run ty check
+uv run --extra api --extra ui pytest
+uv run --extra api --extra ui ty check
 ```
 
-Use `uv run --extra api --extra ui pytest` to also run the tests that need these extras.
-
-Admin UI (from `admin-ui/`):
+New admin UI (from `admin-ui/`):
 
 ```shell
 npm install
@@ -88,7 +109,28 @@ npm test
 
 - Add or update tests for every behavior change.
 - Place tests under `tests/`, mirroring the source path.
-- Use `pytest` and `pytest-mock`. Mock repositories instead of using the real JSON adapter.
+- Use `pytest` and `pytest-mock`. To test a library use case, use the in-memory repository in `tests/jukebox/domain/use_cases/library/mock_repo.py` rather than the JSON adapter.
+
+## Project layout
+
+| Path                      | Content                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `jukebox/`                | Main application, following a hexagonal architecture (ports and adapters)    |
+| `jukebox/domain/`         | Entities, ports, repositories and use cases                                  |
+| `jukebox/adapters/`       | Inbound (CLI, API, UI) and outbound (players, readers, persistence) adapters |
+| `jukebox/di_container.py` | Dependency wiring                                                            |
+| `admin-ui/`               | New admin UI (Svelte + Vite), work in progress to replace the FastUI one     |
+| `pn532/`                  | NFC reader library, excluded from linting and type checking                  |
+| `tests/`                  | Tests, mirroring the source structure                                        |
+| `docs/`                   | User documentation and [architecture decision records](docs/adr/)            |
+
+Keep business logic in `jukebox/domain/`. New players and readers go in `jukebox/adapters/outbound/`.
+
+The tests in `tests/jukebox/architecture/` check the import rules, and fail if:
+
+- the domain imports from `jukebox/adapters/`,
+- inbound and outbound adapters import from each other,
+- a module imports a domain submodule directly instead of its public API (`jukebox.domain.entities`, `jukebox.domain.ports`, etc.).
 
 ## Commits
 
