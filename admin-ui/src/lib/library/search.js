@@ -14,10 +14,15 @@ function searchableText(tagId, disc) {
   return normalize([tagId, disc.display_title, artist, album, track, playlist, disc.uri].filter(Boolean).join('\n'))
 }
 
-export function searchDiscs(entries, query) {
-  const terms = normalize(query ?? '')
+// Splits a free-text query into normalized terms, each of which must match for a hit.
+export function searchTerms(query) {
+  return normalize(query ?? '')
     .split(/\s+/)
     .filter(Boolean)
+}
+
+export function searchDiscs(entries, query) {
+  const terms = searchTerms(query)
   if (terms.length === 0) return [...entries]
   return entries.filter(([tagId, disc]) => {
     const haystack = searchableText(tagId, disc)

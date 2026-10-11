@@ -179,7 +179,7 @@ describe('Library — add/edit/delete flow', () => {
 
     // getByRole also guards against a second copy left in the page header.
     const addButton = screen.getByRole('button', { name: 'Add disc' })
-    expect(addButton.closest('.library-toolbar')).not.toBeNull()
+    expect(addButton.closest('.page-toolbar')).not.toBeNull()
     await fireEvent.click(addButton)
 
     expect(screen.getByLabelText('Tag ID')).toHaveValue('')

@@ -2,10 +2,12 @@ import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.svelte'
-import { apiGet } from '../api.js'
+import { apiGet, apiPatch, apiPost } from '../api.js'
 
 vi.mock('../api.js', () => ({
   apiGet: vi.fn(),
+  apiPatch: vi.fn(),
+  apiPost: vi.fn(),
 }))
 
 const displaysResponse = {
@@ -84,6 +86,8 @@ const displaysResponse = {
 
 beforeEach(() => {
   apiGet.mockReset()
+  apiPatch.mockReset()
+  apiPost.mockReset()
 })
 
 describe('Settings — list', () => {
@@ -210,5 +214,111 @@ describe('Settings — Sonos selected group row', () => {
 
     const row = (await screen.findByText('Admin API Port')).closest('tr')
     expect(within(row).getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+})
+
+describe('Settings — search', () => {
+  it('shows every setting when the query is empty', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    expect(await screen.findByRole('searchbox', { name: 'Search settings' })).toHaveValue('')
+    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3)
+    expect(screen.getByText('Library Path')).toBeInTheDocument()
+    expect(screen.getByText('Sonos Selected Group')).toBeInTheDocument()
+  })
+
+  it('filters rows live and hides sections with no matching setting', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'PLAYER' },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Player' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Paths' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Admin' })).not.toBeInTheDocument()
+    expect(screen.getByText('Player Type')).toBeInTheDocument()
+    expect(screen.getByText('Sonos Selected Group')).toBeInTheDocument()
+  })
+
+  it('keeps the section heading above a single matching row', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'env' },
+    })
+
+    expect(screen.getByRole('heading', { name: 'Player' })).toBeInTheDocument()
+    expect(screen.getByText('Player Type')).toBeInTheDocument()
+    expect(screen.queryByText('Sonos Selected Group')).not.toBeInTheDocument()
+  })
+
+  it('shows an empty-state message when nothing matches', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'nothing here' },
+    })
+
+    expect(screen.getByText('No setting matches “nothing here”')).toBeInTheDocument()
+    expect(screen.queryByRole('table')).not.toBeInTheDocument()
+  })
+
+  it('keeps the query after opening and closing the edit form', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'port' },
+    })
+    await fireEvent.click(
+      within(screen.getByText('Admin API Port').closest('tr')).getByRole('button', { name: 'Edit' }),
+    )
+    expect(screen.queryByRole('searchbox', { name: 'Search settings' })).not.toBeInTheDocument()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.getByRole('searchbox', { name: 'Search settings' })).toHaveValue('port')
+    expect(screen.getByText('Admin API Port')).toBeInTheDocument()
+    expect(screen.queryByText('Library Path')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['Save', () => apiPatch.mockResolvedValue({})],
+    ['Reset', () => apiPost.mockResolvedValue({})],
+  ])('keeps the query and the filtering after the list reloads on %s', async (button, mockSubmit) => {
+    apiGet.mockResolvedValue(displaysResponse)
+    mockSubmit()
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'port' },
+    })
+    await fireEvent.click(
+      within(screen.getByText('Admin API Port').closest('tr')).getByRole('button', { name: 'Edit' }),
+    )
+    await fireEvent.click(screen.getByRole('button', { name: button }))
+
+    expect(await screen.findByRole('searchbox', { name: 'Search settings' })).toHaveValue('port')
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Admin API Port')).toBeInTheDocument()
+    expect(screen.queryByText('Library Path')).not.toBeInTheDocument()
+  })
+
+  it('keeps the Manage Speakers button on a matching Sonos selected group row', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.input(await screen.findByRole('searchbox', { name: 'Search settings' }), {
+      target: { value: 'rincon' },
+    })
+
+    const row = screen.getByText('Sonos Selected Group').closest('tr')
+    expect(within(row).getByRole('button', { name: 'Manage Speakers 🔊' })).toBeInTheDocument()
+    expect(screen.getAllByRole('row')).toHaveLength(2)
   })
 })
