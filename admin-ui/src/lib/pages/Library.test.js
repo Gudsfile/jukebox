@@ -334,7 +334,7 @@ describe('Library — reader slot', () => {
     emitCurrentTag({ tag_id: 'tag-new', known_in_library: false })
     await fireEvent.click(await within(readerSlot()).findByRole('button', { name: 'Add this disc' }))
 
-    expect(within(readerSlot()).queryByRole('button')).toBeNull()
+    expect(within(readerSlot()).getByRole('button')).toHaveAccessibleName('Collapse reader') // only the toggle
   })
 })
 

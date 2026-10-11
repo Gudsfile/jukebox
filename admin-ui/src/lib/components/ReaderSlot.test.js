@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, waitFor } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import ReaderSlot from './ReaderSlot.svelte'
 
 const disc = {
@@ -12,12 +12,17 @@ const disc = {
 }
 
 describe('ReaderSlot', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
   it('invites to place a disc when nothing is on the reader, with no action', () => {
     render(ReaderSlot, { props: { currentTag: null } })
 
     expect(screen.getByText('No disc detected')).toBeInTheDocument()
     expect(screen.getByText('Place a disc on the reader')).toBeInTheDocument()
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('button')).toHaveAccessibleName('Collapse reader') // only the toggle
   })
 
   it('offers to add an unknown disc', async () => {
@@ -58,6 +63,99 @@ describe('ReaderSlot', () => {
       props: { currentTag: { tag_id: 'tag-new', known_in_library: false }, actionsEnabled: false },
     })
 
-    expect(screen.queryByRole('button')).toBeNull()
+    expect(screen.getByRole('button')).toHaveAccessibleName('Collapse reader') // only the toggle
+  })
+
+  it('starts expanded, with a collapse toggle', () => {
+    render(ReaderSlot, { props: { currentTag: null } })
+
+    expect(screen.getByRole('button', { name: 'Collapse reader' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('Place a disc on the reader')).toBeInTheDocument()
+  })
+
+  it('collapses to a bar with the status and title but no action, and expands back', async () => {
+    render(ReaderSlot, { props: { currentTag: { tag_id: 'tag-1', known_in_library: true }, disc } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+
+    const expand = screen.getByRole('button', { name: 'Expand reader: Disc detected Veridis Project — Voir le soleil' })
+    expect(expand).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByText('Disc detected')).toBeInTheDocument()
+    expect(screen.getByText('Veridis Project — Voir le soleil')).toBeInTheDocument()
+    expect(screen.queryByText('spotify:album:abc')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull()
+
+    await fireEvent.click(expand)
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument()
+  })
+
+  it('keeps the chosen state across reloads', async () => {
+    const first = render(ReaderSlot, { props: { currentTag: null } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    first.unmount()
+
+    render(ReaderSlot, { props: { currentTag: null } })
+    expect(screen.getByRole('button', { name: /^Expand reader/ })).toBeInTheDocument()
+  })
+
+  it('saves the expanded state back when expanding', async () => {
+    render(ReaderSlot, { props: { currentTag: null } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    expect(localStorage.getItem('jukebox.readerSlot.collapsed')).toBe('true')
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Expand reader/ }))
+    expect(localStorage.getItem('jukebox.readerSlot.collapsed')).toBe('false')
+  })
+
+  it('starts expanded and still toggles when storage is unavailable', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    render(ReaderSlot, { props: { currentTag: null } })
+    expect(screen.getByRole('button', { name: 'Collapse reader' })).toHaveAttribute('aria-expanded', 'true')
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    expect(screen.getByRole('button', { name: /^Expand reader/ })).toBeInTheDocument()
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Expand reader/ }))
+    expect(screen.getByRole('button', { name: 'Collapse reader' })).toBeInTheDocument()
+  })
+
+  it('stays collapsed when the reader changes, updating its status', async () => {
+    const { rerender } = render(ReaderSlot, { props: { currentTag: null } })
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+
+    await rerender({ currentTag: { tag_id: 'tag-new', known_in_library: false } })
+
+    expect(screen.getByRole('button', { name: /^Expand reader/ })).toBeInTheDocument()
+    expect(screen.getByText('Unknown disc')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add this disc' })).toBeNull()
+  })
+
+  it('keeps keyboard focus on the toggle across the swap', async () => {
+    render(ReaderSlot, { props: { currentTag: null } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: /^Expand reader/ })))
+
+    await fireEvent.click(screen.getByRole('button', { name: /^Expand reader/ }))
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Collapse reader' })))
+  })
+
+  it('announces reader changes from one stable status node, not the toggles', async () => {
+    const { rerender } = render(ReaderSlot, { props: { currentTag: null } })
+    const status = screen.getByRole('status')
+    expect(status).toHaveTextContent('No disc detected — Place a disc on the reader')
+    expect(document.querySelectorAll('[aria-live], [role="status"]')).toHaveLength(1)
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Collapse reader' }))
+    expect(screen.getByRole('status')).toBe(status)
+
+    await rerender({ currentTag: { tag_id: 'tag-new', known_in_library: false } })
+    expect(status).toHaveTextContent('Unknown disc — New disc…')
   })
 })
