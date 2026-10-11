@@ -3,6 +3,7 @@
   import { apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import SettingForm from '../components/SettingForm.svelte'
+  import { formatValue } from '../settings/format.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
 
@@ -41,12 +42,6 @@
       }
     }
     return sections
-  }
-
-  function formatValue(value) {
-    if (value === null || value === undefined) return 'null'
-    if (typeof value === 'object') return JSON.stringify(value)
-    return String(value)
   }
 
   let sections = $derived(groupBySection(settings))
