@@ -3,8 +3,8 @@
 Svelte + Vite SPA replacing the FastUI admin interface. Consumes `/api/v1`
 served by the `jukebox-admin` FastAPI app.
 
-See `docs/adr/0003-ui-framework-migration.md` and `tasks/plan.md` at the
-repo root for context and migration plan.
+See `docs/adr/0003-ui-framework-migration.md` at the repo root for context
+and migration plan, and `CONTRIBUTING.md` for the development workflow.
 
 ## Commands
 
