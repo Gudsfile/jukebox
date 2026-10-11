@@ -187,7 +187,7 @@ Prefer small commits that each do one thing.
 4. Open a pull request against `main`. Link the related issue if any.
 5. If `main` moves ahead, rebase your branch onto it rather than merging `main` into it.
 
-Describe the pull request with:
+Describe the pull request with the following sections, prefilled by the [pull request template](.github/pull_request_template.md):
 
 - **Problem**: the need or intention covered by the pull request
 - **Proposal**: the approach in plain language, what changed and why
