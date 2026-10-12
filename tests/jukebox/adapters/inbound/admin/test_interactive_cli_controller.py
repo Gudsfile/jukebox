@@ -109,6 +109,16 @@ def test_add_disc_flow_does_not_allow_empty_uri(empty_uri):
     assert "A URI is required." in str(exc.value)
 
 
+@pytest.mark.parametrize("empty_uri", ("", "   ", None))
+def test_edit_disc_flow_keeps_current_uri_when_uri_is_empty(empty_uri):
+    controller = build_controller()
+
+    with patch("questionary.text", _mock_text("tag-123", empty_uri)), patch("builtins.print"):
+        controller.edit_disc_flow()
+
+    controller.edit_disc.execute.assert_called_once_with("tag-123", None, DiscMetadata(), DiscOption())
+
+
 def test_remove_disc_flow_removes_requested_tag():
     controller = build_controller()
 
