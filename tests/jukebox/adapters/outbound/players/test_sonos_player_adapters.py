@@ -844,14 +844,23 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
 @pytest.mark.parametrize(
     "adapter_method, soco_method, args, error_code, expected_message",
     [
-        ("play", "play_from_queue", ("uri",), "804", "bad uri"),
-        ("play", "play_from_queue", ("uri",), "701", "not available transition"),
-        ("pause", "pause", (), "804", "bad uri"),
+        pytest.param("play", "play_from_queue", ("uri",), "804", "bad uri", id="play_with_bad_uri"),
+        pytest.param(
+            "play",
+            "play_from_queue",
+            ("uri",),
+            "701",
+            "not available transition",
+            id="play_with_unavailable_transition",
+        ),
+        pytest.param("pause", "pause", (), "804", "bad uri", id="pause_with_bad_uri"),
         # pause tolerates 701, see test_pause_ignores_upnp_701_when_player_is_not_playing
-        ("resume", "play", (), "804", "bad uri"),
+        pytest.param("resume", "play", (), "804", "bad uri", id="resume_with_bad_uri"),
         # resume maps 701 to NothingToResumeError, see test_resume_raises_nothing_to_resume_on_upnp_701
-        ("stop", "clear_queue", (), "804", "bad uri"),
-        ("stop", "clear_queue", (), "701", "not available transition"),
+        pytest.param("stop", "clear_queue", (), "804", "bad uri", id="stop_with_bad_uri"),
+        pytest.param(
+            "stop", "clear_queue", (), "701", "not available transition", id="stop_with_unavailable_transition"
+        ),
     ],
 )
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
