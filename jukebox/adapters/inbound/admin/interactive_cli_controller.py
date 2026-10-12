@@ -55,8 +55,13 @@ class InteractiveCLIController:
         print("\n-- Add a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="add")
-        uri = questionary.text("URI:").unsafe_ask()
-        disc = Disc(uri=uri.strip(), metadata=DiscMetadata(), option=DiscOption())
+
+        entered_uri = questionary.text("URI:").unsafe_ask()
+        uri = (entered_uri or "").strip()
+        if not uri:
+            raise ValueError("An URI is required.")
+
+        disc = Disc(uri=uri, metadata=DiscMetadata(), option=DiscOption())
         self.add_disc.execute(tag, disc)
         print("✅ Disc successfully added")
 
