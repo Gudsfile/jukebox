@@ -229,7 +229,7 @@ By default, this file should be placed at `~/.config/jukebox/library.json`. But 
 ```
 
 The `discs` part is a dictionary containing NFC tag UIDs.
-Each UID is associated with an URI.
+Each UID is associated with a URI.
 URIs are the URIs of the music providers (Spotify, Apple Music, etc.) and relate to tracks, albums, playlists, etc.
 
 `metadata` is an optional section where the names of the artist, album, song, or playlist are entered:

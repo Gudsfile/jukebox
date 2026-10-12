@@ -1,3 +1,5 @@
+from typing import Literal, overload
+
 import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
@@ -50,13 +52,11 @@ class InteractiveCLIController:
                 typer.echo(f"Error: {err}", err=True)
 
     def add_disc_flow(self) -> None:
-        import questionary
-
         print("\n-- Add a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="add")
-        uri = questionary.text("URI:").unsafe_ask()
-        disc = Disc(uri=uri.strip(), metadata=DiscMetadata(), option=DiscOption())
+        uri = self._prompt_for_uri()
+        disc = Disc(uri=uri, metadata=DiscMetadata(), option=DiscOption())
         self.add_disc.execute(tag, disc)
         print("✅ Disc successfully added")
 
@@ -84,13 +84,11 @@ class InteractiveCLIController:
         print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:
-        import questionary
-
         print("\n-- Edit a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="edit")
-        uri = questionary.text("URI:").unsafe_ask()
-        self.edit_disc.execute(tag, uri.strip(), DiscMetadata(), DiscOption())
+        uri = self._prompt_for_uri(required=False)
+        self.edit_disc.execute(tag, uri, DiscMetadata(), DiscOption())
         print("✅ Disc successfully edited")
 
     def current_tag_flow(self) -> None:
@@ -118,3 +116,21 @@ class InteractiveCLIController:
         if not tag:
             raise ValueError("A tag ID is required.")
         return tag
+
+    @overload
+    def _prompt_for_uri(self, required: Literal[True] = True) -> str: ...
+
+    @overload
+    def _prompt_for_uri(self, required: Literal[False]) -> str | None: ...
+
+    def _prompt_for_uri(self, required: bool = True) -> str | None:
+        import questionary
+
+        label = "URI:" if required else "URI (leave empty to keep the current one):"
+        entered_uri = questionary.text(label).unsafe_ask()
+        uri = (entered_uri or "").strip()
+        if uri:
+            return uri
+        if required:
+            raise ValueError("A URI is required.")
+        return None
