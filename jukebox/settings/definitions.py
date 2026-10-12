@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import cast
 
 from .entities import AppSettings
 from .types import JsonObject
@@ -350,7 +349,7 @@ def _ensure_object_child(node: JsonObject, key: str) -> JsonObject:
         child = {}
         node[key] = child
 
-    return cast(JsonObject, child)
+    return child
 
 
 def _normalize_lookup_value(value: object) -> object:

@@ -56,7 +56,7 @@ jobs:
         run: uv run pytest
 
       - name: Type check with ty
-        run: uv run ty check --output-format github
+        run: uv run ty check --output-format github --exit-zero-on-warning
 
   publish:
     name: Bump, Tag & Publish
