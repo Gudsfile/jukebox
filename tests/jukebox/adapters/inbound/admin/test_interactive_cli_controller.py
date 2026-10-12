@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from jukebox.adapters.inbound.admin.interactive_cli_controller import InteractiveCLIController
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 
@@ -79,6 +81,17 @@ def test_add_disc_flow_does_not_default_to_known_library_tag():
         "other-tag",
         Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption()),
     )
+
+
+@pytest.mark.parametrize("empty_tag_id", ("", "   ", None))
+def test_add_disc_flow_does_not_allow_empty_tag_id(empty_tag_id):
+    controller = build_controller()
+
+    with pytest.raises(ValueError) as exc, patch("questionary.text", _mock_text(empty_tag_id)), patch("builtins.print"):
+        controller.add_disc_flow()
+
+    controller.add_disc.execute.assert_not_called()
+    assert "A tag ID is required." in str(exc.value)
 
 
 def test_remove_disc_flow_removes_requested_tag():
