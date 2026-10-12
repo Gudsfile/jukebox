@@ -330,7 +330,13 @@ class SonosPlayerAdapter(PlayerPort):
     def pause(self) -> None:
         def command() -> None:
             LOGGER.info("Pausing player `%s`", self.speaker_name)
-            self.speaker.pause()
+            try:
+                self.speaker.pause()
+            except SoCoUPnPException as err:
+                # 701: the transport is not playing (e.g. the queue ended), so it is already paused in effect
+                if err.error_code != "701":
+                    raise
+                LOGGER.info("Player `%s` is not playing, nothing to pause", self.speaker_name)
 
         self._execute_with_recovery("pause", command)
 
