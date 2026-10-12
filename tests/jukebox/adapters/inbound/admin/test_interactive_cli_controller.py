@@ -94,6 +94,21 @@ def test_add_disc_flow_does_not_allow_empty_tag_id(empty_tag_id):
     assert "A tag ID is required." in str(exc.value)
 
 
+@pytest.mark.parametrize("empty_uri", ("", "   ", None))
+def test_add_disc_flow_does_not_allow_empty_uri(empty_uri):
+    controller = build_controller()
+
+    with (
+        pytest.raises(ValueError) as exc,
+        patch("questionary.text", _mock_text("tag-123", empty_uri)),
+        patch("builtins.print"),
+    ):
+        controller.add_disc_flow()
+
+    controller.add_disc.execute.assert_not_called()
+    assert "A URI is required." in str(exc.value)
+
+
 def test_remove_disc_flow_removes_requested_tag():
     controller = build_controller()
 
