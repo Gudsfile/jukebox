@@ -32,7 +32,7 @@ uv sync --extra ui        # enable Web UI
 # - Prefer minimal installation.
 
 # Run
-uv run jukebox --player sonos --reader pn532  # both default to settings
+uv run jukebox --player dryrun --reader dryrun  # both default to settings
 uv run jukebox-admin --help
 uv run --extra api jukebox-admin api     # REST API server
 uv run --extra ui jukebox-admin ui       # Web UI
