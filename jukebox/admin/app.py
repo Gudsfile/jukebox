@@ -508,6 +508,8 @@ def library_add(
     track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
     artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
     album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
+    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist")] = None,
+    shuffle: Annotated[bool, typer.Option("--shuffle", help="Enable shuffle playback")] = False,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -522,6 +524,8 @@ def library_add(
             track=track,
             artist=artist,
             album=album,
+            playlist=playlist,
+            shuffle=shuffle,
         )
     except ValidationError as err:
         _exit_error(str(err))
@@ -562,6 +566,11 @@ def library_edit(
     track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
     artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
     album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
+    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist")] = None,
+    shuffle: Annotated[
+        bool | None,
+        typer.Option("--shuffle/--no-shuffle", help="Enable or disable shuffle playback (unchanged if omitted)"),
+    ] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -576,6 +585,8 @@ def library_edit(
             track=track,
             artist=artist,
             album=album,
+            playlist=playlist,
+            shuffle=shuffle,
         )
     except ValidationError as err:
         _exit_error(str(err))
