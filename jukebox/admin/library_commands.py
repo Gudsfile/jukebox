@@ -25,6 +25,8 @@ class CliAddCommand(CliTagSourceCommand):
     track: str | None = None
     artist: str | None = None
     album: str | None = None
+    playlist: str | None = None
+    shuffle: bool = False
 
 
 class CliListCommandModes(StrEnum):
@@ -48,6 +50,8 @@ class CliEditCommand(CliTagSourceCommand):
     track: str | None = None
     artist: str | None = None
     album: str | None = None
+    playlist: str | None = None
+    shuffle: bool | None = None
 
 
 class CliGetCommand(CliTagSourceCommand):

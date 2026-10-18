@@ -59,8 +59,10 @@ class CLIController:
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
-        option = DiscOption()
-        metadata = DiscMetadata(track=command.track, artist=command.artist, album=command.album)
+        option = DiscOption(shuffle=command.shuffle)
+        metadata = DiscMetadata(
+            track=command.track, artist=command.artist, album=command.album, playlist=command.playlist
+        )
 
         disc = Disc(uri=command.uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
@@ -96,14 +98,17 @@ class CLIController:
             metadata_fields["artist"] = command.artist
         if command.album is not None:
             metadata_fields["album"] = command.album
+        if command.playlist is not None:
+            metadata_fields["playlist"] = command.playlist
 
         metadata = DiscMetadata(**metadata_fields) if metadata_fields else None
+        option = DiscOption(shuffle=command.shuffle) if command.shuffle is not None else None
 
         self.edit_disc.execute(
             tag_id=self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id),
             uri=command.uri,
             metadata=metadata,
-            option=None,
+            option=option,
         )
         typer.echo("✅ Disc successfully edited")
 
