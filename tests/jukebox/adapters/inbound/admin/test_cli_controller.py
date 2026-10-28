@@ -5,6 +5,7 @@ import pytest
 from jukebox.adapters.inbound.admin.cli_controller import CLIController
 from jukebox.admin.library_commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
 
 
 def build_controller():
@@ -45,6 +46,34 @@ def test_add_disc_flow_uses_explicit_tag():
     controller.add_disc_flow(command)
 
 
+def test_add_disc_flow_stores_playlist_and_shuffle():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-explicit"
+    command = CliAddCommand(type="add", tag="tag-explicit", uri="/music/song.mp3", playlist="Chill", shuffle=True)
+
+    controller.add_disc_flow(command)
+
+    controller.add_disc.execute.assert_called_once_with(
+        "tag-explicit",
+        Disc(
+            uri="/music/song.mp3",
+            metadata=DiscMetadata(playlist="Chill"),
+            option=DiscOption(shuffle=True),
+        ),
+    )
+
+
+def test_add_disc_flow_defaults_shuffle_to_false():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-explicit"
+    command = CliAddCommand(type="add", tag="tag-explicit", uri="/music/song.mp3")
+
+    controller.add_disc_flow(command)
+
+    disc = controller.add_disc.execute.call_args.args[1]
+    assert disc.option.shuffle is False
+
+
 def test_add_disc_flow_propagates_add_failures():
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-explicit"
@@ -69,6 +98,56 @@ def test_edit_disc_flow_resolves_current_tag():
         metadata=DiscMetadata(track="Updated"),
         option=None,
     )
+
+
+def build_controller_with_real_edit_disc(current_disc: Disc):
+    repository = MagicMock()
+    repository.get_disc.return_value = current_disc
+    controller = build_controller()
+    controller.edit_disc = EditDisc(repository)
+    controller.resolve_tag_id.execute.return_value = "tag-123"
+    return controller, repository
+
+
+CURRENT_DISC = Disc(
+    uri="/music/song.mp3",
+    metadata=DiscMetadata(artist="Artist", album="Album", track="Track", playlist="Chill"),
+    option=DiscOption(shuffle=True),
+)
+
+
+def test_edit_disc_flow_no_shuffle_only_changes_shuffle():
+    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
+    command = CliEditCommand(type="edit", tag="tag-123", shuffle=False)
+
+    controller.edit_disc_flow(command)
+
+    repository.update_disc.assert_called_once_with(
+        "tag-123",
+        Disc(uri=CURRENT_DISC.uri, metadata=CURRENT_DISC.metadata, option=DiscOption(shuffle=False)),
+    )
+
+
+def test_edit_disc_flow_keeps_shuffle_when_omitted():
+    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
+    command = CliEditCommand(type="edit", tag="tag-123", artist="New Artist")
+
+    controller.edit_disc_flow(command)
+
+    updated_disc = repository.update_disc.call_args.args[1]
+    assert updated_disc.option.shuffle is True
+    assert updated_disc.metadata == DiscMetadata(artist="New Artist", album="Album", track="Track", playlist="Chill")
+
+
+def test_edit_disc_flow_updates_playlist():
+    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
+    command = CliEditCommand(type="edit", tag="tag-123", playlist="Party")
+
+    controller.edit_disc_flow(command)
+
+    updated_disc = repository.update_disc.call_args.args[1]
+    assert updated_disc.metadata.playlist == "Party"
+    assert updated_disc.option.shuffle is True
 
 
 def test_remove_disc_flow_resolves_current_tag_without_clearing():
