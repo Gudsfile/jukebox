@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context and Problem Statement
 
@@ -52,6 +52,11 @@ Adopt **Option 4: a Svelte SPA consuming `/api/v1`**.
 - `uv sync --extra ui` remains the full install step on the Pi; no `node`/`npm` on the device.
 - The `ui` extra in `pyproject.toml` drops `fastui` and `python-multipart`; it becomes effectively an alias for `api` (static files need nothing beyond FastAPI/Starlette).
 - The SSE endpoint for the live tag banner (`/api/ui/current-tag-banner/events`) moves under `/api/v1` so the SPA can subscribe to it like any other API resource.
+
+**Implementation notes (migration completed):**
+- The Svelte project lives in `admin-ui/`.
+- During the migration the SPA was served at `/ui`, next to FastUI at `/`. Once FastUI was removed, the SPA moved to `/`. The `/ui` paths are not kept as redirects.
+- The SPA is served by `jukebox-admin ui` only (`ui_controller.py`); `jukebox-admin api` serves the REST API only.
 
 ## More information
 
