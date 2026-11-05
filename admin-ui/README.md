@@ -1,10 +1,10 @@
 # Jukebox Admin UI
 
-Svelte + Vite SPA replacing the FastUI admin interface. Consumes `/api/v1`
+Svelte + Vite SPA for the Jukebox admin interface. Consumes `/api/v1`
 served by the `jukebox-admin` FastAPI app.
 
-See `docs/adr/0003-ui-framework-migration.md` at the repo root for context
-and migration plan, and `CONTRIBUTING.md` for the development workflow.
+See `docs/adr/0003-ui-framework-migration.md` at the repo root for context,
+and `CONTRIBUTING.md` for the development workflow.
 
 ## Commands
 

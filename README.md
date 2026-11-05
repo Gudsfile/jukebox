@@ -189,7 +189,7 @@ uv run --extra ui jukebox-admin ui
 ```
 
 > [!NOTE]
-> The admin UI is being migrated from FastUI to a Svelte SPA (see `admin-ui/`). Both currently coexist within the `jukebox-admin ui` process: FastUI serves `/`, while the new SPA is mounted at `/ui`.
+> The admin UI is a Svelte SPA (see `admin-ui/`), served at `/ui` by the `jukebox-admin ui` process.
 
 #### `library`
 
