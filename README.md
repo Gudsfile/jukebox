@@ -189,7 +189,7 @@ uv run --extra ui jukebox-admin ui
 ```
 
 > [!NOTE]
-> The admin UI is a Svelte SPA (see `admin-ui/`), served at `/ui` by the `jukebox-admin ui` process.
+> The admin UI is a Svelte SPA (see `admin-ui/`), served at `/` by the `jukebox-admin ui` process.
 
 #### `library`
 

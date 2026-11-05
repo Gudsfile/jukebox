@@ -65,7 +65,7 @@ uv run --extra ui jukebox-admin ui     # REST API server (alias compatibility)
 
 ### Admin UI
 
-The admin web UI is a Svelte SPA in `admin-ui/` (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)), served at `/ui` by `jukebox-admin ui`.
+The admin web UI is a Svelte SPA in `admin-ui/` (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)), served at `/` by `jukebox-admin ui`.
 
 The Python app serves the admin UI from `jukebox/adapters/inbound/admin/static/`, which is not versioned. To see your changes in the app, build the UI and copy it there:
 
@@ -76,7 +76,7 @@ npm run build
 rm -rf ../jukebox/adapters/inbound/admin/static
 cp -r dist ../jukebox/adapters/inbound/admin/static
 cd ..
-uv run --extra ui jukebox-admin ui     # then open /ui
+uv run --extra ui jukebox-admin ui     # then open /
 ```
 
 `npm run dev` starts a Vite dev server, but it has no proxy to the API: calls to `/api/v1` fail there.

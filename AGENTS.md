@@ -110,7 +110,7 @@ The library is stored as `library.json` via `json_library_adapter.py`. No databa
 
 ### Admin UI
 
-The admin web UI is a Svelte SPA in `admin-ui/` that consumes the `/api/v1` REST API (see `docs/adr/0003-ui-framework-migration.md`). Within the `jukebox-admin ui` process, the built SPA is mounted at `/ui` (see `ui_controller.py`); `jukebox-admin api` serves the REST API only.
+The admin web UI is a Svelte SPA in `admin-ui/` that consumes the `/api/v1` REST API (see `docs/adr/0003-ui-framework-migration.md`). Within the `jukebox-admin ui` process, the built SPA is mounted at `/` (see `ui_controller.py`); `jukebox-admin api` serves the REST API only.
 
 ## Code Style Guidelines
 
