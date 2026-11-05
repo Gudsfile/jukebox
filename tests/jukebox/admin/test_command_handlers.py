@@ -962,7 +962,7 @@ def test_execute_server_command_propagates_missing_optional_dependency_error(moc
     ("command", "extra_name", "builder_name", "missing_module"),
     [
         (ApiCommand(type="api", port=1234), "api", "build_api_app", "fastapi"),
-        (UiCommand(type="ui", port=1234), "ui", "build_ui_app", "fastui"),
+        (UiCommand(type="ui", port=1234), "ui", "build_ui_app", "fastapi"),
     ],
 )
 def test_execute_server_command_reports_missing_optional_dependencies_from_build_app(

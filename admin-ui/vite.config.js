@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/ui/',
+  base: '/',
   plugins: [svelte()],
   test: {
     environment: 'jsdom',

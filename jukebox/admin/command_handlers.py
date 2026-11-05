@@ -58,7 +58,7 @@ def _build_server_app(
     try:
         return build_app(library_path, services)
     except ModuleNotFoundError as err:
-        if err.name in {"fastapi", "fastui"}:
+        if err.name == "fastapi":
             _raise_optional_extra_error(command_name, extra_name, source_command, err)
         raise
 

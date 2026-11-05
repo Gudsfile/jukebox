@@ -27,7 +27,7 @@ The sections below are for code changes. You can skip them for doc fixes and iss
 Requirements:
 
 - [uv](https://github.com/astral-sh/uv), which installs a compatible Python version
-- Node.js 22 and npm, to work on the new admin UI (`admin-ui/`) and to run the pre-commit hooks on its files
+- Node.js 22 and npm, to work on the admin UI (`admin-ui/`) and to run the pre-commit hooks on its files
 
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
@@ -51,7 +51,7 @@ Copy `.env.example` to `.env` if you want to use `uv run --env-file .env <comman
 uv run jukebox --player PLAYER --reader READER
 uv run jukebox-admin settings show
 uv run --extra api jukebox-admin api   # REST API server
-uv run --extra ui jukebox-admin ui     # Web UI
+uv run --extra ui jukebox-admin ui     # REST API server (alias compatibility)
 ```
 
 > [!NOTE]
@@ -63,13 +63,11 @@ uv run --extra ui jukebox-admin ui     # Web UI
 >
 > Then type a tag id on stdin to simulate a tag on the reader (see [docs/readers.md](docs/readers.md#dry-run-dryrun)).
 
-### New admin UI
+### Admin UI
 
-The current admin web UI is built with FastUI, served at `/` by `jukebox-admin ui`.
-A new admin UI is a work in progress in `admin-ui/` (Svelte), and will replace FastUI once complete (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)).
-Until then, it is served at `/ui` next to FastUI.
+The admin web UI is a Svelte SPA in `admin-ui/` (see [ADR 0003](docs/adr/0003-ui-framework-migration.md)), served at `/` by `jukebox-admin ui`.
 
-The Python app serves the new admin UI from `jukebox/adapters/inbound/admin/static/`, which is not versioned. To see your changes in the app, build the UI and copy it there:
+The Python app serves the admin UI from `jukebox/adapters/inbound/admin/static/`, which is not versioned. To see your changes in the app, build the UI and copy it there:
 
 ```shell
 cd admin-ui
@@ -78,7 +76,7 @@ npm run build
 rm -rf ../jukebox/adapters/inbound/admin/static
 cp -r dist ../jukebox/adapters/inbound/admin/static
 cd ..
-uv run --extra ui jukebox-admin ui     # then open /ui
+uv run --extra ui jukebox-admin ui     # then open /
 ```
 
 `npm run dev` starts a Vite dev server, but it has no proxy to the API: calls to `/api/v1` fail there.
@@ -107,7 +105,7 @@ uv run --extra api --extra ui pytest
 uv run --extra api --extra ui ty check
 ```
 
-New admin UI (from `admin-ui/`):
+Admin UI (from `admin-ui/`):
 
 ```shell
 npm install
@@ -131,7 +129,7 @@ npm test
 | `jukebox/domain/`         | Entities, ports, repositories and use cases                                  |
 | `jukebox/adapters/`       | Inbound (CLI, API, UI) and outbound (players, readers, persistence) adapters |
 | `jukebox/di_container.py` | Dependency wiring                                                            |
-| `admin-ui/`               | New admin UI (Svelte + Vite), work in progress to replace the FastUI one     |
+| `admin-ui/`               | Admin UI (Svelte + Vite)                                                     |
 | `pn532/`                  | NFC reader library, excluded from linting and type checking                  |
 | `tests/`                  | Tests, mirroring the source structure                                        |
 | `docs/`                   | User documentation and [architecture decision records](docs/adr/)            |
