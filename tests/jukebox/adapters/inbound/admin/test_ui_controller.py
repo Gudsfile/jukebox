@@ -31,3 +31,22 @@ def test_admin_ui_mount_is_registered_last_so_it_does_not_shadow_other_routes():
 
     assert isinstance(controller.app.routes[-1], Mount)
     assert any(getattr(route, "path", None) == "/api/v1/sonos/speakers" for route in controller.app.routes[:-1])
+
+
+def test_warns_when_admin_ui_bundle_is_missing(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr("jukebox.adapters.inbound.admin.ui_controller.STATIC_DIR", tmp_path)
+
+    with caplog.at_level("WARNING", logger="jukebox"):
+        build_controller()
+
+    assert "Admin UI bundle not found" in caplog.text
+
+
+def test_does_not_warn_when_admin_ui_bundle_is_present(tmp_path, monkeypatch, caplog):
+    (tmp_path / "index.html").write_text("<!doctype html>")
+    monkeypatch.setattr("jukebox.adapters.inbound.admin.ui_controller.STATIC_DIR", tmp_path)
+
+    with caplog.at_level("WARNING", logger="jukebox"):
+        build_controller()
+
+    assert "Admin UI bundle not found" not in caplog.text
