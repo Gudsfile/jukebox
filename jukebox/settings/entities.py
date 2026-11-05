@@ -14,7 +14,7 @@ def _resolve_default_library_path():
     return os.path.expanduser(os.path.join(xdg_config_home, "jukebox/library.json"))
 
 
-class StrictModel(BaseModel):
+class StrictModel(BaseModel, frozen=True):
     model_config = ConfigDict(extra="forbid")
 
 
