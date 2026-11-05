@@ -33,8 +33,6 @@ api = [
 ]
 ui = [
     "gukebox[api]",
-    "fastui==0.9.0",
-    "python-multipart==0.0.32",
 ]
 pn532 = [
   "pyserial==3.5",
@@ -75,8 +73,6 @@ extend-select = [
 "jukebox/adapters/inbound/admin/api/settings_router.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/api_controller.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/interactive_cli_controller.py" = ["BLE001"]
-"jukebox/adapters/inbound/admin/ui_controller.py" = ["BLE001"]
-"jukebox/adapters/inbound/admin/ui_pages/settings.py" = ["BLE001"]
 "jukebox/admin/app.py" = ["BLE001"]
 
 [tool.ty.src]
