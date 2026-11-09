@@ -32,7 +32,7 @@ PN532_PROFILES: dict[Pn532BoardProfile, Pn532BoardProfileDefaults] = {
     ),
     "hiletgo_v3": Pn532BoardProfileDefaults(
         default_protocol="spi",
-        connections={"spi": SpiConnectionParams(reset=None, cs=8, irq=None)},
+        connections={"spi": SpiConnectionParams(reset=None, cs=4, irq=None)},
     ),
     "custom": Pn532BoardProfileDefaults(
         default_protocol="spi",

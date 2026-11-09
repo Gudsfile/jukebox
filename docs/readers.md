@@ -81,7 +81,7 @@ A board profile sets default GPIO pin numbers for your hardware. Three profiles 
 | Profile | `reset` | `cs` | `irq` |
 | --- | --- | --- | --- |
 | `waveshare_hat` | 20 | 4 | — |
-| `hiletgo_v3` | — | 8 | — |
+| `hiletgo_v3` | — | 4 | — |
 | `custom` | — | — | — |
 
 *`—` means the pin is not connected by default. `custom` has no defaults.*
@@ -101,17 +101,6 @@ jukebox-admin pn532 probe
 ```
 
 This connects to the PN532, prints the firmware version, and attempts one tag read.
-
-#### HiLetGo V3 known issue ([#261](https://github.com/Gudsfile/jukebox/issues/261))
-
-The `hiletgo_v3` profile uses `cs=8` (GPIO8 / CE0). On Raspberry Pi, GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so `lgpio` cannot acquire it — probing fails with `GPIO busy`.
-
-**Workaround:** wire the SS pin to a free GPIO (e.g. GPIO4) and use the `custom` profile:
-
-```shell
-jukebox-admin pn532 select --profile custom
-jukebox-admin settings set jukebox.reader.pn532.spi.cs 4
-```
 
 ### Pin overrides
 
