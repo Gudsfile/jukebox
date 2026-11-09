@@ -322,6 +322,7 @@ def test_settings_service_applies_board_profile_cli_override_at_runtime(tmp_path
     assert runtime_config.pn532_protocol == "spi"
     assert isinstance(runtime_config.pn532_connection, SpiConnectionParams)
     assert runtime_config.pn532_connection.cs == 4  # hiletgo_v3 default
+    assert runtime_config.pn532_connection.reset is None
 
 
 def test_settings_service_applies_spi_pin_cli_override_at_runtime(tmp_path):
