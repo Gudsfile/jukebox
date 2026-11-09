@@ -88,6 +88,31 @@ The reader drives SS (chip select) itself, on the GPIO given by `cs`.
 > [!IMPORTANT]
 > Do not wire SS to pin 24 (GPIO8 / CE0). GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
 
+#### HiLetGo PN532 V3
+
+The module ships in HSU (UART) mode. Switch it to SPI with the two on-board switches (the table is also printed on the board). Positions are given with the `ON` label of the switch block at the top:
+
+| Mode | Switch 1 | Switch 2 |
+| --- | --- | --- |
+| HSU | OFF | OFF |
+| I2C | ON | OFF |
+| **SPI** | **OFF (down)** | **ON (up)** |
+
+Wire it to the Raspberry Pi 40-pin header:
+
+| PN532 | Raspberry Pi | Physical pin | BCM |
+| --- | --- | --- | --- |
+| VCC | 3.3V | 1 | — |
+| GND | Ground | 9 | — |
+| SCK | SPI0 SCLK | 23 | GPIO11 |
+| MISO | SPI0 MISO | 21 | GPIO9 |
+| MOSI | SPI0 MOSI | 19 | GPIO10 |
+| SS | Chip select (`cs`) | 7 | GPIO4 |
+
+*RST and IRQ are not needed.*
+
+Use the `hiletgo_v3` profile. To wire SS to another free GPIO, override `cs` (see [Persistent settings](#persistent-settings-1)).
+
 ### Board profiles
 
 A board profile sets default GPIO pin numbers for your hardware. Three profiles are available:
