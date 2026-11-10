@@ -102,21 +102,6 @@ jukebox-admin pn532 probe
 
 This connects to the PN532, prints the firmware version, and attempts one tag read.
 
-### Pin overrides
-
-Override individual GPIO pins without changing the profile:
-
-```shell
-jukebox-admin settings set jukebox.reader.pn532.spi.cs 4
-jukebox-admin settings set jukebox.reader.pn532.spi.reset 20
-```
-
-Reset a pin back to the profile default:
-
-```shell
-jukebox-admin settings reset jukebox.reader.pn532.spi.cs
-```
-
 ### Persistent settings
 
 | Settings path | Description | Default |
@@ -128,6 +113,13 @@ jukebox-admin settings reset jukebox.reader.pn532.spi.cs
 | `jukebox.reader.pn532.spi.reset` | BCM pin for the reset line; `null` uses the profile default | profile default |
 | `jukebox.reader.pn532.spi.cs` | BCM pin for chip select; `null` uses the profile default | profile default |
 | `jukebox.reader.pn532.spi.irq` | BCM pin for IRQ line; `null` uses the profile default | profile default |
+
+Override a pin without changing the profile, or reset it to the profile default:
+
+```shell
+jukebox-admin settings set jukebox.reader.pn532.spi.cs 17
+jukebox-admin settings reset jukebox.reader.pn532.spi.cs
+```
 
 ## Another reader?
 
