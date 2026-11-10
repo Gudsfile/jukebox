@@ -74,6 +74,20 @@ sudo raspi-config
 # Interface Options > SPI > Enable > Yes
 ```
 
+> [!NOTE]
+> Wire using physical pin numbers; `cs`, `reset` and `irq` settings use BCM numbers. Some diagrams use WiringPi numbers instead (e.g. physical pin 7 labelled "GPIO 7" is GPIO4 in BCM). See the [Raspberry Pi pin layout](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#pin-layout), or run `pinout` on the Pi.
+
+![Raspberry Pi GPIO pinout](img/raspberry-pi-gpio-pinout.png)
+
+*Diagram © Raspberry Pi Ltd, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), from the [Raspberry Pi documentation](https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/raspberry-pi/gpio-on-raspberry-pi.adoc).*
+
+### Wiring
+
+The reader drives SS (chip select) itself, on the GPIO given by `cs`.
+
+> [!IMPORTANT]
+> Do not wire SS to pin 24 (GPIO8 / CE0). GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
+
 ### Board profiles
 
 A board profile sets default GPIO pin numbers for your hardware. Three profiles are available:
@@ -85,6 +99,8 @@ A board profile sets default GPIO pin numbers for your hardware. Three profiles 
 | `custom` | — | — | — |
 
 *`—` means the pin is not connected by default. `custom` has no defaults.*
+
+Wire the hardware as described in [Wiring](#wiring) before probing.
 
 ```shell
 # List profiles and their defaults
