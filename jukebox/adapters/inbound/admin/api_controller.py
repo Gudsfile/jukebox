@@ -51,6 +51,8 @@ class APIController:
         get_current_tag_status: GetCurrentTagStatus,
         settings_service: SettingsService,
         sonos_service: SonosService,
+        library_path: str,
+        settings_path: str,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -60,6 +62,8 @@ class APIController:
         self.get_current_tag_status = get_current_tag_status
         self.settings_service = settings_service
         self.sonos_service = sonos_service
+        self.library_path = library_path
+        self.settings_path = settings_path
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
@@ -92,4 +96,4 @@ class APIController:
             build_sonos_router(settings_service=self.settings_service, sonos_service=self.sonos_service)
         )
         self.app.include_router(build_pn532_router(self.settings_service))
-        self.app.include_router(build_export_router(self.list_discs, self.settings_service))
+        self.app.include_router(build_export_router(self.library_path, self.settings_path))

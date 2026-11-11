@@ -1,34 +1,29 @@
+import os
+from collections.abc import Callable
+from datetime import date
+
 from fastapi import APIRouter, HTTPException
-from fastapi.responses import JSONResponse
-
-from jukebox.domain.entities import Library
-from jukebox.domain.use_cases import ListDiscs
-from jukebox.settings.errors import SettingsError
-from jukebox.settings.service_protocols import SettingsService
+from fastapi.responses import FileResponse
 
 
-def _attachment(content: object, filename: str) -> JSONResponse:
-    return JSONResponse(content=content, headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+def _file_download(path: str, filename: str, missing_detail: str) -> FileResponse:
+    # Serve the bytes as stored on disk: a backup must not be rebuilt from parsed (or migrated) data.
+    if not os.path.isfile(path):
+        raise HTTPException(status_code=404, detail=missing_detail)
+    return FileResponse(path, media_type="application/json", filename=filename)
 
 
-def build_export_router(list_discs: ListDiscs, settings_service: SettingsService) -> APIRouter:
+def build_export_router(library_path: str, settings_path: str, today: Callable[[], date] = date.today) -> APIRouter:
     router = APIRouter(prefix="/api/v1/export", tags=["export"])
 
-    @router.get("/library", summary="Download the library as library.json")
-    def export_library() -> JSONResponse:
-        try:
-            library = Library(discs=list_discs.execute())
-            return _attachment(library.model_dump(mode="json"), "library.json")
-        except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+    @router.get("/library", summary="Download the library file")
+    def export_library() -> FileResponse:
+        return _file_download(library_path, f"library-{today().isoformat()}.json", "No library file to export.")
 
-    @router.get("/settings", summary="Download the persisted settings as settings.json")
-    def export_settings() -> JSONResponse:
-        try:
-            return _attachment(settings_service.get_persisted_settings_view(), "settings.json")
-        except SettingsError as err:
-            raise HTTPException(status_code=400, detail=str(err))
-        except Exception as err:
-            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+    @router.get("/settings", summary="Download the persisted settings file")
+    def export_settings() -> FileResponse:
+        return _file_download(
+            settings_path, f"settings-{today().isoformat()}.json", "No persisted settings file to export."
+        )
 
     return router

@@ -1,10 +1,7 @@
 import importlib.util
-import json
-from unittest.mock import MagicMock
+from datetime import date
 
 import pytest
-
-from jukebox.domain.entities import Disc, DiscMetadata
 
 FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 
@@ -12,77 +9,59 @@ if FASTAPI_INSTALLED:
     from fastapi import HTTPException
 
     from jukebox.adapters.inbound.admin.api.export_router import build_export_router
-    from jukebox.settings.errors import SettingsError
 
 
-def build_router(*, list_discs=None, settings_service=None):
-    return build_export_router(
-        list_discs=list_discs if list_discs is not None else MagicMock(),
-        settings_service=settings_service if settings_service is not None else MagicMock(),
-    )
+def build_router(*, library_path="/missing/library.json", settings_path="/missing/settings.json"):
+    return build_export_router(library_path=library_path, settings_path=settings_path, today=lambda: date(2026, 11, 11))
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_export_library_returns_library_file_as_attachment(get_route):
-    list_discs = MagicMock()
-    list_discs.execute.return_value = {
-        "tag-1": Disc(uri="spotify:album:1", metadata=DiscMetadata(artist="Artist", album="Album")),
-    }
-    router = build_router(list_discs=list_discs)
+def test_export_library_returns_the_library_file_as_stored_on_disk(get_route, tmp_path):
+    library_file = tmp_path / "library.json"
+    library_file.write_text('{"discs": {"tag-1": not even json', encoding="utf-8")
+    router = build_router(library_path=str(library_file))
     route = get_route(router, "/api/v1/export/library", "GET")
 
     response = route.endpoint()
 
-    assert response.headers["content-disposition"] == 'attachment; filename="library.json"'
-    assert json.loads(response.body) == {
-        "discs": {
-            "tag-1": {
-                "uri": "spotify:album:1",
-                "metadata": {"artist": "Artist", "album": "Album", "track": None, "playlist": None},
-                "option": {"shuffle": False},
-            }
-        }
-    }
+    assert response.path == str(library_file)
+    assert response.media_type == "application/json"
+    assert response.headers["content-disposition"] == 'attachment; filename="library-2026-11-11.json"'
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_export_library_returns_500_on_unexpected_error(get_route):
-    list_discs = MagicMock()
-    list_discs.execute.side_effect = RuntimeError("disk failure")
-    router = build_router(list_discs=list_discs)
+def test_export_library_returns_404_when_the_library_file_does_not_exist(get_route, tmp_path):
+    router = build_router(library_path=str(tmp_path / "library.json"))
     route = get_route(router, "/api/v1/export/library", "GET")
 
     with pytest.raises(HTTPException) as exc_info:
         route.endpoint()
 
-    assert exc_info.value.status_code == 500
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "No library file to export."
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_export_settings_returns_persisted_settings_file_as_attachment(get_route):
-    settings_service = MagicMock()
-    settings_service.get_persisted_settings_view.return_value = {
-        "schema_version": 1,
-        "admin": {"api": {"port": 8100}},
-    }
-    router = build_router(settings_service=settings_service)
+def test_export_settings_returns_the_settings_file_as_stored_on_disk(get_route, tmp_path):
+    settings_file = tmp_path / "settings.json"
+    settings_file.write_text('{"schema_version": 0}', encoding="utf-8")
+    router = build_router(settings_path=str(settings_file))
     route = get_route(router, "/api/v1/export/settings", "GET")
 
     response = route.endpoint()
 
-    assert response.headers["content-disposition"] == 'attachment; filename="settings.json"'
-    assert json.loads(response.body) == {"schema_version": 1, "admin": {"api": {"port": 8100}}}
+    assert response.path == str(settings_file)
+    assert response.media_type == "application/json"
+    assert response.headers["content-disposition"] == 'attachment; filename="settings-2026-11-11.json"'
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
-def test_export_settings_returns_400_when_settings_file_is_invalid(get_route):
-    settings_service = MagicMock()
-    settings_service.get_persisted_settings_view.side_effect = SettingsError("Settings file is corrupted.")
-    router = build_router(settings_service=settings_service)
+def test_export_settings_returns_404_when_the_settings_file_does_not_exist(get_route, tmp_path):
+    router = build_router(settings_path=str(tmp_path / "settings.json"))
     route = get_route(router, "/api/v1/export/settings", "GET")
 
     with pytest.raises(HTTPException) as exc_info:
         route.endpoint()
 
-    assert exc_info.value.status_code == 400
-    assert exc_info.value.detail == "Settings file is corrupted."
+    assert exc_info.value.status_code == 404
+    assert exc_info.value.detail == "No persisted settings file to export."

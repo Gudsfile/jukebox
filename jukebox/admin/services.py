@@ -8,3 +8,4 @@ from jukebox.sonos.service import SonosService
 class AdminServices:
     settings: SettingsService
     sonos: SonosService
+    settings_path: str

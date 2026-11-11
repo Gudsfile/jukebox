@@ -57,6 +57,21 @@ def test_build_admin_services_builds_peer_settings_and_sonos_services(mocker):
     assert isinstance(services.settings, SettingsServiceImpl)
 
 
+def test_build_admin_services_shares_one_settings_path_with_the_settings_repository(mocker):
+    mocker.patch("jukebox.admin.di_container.build_sonos_service")
+    mocker.patch("jukebox.admin.di_container.default_settings_path", return_value="/config/jukebox/settings.json")
+
+    services = build_admin_services(
+        library="/custom/library.json",
+        command=SettingsShowCommand(type="settings_show"),
+    )
+
+    assert services.settings_path == "/config/jukebox/settings.json"
+    assert isinstance(services.settings, SettingsServiceImpl)
+    assert isinstance(services.settings.repository, FileSettingsRepository)
+    assert services.settings.repository.filepath == services.settings_path
+
+
 @pytest.fixture
 def bootstrap_mocks(mocker):
     class Mocks:
@@ -96,7 +111,7 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         "sys.modules",
         {"jukebox.adapters.inbound.admin.api_controller": MagicMock(APIController=mock_api_controller_class)},
     )
-    services = AdminServices(settings=MagicMock(), sonos=MagicMock())
+    services = AdminServices(settings=MagicMock(), sonos=MagicMock(), settings_path="/test/settings.json")
 
     result = build_admin_api_app("/test/library.json", services)
 
@@ -111,6 +126,8 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         bootstrap_mocks.get_current_tag_status_instance,
         services.settings,
         services.sonos,
+        library_path="/test/library.json",
+        settings_path="/test/settings.json",
     )
     assert result is mock_api_instance
 
@@ -122,7 +139,7 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
         "sys.modules",
         {"jukebox.adapters.inbound.admin.ui_controller": MagicMock(UIController=mock_ui_controller_class)},
     )
-    services = AdminServices(settings=MagicMock(), sonos=MagicMock())
+    services = AdminServices(settings=MagicMock(), sonos=MagicMock(), settings_path="/test/settings.json")
 
     result = build_admin_ui_app("/test/library.json", services)
 
@@ -137,5 +154,7 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
         bootstrap_mocks.get_current_tag_status_instance,
         services.settings,
         services.sonos,
+        library_path="/test/library.json",
+        settings_path="/test/settings.json",
     )
     assert result is mock_ui_instance

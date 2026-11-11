@@ -85,6 +85,8 @@ def build_controller(
         get_current_tag_status if get_current_tag_status is not None else MagicMock(),
         settings_service if settings_service is not None else MagicMock(),
         sonos_service if sonos_service is not None else MagicMock(),
+        library_path="/test/library.json",
+        settings_path="/test/settings.json",
     )
 
 
