@@ -2,8 +2,9 @@
   import { onMount } from 'svelte'
   import { apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
+  import SettingBadges from '../components/SettingBadges.svelte'
   import SettingForm from '../components/SettingForm.svelte'
-  import { formatValue } from '../settings/format.js'
+  import { formatProvenance, formatValue } from '../settings/format.js'
   import { searchSettings } from '../settings/search.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
@@ -72,16 +73,21 @@
   <h2>Settings</h2>
 </div>
 
+{#snippet effectiveSettingsErrorBanner()}
+  {#if effectiveSettingsError}
+    <p class="error">{effectiveSettingsError} Persisted overrides are still shown below.</p>
+  {/if}
+{/snippet}
+
 {#if editingSetting}
+  {@render effectiveSettingsErrorBanner()}
   <SettingForm setting={editingSetting} onSaved={handleSaved} onCancel={closeForm} />
 {:else if loading}
   <p>Loading…</p>
 {:else if error}
   <p class="error">{error}</p>
 {:else}
-  {#if effectiveSettingsError}
-    <p class="error">{effectiveSettingsError} Persisted overrides are still shown below.</p>
-  {/if}
+  {@render effectiveSettingsErrorBanner()}
   <div class="page-toolbar">
     <input
       type="search"
@@ -110,10 +116,7 @@
           <tr>
             <td>
               <strong>{setting.label}</strong>
-              {#if setting.is_persisted}<span class="badge badge-configured">Configured</span>{/if}
-              {#if setting.is_pinned_default}<span class="badge badge-pinned">Pinned default</span>{/if}
-              {#if setting.requires_restart}<span class="badge badge-restart">Restart required</span>{/if}
-              {#if setting.advanced}<span class="badge badge-advanced">Advanced</span>{/if}
+              <SettingBadges {setting} />
               <div class="path">{setting.path}</div>
             </td>
             <td>{formatValue(setting.default_value)}</td>
@@ -125,7 +128,7 @@
               {/if}
             </td>
             <td>{formatValue(setting.effective_value)}</td>
-            <td>{setting.provenance}</td>
+            <td>{formatProvenance(setting.provenance)}</td>
             <td>
               {#if setting.path === SONOS_SELECTED_GROUP_PATH}
                 <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>

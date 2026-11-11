@@ -99,7 +99,7 @@ describe('Settings — list', () => {
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
     expect(screen.getByText('Library Path')).toBeInTheDocument()
     expect(screen.getAllByText('9000')).toHaveLength(2)
-    expect(screen.getByText('file')).toBeInTheDocument()
+    expect(screen.getByText('Settings file')).toBeInTheDocument()
   })
 
   it('shows the default and persisted values for a persisted override', async () => {
@@ -184,6 +184,18 @@ describe('Settings — edit flow', () => {
 
     expect(screen.getByRole('heading', { name: 'Edit Admin API Port' })).toBeInTheDocument()
     expect(screen.getByRole('spinbutton')).toHaveValue(9000)
+  })
+
+  it('keeps the effective-settings-error banner visible while editing', async () => {
+    apiGet.mockResolvedValue({ ...displaysResponse, effective_settings_error: 'Settings file is corrupted.' })
+    render(Settings, { props: {} })
+    await screen.findByText('Admin API Port')
+
+    const row = screen.getByText('Admin API Port').closest('tr')
+    await fireEvent.click(row.querySelector('button'))
+
+    expect(screen.getByRole('heading', { name: 'Edit Admin API Port' })).toBeInTheDocument()
+    expect(screen.getByText(/Settings file is corrupted\./)).toBeInTheDocument()
   })
 })
 
