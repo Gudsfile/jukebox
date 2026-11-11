@@ -88,6 +88,30 @@ The reader drives SS (chip select) itself, on the GPIO given by `cs`.
 > [!IMPORTANT]
 > Do not wire SS to pin 24 (GPIO8 / CE0). GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
 
+#### Waveshare PN532 NFC HAT
+
+The HAT plugs directly onto the Raspberry Pi 40-pin header. Set it to SPI mode before you plug it:
+
+1. Set the I0 jumper to L and the I1 jumper to H.
+2. Connect RSTPDN → D20 with a jumper.
+3. Set the DIP switch:
+
+| SCK | MISO | MOSI | NSS | SCL | SDA | RX | TX |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ON | ON | ON | ON | OFF | OFF | OFF | OFF |
+
+Once plugged, the HAT connects to the Raspberry Pi as follows, which matches the `waveshare_hat` profile:
+
+| PN532 | Raspberry Pi | Physical pin | BCM |
+| --- | --- | --- | --- |
+| SCK | SPI0 SCLK | 23 | GPIO11 |
+| MISO | SPI0 MISO | 21 | GPIO9 |
+| MOSI | SPI0 MOSI | 19 | GPIO10 |
+| NSS | Chip select (`cs`) | 7 | GPIO4 |
+| RSTPDN | Reset (`reset`) | 38 | GPIO20 |
+
+See the [Waveshare wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT) ([archived copy](https://web.archive.org/web/20251024091802/https://www.waveshare.com/wiki/PN532_NFC_HAT)) for the board layout.
+
 #### HiLetGo PN532 V3
 
 The module ships in HSU (UART) mode. Switch it to SPI with the two on-board switches (the table is also printed on the board). Positions are given with the `ON` label of the switch block at the top:
