@@ -40,6 +40,11 @@ export function apiDelete(path) {
   return request(path, { method: 'DELETE' })
 }
 
+// Sends a file picked by the user as is: the server parses and validates it.
+export function apiUpload(path, file, options = {}) {
+  return request(path, { method: 'POST', body: file, ...options })
+}
+
 export async function apiDownload(path) {
   const res = await fetch(`${BASE_URL}${path}`)
   if (!res.ok) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiDelete, apiDownload, apiGet, apiPatch, apiPost, apiPut } from './api.js'
+import { ApiError, apiDelete, apiDownload, apiGet, apiPatch, apiPost, apiPut, apiUpload } from './api.js'
 
 function mockFetchOnce({ ok = true, status = 200, body = {} } = {}) {
   globalThis.fetch = vi.fn().mockResolvedValue({
@@ -92,6 +92,42 @@ describe('error handling', () => {
     const result = await apiGet('/settings/reset')
 
     expect(result).toBeNull()
+  })
+})
+
+describe('apiUpload', () => {
+  it('posts the file as is and returns the parsed response', async () => {
+    mockFetchOnce({ body: { disc_count: 1 } })
+    const file = new File(['{"discs": {}}'], 'library.json', { type: 'application/json' })
+
+    const result = await apiUpload('/import/library', file)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/v1/import/library',
+      expect.objectContaining({ method: 'POST', body: file }),
+    )
+    expect(result).toEqual({ disc_count: 1 })
+  })
+
+  it('passes extra fetch options such as an abort signal', async () => {
+    mockFetchOnce()
+    const { signal } = new AbortController()
+
+    await apiUpload('/import/library/preview', new File(['{}'], 'library.json'), { signal })
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/v1/import/library/preview',
+      expect.objectContaining({ method: 'POST', signal }),
+    )
+  })
+
+  it('throws an ApiError carrying the response body', async () => {
+    mockFetchOnce({ ok: false, status: 400, body: { detail: 'Invalid library file' } })
+
+    await expect(apiUpload('/import/library', new File([''], 'library.json'))).rejects.toMatchObject({
+      status: 400,
+      body: { detail: 'Invalid library file' },
+    })
   })
 })
 

@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.svelte'
-import { apiDownload, apiGet, apiPatch, apiPost } from '../api.js'
+import { apiDownload, apiGet, apiPatch, apiPost, apiUpload } from '../api.js'
 import { toastStore } from '../stores/toastStore.js'
 
 vi.mock('../api.js', () => ({
@@ -10,6 +10,7 @@ vi.mock('../api.js', () => ({
   apiGet: vi.fn(),
   apiPatch: vi.fn(),
   apiPost: vi.fn(),
+  apiUpload: vi.fn(),
 }))
 
 const displaysResponse = {
@@ -388,6 +389,28 @@ describe('Settings — PN532 board profile row', () => {
 })
 
 describe('Settings — backup', () => {
+  async function openMoreExports() {
+    await fireEvent.click(await screen.findByRole('button', { name: 'More export options' }))
+  }
+
+  it('shows Restore first and folds the single-file exports under a link', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const backup = await screen.findByRole('region', { name: 'Backup' })
+    expect(within(backup).queryByRole('heading', { name: 'Backup' })).not.toBeInTheDocument()
+    const more = within(backup).getByRole('button', { name: 'More export options' })
+    expect(within(backup).getByRole('button', { name: 'Restore…' })).toBeInTheDocument()
+    expect(more).toHaveAttribute('aria-expanded', 'false')
+    expect(within(backup).queryByRole('button', { name: /library\.json/ })).not.toBeInTheDocument()
+
+    await fireEvent.click(more)
+
+    expect(more).toHaveAttribute('aria-expanded', 'true')
+    expect(within(backup).getByRole('button', { name: 'Library (library.json)' })).toBeInTheDocument()
+    expect(within(backup).getByRole('button', { name: 'Settings (settings.json)' })).toBeInTheDocument()
+  })
+
   it('downloads each export under the file name given by the server', async () => {
     apiGet.mockResolvedValue(displaysResponse)
     const blob = new Blob(['{}'], { type: 'application/json' })
@@ -397,9 +420,9 @@ describe('Settings — backup', () => {
     const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
     render(Settings, { props: {} })
 
-    const backup = (await screen.findByRole('heading', { name: 'Backup' })).closest('section')
+    await openMoreExports()
     vi.useFakeTimers()
-    await fireEvent.click(within(backup).getByRole('button', { name: 'Export library' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Library (library.json)' }))
     await vi.waitFor(() => expect(click).toHaveBeenCalledOnce())
 
     expect(apiDownload).toHaveBeenCalledWith('/export/library')
@@ -412,12 +435,13 @@ describe('Settings — backup', () => {
     click.mockRestore()
   })
 
-  it('exports the persisted settings from the Export settings button', async () => {
+  it('exports the persisted settings', async () => {
     apiGet.mockResolvedValue(displaysResponse)
     apiDownload.mockReturnValue(new Promise(() => {}))
     render(Settings, { props: {} })
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Export settings' }))
+    await openMoreExports()
+    await fireEvent.click(screen.getByRole('button', { name: 'Settings (settings.json)' }))
 
     expect(apiDownload).toHaveBeenCalledWith('/export/settings')
   })
@@ -428,7 +452,8 @@ describe('Settings — backup', () => {
     const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
     render(Settings, { props: {} })
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Export library' }))
+    await openMoreExports()
+    await fireEvent.click(screen.getByRole('button', { name: 'Library (library.json)' }))
 
     await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('⚠️ Export failed: No library file to export.'))
     showToast.mockRestore()
@@ -439,7 +464,7 @@ describe('Settings — backup', () => {
     render(Settings, { props: {} })
 
     expect(await screen.findByText('Network error')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Export library' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Restore…' })).toBeInTheDocument()
   })
 
   it('hides the backup while a setting is being edited', async () => {
@@ -450,5 +475,249 @@ describe('Settings — backup', () => {
     await fireEvent.click(within(row).getByRole('button', { name: 'Edit' }))
 
     expect(screen.queryByRole('heading', { name: 'Backup' })).not.toBeInTheDocument()
+  })
+})
+
+describe('Settings — restore', () => {
+  const libraryFile = new File(['{"discs": {}}'], 'library-2026-11-11.json', { type: 'application/json' })
+  const settingsFile = new File(['{"schema_version": 1}'], 'settings-2026-11-11.json', { type: 'application/json' })
+  const librarySummary = { disc_count: 2, added: ['tag-new'], changed: ['tag-changed'], removed: ['tag-old'] }
+  const settingsSummary = {
+    updated_paths: ['admin.api.port'],
+    restart_required_paths: ['admin.api.port'],
+    current_settings_error: null,
+  }
+
+  async function openRestore() {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+    const restoreButton = await screen.findByRole('button', { name: 'Restore…' })
+    // A real click focuses the button: the dialog gives the focus back to it when it closes.
+    restoreButton.focus()
+    await fireEvent.click(restoreButton)
+    return screen.getByRole('dialog', { name: 'Restore a backup' })
+  }
+
+  async function chooseFile(dialog, file) {
+    await fireEvent.change(within(dialog).getByLabelText('Backup file'), { target: { files: [file] } })
+  }
+
+  it('opens a modal dialog whose file input is never shown', async () => {
+    const dialog = await openRestore()
+
+    expect(dialog).toHaveAttribute('aria-modal', 'true')
+    expect(within(dialog).getByLabelText('Backup file')).not.toBeVisible()
+    expect(within(dialog).getByRole('button', { name: /Drop a file here, or click to choose/ })).toBeVisible()
+  })
+
+  it('detects a library file and previews it before importing anything', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+
+    expect(await within(dialog).findByText(/replaced by 2 discs/)).toBeInTheDocument()
+    expect(apiUpload).toHaveBeenCalledExactlyOnceWith('/import/library/preview', libraryFile, {
+      signal: expect.any(AbortSignal),
+    })
+    expect(within(dialog).getByText('library-2026-11-11.json')).toBeInTheDocument()
+    expect(within(dialog).getByText('(tag-new)')).toBeInTheDocument()
+    expect(within(dialog).getByText('(tag-old)')).toBeInTheDocument()
+    expect(within(dialog).getByText('This replaces the current library. It cannot be undone.')).toBeInTheDocument()
+  })
+
+  it('detects a settings file dropped on the drop zone', async () => {
+    apiUpload.mockResolvedValue(settingsSummary)
+    const dialog = await openRestore()
+
+    await fireEvent.drop(within(dialog).getByRole('button', { name: /Drop a file here/ }), {
+      dataTransfer: { files: [settingsFile] },
+    })
+
+    expect(await within(dialog).findByText('admin.api.port')).toBeInTheDocument()
+    expect(apiUpload).toHaveBeenCalledExactlyOnceWith('/import/settings/preview', settingsFile, {
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it.each([
+    [new File(['not json'], 'notes.txt'), 'notes.txt is not a JSON file: choose a library or a settings file.'],
+    [new File(['[1, 2]'], 'list.json'), 'list.json is neither a library nor a settings file.'],
+  ])('rejects a file that is not a library or settings file', async (file, message) => {
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, file)
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent(message)
+    expect(apiUpload).not.toHaveBeenCalled()
+    expect(within(dialog).queryByRole('button', { name: /Replace/ })).not.toBeInTheDocument()
+  })
+
+  it('sends a settings file without schema_version to the settings preview', async () => {
+    apiUpload.mockResolvedValue(settingsSummary)
+    const file = new File(['{"admin": {"api": {"port": 8100}}}'], 'old-settings.json')
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, file)
+
+    expect(await within(dialog).findByText('admin.api.port')).toBeInTheDocument()
+    expect(apiUpload).toHaveBeenCalledExactlyOnceWith('/import/settings/preview', file, {
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it('puts the focus in the review step, where Escape still closes the dialog', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+
+    await vi.waitFor(() => expect(within(dialog).getByRole('heading', { name: 'Review the changes' })).toHaveFocus())
+    await fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Restore…' })).toHaveFocus()
+  })
+
+  it('puts the focus back on the drop zone when choosing another file', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Choose another file' }))
+
+    await vi.waitFor(() => expect(within(dialog).getByRole('button', { name: /Drop a file here/ })).toHaveFocus())
+  })
+
+  it('gives the focus back to Restore even when the click did not focus it (Safari, Firefox on macOS)', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Restore…' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+    expect(screen.getByRole('button', { name: 'Restore…' })).toHaveFocus()
+  })
+
+  it('closes during a pending preview and cancels it', async () => {
+    apiUpload.mockReturnValue(new Promise(() => {}))
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await vi.waitFor(() => expect(apiUpload).toHaveBeenCalledOnce())
+    const { signal } = apiUpload.mock.calls[0][2]
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeEnabled()
+    await fireEvent.keyDown(document.body, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(signal.aborted).toBe(true)
+  })
+
+  it('cannot be closed while a replacement is running', async () => {
+    let finishImport
+    apiUpload
+      .mockResolvedValueOnce(librarySummary)
+      .mockReturnValueOnce(new Promise((resolve) => (finishImport = resolve)))
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Replace library' }))
+    await fireEvent.keyDown(document.body, { key: 'Escape' })
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'Close' })).toBeDisabled()
+    finishImport(librarySummary)
+    await vi.waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    showToast.mockRestore()
+  })
+
+  it('shows the validation error of the server and offers no confirmation', async () => {
+    apiUpload.mockRejectedValue({ body: { detail: 'Invalid library file: discs.t.uri Field required' } })
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Invalid library file: discs.t.uri')
+    expect(within(dialog).queryByRole('button', { name: /Replace/ })).not.toBeInTheDocument()
+  })
+
+  it('imports the library only after confirmation, then gives focus back to Restore', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Replace library' }))
+
+    expect(apiUpload).toHaveBeenLastCalledWith('/import/library', libraryFile)
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('📚 Library imported: 2 discs.'))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Restore…' })).toHaveFocus()
+    showToast.mockRestore()
+  })
+
+  it('reloads the settings after a settings import', async () => {
+    apiUpload.mockResolvedValueOnce(settingsSummary).mockResolvedValueOnce({
+      message: 'Settings imported. Changes take effect after restart.',
+    })
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, settingsFile)
+    expect(await within(dialog).findByText('Changes take effect after restart.')).toBeInTheDocument()
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Replace settings' }))
+
+    expect(apiUpload).toHaveBeenLastCalledWith('/import/settings', settingsFile)
+    await vi.waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith('⚙️ Settings imported. Changes take effect after restart.'),
+    )
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    showToast.mockRestore()
+  })
+
+  it('imports nothing when cancelled', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(apiUpload).toHaveBeenCalledExactlyOnceWith('/import/library/preview', libraryFile, {
+      signal: expect.any(AbortSignal),
+    })
+  })
+
+  it('goes back to the first step to choose another file', async () => {
+    apiUpload.mockResolvedValue(librarySummary)
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Choose another file' }))
+
+    expect(within(dialog).getByRole('button', { name: /Drop a file here/ })).toBeInTheDocument()
+  })
+
+  it('warns when the current settings file is invalid', async () => {
+    apiUpload.mockResolvedValue({ ...settingsSummary, current_settings_error: 'Malformed settings file' })
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, settingsFile)
+
+    expect(await within(dialog).findByText(/current settings file is invalid and will be replaced/)).toBeInTheDocument()
+  })
+
+  it('keeps the dialog open with the error when the import fails', async () => {
+    apiUpload
+      .mockResolvedValueOnce(librarySummary)
+      .mockRejectedValueOnce({ body: { detail: 'Server error: disk full' } })
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, libraryFile)
+    await fireEvent.click(await within(dialog).findByRole('button', { name: 'Replace library' }))
+
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Server error: disk full')
+    expect(within(dialog).getByRole('button', { name: 'Replace library' })).toBeInTheDocument()
+    await vi.waitFor(() => expect(within(dialog).getByRole('alert')).toHaveFocus())
   })
 })

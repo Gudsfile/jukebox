@@ -2,6 +2,7 @@
   import { onMount } from 'svelte'
   import { apiDownload, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
+  import RestoreDialog from '../components/RestoreDialog.svelte'
   import SettingBadges from '../components/SettingBadges.svelte'
   import SettingForm from '../components/SettingForm.svelte'
   import { formatProvenance, formatValue } from '../settings/format.js'
@@ -20,6 +21,9 @@
   let error = $state(null)
   let editingPath = $state(null)
   let searchQuery = $state('')
+  let restoring = $state(false)
+  let restoreOpener = $state(null)
+  let moreExports = $state(false)
 
   async function loadSettings() {
     loading = true
@@ -82,6 +86,16 @@
       setTimeout(() => URL.revokeObjectURL(url), REVOKE_DOWNLOAD_URL_DELAY_MS)
     } catch (err) {
       toastStore.showToast(`⚠️ Export failed: ${err.body?.detail ?? err.message}`)
+    }
+  }
+
+  async function handleImported(kind, result) {
+    restoring = false
+    if (kind === 'settings') {
+      await loadSettings()
+      toastStore.showToast(`⚙️ ${result.message}`)
+    } else {
+      toastStore.showToast(`📚 Library imported: ${result.disc_count} discs.`)
     }
   }
 </script>
@@ -167,12 +181,41 @@
 {/if}
 
 {#if !editingSetting}
-  <section class="backup">
-    <h3>Backup</h3>
-    <p>Download the library and the persisted settings as JSON files.</p>
-    <div class="row-actions">
-      <button class="btn-secondary" onclick={() => exportFile('/export/library')}>Export library</button>
-      <button class="btn-secondary" onclick={() => exportFile('/export/settings')}>Export settings</button>
+  <h3 id="backup-title">Backup</h3>
+  <section class="backup-card" aria-labelledby="backup-title">
+    <p>Restore the library or the persisted settings of this jukebox from a backup file.</p>
+    <div class="backup-actions">
+      <button
+        class="btn-primary"
+        onclick={(event) => {
+          restoreOpener = event.currentTarget
+          restoring = true
+        }}
+      >
+        Restore…
+      </button>
     </div>
+    <button
+      class="link-button"
+      aria-expanded={moreExports}
+      aria-controls="backup-exports"
+      onclick={() => (moreExports = !moreExports)}
+    >
+      More export options
+    </button>
+    {#if moreExports}
+      <ul id="backup-exports" class="backup-exports">
+        <li>
+          <button class="link-button" onclick={() => exportFile('/export/library')}>Library (library.json)</button>
+        </li>
+        <li>
+          <button class="link-button" onclick={() => exportFile('/export/settings')}>Settings (settings.json)</button>
+        </li>
+      </ul>
+    {/if}
   </section>
+{/if}
+
+{#if restoring}
+  <RestoreDialog onClose={() => (restoring = false)} onImported={handleImported} returnFocus={restoreOpener} />
 {/if}
