@@ -162,3 +162,15 @@ def test_build_editable_setting_displays_marks_mixed_object_provenance():
 
     selected_group = next(display for display in displays if display.path == "jukebox.player.sonos.selected_group")
     assert selected_group.provenance == "mixed"
+
+
+def test_build_editable_setting_displays_puts_backend_type_first_in_its_section():
+    displays = build_editable_setting_displays({"schema_version": 1}, {"settings": {}, "provenance": {}})
+
+    player_paths = [display.path for display in displays if display.section == "player"]
+    reader_paths = [display.path for display in displays if display.section == "reader"]
+    reader_labels = [display.label for display in displays if display.section == "reader"]
+
+    assert player_paths[0] == "jukebox.player.type"
+    assert reader_paths[0] == "jukebox.reader.type"
+    assert reader_labels[1:] == sorted(reader_labels[1:])
