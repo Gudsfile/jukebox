@@ -393,13 +393,14 @@ describe('Settings — backup', () => {
     await fireEvent.click(await screen.findByRole('button', { name: 'More export options' }))
   }
 
-  it('shows Restore first and folds the single-file exports under a link', async () => {
+  it('shows Download backup and Restore, and folds the single-file exports under a link', async () => {
     apiGet.mockResolvedValue(displaysResponse)
     render(Settings, { props: {} })
 
     const backup = await screen.findByRole('region', { name: 'Backup' })
     expect(within(backup).queryByRole('heading', { name: 'Backup' })).not.toBeInTheDocument()
     const more = within(backup).getByRole('button', { name: 'More export options' })
+    expect(within(backup).getByRole('button', { name: 'Download backup (.zip)' })).toHaveClass('btn-primary')
     expect(within(backup).getByRole('button', { name: 'Restore…' })).toBeInTheDocument()
     expect(more).toHaveAttribute('aria-expanded', 'false')
     expect(within(backup).queryByRole('button', { name: /library\.json/ })).not.toBeInTheDocument()
@@ -433,6 +434,16 @@ describe('Settings — backup', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:library')
     vi.useRealTimers()
     click.mockRestore()
+  })
+
+  it('downloads the library and the settings as one archive', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    apiDownload.mockReturnValue(new Promise(() => {}))
+    render(Settings, { props: {} })
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Download backup (.zip)' }))
+
+    expect(apiDownload).toHaveBeenCalledWith('/export/all')
   })
 
   it('exports the persisted settings', async () => {
@@ -541,8 +552,11 @@ describe('Settings — restore', () => {
   })
 
   it.each([
-    [new File(['not json'], 'notes.txt'), 'notes.txt is not a JSON file: choose a library or a settings file.'],
-    [new File(['[1, 2]'], 'list.json'), 'list.json is neither a library nor a settings file.'],
+    [
+      new File(['not json'], 'notes.txt'),
+      'notes.txt is neither a zip archive nor a JSON file: choose a backup, a library or a settings file.',
+    ],
+    [new File(['[1, 2]'], 'list.json'), 'list.json is neither a backup, a library nor a settings file.'],
   ])('rejects a file that is not a library or settings file', async (file, message) => {
     const dialog = await openRestore()
 
@@ -696,6 +710,40 @@ describe('Settings — restore', () => {
     await fireEvent.click(await within(dialog).findByRole('button', { name: 'Choose another file' }))
 
     expect(within(dialog).getByRole('button', { name: /Drop a file here/ })).toBeInTheDocument()
+  })
+
+  it('previews both files of a backup archive, then imports them after confirmation', async () => {
+    const archive = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04])], 'jukebox-backup-2026-11-11.zip', {
+      type: 'application/zip',
+    })
+    apiUpload.mockResolvedValueOnce({ library: librarySummary, settings: settingsSummary }).mockResolvedValueOnce({
+      library: librarySummary,
+      settings: { message: 'Settings imported. Changes take effect after restart.' },
+    })
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    const dialog = await openRestore()
+
+    await chooseFile(dialog, archive)
+
+    expect(await within(dialog).findByRole('heading', { name: 'Library' })).toBeInTheDocument()
+    expect(apiUpload).toHaveBeenCalledExactlyOnceWith('/import/all/preview', archive, {
+      signal: expect.any(AbortSignal),
+    })
+    expect(within(dialog).getByText(/replaced by 2 discs/)).toBeInTheDocument()
+    expect(within(dialog).getByText('admin.api.port')).toBeInTheDocument()
+    expect(
+      within(dialog).getByText('This replaces the current library and settings. It cannot be undone.'),
+    ).toBeInTheDocument()
+    await fireEvent.click(within(dialog).getByRole('button', { name: 'Replace library and settings' }))
+
+    expect(apiUpload).toHaveBeenLastCalledWith('/import/all', archive)
+    await vi.waitFor(() =>
+      expect(showToast).toHaveBeenCalledWith(
+        '💾 Backup imported: 2 discs. Settings imported. Changes take effect after restart.',
+      ),
+    )
+    expect(apiGet).toHaveBeenCalledTimes(2)
+    showToast.mockRestore()
   })
 
   it('warns when the current settings file is invalid', async () => {
