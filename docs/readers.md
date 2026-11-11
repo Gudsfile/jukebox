@@ -18,6 +18,13 @@ jukebox-admin settings set jukebox.reader.type READER
 Available readers:
 - [Dry Run](#dry-run-dryrun)
 - [Pn532 NFC](#pn532-nfc-pn532)
+  - [Installation](#installation)
+  - [Hardware setup](#hardware-setup)
+  - [Wiring](#wiring)
+    - [Waveshare PN532 NFC HAT](#waveshare-pn532-nfc-hat)
+    - [HiLetGo PN532 V3](#hiletgo-pn532-v3)
+  - [Board profiles](#board-profiles)
+  - [Persistent settings](#persistent-settings-1)
 
 ## Dry Run (`dryrun`)
 
