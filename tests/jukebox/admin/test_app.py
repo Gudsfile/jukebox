@@ -338,6 +338,10 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             CliEditCommand(type="edit", tag="tag-123", artist="Updated Artist"),
         ),
         (
+            ["library", "edit", "tag-123", "--artist", ""],
+            CliEditCommand(type="edit", tag="tag-123", artist=""),
+        ),
+        (
             ["library", "get", "--from-current"],
             CliGetCommand(type="get", use_current_tag=True),
         ),

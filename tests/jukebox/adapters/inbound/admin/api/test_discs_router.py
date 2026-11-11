@@ -16,12 +16,13 @@ if FASTAPI_INSTALLED:
         DiscPatchMetadataInput,
         DiscPatchOptionInput,
     )
-    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+    from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
     from jukebox.domain.use_cases.library.add_disc import AddDisc
     from jukebox.domain.use_cases.library.edit_disc import EditDisc
     from jukebox.domain.use_cases.library.get_disc import GetDisc
     from jukebox.domain.use_cases.library.list_discs import ListDiscs
     from jukebox.domain.use_cases.library.remove_disc import RemoveDisc
+    from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
 
 
 def build_router(
@@ -132,6 +133,25 @@ def test_create_disc_returns_created_disc_payload(get_route):
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_create_disc_stores_empty_metadata_as_none(get_route):
+    repo = MockRepo(Library())
+    router = build_router(add_disc=AddDisc(repo))
+    route = get_route(router, "/api/v1/discs/{tag_id}", "POST")
+    request = DiscInput.model_validate(
+        {"uri": "/music/song.mp3", "metadata": {"artist": "", "album": "Album", "track": "", "playlist": ""}}
+    )
+
+    route.endpoint("tag-123", request)
+
+    assert repo.library.discs["tag-123"].metadata.model_dump() == {
+        "artist": None,
+        "album": "Album",
+        "track": None,
+        "playlist": None,
+    }
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_create_disc_returns_409_when_tag_exists(get_route):
     add_disc = create_autospec(AddDisc, instance=True)
     add_disc.execute.side_effect = ValueError("Already existing tag: tag_id='tag-123'")
@@ -178,6 +198,19 @@ def test_patch_disc_partially_updates_existing_disc(get_route):
         DiscMetadata(track="Updated Track"),
         DiscOption(shuffle=False),
     )
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_clears_metadata_field_given_an_empty_value(get_route):
+    repo = MockRepo(
+        Library(discs={"tag-123": Disc(uri="/music/song.mp3", metadata=DiscMetadata(artist="Artist", album="Album"))})
+    )
+    router = build_router(edit_disc=EditDisc(repo))
+    route = get_route(router, "/api/v1/discs/{tag_id}", "PATCH")
+
+    route.endpoint("tag-123", DiscPatchInput(metadata=DiscPatchMetadataInput(artist="", album="Album")))
+
+    assert repo.library.discs["tag-123"].metadata == DiscMetadata(artist=None, album="Album")
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
