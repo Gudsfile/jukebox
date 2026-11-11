@@ -12,6 +12,7 @@ def build_controller():
         list_discs=MagicMock(),
         remove_disc=MagicMock(),
         edit_disc=MagicMock(),
+        get_disc=MagicMock(),
         get_current_tag_status=MagicMock(),
     )
 
@@ -40,6 +41,36 @@ def test_handle_current_command_displays_current_tag(capsys):
         "Tag ID           : tag-123",
         "Known in library : no",
     ]
+    controller.get_disc.execute.assert_not_called()
+
+
+def test_current_tag_flow_displays_type_and_title_for_known_tag(capsys):
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
+    controller.get_disc.execute.return_value = Disc(
+        uri="uri", metadata=DiscMetadata(artist="Zubi", album="Dear Z"), option=DiscOption()
+    )
+
+    controller.current_tag_flow()
+
+    controller.get_disc.execute.assert_called_once_with("tag-123")
+    assert capsys.readouterr().out.splitlines() == [
+        "",
+        "-- Current tag --",
+        "Tag ID           : tag-123",
+        "Known in library : yes",
+        "Type             : \U0001f4bf Album",
+        "Title            : Zubi — Dear Z",
+    ]
+
+
+def test_current_tag_flow_reports_missing_current_tag(capsys):
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+
+    controller.current_tag_flow()
+
+    assert capsys.readouterr().out.splitlines() == ["", "-- Current tag --", "No current tag is available"]
 
 
 def test_add_disc_flow_uses_current_tag_default_for_unknown_disc():
