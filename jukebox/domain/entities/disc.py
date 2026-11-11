@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class DiscOption(BaseModel):
@@ -14,6 +14,14 @@ class DiscMetadata(BaseModel):
     album: str | None = Field(default=None, description="Name of the album", examples=["Dear Z", None])
     track: str | None = Field(default=None, description="Name of the track", examples=["dey ok", None])
     playlist: str | None = Field(default=None, description="Name of the playlist", examples=["dey ok", None])
+
+    @field_validator("artist", "album", "track", "playlist", mode="before")
+    @classmethod
+    def empty_to_none(cls, value: object) -> object:
+        """Store "no value" as None, whichever client sent it (empty UI field, `--artist ""`, old library.json)."""
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
 
     @property
     def display_title(self) -> str:

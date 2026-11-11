@@ -237,3 +237,18 @@ def test_edit_with_no_changes():
     updated_disc = repo.library.discs["tag:noop"]
     assert updated_disc.uri == "uri:123"
     assert updated_disc.metadata.artist == "Artist"
+
+
+def test_edit_with_empty_metadata_field_clears_it():
+    original_disc = Disc(
+        uri="uri:123",
+        metadata=DiscMetadata(artist="Artist", album="Album"),
+        option=DiscOption(),
+    )
+    repo = MockRepo(Library(discs={"tag:123": original_disc}))
+
+    edit_disc = EditDisc(repo)
+    updated_disc = edit_disc.execute(tag_id="tag:123", metadata=DiscMetadata(artist=""))
+
+    assert updated_disc.metadata == DiscMetadata(artist=None, album="Album")
+    assert repo.library.discs["tag:123"].metadata == DiscMetadata(artist=None, album="Album")
