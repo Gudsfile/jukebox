@@ -1,9 +1,10 @@
 // Free-text search over setting displays, with the same rules as the Library search: case- and
 // accent-insensitive, every whitespace-separated term must match at least one field the row
-// displays (label, path, default/persisted/effective values as formatted, source).
+// displays (label, path, default/persisted/effective values as formatted, source as
+// both its raw value and its readable label).
 
 import { normalize, searchTerms } from '../library/search.js'
-import { formatValue } from './format.js'
+import { formatProvenance, formatValue } from './format.js'
 
 function searchableText(setting) {
   return normalize(
@@ -14,6 +15,7 @@ function searchableText(setting) {
       setting.is_persisted ? formatValue(setting.persisted_value) : null,
       formatValue(setting.effective_value),
       setting.provenance,
+      formatProvenance(setting.provenance),
     ]
       .filter(Boolean)
       .join('\n'),

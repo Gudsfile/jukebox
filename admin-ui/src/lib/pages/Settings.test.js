@@ -99,7 +99,7 @@ describe('Settings — list', () => {
     expect(screen.getByRole('heading', { name: 'Admin' })).toBeInTheDocument()
     expect(screen.getByText('Library Path')).toBeInTheDocument()
     expect(screen.getAllByText('9000')).toHaveLength(2)
-    expect(screen.getByText('file')).toBeInTheDocument()
+    expect(screen.getByText('Settings file')).toBeInTheDocument()
   })
 
   it('shows the default and persisted values for a persisted override', async () => {

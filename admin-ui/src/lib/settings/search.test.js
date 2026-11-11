@@ -68,6 +68,10 @@ describe('searchSettings', () => {
     expect(paths(searchSettings(settings, 'runtime'))).toEqual(['jukebox.player.sonos.selected_group'])
   })
 
+  it('matches the readable source label', () => {
+    expect(paths(searchSettings(settings, 'settings file'))).toEqual(['admin.api.port'])
+  })
+
   it('requires every term to match', () => {
     expect(paths(searchSettings(settings, 'port file'))).toEqual(['admin.api.port'])
     expect(searchSettings(settings, 'port runtime')).toEqual([])

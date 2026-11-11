@@ -4,7 +4,7 @@
   import { toastStore } from '../stores/toastStore.js'
   import SettingBadges from '../components/SettingBadges.svelte'
   import SettingForm from '../components/SettingForm.svelte'
-  import { formatValue } from '../settings/format.js'
+  import { formatProvenance, formatValue } from '../settings/format.js'
   import { searchSettings } from '../settings/search.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
@@ -123,7 +123,7 @@
               {/if}
             </td>
             <td>{formatValue(setting.effective_value)}</td>
-            <td>{setting.provenance}</td>
+            <td>{formatProvenance(setting.provenance)}</td>
             <td>
               {#if setting.path === SONOS_SELECTED_GROUP_PATH}
                 <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>
