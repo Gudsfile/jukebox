@@ -18,6 +18,13 @@ jukebox-admin settings set jukebox.reader.type READER
 Available readers:
 - [Dry Run](#dry-run-dryrun)
 - [Pn532 NFC](#pn532-nfc-pn532)
+  - [Installation](#installation)
+  - [Hardware setup](#hardware-setup)
+  - [Wiring](#wiring)
+    - [Waveshare PN532 NFC HAT](#waveshare-pn532-nfc-hat)
+    - [HiLetGo PN532 V3](#hiletgo-pn532-v3)
+  - [Board profiles](#board-profiles)
+  - [Persistent settings](#persistent-settings-1)
 
 ## Dry Run (`dryrun`)
 
@@ -74,6 +81,69 @@ sudo raspi-config
 # Interface Options > SPI > Enable > Yes
 ```
 
+> [!NOTE]
+> Wire using physical pin numbers; `cs`, `reset` and `irq` settings use BCM numbers. Some diagrams use WiringPi numbers instead (e.g. physical pin 7 labelled "GPIO 7" is GPIO4 in BCM). See the [Raspberry Pi pin layout](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#pin-layout), or run `pinout` on the Pi.
+
+![Raspberry Pi GPIO pinout](img/raspberry-pi-gpio-pinout.png)
+
+*Diagram © Raspberry Pi Ltd, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/), from the [Raspberry Pi documentation](https://github.com/raspberrypi/documentation/blob/master/documentation/asciidoc/computers/raspberry-pi/gpio-on-raspberry-pi.adoc).*
+
+### Wiring
+
+The reader drives SS (chip select) itself, on the GPIO given by `cs`.
+
+> [!IMPORTANT]
+> Do not wire SS to pin 24 (GPIO8 / CE0). GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
+
+#### Waveshare PN532 NFC HAT
+
+The HAT plugs directly onto the Raspberry Pi 40-pin header. Set it to SPI mode before you plug it:
+
+1. Set the I0 jumper to L and the I1 jumper to H.
+2. Connect RSTPDN → D20 with a jumper.
+3. Set the DIP switch:
+
+| SCK | MISO | MOSI | NSS | SCL | SDA | RX | TX |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ON | ON | ON | ON | OFF | OFF | OFF | OFF |
+
+Once plugged, the HAT connects to the Raspberry Pi as follows, which matches the `waveshare_hat` profile:
+
+| PN532 | Raspberry Pi | Physical pin | BCM |
+| --- | --- | --- | --- |
+| SCK | SPI0 SCLK | 23 | GPIO11 |
+| MISO | SPI0 MISO | 21 | GPIO9 |
+| MOSI | SPI0 MOSI | 19 | GPIO10 |
+| NSS | Chip select (`cs`) | 7 | GPIO4 |
+| RSTPDN | Reset (`reset`) | 38 | GPIO20 |
+
+See the [Waveshare wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT) ([archived copy](https://web.archive.org/web/20251024091802/https://www.waveshare.com/wiki/PN532_NFC_HAT)) for the board layout.
+
+#### HiLetGo PN532 V3
+
+The module ships in HSU (UART) mode. Switch it to SPI with the two on-board switches (the table is also printed on the board). Positions are given with the `ON` label of the switch block at the top:
+
+| Mode | Switch 1 | Switch 2 |
+| --- | --- | --- |
+| HSU | OFF | OFF |
+| I2C | ON | OFF |
+| **SPI** | **OFF (down)** | **ON (up)** |
+
+Wire it to the Raspberry Pi 40-pin header:
+
+| PN532 | Raspberry Pi | Physical pin | BCM |
+| --- | --- | --- | --- |
+| VCC | 3.3V | 1 | — |
+| GND | Ground | 9 | — |
+| SCK | SPI0 SCLK | 23 | GPIO11 |
+| MISO | SPI0 MISO | 21 | GPIO9 |
+| MOSI | SPI0 MOSI | 19 | GPIO10 |
+| SS | Chip select (`cs`) | 7 | GPIO4 |
+
+*RST and IRQ are not needed.*
+
+Use the `hiletgo_v3` profile. To wire SS to another free GPIO, override `cs` (see [Persistent settings](#persistent-settings-1)).
+
 ### Board profiles
 
 A board profile sets default GPIO pin numbers for your hardware. Three profiles are available:
@@ -85,6 +155,8 @@ A board profile sets default GPIO pin numbers for your hardware. Three profiles 
 | `custom` | — | — | — |
 
 *`—` means the pin is not connected by default. `custom` has no defaults.*
+
+Wire the hardware as described in [Wiring](#wiring) before probing.
 
 ```shell
 # List profiles and their defaults
@@ -102,21 +174,6 @@ jukebox-admin pn532 probe
 
 This connects to the PN532, prints the firmware version, and attempts one tag read.
 
-### Pin overrides
-
-Override individual GPIO pins without changing the profile:
-
-```shell
-jukebox-admin settings set jukebox.reader.pn532.spi.cs 4
-jukebox-admin settings set jukebox.reader.pn532.spi.reset 20
-```
-
-Reset a pin back to the profile default:
-
-```shell
-jukebox-admin settings reset jukebox.reader.pn532.spi.cs
-```
-
 ### Persistent settings
 
 | Settings path | Description | Default |
@@ -128,6 +185,13 @@ jukebox-admin settings reset jukebox.reader.pn532.spi.cs
 | `jukebox.reader.pn532.spi.reset` | BCM pin for the reset line; `null` uses the profile default | profile default |
 | `jukebox.reader.pn532.spi.cs` | BCM pin for chip select; `null` uses the profile default | profile default |
 | `jukebox.reader.pn532.spi.irq` | BCM pin for IRQ line; `null` uses the profile default | profile default |
+
+Override a pin without changing the profile, or reset it to the profile default:
+
+```shell
+jukebox-admin settings set jukebox.reader.pn532.spi.cs 17
+jukebox-admin settings reset jukebox.reader.pn532.spi.cs
+```
 
 ## Another reader?
 
