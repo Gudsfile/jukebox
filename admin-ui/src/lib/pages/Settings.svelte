@@ -73,16 +73,21 @@
   <h2>Settings</h2>
 </div>
 
+{#snippet effectiveSettingsErrorBanner()}
+  {#if effectiveSettingsError}
+    <p class="error">{effectiveSettingsError} Persisted overrides are still shown below.</p>
+  {/if}
+{/snippet}
+
 {#if editingSetting}
+  {@render effectiveSettingsErrorBanner()}
   <SettingForm setting={editingSetting} onSaved={handleSaved} onCancel={closeForm} />
 {:else if loading}
   <p>Loading…</p>
 {:else if error}
   <p class="error">{error}</p>
 {:else}
-  {#if effectiveSettingsError}
-    <p class="error">{effectiveSettingsError} Persisted overrides are still shown below.</p>
-  {/if}
+  {@render effectiveSettingsErrorBanner()}
   <div class="page-toolbar">
     <input
       type="search"

@@ -185,6 +185,18 @@ describe('Settings — edit flow', () => {
     expect(screen.getByRole('heading', { name: 'Edit Admin API Port' })).toBeInTheDocument()
     expect(screen.getByRole('spinbutton')).toHaveValue(9000)
   })
+
+  it('keeps the effective-settings-error banner visible while editing', async () => {
+    apiGet.mockResolvedValue({ ...displaysResponse, effective_settings_error: 'Settings file is corrupted.' })
+    render(Settings, { props: {} })
+    await screen.findByText('Admin API Port')
+
+    const row = screen.getByText('Admin API Port').closest('tr')
+    await fireEvent.click(row.querySelector('button'))
+
+    expect(screen.getByRole('heading', { name: 'Edit Admin API Port' })).toBeInTheDocument()
+    expect(screen.getByText(/Settings file is corrupted\./)).toBeInTheDocument()
+  })
 })
 
 describe('Settings — Sonos selected group row', () => {
