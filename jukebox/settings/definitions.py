@@ -30,6 +30,7 @@ class SettingDefinition:
     requires_restart: bool = False
     advanced: bool = False
     choices: tuple[SettingChoice, ...] = ()
+    sort_order: int = 1
 
 
 @dataclass(frozen=True)
@@ -147,6 +148,7 @@ SETTINGS = {
             SettingChoice(value="dryrun", label="Dry Run"),
             SettingChoice(value="sonos", label="Sonos"),
         ),
+        sort_order=0,
     ),
     "jukebox.player.sonos.selected_group": SettingDefinition(
         path="jukebox.player.sonos.selected_group",
@@ -167,6 +169,7 @@ SETTINGS = {
             SettingChoice(value="dryrun", label="Dry Run"),
             SettingChoice(value="pn532", label="Pn532 NFC"),
         ),
+        sort_order=0,
     ),
     "jukebox.reader.pn532.read_timeout_seconds": SettingDefinition(
         path="jukebox.reader.pn532.read_timeout_seconds",
@@ -310,7 +313,12 @@ def build_editable_setting_displays(
 
     return sorted(
         displays,
-        key=lambda display: (display.section_sort_order, display.label, display.path),
+        key=lambda display: (
+            display.section_sort_order,
+            SETTINGS[display.path].sort_order,
+            display.label,
+            display.path,
+        ),
     )
 
 
