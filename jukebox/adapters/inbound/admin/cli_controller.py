@@ -94,12 +94,9 @@ class CLIController:
         typer.echo("✅ Disc successfully edited")
 
     def get_disc_flow(self, command: CliGetCommand) -> None:
-        try:
-            tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
-            disc = self.get_disc.execute(tag)
-            display_disc(tag, disc)
-        except ValueError as e:
-            typer.echo(str(e), err=True)
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+        disc = self.get_disc.execute(tag)
+        display_disc(tag, disc)
 
     def search_discs_flow(self, command: CliSearchCommand) -> None:
         results = self.search_discs.execute(command.query)
