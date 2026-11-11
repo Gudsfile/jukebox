@@ -4,11 +4,13 @@ from typing import Any, cast
 
 from jukebox.pn532.profiles import (
     PN532_PROFILES,
+    Pn532BoardProfile,
     Pn532ConnectionParams,
     Pn532Protocol,
     SpiConnectionParams,
     resolve_connection_params,
 )
+from jukebox.settings.pn532_configuration import save_pn532_configuration
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.terminal_ui import table
@@ -98,24 +100,12 @@ def execute_pn532_command(
                     return
                 field_values[f.name] = value
 
-            settings_service.set_persisted_value("jukebox.reader.pn532.board_profile", selected_profile)
-            if selected_protocol != defaults.default_protocol:
-                settings_service.set_persisted_value("jukebox.reader.pn532.protocol", selected_protocol)
-            else:
-                settings_service.reset_persisted_value("jukebox.reader.pn532.protocol")
-            for f in dataclasses.fields(pin_defaults):
-                path = f"jukebox.reader.pn532.{selected_protocol}.{f.name}"
-                value = field_values[f.name]
-                profile_default = getattr(pin_defaults, f.name)
-                try:
-                    is_default = value is None or int(value) == profile_default
-                except ValueError:
-                    is_default = False
-                if is_default:
-                    settings_service.reset_persisted_value(path)
-                else:
-                    assert value is not None
-                    settings_service.set_persisted_value(path, value)
+            save_pn532_configuration(
+                settings_service,
+                cast(Pn532BoardProfile, selected_profile),
+                cast(Pn532Protocol, selected_protocol),
+                field_values,
+            )
             stdout_fn(render_pn532_configure_output(selected_profile, selected_protocol, pin_defaults, field_values))
         else:
             settings_service.set_persisted_value("jukebox.reader.pn532.board_profile", selected_profile)

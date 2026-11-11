@@ -334,3 +334,52 @@ describe('Settings — search', () => {
     expect(screen.getAllByRole('row')).toHaveLength(2)
   })
 })
+
+describe('Settings — PN532 board profile row', () => {
+  const pn532Response = {
+    settings: [
+      {
+        path: 'jukebox.reader.pn532.board_profile',
+        label: 'PN532 Board Profile',
+        description: 'Known board preset. Provides default GPIO pins for the selected module.',
+        field_type: 'string',
+        section: 'reader',
+        section_label: 'Reader',
+        choices: [
+          { value: 'waveshare_hat', label: 'WaveShare PN532 NFC HAT' },
+          { value: 'hiletgo_v3', label: 'HiLetgo PN532 V3' },
+          { value: 'custom', label: 'Custom' },
+        ],
+        default_value: 'waveshare_hat',
+        persisted_value: null,
+        effective_value: 'waveshare_hat',
+        provenance: 'default',
+        is_persisted: false,
+        is_pinned_default: false,
+        requires_restart: true,
+        advanced: false,
+      },
+    ],
+    effective_settings_error: null,
+  }
+
+  it('shows a Configure PN532 button instead of Edit for the board profile row', async () => {
+    apiGet.mockResolvedValue(pn532Response)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('PN532 Board Profile')).closest('tr')
+    expect(within(row).getByRole('button', { name: 'Configure PN532 🔌' })).toBeInTheDocument()
+    expect(within(row).queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument()
+  })
+
+  it('calls onConfigurePn532 when the Configure PN532 button is clicked', async () => {
+    apiGet.mockResolvedValue(pn532Response)
+    const onConfigurePn532 = vi.fn()
+    render(Settings, { props: { onConfigurePn532 } })
+
+    const row = (await screen.findByText('PN532 Board Profile')).closest('tr')
+    await fireEvent.click(within(row).getByRole('button', { name: 'Configure PN532 🔌' }))
+
+    expect(onConfigurePn532).toHaveBeenCalledOnce()
+  })
+})

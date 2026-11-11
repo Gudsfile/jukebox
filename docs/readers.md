@@ -174,6 +174,8 @@ jukebox-admin pn532 probe
 
 This connects to the PN532, prints the firmware version, and attempts one tag read.
 
+The admin UI (`jukebox-admin ui`) also has a **pn532** page. It shows the effective pins (profile defaults merged with overrides) and lets you pick a profile and override its pins.
+
 ### Persistent settings
 
 | Settings path | Description | Default |
