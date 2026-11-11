@@ -73,7 +73,7 @@ jobs:
         run: uv run pytest
 
       - name: Type check with ty
-        # Skip on the no-extras variant: optional dependencies (fastapi, fastui, pn532, ...)
+        # Skip on the no-extras variant: optional dependencies (fastapi, pn532, ...)
         # are guarded at runtime via `try/except ModuleNotFoundError`, but ty cannot infer
         # that semantically and reports false-positive `unresolved-import` errors.
         if: matrix.extras != ''
