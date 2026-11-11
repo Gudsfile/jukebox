@@ -143,6 +143,8 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
     assert capsys.readouterr().out.splitlines() == [
         "",
         "📀 Disc: tag-current",
+        "  Type     : 🎤 Artist",
+        "  Title    : Artist",
         "  URI      : /music/song.mp3",
         "  Artist   : Artist",
         "  Album    : /",

@@ -44,6 +44,8 @@ def test_display_library_line(sample_discs):
         == """=== Discs Library ===
 
 ID : abc123
+  Type     : 🎵 Track
+  Title    : Test Artist — Test Track
   URI      : /path/to/music.mp3
   Artist   : Test Artist
   Album    : Test Album
@@ -52,6 +54,8 @@ ID : abc123
   Shuffle  : True
 ------------------------------
 ID : xyz789
+  Type     : 🎤 Artist
+  Title    : Another Artist
   URI      : /another/track.mp3
   Artist   : Another Artist
   Album    : /
@@ -82,6 +86,11 @@ def test_display_library_table(sample_discs, console_capture):
     assert "Another Artist" in output
     assert "ID" in output
     assert "URI" in output
+    assert "Type" in output
+    assert "Title" in output
+    assert "🎵 Track" in output
+    assert "🎤 Artist" in output
+    assert "Test Artist — Test" in output
 
 
 def test_display_disc(sample_discs, console_capture):
@@ -97,6 +106,8 @@ def test_display_disc(sample_discs, console_capture):
     assert "Test Track" in output
     assert "Playlist : /" in output
     assert "True" in output
+    assert "Type     : 🎵 Track" in output
+    assert "Title    : Test Artist — Test Track" in output
 
 
 def test_display_disc_shows_fallback_for_missing_metadata(console_capture):
@@ -110,3 +121,11 @@ def test_display_disc_shows_fallback_for_missing_metadata(console_capture):
     assert "Album    : /" in output
     assert "Track    : /" in output
     assert "Playlist : /" in output
+
+
+def test_display_library_table_shows_type_and_title_after_id(sample_discs, console_capture):
+    console, buf = console_capture
+    display_library_table(sample_discs, console=console)
+    header = next(line for line in buf.getvalue().splitlines() if "URI" in line)
+
+    assert header.index("ID") < header.index("Type") < header.index("Title") < header.index("URI")

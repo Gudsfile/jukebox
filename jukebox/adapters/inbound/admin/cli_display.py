@@ -8,6 +8,8 @@ from jukebox.domain.entities import Disc
 MAX_COL_WIDTH = 20
 
 DISC_FIELDS: list[tuple[str, Callable[[Disc], str]]] = [
+    ("Type", lambda disc: disc.metadata.display_type),
+    ("Title", lambda disc: disc.metadata.display_title),
     ("URI", lambda disc: disc.uri),
     ("Artist", lambda disc: disc.metadata.artist or "/"),
     ("Album", lambda disc: disc.metadata.album or "/"),
