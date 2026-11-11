@@ -21,7 +21,7 @@ def test_hiletgo_v3_profile_defaults():
     conn = profile.connections.get("spi")
     assert isinstance(conn, SpiConnectionParams)
     assert conn.reset is None
-    assert conn.cs == 8
+    assert conn.cs == 4
     assert conn.irq is None
 
 
