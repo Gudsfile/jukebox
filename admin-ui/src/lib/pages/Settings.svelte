@@ -8,8 +8,9 @@
   import { searchSettings } from '../settings/search.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
+  const PN532_BOARD_PROFILE_PATH = 'jukebox.reader.pn532.board_profile'
 
-  let { onManageSpeakers } = $props()
+  let { onManageSpeakers, onConfigurePn532 } = $props()
 
   let settings = $state([])
   let effectiveSettingsError = $state(null)
@@ -132,6 +133,8 @@
             <td>
               {#if setting.path === SONOS_SELECTED_GROUP_PATH}
                 <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>
+              {:else if setting.path === PN532_BOARD_PROFILE_PATH}
+                <button onclick={() => onConfigurePn532?.()}>Configure PN532 🔌</button>
               {:else}
                 <button onclick={() => openEdit(setting.path)}>Edit</button>
               {/if}
