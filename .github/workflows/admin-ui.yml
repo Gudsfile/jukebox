@@ -1,19 +1,11 @@
 name: admin-ui
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "admin-ui/**"
-      - ".github/workflows/admin-ui.yml"
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
 
 jobs:
   test:

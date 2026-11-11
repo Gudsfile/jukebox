@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      admin-ui: ${{ steps.filter.outputs.admin-ui }}
+
+    steps:
+      - name: Detect changed parts
+        id: filter
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
+          python=false
+          admin_ui=false
+          while read -r file; do
+            case "$file" in
+              .github/workflows/*) python=true; admin_ui=true ;;
+              admin-ui/*) python=true; admin_ui=true ;;
+              *.py | pyproject.toml | uv.lock) python=true ;;
+            esac
+          done <<< "$files"
+          echo "python=$python" >> "$GITHUB_OUTPUT"
+          echo "admin-ui=$admin_ui" >> "$GITHUB_OUTPUT"
+
+  python:
+    name: Python
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    uses: ./.github/workflows/python.yml
+
+  admin-ui:
+    name: Admin UI
+    needs: changes
+    if: needs.changes.outputs.admin-ui == 'true'
+    uses: ./.github/workflows/admin-ui.yml
+
+  ci-result:
+    name: ci-result
+    needs: [changes, python, admin-ui]
+    if: always()
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check job results
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Job results: $RESULTS"
+          for result in $RESULTS; do
+            case "$result" in
+              success | skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
