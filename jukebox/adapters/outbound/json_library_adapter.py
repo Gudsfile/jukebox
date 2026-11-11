@@ -125,3 +125,6 @@ class JsonLibraryAdapter(LibraryRepository):
         updated_library = library.model_copy(deep=True)
         updated_library.discs.pop(tag_id)
         self._persist_library(updated_library)
+
+    def replace_library(self, library: Library) -> None:
+        self._persist_library(library.model_copy(deep=True))

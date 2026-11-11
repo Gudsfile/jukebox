@@ -262,6 +262,30 @@ def test_remove_disc_persists_and_updates_cache(tmp_path, mocker):
     assert load_spy.call_count == 1
 
 
+def test_replace_library_overwrites_file_and_updates_cache(tmp_path, mocker):
+    filepath = tmp_path / "library.json"
+    write_library(filepath, Library(discs={"old-tag": Disc(uri="old.mp3", metadata=DiscMetadata())}))
+    adapter = JsonLibraryAdapter(str(filepath))
+    load_spy = mocker.spy(adapter, "_load_from_disk")
+    imported = Library(discs={"new-tag": Disc(uri="new.mp3", metadata=DiscMetadata(artist="Artist"))})
+
+    adapter.replace_library(imported)
+
+    assert adapter.list_discs() == imported.discs
+    assert read_library(filepath) == imported.model_dump()
+    assert load_spy.call_count == 0
+
+
+def test_replace_library_creates_missing_file(tmp_path):
+    filepath = tmp_path / "missing" / "library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+    imported = Library(discs={"new-tag": Disc(uri="new.mp3", metadata=DiscMetadata())})
+
+    adapter.replace_library(imported)
+
+    assert read_library(filepath) == imported.model_dump()
+
+
 def test_add_disc_raises_for_duplicate_tag(tmp_path):
     filepath = tmp_path / "library.json"
     write_library(filepath, Library(discs={"test-tag": Disc(uri="test.mp3", metadata=DiscMetadata())}))
