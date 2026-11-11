@@ -4,7 +4,7 @@ import typer
 
 from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
-from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, ListDiscs, RemoveDisc
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
 
 
 class InteractiveCLIController:
@@ -14,12 +14,14 @@ class InteractiveCLIController:
         list_discs: ListDiscs,
         remove_disc: RemoveDisc,
         edit_disc: EditDisc,
+        get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
         self.remove_disc = remove_disc
         self.edit_disc = edit_disc
+        self.get_disc = get_disc
         self.get_current_tag_status = get_current_tag_status
 
     def run(self) -> None:
@@ -100,6 +102,12 @@ class InteractiveCLIController:
 
         print(f"Tag ID           : {current_tag_status.tag_id}")
         print(f"Known in library : {'yes' if current_tag_status.known_in_library else 'no'}")
+        if not current_tag_status.known_in_library:
+            return
+
+        metadata = self.get_disc.execute(current_tag_status.tag_id).metadata
+        print(f"Type             : {metadata.display_type}")
+        print(f"Title            : {metadata.display_title}")
 
     def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
         import questionary
