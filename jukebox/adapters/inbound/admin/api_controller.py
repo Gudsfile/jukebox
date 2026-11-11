@@ -5,6 +5,7 @@ try:
 
     from jukebox.adapters.inbound.admin.api.current_tag_router import build_current_tag_router
     from jukebox.adapters.inbound.admin.api.discs_router import build_discs_router
+    from jukebox.adapters.inbound.admin.api.export_router import build_export_router
     from jukebox.adapters.inbound.admin.api.models import (
         CurrentTagDiscOutput,
         CurrentTagStatusOutput,
@@ -91,3 +92,4 @@ class APIController:
             build_sonos_router(settings_service=self.settings_service, sonos_service=self.sonos_service)
         )
         self.app.include_router(build_pn532_router(self.settings_service))
+        self.app.include_router(build_export_router(self.list_discs, self.settings_service))

@@ -148,6 +148,8 @@ def test_disc_routes_register_explicit_crud_paths():
     assert ("/api/v1/current-tag/disc", ("POST",)) in route_index
     assert ("/api/v1/current-tag/disc", ("PATCH",)) in route_index
     assert ("/api/v1/current-tag/disc", ("DELETE",)) in route_index
+    assert ("/api/v1/export/library", ("GET",)) in route_index
+    assert ("/api/v1/export/settings", ("GET",)) in route_index
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
