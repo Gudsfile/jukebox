@@ -329,3 +329,28 @@ def test_failed_write_during_remove_disc_does_not_hide_on_disk_state(tmp_path, m
         adapter.remove_disc("test-tag")
 
     assert adapter.get_disc("test-tag") == original_disc
+
+
+def test_legacy_is_test_option_is_ignored_on_load_and_dropped_on_write(tmp_path):
+    filepath = tmp_path / "library.json"
+    write_library(
+        filepath,
+        {
+            "discs": {
+                "legacy-tag": {
+                    "uri": "legacy.mp3",
+                    "metadata": {"artist": "Artist"},
+                    "option": {"shuffle": True, "is_test": True},
+                }
+            }
+        },
+    )
+    adapter = JsonLibraryAdapter(str(filepath))
+
+    assert adapter.get_disc("legacy-tag") == Disc(
+        uri="legacy.mp3", metadata=DiscMetadata(artist="Artist"), option=DiscOption(shuffle=True)
+    )
+
+    adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
+
+    assert read_library(filepath)["discs"]["legacy-tag"]["option"] == {"shuffle": True}

@@ -192,6 +192,17 @@ def test_patch_disc_returns_422_when_null_assigned_to_non_nullable_option_field(
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_ignores_legacy_is_test_option(get_route):
+    edit_disc = create_autospec(EditDisc, instance=True)
+    router = build_router(edit_disc=edit_disc)
+    route = get_route(router, "/api/v1/discs/{tag_id}", "PATCH")
+
+    route.endpoint("tag-123", DiscPatchInput.model_validate({"option": {"shuffle": True, "is_test": True}}))
+
+    edit_disc.execute.assert_called_once_with("tag-123", None, None, DiscOption(shuffle=True))
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_patch_disc_returns_404_when_missing(get_route):
     edit_disc = create_autospec(EditDisc, instance=True)
     edit_disc.execute.side_effect = ValueError("Tag does not exist: tag_id='missing'")
