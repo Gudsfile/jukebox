@@ -1,5 +1,3 @@
-import dataclasses
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -7,6 +5,7 @@ from jukebox.pn532.profiles import PN532_PROFILES, Pn532BoardProfile, SpiConnect
 from jukebox.settings.definitions import get_setting_definition
 from jukebox.settings.entities import Pn532SpiSettings
 from jukebox.settings.errors import SettingsError
+from jukebox.settings.pn532_configuration import save_pn532_configuration
 from jukebox.settings.service_protocols import SettingsService
 
 
@@ -66,7 +65,12 @@ def build_pn532_router(settings_service: SettingsService) -> APIRouter:
     )
     def put_pn532(payload: Pn532ConfigInput) -> Pn532ConfigOutput:
         try:
-            _save_config(settings_service, payload)
+            save_pn532_configuration(
+                settings_service,
+                payload.board_profile,
+                PN532_PROFILES[payload.board_profile].default_protocol,
+                payload.spi.model_dump(),
+            )
             return _build_config_output(settings_service)
         except SettingsError as err:
             raise HTTPException(status_code=400, detail=str(err))
@@ -74,19 +78,6 @@ def build_pn532_router(settings_service: SettingsService) -> APIRouter:
             raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
 
     return router
-
-
-def _save_config(settings_service: SettingsService, payload: Pn532ConfigInput) -> None:
-    settings_service.set_persisted_value("jukebox.reader.pn532.board_profile", payload.board_profile)
-    # Pins equal to the profile default are reset rather than persisted, so they follow the profile if it changes.
-    defaults = PN532_PROFILES[payload.board_profile].connections["spi"]
-    for field in dataclasses.fields(defaults):
-        path = f"jukebox.reader.pn532.spi.{field.name}"
-        value = getattr(payload.spi, field.name)
-        if value is None or value == getattr(defaults, field.name):
-            settings_service.reset_persisted_value(path)
-        else:
-            settings_service.set_persisted_value(path, str(value))
 
 
 def _build_config_output(settings_service: SettingsService) -> Pn532ConfigOutput:

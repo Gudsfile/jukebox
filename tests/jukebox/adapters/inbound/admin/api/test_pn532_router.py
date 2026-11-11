@@ -77,8 +77,9 @@ def test_put_pn532_persists_profile_and_only_pins_that_differ_from_profile_defau
 
     route.endpoint(Pn532ConfigInput(board_profile="waveshare_hat", spi={"reset": 20, "cs": 8, "irq": None}))
 
-    assert settings_service.method_calls[:4] == [
+    assert settings_service.method_calls[:5] == [
         call.set_persisted_value("jukebox.reader.pn532.board_profile", "waveshare_hat"),
+        call.reset_persisted_value("jukebox.reader.pn532.protocol"),
         call.reset_persisted_value("jukebox.reader.pn532.spi.reset"),
         call.set_persisted_value("jukebox.reader.pn532.spi.cs", "8"),
         call.reset_persisted_value("jukebox.reader.pn532.spi.irq"),
