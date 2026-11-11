@@ -24,6 +24,10 @@ class DiscMetadata(BaseModel):
         return value
 
     @property
+    def has_title(self) -> bool:
+        return bool(self.playlist or self.track or self.album or self.artist)
+
+    @property
     def display_title(self) -> str:
         if self.playlist:
             owner = f" ({self.artist})" if self.artist else ""

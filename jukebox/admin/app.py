@@ -554,10 +554,11 @@ def library_remove(
         str | None,
         typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
     ] = None,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Remove without asking for confirmation")] = False,
 ) -> None:
     try:
         command = CliRemoveCommand(
-            type="remove", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id
+            type="remove", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id, yes=yes
         )
     except ValidationError as err:
         _exit_error(str(err))

@@ -39,6 +39,7 @@ class CliListCommand(BaseModel):
 
 class CliRemoveCommand(CliTagSourceCommand):
     type: Literal["remove"]
+    yes: bool = False
 
 
 class CliEditCommand(CliTagSourceCommand):

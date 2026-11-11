@@ -8,6 +8,7 @@ from rich.console import Console
 from jukebox.adapters.inbound.admin.cli_display import (
     DISC_FIELDS,
     TABLE_DROP_ORDER,
+    build_remove_confirmation,
     display_disc,
     display_library_line,
     display_library_table,
@@ -214,3 +215,16 @@ def test_display_library_table_measures_the_id_in_terminal_cells(nfc_discs):
 
 def test_every_disc_field_is_either_kept_or_droppable_in_the_table():
     assert set(TABLE_DROP_ORDER) | {"Type", "Title"} == {label for label, _ in DISC_FIELDS}
+
+
+@pytest.mark.parametrize(
+    ("metadata", "expected"),
+    [
+        (DiscMetadata(), 'Delete disc "tag-123"?'),
+        (DiscMetadata(artist="Zubi", track="dey ok"), 'Delete disc "tag-123" (Zubi — dey ok)?'),
+    ],
+)
+def test_build_remove_confirmation(metadata, expected):
+    disc = Disc(uri="/music/song.mp3", metadata=metadata)
+
+    assert build_remove_confirmation("tag-123", disc) == expected
