@@ -14,6 +14,7 @@ def build_controller():
         edit_disc=MagicMock(),
         get_disc=MagicMock(),
         get_current_tag_status=MagicMock(),
+        search_discs=MagicMock(),
     )
 
 
@@ -302,6 +303,61 @@ def test_get_disc_flow_propagates_unknown_tag_errors():
 
     mock_display.assert_not_called()
     assert str(exc.value) == "Tag not found: tag_id='tag-123'"
+
+
+def test_search_discs_flow_displays_matching_discs(capsys):
+    controller = build_controller()
+    results = {"tag-1": Disc(uri="/music/song.mp3", metadata=DiscMetadata(artist="Artist"), option=DiscOption())}
+    controller.search_discs.execute.return_value = results
+
+    with (
+        patch("questionary.text", _mock_text("artist")),
+        patch("jukebox.adapters.inbound.admin.interactive_cli_controller.display_library_table") as mock_table,
+    ):
+        controller.search_discs_flow()
+
+    controller.search_discs.execute.assert_called_once_with("artist")
+    mock_table.assert_called_once_with(results)
+    assert "Found 1 disc(s) matching 'artist':" in capsys.readouterr().out
+
+
+def test_search_discs_flow_strips_query(capsys):
+    controller = build_controller()
+    controller.search_discs.execute.return_value = {}
+
+    with patch("questionary.text", _mock_text("  artist  ")):
+        controller.search_discs_flow()
+
+    controller.search_discs.execute.assert_called_once_with("artist")
+    assert "No discs found matching 'artist'" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("empty_query", ("", "   "))
+def test_search_discs_flow_does_not_allow_empty_query(empty_query):
+    controller = build_controller()
+
+    with (
+        patch("questionary.text", _mock_text(empty_query)),
+        patch("builtins.print"),
+        pytest.raises(ValueError, match="A query is required."),
+    ):
+        controller.search_discs_flow()
+
+    controller.search_discs.execute.assert_not_called()
+
+
+def test_search_discs_flow_without_match_shows_message(capsys):
+    controller = build_controller()
+    controller.search_discs.execute.return_value = {}
+
+    with (
+        patch("questionary.text", _mock_text("unknown")),
+        patch("jukebox.adapters.inbound.admin.interactive_cli_controller.display_library_table") as mock_table,
+    ):
+        controller.search_discs_flow()
+
+    mock_table.assert_not_called()
+    assert "No discs found matching 'unknown'" in capsys.readouterr().out
 
 
 def test_list_discs_flow_displays_table(capsys):

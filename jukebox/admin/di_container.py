@@ -132,4 +132,5 @@ def build_interactive_cli_controller(library_path: str):
         EditDisc(repository),
         GetDisc(repository),
         GetCurrentTagStatus(current_tag_repository, repository),
+        SearchDiscs(repository),
     )
