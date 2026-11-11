@@ -1,6 +1,8 @@
 <script>
   import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
+  import { formatProvenance, formatValue } from '../settings/format.js'
+  import SettingBadges from './SettingBadges.svelte'
 
   let { setting, onSaved, onCancel } = $props()
 
@@ -85,8 +87,29 @@
 
 <form class="form-card" onsubmit={handleSubmit}>
   <h3>Edit {setting.label}</h3>
+  <p class="setting-section">{setting.section_label} setting<SettingBadges {setting} /></p>
   <p class="path">{setting.path}</p>
   <p>{setting.description}</p>
+
+  <section class="setting-values" aria-labelledby="setting-values-heading">
+    <h4 id="setting-values-heading">Current values</h4>
+    <dl>
+      <dt>Default</dt>
+      <dd>{formatValue(setting.default_value)}</dd>
+      <dt>Persisted</dt>
+      <dd>
+        {#if setting.is_persisted}
+          {formatValue(setting.persisted_value)}
+        {:else}
+          <span class="path">—</span>
+        {/if}
+      </dd>
+      <dt>Effective value</dt>
+      <dd>{formatValue(setting.effective_value)}</dd>
+      <dt>Source</dt>
+      <dd>{formatProvenance(setting.provenance)}</dd>
+    </dl>
+  </section>
 
   {#if setting.choices.length > 0}
     <select bind:value={rawValue}>

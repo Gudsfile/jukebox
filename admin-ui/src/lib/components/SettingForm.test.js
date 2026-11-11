@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SettingForm from './SettingForm.svelte'
@@ -187,5 +187,79 @@ describe('SettingForm — server errors', () => {
 
     expect(await screen.findByText('Settings file is corrupted.')).toBeInTheDocument()
     expect(onSaved).not.toHaveBeenCalled()
+  })
+})
+
+describe('SettingForm — current values', () => {
+  function currentValues() {
+    const region = screen.getByRole('region', { name: 'Current values' })
+    const values = {}
+    for (const term of region.querySelectorAll('dt')) {
+      values[term.textContent] = term.nextElementSibling.textContent.trim()
+    }
+    return values
+  }
+
+  it('shows the default, effective value and source, and a dash when not persisted', () => {
+    render(SettingForm, { props: { setting: baseSetting(), onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(currentValues()).toEqual({
+      Default: '8000',
+      Persisted: '—',
+      'Effective value': '8000',
+      Source: 'Default',
+    })
+  })
+
+  it('shows the persisted override read from the settings file', () => {
+    const setting = baseSetting({
+      is_persisted: true,
+      persisted_value: 9000,
+      effective_value: 9000,
+      provenance: 'file',
+    })
+    render(SettingForm, { props: { setting, onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(currentValues()).toEqual({
+      Default: '8000',
+      Persisted: '9000',
+      'Effective value': '9000',
+      Source: 'Settings file',
+    })
+  })
+
+  it('shows an environment-sourced effective value that differs from the persisted one', () => {
+    const setting = baseSetting({ is_persisted: true, persisted_value: 9000, effective_value: 7000, provenance: 'env' })
+    render(SettingForm, { props: { setting, onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(currentValues()).toEqual({
+      Default: '8000',
+      Persisted: '9000',
+      'Effective value': '7000',
+      Source: 'Environment override',
+    })
+  })
+
+  it('shows the section label and the same badges as the Settings table', () => {
+    const setting = baseSetting({
+      is_persisted: true,
+      persisted_value: 9000,
+      is_pinned_default: true,
+      requires_restart: true,
+      advanced: true,
+    })
+    render(SettingForm, { props: { setting, onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    const section = screen.getByText(/Admin setting/)
+    expect(within(section).getByText('Configured')).toBeInTheDocument()
+    expect(within(section).getByText('Pinned default')).toBeInTheDocument()
+    expect(within(section).getByText('Restart required')).toBeInTheDocument()
+    expect(within(section).getByText('Advanced')).toBeInTheDocument()
+  })
+
+  it('shows no badges for a plain default setting', () => {
+    render(SettingForm, { props: { setting: baseSetting(), onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(screen.getByText(/Admin setting/).querySelectorAll('.badge')).toHaveLength(0)
   })
 })

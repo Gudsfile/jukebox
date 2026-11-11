@@ -492,6 +492,35 @@ form {
   }
 }
 
+.setting-section {
+  margin-top: 0;
+  font-size: 0.85em;
+}
+
+.setting-values {
+  margin-bottom: 16px;
+}
+
+.setting-values h4 {
+  margin: 0 0 8px;
+}
+
+.setting-values dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0;
+}
+
+.setting-values dt {
+  font-weight: 600;
+}
+
+.setting-values dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 form > label,
 form > .checkbox {
   display: block;
