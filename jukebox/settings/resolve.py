@@ -9,6 +9,7 @@ from jukebox.pn532.profiles import SpiConnectionParams, resolve_connection_param
 from jukebox.shared.config_utils import get_current_tag_path
 
 from .definitions import (
+    SETTINGS,
     build_settings_metadata_tree,
     get_editable_paths_for_prefix,
     get_restart_required_paths,
@@ -21,8 +22,10 @@ from .entities import (
     AppSettings,
     PersistedAppSettings,
     ResolvedAdminRuntimeConfig,
+    SparsePersistedAppSettings,
 )
-from .errors import ErrorCode, InvalidSettingsError
+from .errors import ErrorCode, InvalidSettingsError, SettingsError
+from .persisted_validation import migrate_and_validate_persisted_settings_data
 from .repositories import SettingsRepository
 from .types import JsonObject, JsonValue
 from .validation_rules import validate_settings_rules
@@ -146,6 +149,48 @@ class SettingsService:
         updated_data = deep_merge(current_data, patch)
         return self._save_updated_settings(updated_data, updated_paths)
 
+    def preview_settings_import(self, raw_data: JsonValue) -> JsonObject:
+        imported_data = _validate_imported_settings_data(raw_data)
+        current_data, current_error = self._load_current_settings_for_import()
+        updated_paths = _collect_changed_paths(current_data, imported_data)
+        return cast(
+            JsonObject,
+            {
+                "updated_paths": updated_paths,
+                "restart_required_paths": get_restart_required_paths(updated_paths),
+                "current_settings_error": current_error,
+            },
+        )
+
+    def import_persisted_settings(self, raw_data: JsonValue) -> JsonObject:
+        imported_data = _validate_imported_settings_data(raw_data)
+        current_data, _ = self._load_current_settings_for_import()
+        updated_paths = _collect_changed_paths(current_data, imported_data)
+
+        self.repository.save_persisted_settings_data(imported_data)
+
+        restart_required_paths = get_restart_required_paths(updated_paths)
+        return cast(
+            JsonObject,
+            {
+                "updated_paths": updated_paths,
+                "restart_required": bool(restart_required_paths),
+                "restart_required_paths": restart_required_paths,
+                "message": (
+                    "Settings imported. Changes take effect after restart."
+                    if restart_required_paths
+                    else "Settings imported."
+                ),
+            },
+        )
+
+    def _load_current_settings_for_import(self) -> tuple[JsonObject, str | None]:
+        # An unreadable settings file must not block its replacement: compare against an empty one.
+        try:
+            return self.repository.load_persisted_settings_data(), None
+        except SettingsError as err:
+            return {}, str(err)
+
     def _resolve_effective_settings(self) -> AppSettings:
         # This layer only validates the merged shared settings shape. It must not
         # enforce app-specific runtime requirements for callers.
@@ -248,6 +293,56 @@ class SettingsService:
                 ),
             },
         )
+
+
+def _validate_imported_settings_data(raw_data: JsonValue) -> JsonObject:
+    try:
+        migrated_data, _ = migrate_and_validate_persisted_settings_data(raw_data)
+        # Keep the file sparse, with values coerced by the schema: no number given as a string is written.
+        imported_data = cast(
+            JsonObject,
+            SparsePersistedAppSettings.model_validate(migrated_data).model_dump(mode="python", exclude_unset=True),
+        )
+        effective_settings = AppSettings.model_validate(
+            deep_merge(AppSettings().model_dump(mode="python"), imported_data)
+        )
+    except ValidationError as err:
+        raise InvalidSettingsError(f"Invalid settings file: {err}", code=ErrorCode.INVALID_FILE) from err
+
+    try:
+        validate_settings_rules(effective_settings.model_dump(mode="python"))
+    except (ValueError, KeyError) as err:
+        raise InvalidSettingsError(f"Invalid settings file: {err}", code=ErrorCode.INVALID_FILE) from err
+
+    return imported_data
+
+
+def _collect_changed_paths(before: JsonObject, after: JsonObject, prefix: str | None = None) -> list[str]:
+    changed_paths: list[str] = []
+
+    for key in sorted(before.keys() | after.keys()):
+        if prefix is None and key == "schema_version":
+            continue
+
+        dotted_path = f"{prefix}.{key}" if prefix else key
+        before_value = before.get(key, _MISSING)
+        after_value = after.get(key, _MISSING)
+        if before_value == after_value:
+            continue
+
+        if dotted_path not in SETTINGS and (isinstance(before_value, dict) or isinstance(after_value, dict)):
+            changed_paths.extend(
+                _collect_changed_paths(
+                    before_value if isinstance(before_value, dict) else {},
+                    after_value if isinstance(after_value, dict) else {},
+                    dotted_path,
+                )
+            )
+            continue
+
+        changed_paths.append(dotted_path)
+
+    return changed_paths
 
 
 def _format_invalid_settings_message(error: str, env_overrides: JsonObject, cli_overrides: JsonObject) -> str:
