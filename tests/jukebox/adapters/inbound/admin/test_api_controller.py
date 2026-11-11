@@ -154,6 +154,7 @@ def test_disc_routes_register_explicit_crud_paths():
     assert ("/api/v1/current-tag/disc", ("DELETE",)) in route_index
     assert ("/api/v1/export/library", ("GET",)) in route_index
     assert ("/api/v1/export/settings", ("GET",)) in route_index
+    assert ("/api/v1/export/all", ("GET",)) in route_index
     assert ("/api/v1/import/library/preview", ("POST",)) in route_index
     assert ("/api/v1/import/library", ("POST",)) in route_index
     assert ("/api/v1/import/settings/preview", ("POST",)) in route_index
