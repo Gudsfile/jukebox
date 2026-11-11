@@ -52,3 +52,9 @@ class MockRepo(LibraryRepository):
     def replace_library(self, library: Library):
         self.replace_calls.append(library.model_copy(deep=True))
         self.library = library.model_copy(deep=True)
+
+    def snapshot(self):
+        return self.library.model_dump_json().encode()
+
+    def restore(self, snapshot: bytes | None):
+        self.library = Library() if snapshot is None else Library.model_validate_json(snapshot)

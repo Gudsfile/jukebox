@@ -21,6 +21,7 @@ def build_controller():
         settings_path="/test/settings.json",
         preview_library_import=MagicMock(),
         import_library=MagicMock(),
+        library_repository=MagicMock(),
     )
 
 

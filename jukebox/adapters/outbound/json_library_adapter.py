@@ -2,7 +2,9 @@ import json
 import logging
 import os
 import tempfile
+from collections.abc import Callable
 from contextlib import suppress
+from typing import IO, Any
 
 from pydantic import ValidationError
 
@@ -37,13 +39,18 @@ class JsonLibraryAdapter(LibraryRepository):
             return Library()
 
     def _write_library(self, library: Library) -> None:
+        self._write_atomically(
+            "w", lambda file_obj: json.dump(library.model_dump(), file_obj, indent=2, ensure_ascii=False)
+        )
+
+    def _write_atomically(self, mode: str, write: Callable[[IO[Any]], object]) -> None:
         directory = os.path.dirname(self.filepath) or "."
         os.makedirs(directory, exist_ok=True)
         temp_fd, temp_path = tempfile.mkstemp(dir=directory, prefix=".library-", suffix=".json")
 
         try:
-            with os.fdopen(temp_fd, "w", encoding="utf-8") as file_obj:
-                json.dump(library.model_dump(), file_obj, indent=2, ensure_ascii=False)
+            with os.fdopen(temp_fd, mode, encoding=None if "b" in mode else "utf-8") as file_obj:
+                write(file_obj)
                 file_obj.flush()
                 os.fsync(file_obj.fileno())
 
@@ -128,3 +135,22 @@ class JsonLibraryAdapter(LibraryRepository):
 
     def replace_library(self, library: Library) -> None:
         self._persist_library(library.model_copy(deep=True))
+
+    def snapshot(self) -> bytes | None:
+        try:
+            with open(self.filepath, "rb") as file_obj:
+                return file_obj.read()
+        except FileNotFoundError:
+            return None
+
+    def restore(self, snapshot: bytes | None) -> None:
+        try:
+            if snapshot is None:
+                with suppress(FileNotFoundError):
+                    os.unlink(self.filepath)
+            else:
+                self._write_atomically("wb", lambda file_obj: file_obj.write(snapshot))
+        finally:
+            # The file state may match the cached one (same size, coarse mtime): reload from disk next time.
+            self._cached_library = None
+            self._cached_file_state = None
