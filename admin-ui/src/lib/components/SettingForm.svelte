@@ -128,6 +128,14 @@
     />
   {/if}
 
+  <p class="path">
+    Save stores a persisted override. The effective value may still be superseded by environment or CLI overrides.
+    {#if setting.is_persisted}
+      Reset removes the persisted override; the setting then uses its default value unless an environment or CLI
+      override applies.
+    {/if}
+  </p>
+
   {#if error}
     <p class="error">{error}</p>
   {/if}

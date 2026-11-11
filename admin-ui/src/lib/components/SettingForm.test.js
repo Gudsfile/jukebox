@@ -154,6 +154,25 @@ describe('SettingForm — reset and cancel', () => {
     expect(screen.queryByRole('button', { name: 'Reset' })).toBeNull()
   })
 
+  it('explains that environment and CLI overrides can supersede the saved value', () => {
+    render(SettingForm, { props: { setting: baseSetting(), onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(screen.getByText(/may still be superseded by environment or CLI overrides/)).toBeInTheDocument()
+    expect(screen.queryByText(/Reset removes the persisted override/)).toBeNull()
+  })
+
+  it('explains what Reset falls back to when the setting is persisted', () => {
+    render(SettingForm, {
+      props: {
+        setting: baseSetting({ is_persisted: true, persisted_value: 9000 }),
+        onSaved: vi.fn(),
+        onCancel: vi.fn(),
+      },
+    })
+
+    expect(screen.getByText(/Reset removes the persisted override/)).toBeInTheDocument()
+  })
+
   it('calls onCancel', async () => {
     const onCancel = vi.fn()
     render(SettingForm, { props: { setting: baseSetting(), onSaved: vi.fn(), onCancel } })
