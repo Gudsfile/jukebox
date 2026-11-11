@@ -4,7 +4,7 @@
 
 Accepted
 
-Superseded by [Decision (v2)](#decision-outcome-v2)
+Superseded by [Decision (v3)](#decision-outcome-v3)
 
 ## Context and Problem Statement
 
@@ -124,6 +124,43 @@ On successful publish, `release.yml` creates and pushes the git tag. The tag is 
 
 Since version bump commits are pushed directly to `main`, a dedicated workflow blocks any PR that contains a commit starting with `🔖 v`, preventing accidental inclusion of bump commits in regular PRs.
 
+### Option 5: Single dispatched release workflow (v3)
+
+#### Release workflow (`release.yml`)
+
+`bump-version.yml` and `release.yml` are merged into a single workflow, triggered manually only:
+
+```yaml
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        type: choice
+        options: [major, minor, patch, major-dev, minor-dev, patch-dev, dev, stable]
+```
+
+It runs two jobs:
+
+1. `test`: format, lint, tests and type check on the commit to release.
+2. `publish` (`needs: test`, `prod` environment): fails unless dispatched from `main`, bumps the version with the same 8 bump types as v1, commits `🔖 v{version}` and tags `v{version}` with the GitHub App token, pushes the commit and the tag together, builds the admin UI bundle and the package, and publishes to PyPI.
+
+- **Dev versions** (`.devN`): publish to PyPI only.
+- **Stable versions**: publish to PyPI and create a GitHub Release.
+
+The version is bumped, tagged and published only when the tests pass, without `workflow_run`, polling or a separate guard workflow.
+
+#### CI on pull requests (`ci.yml`)
+
+Since the release workflow runs its own tests, CI runs on pull requests only, not on pushes to `main`.
+
+`ci.yml` runs on every pull request, without `paths`:
+
+- `changes` lists the files of the pull request and decides which parts to check (Python, admin UI; a change under `.github/workflows/` checks both).
+- `python` and `admin-ui` call the reusable workflows `python.yml` and `admin-ui.yml` (`workflow_call`), only when their part changed. Both keep `workflow_dispatch` to run them by hand.
+- `ci-result` needs all of them and runs `if: always()`: it passes when every job succeeded or was skipped, and fails otherwise.
+
+`ci-result` is the required status check of the `main` ruleset. As it runs on every pull request, the check never stays pending, and a failing job blocks the merge.
+
 ## Decision Outcome (v1)
 
 We adopted solution 1 (PR-based version bump).
@@ -136,8 +173,19 @@ We adopted solution 4 (Direct push + workflow_run) because it:
 - Keeps dev/stable release automation fully automated.
 - Preserves security and branch protection.
 
+## Decision Outcome (v3)
+
+We adopted solution 5 (Single dispatched release workflow) because it:
+- Runs the tests before the version is bumped, tagged and published.
+- Keeps the whole release in one workflow, with no `workflow_run` trigger or guard workflow.
+- Keeps dev/stable release automation fully automated.
+
 ## More information
 
 Why decision v1 was superseded?
 
 v1's PR-based approach has a fundamental flaw: **CI does not run on auto-created PRs**. GitHub deliberately prevents `pull_request` workflow triggers from firing when the PR is opened by `GITHUB_TOKEN` (anti-loop protection). The GitHub App workaround allowed merging but did not fix the missing CI runs — the version bump was never tested before publication.
+
+Why decision v2 was superseded?
+
+v2 split the release across three workflows (`bump-version.yml`, `release.yml`, `protect-version-bump.yml`) and relied on CI running on pushes to `main`. A single workflow that tests, then bumps, tags and publishes gives the same guarantee with fewer moving parts.
