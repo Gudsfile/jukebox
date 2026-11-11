@@ -39,11 +39,3 @@ def test_metadata_optional():
     """Metadata should default to empty metadata"""
     disc = Disc.model_validate({"uri": "uri:123"})
     assert disc.metadata == DiscMetadata()
-
-
-def test_empty_strings_in_metadata():
-    """Should accept empty strings in metadata"""
-    metadata = DiscMetadata(artist="", album="")
-    disc = Disc(uri="uri:123", metadata=metadata)
-    assert disc.metadata.artist == ""
-    assert disc.metadata.album == ""

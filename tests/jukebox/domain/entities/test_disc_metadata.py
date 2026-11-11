@@ -68,3 +68,18 @@ def test_display_title(playlist, artist, album, track, expected):
 def test_display_type(playlist, artist, album, track, expected):
     metadata = DiscMetadata(playlist=playlist, artist=artist, album=album, track=track)
     assert metadata.display_type == expected
+
+
+@pytest.mark.parametrize("field", ["artist", "album", "track", "playlist"])
+@pytest.mark.parametrize("empty_value", [pytest.param("", id="empty"), pytest.param("   ", id="blank")])
+def test_empty_value_is_stored_as_none(field, empty_value):
+    """An empty or blank metadata field should mean "no value" and be stored as None"""
+    metadata = DiscMetadata(**{field: empty_value})
+    assert getattr(metadata, field) is None
+    assert field in metadata.model_fields_set
+
+
+def test_non_empty_value_is_kept_as_is():
+    """Non-empty values should be kept untouched"""
+    metadata = DiscMetadata(artist=" artist ")
+    assert metadata.artist == " artist "

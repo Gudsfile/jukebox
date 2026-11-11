@@ -4,7 +4,9 @@ import pytest
 
 from jukebox.adapters.inbound.admin.cli_controller import CLIController
 from jukebox.admin.library_commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
-from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
+from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
+from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
 
 
 def build_controller():
@@ -69,6 +71,17 @@ def test_edit_disc_flow_resolves_current_tag():
         metadata=DiscMetadata(track="Updated"),
         option=None,
     )
+
+
+def test_edit_disc_flow_clears_field_given_an_empty_value():
+    repo = MockRepo(Library(discs={"tag-123": Disc(uri="/music/song.mp3", metadata=DiscMetadata(artist="Artist"))}))
+    controller = build_controller()
+    controller.edit_disc = EditDisc(repo)
+    controller.resolve_tag_id.execute.return_value = "tag-123"
+
+    controller.edit_disc_flow(CliEditCommand(type="edit", tag="tag-123", artist=""))
+
+    assert repo.library.discs["tag-123"].metadata.artist is None
 
 
 def test_remove_disc_flow_resolves_current_tag_without_clearing():

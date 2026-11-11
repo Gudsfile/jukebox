@@ -354,3 +354,33 @@ def test_legacy_is_test_option_is_ignored_on_load_and_dropped_on_write(tmp_path)
     adapter.add_disc("new-tag", Disc(uri="new.mp3", metadata=DiscMetadata()))
 
     assert read_library(filepath)["discs"]["legacy-tag"]["option"] == {"shuffle": True}
+
+
+def test_empty_metadata_is_read_as_none_and_written_as_null(tmp_path):
+    filepath = tmp_path / "library.json"
+    write_library(
+        filepath,
+        {
+            "discs": {
+                "tag:123": {
+                    "uri": "uri:123",
+                    "metadata": {"artist": "", "album": "Album", "track": "", "playlist": None},
+                    "option": {"shuffle": False},
+                }
+            }
+        },
+    )
+    adapter = JsonLibraryAdapter(str(filepath))
+
+    disc = adapter.get_disc("tag:123")
+    assert disc is not None
+    assert disc.metadata == DiscMetadata(album="Album")
+
+    adapter.add_disc("tag:456", Disc(uri="uri:456"))
+
+    assert read_library(filepath)["discs"]["tag:123"]["metadata"] == {
+        "artist": None,
+        "album": "Album",
+        "track": None,
+        "playlist": None,
+    }
