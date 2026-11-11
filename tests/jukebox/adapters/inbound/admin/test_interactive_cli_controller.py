@@ -3,7 +3,10 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from jukebox.adapters.inbound.admin.interactive_cli_controller import InteractiveCLIController
-from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
+from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption, Library
+from jukebox.domain.use_cases.library.edit_disc import EditDisc
+from jukebox.domain.use_cases.library.get_disc import GetDisc
+from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
 
 
 def build_controller():
@@ -205,16 +208,33 @@ def test_edit_disc_flow_prefills_prompts_with_current_values():
 
     assert [(c.args[0], c.kwargs["default"]) for c in text.call_args_list[1:]] == [
         ("URI:", "/music/song.mp3"),
-        ("Artist:", "Zubi"),
-        ("Album:", "Dear Z"),
-        ("Track:", "dey ok"),
-        ("Playlist:", "Mix"),
+        ("Artist (empty to clear):", "Zubi"),
+        ("Album (empty to clear):", "Dear Z"),
+        ("Track (empty to clear):", "dey ok"),
+        ("Playlist (empty to clear):", "Mix"),
     ]
     confirm.assert_called_once_with("Shuffle?", default=True)
 
 
+def test_edit_disc_flow_keeps_prefilled_values():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.return_value = CURRENT_DISC
+
+    with (
+        patch("questionary.text", _mock_text("tag-123", "/music/song.mp3", "Zubi", "Dear Z", "dey ok", "Mix")),
+        patch("questionary.confirm", _mock_confirm(True)),
+        patch("builtins.print"),
+    ):
+        controller.edit_disc_flow()
+
+    controller.edit_disc.execute.assert_called_once_with(
+        "tag-123", CURRENT_DISC.uri, CURRENT_DISC.metadata, CURRENT_DISC.option
+    )
+
+
 @pytest.mark.parametrize("empty_answer", ("", "   ", None))
-def test_edit_disc_flow_keeps_every_field_when_answers_are_empty(empty_answer):
+def test_edit_disc_flow_clears_metadata_fields_when_answers_are_empty(empty_answer):
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = None
     controller.get_disc.execute.return_value = CURRENT_DISC
@@ -227,7 +247,31 @@ def test_edit_disc_flow_keeps_every_field_when_answers_are_empty(empty_answer):
         controller.edit_disc_flow()
 
     controller.edit_disc.execute.assert_called_once_with(
-        "tag-123", CURRENT_DISC.uri, CURRENT_DISC.metadata, CURRENT_DISC.option
+        "tag-123", CURRENT_DISC.uri, DiscMetadata(), CURRENT_DISC.option
+    )
+    # DiscMetadata() == DiscMetadata(artist=None, ...): only the set fields tell EditDisc to clear instead of keep
+    metadata = controller.edit_disc.execute.call_args.args[2]
+    assert metadata.model_fields_set == {"artist", "album", "track", "playlist"}
+
+
+def test_edit_disc_flow_clears_a_field_in_the_stored_disc():
+    repo = MockRepo(Library(discs={"tag-123": CURRENT_DISC}))
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc = GetDisc(repo)
+    controller.edit_disc = EditDisc(repo)
+
+    with (
+        patch("questionary.text", _mock_text("tag-123", "/music/song.mp3", "Zubi", "", "dey ok", "Mix")),
+        patch("questionary.confirm", _mock_confirm(True)),
+        patch("builtins.print"),
+    ):
+        controller.edit_disc_flow()
+
+    assert repo.library.discs["tag-123"] == Disc(
+        uri="/music/song.mp3",
+        metadata=DiscMetadata(artist="Zubi", track="dey ok", playlist="Mix"),
+        option=DiscOption(shuffle=True),
     )
 
 
@@ -237,7 +281,7 @@ def test_edit_disc_flow_changes_only_the_artist():
     controller.get_disc.execute.return_value = CURRENT_DISC
 
     with (
-        patch("questionary.text", _mock_text("tag-123", "", "Other", "", "", "")),
+        patch("questionary.text", _mock_text("tag-123", "/music/song.mp3", "Other", "Dear Z", "dey ok", "Mix")),
         patch("questionary.confirm", _mock_confirm(True)),
         patch("builtins.print"),
     ):
