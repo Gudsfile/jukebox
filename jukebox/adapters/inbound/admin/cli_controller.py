@@ -51,7 +51,7 @@ class CLIController:
                 self.search_discs_flow(command)
 
     def add_disc_flow(self, command: CliAddCommand) -> None:
-        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
         option = DiscOption()
         metadata = DiscMetadata(track=command.track, artist=command.artist, album=command.album)
 
@@ -70,7 +70,7 @@ class CLIController:
         typer.echo(f"Displaying mode not implemented yet: mode='{command.mode}'", err=True)
 
     def remove_disc_flow(self, command: CliRemoveCommand) -> None:
-        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
         self.remove_disc.execute(tag)
         typer.echo("🗑️ Disc successfully removed")
 
@@ -86,7 +86,7 @@ class CLIController:
         metadata = DiscMetadata(**metadata_fields) if metadata_fields else None
 
         self.edit_disc.execute(
-            tag_id=self.resolve_tag_id.execute(command.tag, command.use_current_tag),
+            tag_id=self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id),
             uri=command.uri,
             metadata=metadata,
             option=None,
@@ -94,7 +94,7 @@ class CLIController:
         typer.echo("✅ Disc successfully edited")
 
     def get_disc_flow(self, command: CliGetCommand) -> None:
-        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag)
+        tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
         disc = self.get_disc.execute(tag)
         display_disc(tag, disc)
 

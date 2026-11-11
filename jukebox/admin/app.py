@@ -512,12 +512,17 @@ def library_add(
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
     ] = False,
+    expected_tag_id: Annotated[
+        str | None,
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+    ] = None,
 ) -> None:
     try:
         command = CliAddCommand(
             type="add",
             tag=tag,
             use_current_tag=use_current_tag,
+            expected_tag_id=expected_tag_id,
             uri=uri,
             track=track,
             artist=artist,
@@ -545,9 +550,15 @@ def library_remove(
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
     ] = False,
+    expected_tag_id: Annotated[
+        str | None,
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+    ] = None,
 ) -> None:
     try:
-        command = CliRemoveCommand(type="remove", tag=tag, use_current_tag=use_current_tag)
+        command = CliRemoveCommand(
+            type="remove", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id
+        )
     except ValidationError as err:
         _exit_error(str(err))
 
@@ -566,12 +577,17 @@ def library_edit(
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
     ] = False,
+    expected_tag_id: Annotated[
+        str | None,
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+    ] = None,
 ) -> None:
     try:
         command = CliEditCommand(
             type="edit",
             tag=tag,
             use_current_tag=use_current_tag,
+            expected_tag_id=expected_tag_id,
             uri=uri,
             track=track,
             artist=artist,
@@ -591,9 +607,13 @@ def library_get(
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
     ] = False,
+    expected_tag_id: Annotated[
+        str | None,
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+    ] = None,
 ) -> None:
     try:
-        command = CliGetCommand(type="get", tag=tag, use_current_tag=use_current_tag)
+        command = CliGetCommand(type="get", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
     except ValidationError as err:
         _exit_error(str(err))
 
