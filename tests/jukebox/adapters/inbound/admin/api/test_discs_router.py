@@ -90,7 +90,7 @@ def test_get_disc_returns_disc_payload(get_route):
     assert response.model_dump() == {
         "uri": "/music/song.mp3",
         "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
-        "option": {"shuffle": True, "is_test": False},
+        "option": {"shuffle": True},
     }
     get_disc.execute.assert_called_once_with("tag-123")
 
@@ -170,7 +170,7 @@ def test_patch_disc_partially_updates_existing_disc(get_route):
     assert response.model_dump() == {
         "uri": "/music/song.mp3",
         "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
-        "option": {"shuffle": False, "is_test": False},
+        "option": {"shuffle": False},
     }
     edit_disc.execute.assert_called_once_with(
         "tag-123",

@@ -26,7 +26,7 @@ def test_list_discs_returns_existing_library(tmp_path):
                 "tag:123": Disc(
                     uri="uri:456",
                     metadata=DiscMetadata(artist="Test Artist"),
-                    option=DiscOption(shuffle=False, is_test=False),
+                    option=DiscOption(shuffle=False),
                 )
             }
         ),
@@ -206,7 +206,7 @@ def test_failed_write_during_add_disc_keeps_existing_library_intact(tmp_path, mo
             "existing-tag": {
                 "uri": "before.mp3",
                 "metadata": {"artist": None, "album": None, "track": None, "playlist": None},
-                "option": {"shuffle": False, "is_test": False},
+                "option": {"shuffle": False},
             }
         }
     }

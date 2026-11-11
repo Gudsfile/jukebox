@@ -122,7 +122,7 @@ def test_get_current_tag_disc_returns_tag_and_disc_payload(get_route):
         "disc": {
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
-            "option": {"shuffle": True, "is_test": False},
+            "option": {"shuffle": True},
             "display_type": "\U0001f3b5 Track",
             "display_title": "Artist — Track",
         },
@@ -240,7 +240,7 @@ def test_patch_current_tag_disc_partially_updates_existing_disc(get_route):
         "disc": {
             "uri": "/music/song.mp3",
             "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
-            "option": {"shuffle": False, "is_test": False},
+            "option": {"shuffle": False},
             "display_type": "\U0001f3b5 Track",
             "display_title": "Artist — Updated Track",
         },
