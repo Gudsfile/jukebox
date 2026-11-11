@@ -5,7 +5,6 @@ class DiscOption(BaseModel):
     """Playback options for a disc."""
 
     shuffle: bool = Field(default=False, description="Enable or disable shuffle playback")
-    is_test: bool = Field(default=False, description="Indicates whether this is a test disc")
 
 
 class DiscMetadata(BaseModel):

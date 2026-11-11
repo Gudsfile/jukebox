@@ -30,7 +30,6 @@ class DiscPatchMetadataInput(BaseModel):
 
 class DiscPatchOptionInput(BaseModel):
     shuffle: bool | None = None
-    is_test: bool | None = None
 
 
 class DiscPatchInput(BaseModel):

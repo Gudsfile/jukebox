@@ -6,7 +6,7 @@ import ReaderSlot from './ReaderSlot.svelte'
 const disc = {
   uri: 'spotify:album:abc',
   metadata: { artist: 'Veridis Project', album: 'Voir le soleil', track: null, playlist: null },
-  option: { shuffle: false, is_test: false },
+  option: { shuffle: false },
   display_type: '💿 Album',
   display_title: 'Veridis Project — Voir le soleil',
 }

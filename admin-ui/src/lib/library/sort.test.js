@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { nextSort, sortEntries } from './sort.js'
 
 function disc(displayType, displayTitle, shuffle = false) {
-  return { display_type: displayType, display_title: displayTitle, option: { shuffle, is_test: false } }
+  return { display_type: displayType, display_title: displayTitle, option: { shuffle } }
 }
 
 const entries = [

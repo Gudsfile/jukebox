@@ -90,7 +90,7 @@ def test_get_disc_returns_disc_payload(get_route):
     assert response.model_dump() == {
         "uri": "/music/song.mp3",
         "metadata": {"artist": "Artist", "album": "Album", "track": "Track", "playlist": None},
-        "option": {"shuffle": True, "is_test": False},
+        "option": {"shuffle": True},
     }
     get_disc.execute.assert_called_once_with("tag-123")
 
@@ -170,7 +170,7 @@ def test_patch_disc_partially_updates_existing_disc(get_route):
     assert response.model_dump() == {
         "uri": "/music/song.mp3",
         "metadata": {"artist": "Artist", "album": "Album", "track": "Updated Track", "playlist": None},
-        "option": {"shuffle": False, "is_test": False},
+        "option": {"shuffle": False},
     }
     edit_disc.execute.assert_called_once_with(
         "tag-123",
@@ -189,6 +189,17 @@ def test_patch_disc_returns_422_when_null_assigned_to_non_nullable_option_field(
         route.endpoint("tag-123", DiscPatchInput(option=DiscPatchOptionInput(shuffle=None)))
 
     assert err.value.status_code == 422
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_patch_disc_ignores_legacy_is_test_option(get_route):
+    edit_disc = create_autospec(EditDisc, instance=True)
+    router = build_router(edit_disc=edit_disc)
+    route = get_route(router, "/api/v1/discs/{tag_id}", "PATCH")
+
+    route.endpoint("tag-123", DiscPatchInput.model_validate({"option": {"shuffle": True, "is_test": True}}))
+
+    edit_disc.execute.assert_called_once_with("tag-123", None, None, DiscOption(shuffle=True))
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

@@ -93,7 +93,7 @@ jukebox/
 See `jukebox/domain/entities/` for data models and `jukebox/domain/use_cases/` for business logic.
 The playback state machine lives in `PlaybackState` (frozen dataclasses: `Idle | Playing | Waiting | Paused`) and the pure `transition()` function in `transition_playback.py`. `HandleTagEvent` is the thin executor. Physical tag tracking uses `SyncCurrentTag` with `CurrentTagSession`.
 
-- `Disc` — music item with URI, metadata (artist, album, etc.), and playback options (shuffle, is_test)
+- `Disc` — music item with URI, metadata (artist, album, etc.), and playback options (shuffle)
 - `Library` — collection of `Disc` associated with a `tag_id`
 
 ### Dependency Injection
