@@ -6,6 +6,7 @@ try:
     from jukebox.adapters.inbound.admin.api.current_tag_router import build_current_tag_router
     from jukebox.adapters.inbound.admin.api.discs_router import build_discs_router
     from jukebox.adapters.inbound.admin.api.export_router import build_export_router
+    from jukebox.adapters.inbound.admin.api.import_router import build_import_router
     from jukebox.adapters.inbound.admin.api.models import (
         CurrentTagDiscOutput,
         CurrentTagStatusOutput,
@@ -23,7 +24,16 @@ except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
     raise MissingOptionalDependencyError("The `api_controller` module", "api", "jukebox-admin api") from e
-from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
+from jukebox.domain.use_cases import (
+    AddDisc,
+    EditDisc,
+    GetCurrentTagStatus,
+    GetDisc,
+    ImportLibrary,
+    ListDiscs,
+    PreviewLibraryImport,
+    RemoveDisc,
+)
 from jukebox.settings.service_protocols import SettingsService
 from jukebox.sonos.service import SonosService
 
@@ -53,6 +63,8 @@ class APIController:
         sonos_service: SonosService,
         library_path: str,
         settings_path: str,
+        preview_library_import: PreviewLibraryImport,
+        import_library: ImportLibrary,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -64,6 +76,8 @@ class APIController:
         self.sonos_service = sonos_service
         self.library_path = library_path
         self.settings_path = settings_path
+        self.preview_library_import = preview_library_import
+        self.import_library = import_library
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
@@ -97,3 +111,6 @@ class APIController:
         )
         self.app.include_router(build_pn532_router(self.settings_service))
         self.app.include_router(build_export_router(self.library_path, self.settings_path))
+        self.app.include_router(
+            build_import_router(self.preview_library_import, self.import_library, self.settings_service)
+        )

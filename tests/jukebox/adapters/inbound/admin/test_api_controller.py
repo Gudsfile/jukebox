@@ -87,6 +87,8 @@ def build_controller(
         sonos_service if sonos_service is not None else MagicMock(),
         library_path="/test/library.json",
         settings_path="/test/settings.json",
+        preview_library_import=MagicMock(),
+        import_library=MagicMock(),
     )
 
 
@@ -152,6 +154,10 @@ def test_disc_routes_register_explicit_crud_paths():
     assert ("/api/v1/current-tag/disc", ("DELETE",)) in route_index
     assert ("/api/v1/export/library", ("GET",)) in route_index
     assert ("/api/v1/export/settings", ("GET",)) in route_index
+    assert ("/api/v1/import/library/preview", ("POST",)) in route_index
+    assert ("/api/v1/import/library", ("POST",)) in route_index
+    assert ("/api/v1/import/settings/preview", ("POST",)) in route_index
+    assert ("/api/v1/import/settings", ("POST",)) in route_index
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

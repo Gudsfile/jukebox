@@ -83,6 +83,8 @@ def bootstrap_mocks(mocker):
         edit_disc_class = mocker.patch("jukebox.admin.di_container.EditDisc")
         get_disc_class = mocker.patch("jukebox.admin.di_container.GetDisc")
         get_current_tag_status_class = mocker.patch("jukebox.admin.di_container.GetCurrentTagStatus")
+        preview_library_import_class = mocker.patch("jukebox.admin.di_container.PreviewLibraryImport")
+        import_library_class = mocker.patch("jukebox.admin.di_container.ImportLibrary")
         repo_instance = MagicMock()
         current_tag_repo_instance = MagicMock()
         add_disc_instance = MagicMock()
@@ -91,6 +93,8 @@ def bootstrap_mocks(mocker):
         edit_disc_instance = MagicMock()
         get_disc_instance = MagicMock()
         get_current_tag_status_instance = MagicMock()
+        preview_library_import_instance = MagicMock()
+        import_library_instance = MagicMock()
 
     mocks = Mocks()
     mocks.repo_class.return_value = mocks.repo_instance
@@ -101,6 +105,8 @@ def bootstrap_mocks(mocker):
     mocks.edit_disc_class.return_value = mocks.edit_disc_instance
     mocks.get_disc_class.return_value = mocks.get_disc_instance
     mocks.get_current_tag_status_class.return_value = mocks.get_current_tag_status_instance
+    mocks.preview_library_import_class.return_value = mocks.preview_library_import_instance
+    mocks.import_library_class.return_value = mocks.import_library_instance
     return mocks
 
 
@@ -128,7 +134,11 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         services.sonos,
         library_path="/test/library.json",
         settings_path="/test/settings.json",
+        preview_library_import=bootstrap_mocks.preview_library_import_instance,
+        import_library=bootstrap_mocks.import_library_instance,
     )
+    bootstrap_mocks.preview_library_import_class.assert_called_once_with(bootstrap_mocks.repo_instance)
+    bootstrap_mocks.import_library_class.assert_called_once_with(bootstrap_mocks.repo_instance)
     assert result is mock_api_instance
 
 
@@ -156,5 +166,9 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
         services.sonos,
         library_path="/test/library.json",
         settings_path="/test/settings.json",
+        preview_library_import=bootstrap_mocks.preview_library_import_instance,
+        import_library=bootstrap_mocks.import_library_instance,
     )
+    bootstrap_mocks.preview_library_import_class.assert_called_once_with(bootstrap_mocks.repo_instance)
+    bootstrap_mocks.import_library_class.assert_called_once_with(bootstrap_mocks.repo_instance)
     assert result is mock_ui_instance

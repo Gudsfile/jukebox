@@ -16,7 +16,11 @@ pytestmark = pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependenc
 
 def build_controller():
     return UIController(
-        *(MagicMock() for _ in range(8)), library_path="/test/library.json", settings_path="/test/settings.json"
+        *(MagicMock() for _ in range(8)),
+        library_path="/test/library.json",
+        settings_path="/test/settings.json",
+        preview_library_import=MagicMock(),
+        import_library=MagicMock(),
     )
 
 
