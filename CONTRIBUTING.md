@@ -177,6 +177,10 @@ Commit messages use [gitmoji](https://gitmoji.dev/) followed by a short imperati
 
 Prefer small commits that each do one thing and carry one intent.
 
+> [!IMPORTANT]
+> Releases are automated and handled by the maintainers (see [ADR 0002](docs/adr/0002-release-workflow.md)).
+> Do not bump the version in `pyproject.toml`, and do not create commits starting with `🔖 v`: they are reserved for version bumps.
+
 ## Pull requests
 
 1. Fork the repository and create a branch from `main`, named `<type>/<short-description>` (for example `fix/invalid-state`, `docs/add-contributing-file`).
@@ -196,9 +200,13 @@ Describe the pull request with the following sections, prefilled by the [pull re
 
 Pull requests are merged with a merge commit, so each commit of the branch stays in the history.
 
-> [!IMPORTANT]
-> Releases are automated and handled by the maintainers (see [ADR 0002](docs/adr/0002-release-workflow.md)).
-> Do not bump the version in `pyproject.toml`, and do not create commits starting with `🔖 v`: they are reserved for version bumps.
+### Review feedback
+
+Address review comments with fixup commits, autosquashed before the merge.
+
+### Dependent pull requests
+
+Split a large change into several pull requests when each part can be reviewed on its own. When a part builds on another one, stack them with [gh stack](https://github.com/github/gh-stack): each pull request is based on the branch below it, shows only its own diff, and the stack is rebased as a whole when a lower layer changes or merges.
 
 ## License
 
