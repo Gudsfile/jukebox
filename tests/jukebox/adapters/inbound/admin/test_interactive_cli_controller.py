@@ -329,6 +329,23 @@ def test_remove_disc_flow_propagates_remove_failures():
         controller.remove_disc_flow()
 
 
+def test_edit_disc_flow_propagates_unknown_tag_errors_before_other_prompts():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='tag-123'")
+    text = _mock_text("tag-123")
+
+    with (
+        pytest.raises(ValueError, match="Tag not found: tag_id='tag-123'"),
+        patch("questionary.text", text),
+        patch("builtins.print"),
+    ):
+        controller.edit_disc_flow()
+
+    text.assert_called_once()
+    controller.edit_disc.execute.assert_not_called()
+
+
 def test_edit_disc_flow_requires_explicit_tag_when_current_tag_is_unknown():
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=False)
