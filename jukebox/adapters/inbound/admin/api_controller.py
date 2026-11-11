@@ -1,9 +1,7 @@
-from pydantic import BaseModel
-
 from jukebox.shared.errors import MissingOptionalDependencyError
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import FastAPI
 
     from jukebox.adapters.inbound.admin.api.current_tag_router import build_current_tag_router
     from jukebox.adapters.inbound.admin.api.discs_router import build_discs_router
@@ -15,18 +13,16 @@ try:
         DiscPatchInput,
         SettingsPatchInput,
         SettingsResetInput,
+        SonosSelectionInput,
     )
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
+    from jukebox.adapters.inbound.admin.api.sonos_router import build_sonos_router
 except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
     raise MissingOptionalDependencyError("The `api_controller` module", "api", "jukebox-admin api") from e
 from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
-from jukebox.settings.entities import SelectedSonosGroupSettings
-from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
 from jukebox.settings.service_protocols import SettingsService
-from jukebox.sonos.discovery import DiscoveredSonosSpeaker, SonosDiscoveryError
-from jukebox.sonos.selection import GetSonosSelectionStatus, SaveSonosSelection
 from jukebox.sonos.service import SonosService
 
 __all__ = [
@@ -40,42 +36,6 @@ __all__ = [
     "SettingsResetInput",
     "SonosSelectionInput",
 ]
-
-
-class SonosSpeakerOutput(DiscoveredSonosSpeaker):
-    pass
-
-
-class SelectedSonosGroupOutput(SelectedSonosGroupSettings):
-    pass
-
-
-class SonosSelectionMemberAvailabilityOutput(BaseModel):
-    uid: str
-    status: str
-    speaker: SonosSpeakerOutput | None = None
-
-
-class SonosSelectionAvailabilityOutput(BaseModel):
-    status: str
-    members: list[SonosSelectionMemberAvailabilityOutput]
-
-
-class SonosSelectionOutput(BaseModel):
-    selected_group: SelectedSonosGroupOutput | None = None
-    availability: SonosSelectionAvailabilityOutput
-
-
-class SonosSelectionInput(BaseModel):
-    uids: list[str]
-    coordinator_uid: str | None = None
-
-
-class SonosSelectionUpdateOutput(BaseModel):
-    selected_group: SelectedSonosGroupOutput
-    availability: SonosSelectionAvailabilityOutput
-    message: str
-    restart_required: bool
 
 
 class APIController:
@@ -126,56 +86,6 @@ class APIController:
             )
         )
         self.app.include_router(build_settings_router(self.settings_service))
-
-        @self.app.get("/api/v1/sonos/speakers", response_model=list[SonosSpeakerOutput])
-        def get_sonos_speakers():
-            try:
-                return self.sonos_service.list_network_speakers()
-            except SonosDiscoveryError as err:
-                raise HTTPException(status_code=502, detail=str(err))
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
-
-        @self.app.get("/api/v1/sonos/selection", response_model=SonosSelectionOutput)
-        def get_sonos_selection():
-            try:
-                return GetSonosSelectionStatus(
-                    SettingsSelectedSonosGroupRepository(self.settings_service),
-                    self.sonos_service,
-                ).execute()
-            except SonosDiscoveryError as err:
-                raise HTTPException(status_code=502, detail=str(err))
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
-
-        @self.app.put("/api/v1/sonos/selection", response_model=SonosSelectionUpdateOutput)
-        def put_sonos_selection(payload: SonosSelectionInput):
-            try:
-                result = SaveSonosSelection(
-                    SettingsSelectedSonosGroupRepository(self.settings_service),
-                    self.sonos_service,
-                ).execute(payload.uids, coordinator_uid=payload.coordinator_uid)
-                return SonosSelectionUpdateOutput(
-                    selected_group=SelectedSonosGroupOutput(**result.selected_group.model_dump()),
-                    availability=SonosSelectionAvailabilityOutput(
-                        status="available",
-                        members=[
-                            SonosSelectionMemberAvailabilityOutput(
-                                uid=member.uid,
-                                status="available",
-                                speaker=SonosSpeakerOutput(**member.model_dump()),
-                            )
-                            for member in result.members
-                        ],
-                    ),
-                    message=result.settings_message,
-                    restart_required=result.restart_required,
-                )
-            except SonosDiscoveryError as err:
-                raise HTTPException(status_code=502, detail=str(err))
-            except ValueError as err:
-                raise HTTPException(status_code=400, detail=str(err))
-            except HTTPException:
-                raise
-            except Exception as err:
-                raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+        self.app.include_router(
+            build_sonos_router(settings_service=self.settings_service, sonos_service=self.sonos_service)
+        )
