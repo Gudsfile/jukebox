@@ -9,7 +9,7 @@ from jukebox.adapters.inbound.admin.cli_display import (
     display_library_table,
 )
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
-from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
+from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc, SearchDiscs
 
 
 class InteractiveCLIController:
@@ -21,6 +21,7 @@ class InteractiveCLIController:
         edit_disc: EditDisc,
         get_disc: GetDisc,
         get_current_tag_status: GetCurrentTagStatus,
+        search_discs: SearchDiscs,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -28,6 +29,7 @@ class InteractiveCLIController:
         self.edit_disc = edit_disc
         self.get_disc = get_disc
         self.get_current_tag_status = get_current_tag_status
+        self.search_discs = search_discs
 
     def run(self) -> None:
         import questionary
@@ -36,7 +38,7 @@ class InteractiveCLIController:
             try:
                 command = questionary.select(
                     "What do you want to do?",
-                    choices=["add", "remove", "list", "edit", "get", "current"],
+                    choices=["add", "remove", "list", "edit", "get", "search", "current"],
                 ).unsafe_ask()
             except KeyboardInterrupt:
                 return
@@ -53,6 +55,8 @@ class InteractiveCLIController:
                         self.edit_disc_flow()
                     case "get":
                         self.get_disc_flow()
+                    case "search":
+                        self.search_discs_flow()
                     case "current":
                         self.current_tag_flow()
             except KeyboardInterrupt:
@@ -111,6 +115,20 @@ class InteractiveCLIController:
         tag = self._prompt_for_tag(current_tag_status, action="get")
         disc = self.get_disc.execute(tag)
         display_disc(tag, disc)
+
+    def search_discs_flow(self) -> None:
+        import questionary
+
+        print("\n-- Search discs --")
+        query = questionary.text("Query:").unsafe_ask().strip()
+        if not query:
+            raise ValueError("A query is required.")
+        results = self.search_discs.execute(query)
+        if not results:
+            print(f"No discs found matching '{query}'")
+            return
+        print(f"Found {len(results)} disc(s) matching '{query}':")
+        display_library_table(results)
 
     def current_tag_flow(self) -> None:
         print("\n-- Current tag --")
