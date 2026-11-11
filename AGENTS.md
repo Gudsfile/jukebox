@@ -123,3 +123,9 @@ The admin web UI is a Svelte SPA in `admin-ui/` that consumes the `/api/v1` REST
 - Tests mirror source structure under `tests/`
 - Use `pytest` and `pytest-mock`; mock repositories via `MockRepo` (not the real JSON adapter)
 - Conditional skip for Python version requirements (UI tests require 3.10+)
+
+## Contributing
+
+Before committing, opening a pull request or addressing review feedback, read `CONTRIBUTING.md` (Commits, Pull requests): commit and PR title format, PR template, fixup commits, stacked PRs.
+
+Open pull requests as drafts (`gh pr create --draft`); the maintainer marks them ready.

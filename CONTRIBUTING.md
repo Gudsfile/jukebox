@@ -166,16 +166,20 @@ Proposed | Accepted | Deprecated | Superseded by ADR XXXX
 
 ## Commits
 
-Commit messages use [gitmoji](https://gitmoji.dev/) followed by a short imperative sentence, for example:
+Commit messages use [gitmoji](https://gitmoji.dev/) followed by a short imperative sentence starting with a lowercase letter, for example:
 
 ```text
-✨ Add a search bar to the admin UI Settings page
-🐛 Align the Settings and Sonos titles with the Library one
-♻️ Extract the disc form card into a shared .form-card class
-📝 Add a CONTRIBUTING file
+✨ add a search bar to the admin UI Settings page
+🐛 align the Settings and Sonos titles with the Library one
+♻️ extract the disc form card into a shared .form-card class
+📝 add a CONTRIBUTING file
 ```
 
-Prefer small commits that each do one thing.
+Prefer small commits that each do one thing and carry one intent.
+
+> [!IMPORTANT]
+> Releases are automated and handled by the maintainers (see [ADR 0002](docs/adr/0002-release-workflow.md)).
+> Do not bump the version in `pyproject.toml`, and do not create commits starting with `🔖 v`: they are reserved for version bumps.
 
 ## Pull requests
 
@@ -184,6 +188,8 @@ Prefer small commits that each do one thing.
 3. Run the checks above.
 4. Open a pull request against `main`. Link the related issue if any.
 5. If `main` moves ahead, rebase your branch onto it rather than merging `main` into it.
+
+The pull request title follows the commit format, starting with an uppercase letter (for example `✨ Add a search bar to the admin UI Settings page`): it becomes the merge commit message.
 
 Describe the pull request with the following sections, prefilled by the [pull request template](.github/pull_request_template.md):
 
@@ -194,9 +200,13 @@ Describe the pull request with the following sections, prefilled by the [pull re
 
 Pull requests are merged with a merge commit, so each commit of the branch stays in the history.
 
-> [!IMPORTANT]
-> Releases are automated and handled by the maintainers (see [ADR 0002](docs/adr/0002-release-workflow.md)).
-> Do not bump the version in `pyproject.toml`, and do not create commits starting with `🔖 v`: they are reserved for version bumps.
+### Review feedback
+
+Address review comments with fixup commits, autosquashed before the merge.
+
+### Dependent pull requests
+
+Split a large change into several pull requests when each part can be reviewed on its own. When a part builds on another one, stack them with [gh stack](https://github.com/github/gh-stack): each pull request is based on the branch below it, shows only its own diff, and the stack is rebased as a whole when a lower layer changes or merges.
 
 ## License
 
