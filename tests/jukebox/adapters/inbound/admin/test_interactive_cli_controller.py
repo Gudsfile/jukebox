@@ -157,6 +157,7 @@ def test_edit_disc_flow_keeps_current_uri_when_uri_is_empty(empty_uri):
 
 def test_remove_disc_flow_removes_requested_tag_when_confirmed():
     controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
     controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata(artist="Zubi"))
     confirm = _mock_confirm(True)
 
@@ -173,6 +174,7 @@ def test_remove_disc_flow_removes_requested_tag_when_confirmed():
 
 def test_remove_disc_flow_keeps_disc_when_declined(capsys):
     controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
     controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata())
 
     with patch("questionary.text", _mock_text("tag-123")), patch("questionary.confirm", _mock_confirm(False)):
@@ -182,8 +184,43 @@ def test_remove_disc_flow_keeps_disc_when_declined(capsys):
     assert capsys.readouterr().out.splitlines()[-1] == "Disc not removed"
 
 
+def test_remove_disc_flow_uses_known_current_tag_as_default():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=True)
+    controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata())
+    text = _mock_text("")
+
+    with patch("questionary.text", text), patch("questionary.confirm", _mock_confirm(True)), patch("builtins.print"):
+        controller.remove_disc_flow()
+
+    text.assert_called_once_with("Tag ID (remove):", default="tag-456")
+    controller.remove_disc.execute.assert_called_once_with("tag-456")
+
+
+@pytest.mark.parametrize(
+    "current_tag_status",
+    (CurrentTagStatus(tag_id="tag-456", known_in_library=False), None),
+)
+def test_remove_disc_flow_does_not_default_to_unknown_or_missing_current_tag(current_tag_status):
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = current_tag_status
+    text = _mock_text("")
+
+    with (
+        patch("questionary.text", text),
+        patch("builtins.print"),
+        pytest.raises(ValueError, match="A tag ID is required."),
+    ):
+        controller.remove_disc_flow()
+
+    text.assert_called_once_with("Tag ID (remove):", default="")
+    controller.get_disc.execute.assert_not_called()
+    controller.remove_disc.execute.assert_not_called()
+
+
 def test_remove_disc_flow_propagates_remove_failures():
     controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
     controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata())
     controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")
 

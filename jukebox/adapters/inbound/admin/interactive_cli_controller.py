@@ -85,7 +85,8 @@ class InteractiveCLIController:
         import questionary
 
         print("\n-- Remove a disc --")
-        tag = questionary.text("Tag ID:").unsafe_ask().strip()
+        current_tag_status = self.get_current_tag_status.execute()
+        tag = self._prompt_for_tag(current_tag_status, action="remove")
         disc = self.get_disc.execute(tag)
         if not questionary.confirm(build_remove_confirmation(tag, disc), default=False).unsafe_ask():
             print("Disc not removed")
@@ -117,13 +118,15 @@ class InteractiveCLIController:
         print(f"Type             : {metadata.display_type}")
         print(f"Title            : {metadata.display_title}")
 
-    def _prompt_for_tag(self, current_tag_status: CurrentTagStatus | None, action: str) -> str:
+    def _prompt_for_tag(
+        self, current_tag_status: CurrentTagStatus | None, action: Literal["add", "edit", "remove"]
+    ) -> str:
         import questionary
 
         default_tag = ""
         if current_tag_status is not None and (
             (action == "add" and not current_tag_status.known_in_library)
-            or (action == "edit" and current_tag_status.known_in_library)
+            or (action in ("edit", "remove") and current_tag_status.known_in_library)
         ):
             default_tag = current_tag_status.tag_id
 
