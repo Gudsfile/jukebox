@@ -6,6 +6,7 @@ import pytest
 FASTAPI_INSTALLED = importlib.util.find_spec("fastapi") is not None
 
 if FASTAPI_INSTALLED:
+    from fastapi.routing import iter_route_contexts
     from starlette.routing import Mount
 
     from jukebox.adapters.inbound.admin.ui_controller import UIController
@@ -30,7 +31,10 @@ def test_admin_ui_mount_is_registered_last_so_it_does_not_shadow_other_routes():
     controller = build_controller()
 
     assert isinstance(controller.app.routes[-1], Mount)
-    assert any(getattr(route, "path", None) == "/api/v1/sonos/speakers" for route in controller.app.routes[:-1])
+    assert any(
+        getattr(route, "path", None) == "/api/v1/sonos/speakers"
+        for route in iter_route_contexts(controller.app.routes[:-1])
+    )
 
 
 def test_warns_when_admin_ui_bundle_is_missing(tmp_path, monkeypatch, caplog):
