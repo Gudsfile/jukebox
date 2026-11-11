@@ -115,9 +115,9 @@ Launch the web UI (requires the `ui` extra):
 jukebox-admin ui
 ```
 
-![Jukebox Admin UI showing a disc library table with three entries and a yellow warning banner indicating an unknown NFC tag is on the reader, ready to be added](docs/img/ui-library-index-unknown-nfc-tag-banner.png)
+![Jukebox Admin UI showing the disc library table, with the floating Reader panel reporting an unknown disc on the NFC reader, ready to be added](docs/img/ui-library-index-unknown-nfc-tag-banner.png)
 
-![Add disc form with the NFC tag ID pre-filled, and empty fields for URI, artist, album, track and shuffle](docs/img/ui-add-disc-form.png)
+![Add disc form with the Tag ID pre-filled from the reader, and empty fields for URI / Path, artist, album, track, playlist and shuffle](docs/img/ui-add-disc-form.png)
 
 ## Usage
 
