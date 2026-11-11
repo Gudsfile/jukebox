@@ -23,6 +23,9 @@ describe('App', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'sonos' }))
     expect(screen.getByRole('heading', { name: 'Sonos' })).toBeInTheDocument()
 
+    await fireEvent.click(screen.getByRole('button', { name: 'pn532' }))
+    expect(screen.getByRole('heading', { name: 'PN532' })).toBeInTheDocument()
+
     await fireEvent.click(screen.getByRole('button', { name: 'library' }))
     expect(screen.getByRole('heading', { name: 'Library' })).toBeInTheDocument()
   })
