@@ -52,6 +52,21 @@ def test_display_title(playlist, artist, album, track, expected):
 
 
 @pytest.mark.parametrize(
+    ("metadata", "expected"),
+    [
+        pytest.param(DiscMetadata(playlist="playlist"), True, id="playlist"),
+        pytest.param(DiscMetadata(artist="artist"), True, id="artist"),
+        pytest.param(DiscMetadata(album="album"), True, id="album"),
+        pytest.param(DiscMetadata(track="track"), True, id="track"),
+        pytest.param(DiscMetadata(), False, id="empty"),
+        pytest.param(DiscMetadata(artist="", album=""), False, id="empty-strings"),
+    ],
+)
+def test_has_title(metadata, expected):
+    assert metadata.has_title is expected
+
+
+@pytest.mark.parametrize(
     ("playlist", "artist", "album", "track", "expected"),
     [
         pytest.param("playlist", None, None, None, "🎧 Playlist", id="playlist"),

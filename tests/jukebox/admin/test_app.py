@@ -338,6 +338,14 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             CliRemoveCommand(type="remove", use_current_tag=True, expected_tag_id="tag-123"),
         ),
         (
+            ["library", "remove", "tag-123", "--yes"],
+            CliRemoveCommand(type="remove", tag="tag-123", yes=True),
+        ),
+        (
+            ["library", "remove", "tag-123", "-y"],
+            CliRemoveCommand(type="remove", tag="tag-123", yes=True),
+        ),
+        (
             ["library", "edit", "tag-123", "--artist", "Updated Artist"],
             CliEditCommand(type="edit", tag="tag-123", artist="Updated Artist"),
         ),

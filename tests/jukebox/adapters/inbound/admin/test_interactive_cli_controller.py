@@ -23,6 +23,11 @@ def _mock_text(*responses):
     return MagicMock(return_value=MagicMock(unsafe_ask=mock_ask))
 
 
+def _mock_confirm(response):
+    """Replace questionary.confirm so .unsafe_ask() returns response."""
+    return MagicMock(return_value=MagicMock(unsafe_ask=MagicMock(return_value=response)))
+
+
 def _mock_select(response):
     """Replace questionary.select so .unsafe_ask() returns response."""
     return MagicMock(return_value=MagicMock(unsafe_ask=MagicMock(return_value=response)))
@@ -150,26 +155,45 @@ def test_edit_disc_flow_keeps_current_uri_when_uri_is_empty(empty_uri):
     controller.edit_disc.execute.assert_called_once_with("tag-123", None, DiscMetadata(), DiscOption())
 
 
-def test_remove_disc_flow_removes_requested_tag():
+def test_remove_disc_flow_removes_requested_tag_when_confirmed():
     controller = build_controller()
+    controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata(artist="Zubi"))
+    confirm = _mock_confirm(True)
 
-    with patch("questionary.text", _mock_text("tag-123")), patch("builtins.print"):
+    with (
+        patch("questionary.text", _mock_text("tag-123")),
+        patch("questionary.confirm", confirm),
+        patch("builtins.print"),
+    ):
         controller.remove_disc_flow()
 
+    confirm.assert_called_once_with('Delete disc "tag-123" (Zubi)?', default=False)
     controller.remove_disc.execute.assert_called_once_with("tag-123")
+
+
+def test_remove_disc_flow_keeps_disc_when_declined(capsys):
+    controller = build_controller()
+    controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata())
+
+    with patch("questionary.text", _mock_text("tag-123")), patch("questionary.confirm", _mock_confirm(False)):
+        controller.remove_disc_flow()
+
+    controller.remove_disc.execute.assert_not_called()
+    assert capsys.readouterr().out.splitlines()[-1] == "Disc not removed"
 
 
 def test_remove_disc_flow_propagates_remove_failures():
     controller = build_controller()
+    controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3", metadata=DiscMetadata())
     controller.remove_disc.execute.side_effect = ValueError("Tag does not exist")
 
-    with patch("questionary.text", _mock_text("tag-123")), patch("builtins.print"):
-        try:
-            controller.remove_disc_flow()
-        except ValueError as err:
-            assert str(err) == "Tag does not exist"
-        else:
-            raise AssertionError("Expected ValueError")
+    with (
+        patch("questionary.text", _mock_text("tag-123")),
+        patch("questionary.confirm", _mock_confirm(True)),
+        patch("builtins.print"),
+        pytest.raises(ValueError, match="Tag does not exist"),
+    ):
+        controller.remove_disc_flow()
 
 
 def test_edit_disc_flow_requires_explicit_tag_when_current_tag_is_unknown():

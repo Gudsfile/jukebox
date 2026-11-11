@@ -1,6 +1,13 @@
+import sys
+
 import typer
 
-from jukebox.adapters.inbound.admin.cli_display import display_disc, display_library_line, display_library_table
+from jukebox.adapters.inbound.admin.cli_display import (
+    build_remove_confirmation,
+    display_disc,
+    display_library_line,
+    display_library_table,
+)
 from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
@@ -71,6 +78,13 @@ class CLIController:
 
     def remove_disc_flow(self, command: CliRemoveCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
+        if not command.yes:
+            disc = self.get_disc.execute(tag)
+            if not sys.stdin.isatty():
+                raise ValueError(f"Refusing to remove disc '{tag}' without confirmation: pass --yes to confirm.")
+            if not typer.confirm(build_remove_confirmation(tag, disc), default=False):
+                typer.echo("Disc not removed")
+                return
         self.remove_disc.execute(tag)
         typer.echo("🗑️ Disc successfully removed")
 

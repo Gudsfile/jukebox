@@ -40,6 +40,11 @@ def display_disc(tag_id: str, disc: Disc, console: Console | None = None) -> Non
         _console.print(line)
 
 
+def build_remove_confirmation(tag_id: str, disc: Disc) -> str:
+    suffix = f" ({disc.metadata.display_title})" if disc.metadata.has_title else ""
+    return f'Delete disc "{tag_id}"{suffix}?'
+
+
 def display_library_line(discs: dict[str, Disc]) -> None:
     if not discs:
         print("The library is empty")

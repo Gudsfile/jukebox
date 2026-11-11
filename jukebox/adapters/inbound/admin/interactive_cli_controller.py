@@ -2,7 +2,11 @@ from typing import Literal, overload
 
 import typer
 
-from jukebox.adapters.inbound.admin.cli_display import display_library_line, display_library_table
+from jukebox.adapters.inbound.admin.cli_display import (
+    build_remove_confirmation,
+    display_library_line,
+    display_library_table,
+)
 from jukebox.domain.entities import CurrentTagStatus, Disc, DiscMetadata, DiscOption
 from jukebox.domain.use_cases import AddDisc, EditDisc, GetCurrentTagStatus, GetDisc, ListDiscs, RemoveDisc
 
@@ -81,8 +85,12 @@ class InteractiveCLIController:
         import questionary
 
         print("\n-- Remove a disc --")
-        tag = questionary.text("Tag ID:").unsafe_ask()
-        self.remove_disc.execute(tag.strip())
+        tag = questionary.text("Tag ID:").unsafe_ask().strip()
+        disc = self.get_disc.execute(tag)
+        if not questionary.confirm(build_remove_confirmation(tag, disc), default=False).unsafe_ask():
+            print("Disc not removed")
+            return
+        self.remove_disc.execute(tag)
         print("🗑️ Disc successfully removed")
 
     def edit_disc_flow(self) -> None:
