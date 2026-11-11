@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { apiGet } from '../api.js'
+  import { apiDownload, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import SettingBadges from '../components/SettingBadges.svelte'
   import SettingForm from '../components/SettingForm.svelte'
@@ -9,6 +9,8 @@
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
   const PN532_BOARD_PROFILE_PATH = 'jukebox.reader.pn532.board_profile'
+  // Some browsers (Safari) read the blob after click() returns: keep its URL alive for a while (as FileSaver.js does).
+  const REVOKE_DOWNLOAD_URL_DELAY_MS = 40_000
 
   let { onManageSpeakers, onConfigurePn532 } = $props()
 
@@ -66,6 +68,20 @@
       toastStore.showToast('⚙️ Settings saved.')
     } else if (action === 'reset') {
       toastStore.showToast('⚙️ Settings reset to default.')
+    }
+  }
+
+  async function exportFile(path) {
+    try {
+      const { blob, filename } = await apiDownload(path)
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), REVOKE_DOWNLOAD_URL_DELAY_MS)
+    } catch (err) {
+      toastStore.showToast(`⚠️ Export failed: ${err.body?.detail ?? err.message}`)
     }
   }
 </script>
@@ -148,4 +164,15 @@
       <p class="no-results">No setting matches “{searchQuery.trim()}”</p>
     {/if}
   {/each}
+{/if}
+
+{#if !editingSetting}
+  <section class="backup">
+    <h3>Backup</h3>
+    <p>Download the library and the persisted settings as JSON files.</p>
+    <div class="row-actions">
+      <button class="btn-secondary" onclick={() => exportFile('/export/library')}>Export library</button>
+      <button class="btn-secondary" onclick={() => exportFile('/export/settings')}>Export settings</button>
+    </div>
+  </section>
 {/if}

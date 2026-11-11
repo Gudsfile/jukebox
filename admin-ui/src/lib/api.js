@@ -40,4 +40,14 @@ export function apiDelete(path) {
   return request(path, { method: 'DELETE' })
 }
 
-export { ApiError }
+export async function apiDownload(path) {
+  const res = await fetch(`${BASE_URL}${path}`)
+  if (!res.ok) {
+    throw new ApiError(res.status, await res.json().catch(() => null))
+  }
+  const disposition = res.headers.get('Content-Disposition') ?? ''
+  const filename = disposition.match(/filename="([^"]+)"/)?.[1] ?? `${path.split('/').at(-1)}.json`
+  return { blob: await res.blob(), filename }
+}
+
+export { ApiError, BASE_URL }
