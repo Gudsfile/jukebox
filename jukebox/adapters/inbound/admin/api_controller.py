@@ -15,6 +15,7 @@ try:
         SettingsResetInput,
         SonosSelectionInput,
     )
+    from jukebox.adapters.inbound.admin.api.pn532_router import build_pn532_router
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
     from jukebox.adapters.inbound.admin.api.sonos_router import build_sonos_router
 except ModuleNotFoundError as e:
@@ -89,3 +90,4 @@ class APIController:
         self.app.include_router(
             build_sonos_router(settings_service=self.settings_service, sonos_service=self.sonos_service)
         )
+        self.app.include_router(build_pn532_router(self.settings_service))

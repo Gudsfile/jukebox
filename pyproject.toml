@@ -70,6 +70,7 @@ extend-select = [
 # A blind `except Exception` there is the intended last-resort safety net, not a bug.
 "jukebox/adapters/inbound/admin/api/current_tag_router.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/api/discs_router.py" = ["BLE001"]
+"jukebox/adapters/inbound/admin/api/pn532_router.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/api/settings_router.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/api/sonos_router.py" = ["BLE001"]
 "jukebox/adapters/inbound/admin/api_controller.py" = ["BLE001"]
