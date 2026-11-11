@@ -83,7 +83,11 @@ def test_add_disc_flow_uses_current_tag_default_for_unknown_disc():
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=False)
 
-    with patch("questionary.text", _mock_text("", "/music/song.mp3")), patch("builtins.print"):
+    with (
+        patch("questionary.text", _mock_text("", "/music/song.mp3", "", "", "", "")),
+        patch("questionary.confirm", _mock_confirm(False)),
+        patch("builtins.print"),
+    ):
         controller.add_disc_flow()
 
     controller.add_disc.execute.assert_called_once_with(
@@ -95,10 +99,16 @@ def test_add_disc_flow_uses_current_tag_default_for_unknown_disc():
 def test_edit_disc_flow_uses_current_tag_as_default():
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=True)
+    controller.get_disc.execute.return_value = Disc(uri="/music/song.mp3")
 
-    with patch("questionary.text", _mock_text("", "/music/updated.mp3")), patch("builtins.print"):
+    with (
+        patch("questionary.text", _mock_text("", "/music/updated.mp3", "", "", "", "")),
+        patch("questionary.confirm", _mock_confirm(False)),
+        patch("builtins.print"),
+    ):
         controller.edit_disc_flow()
 
+    controller.get_disc.execute.assert_called_once_with("tag-456")
     controller.edit_disc.execute.assert_called_once_with(
         "tag-456",
         "/music/updated.mp3",
@@ -111,7 +121,11 @@ def test_add_disc_flow_does_not_default_to_known_library_tag():
     controller = build_controller()
     controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-123", known_in_library=True)
 
-    with patch("questionary.text", _mock_text("other-tag", "/music/song.mp3")), patch("builtins.print"):
+    with (
+        patch("questionary.text", _mock_text("other-tag", "/music/song.mp3", "", "", "", "")),
+        patch("questionary.confirm", _mock_confirm(False)),
+        patch("builtins.print"),
+    ):
         controller.add_disc_flow()
 
     controller.add_disc.execute.assert_called_once_with(
@@ -146,14 +160,95 @@ def test_add_disc_flow_does_not_allow_empty_uri(empty_uri):
     assert "A URI is required." in str(exc.value)
 
 
-@pytest.mark.parametrize("empty_uri", ("", "   ", None))
-def test_edit_disc_flow_keeps_current_uri_when_uri_is_empty(empty_uri):
+def test_add_disc_flow_sets_every_field():
     controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    text = _mock_text("tag-123", "spotify:playlist:1", " Zubi ", "Dear Z", "dey ok", "Mix")
+    confirm = _mock_confirm(True)
 
-    with patch("questionary.text", _mock_text("tag-123", empty_uri)), patch("builtins.print"):
+    with patch("questionary.text", text), patch("questionary.confirm", confirm), patch("builtins.print"):
+        controller.add_disc_flow()
+
+    assert [c.args[0] for c in text.call_args_list[2:]] == [
+        "Artist (optional):",
+        "Album (optional):",
+        "Track (optional):",
+        "Playlist (optional):",
+    ]
+    confirm.assert_called_once_with("Shuffle?", default=False)
+    controller.add_disc.execute.assert_called_once_with(
+        "tag-123",
+        Disc(
+            uri="spotify:playlist:1",
+            metadata=DiscMetadata(artist="Zubi", album="Dear Z", track="dey ok", playlist="Mix"),
+            option=DiscOption(shuffle=True),
+        ),
+    )
+
+
+CURRENT_DISC = Disc(
+    uri="/music/song.mp3",
+    metadata=DiscMetadata(artist="Zubi", album="Dear Z", track="dey ok", playlist="Mix"),
+    option=DiscOption(shuffle=True),
+)
+
+
+def test_edit_disc_flow_prefills_prompts_with_current_values():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.return_value = CURRENT_DISC
+    text = _mock_text("tag-123", "", "", "", "", "")
+    confirm = _mock_confirm(True)
+
+    with patch("questionary.text", text), patch("questionary.confirm", confirm), patch("builtins.print"):
         controller.edit_disc_flow()
 
-    controller.edit_disc.execute.assert_called_once_with("tag-123", None, DiscMetadata(), DiscOption())
+    assert [(c.args[0], c.kwargs["default"]) for c in text.call_args_list[1:]] == [
+        ("URI:", "/music/song.mp3"),
+        ("Artist:", "Zubi"),
+        ("Album:", "Dear Z"),
+        ("Track:", "dey ok"),
+        ("Playlist:", "Mix"),
+    ]
+    confirm.assert_called_once_with("Shuffle?", default=True)
+
+
+@pytest.mark.parametrize("empty_answer", ("", "   ", None))
+def test_edit_disc_flow_keeps_every_field_when_answers_are_empty(empty_answer):
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.return_value = CURRENT_DISC
+
+    with (
+        patch("questionary.text", _mock_text("tag-123", *[empty_answer] * 5)),
+        patch("questionary.confirm", _mock_confirm(True)),
+        patch("builtins.print"),
+    ):
+        controller.edit_disc_flow()
+
+    controller.edit_disc.execute.assert_called_once_with(
+        "tag-123", CURRENT_DISC.uri, CURRENT_DISC.metadata, CURRENT_DISC.option
+    )
+
+
+def test_edit_disc_flow_changes_only_the_artist():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.return_value = CURRENT_DISC
+
+    with (
+        patch("questionary.text", _mock_text("tag-123", "", "Other", "", "", "")),
+        patch("questionary.confirm", _mock_confirm(True)),
+        patch("builtins.print"),
+    ):
+        controller.edit_disc_flow()
+
+    controller.edit_disc.execute.assert_called_once_with(
+        "tag-123",
+        CURRENT_DISC.uri,
+        DiscMetadata(artist="Other", album="Dear Z", track="dey ok", playlist="Mix"),
+        CURRENT_DISC.option,
+    )
 
 
 def test_remove_disc_flow_removes_requested_tag_when_confirmed():

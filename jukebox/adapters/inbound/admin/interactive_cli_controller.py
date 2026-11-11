@@ -1,4 +1,4 @@
-from typing import Literal, overload
+from typing import Literal
 
 import typer
 
@@ -69,7 +69,9 @@ class InteractiveCLIController:
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="add")
         uri = self._prompt_for_uri()
-        disc = Disc(uri=uri, metadata=DiscMetadata(), option=DiscOption())
+        metadata = self._prompt_for_metadata()
+        option = self._prompt_for_option()
+        disc = Disc(uri=uri, metadata=metadata, option=option)
         self.add_disc.execute(tag, disc)
         print("✅ Disc successfully added")
 
@@ -105,8 +107,11 @@ class InteractiveCLIController:
         print("\n-- Edit a disc --")
         current_tag_status = self.get_current_tag_status.execute()
         tag = self._prompt_for_tag(current_tag_status, action="edit")
-        uri = self._prompt_for_uri(required=False)
-        self.edit_disc.execute(tag, uri, DiscMetadata(), DiscOption())
+        current_disc = self.get_disc.execute(tag)
+        uri = self._prompt_for_uri(current_disc.uri)
+        metadata = self._prompt_for_metadata(current_disc.metadata)
+        option = self._prompt_for_option(current_disc.option)
+        self.edit_disc.execute(tag, uri, metadata, option)
         print("✅ Disc successfully edited")
 
     def get_disc_flow(self) -> None:
@@ -164,20 +169,31 @@ class InteractiveCLIController:
             raise ValueError("A tag ID is required.")
         return tag
 
-    @overload
-    def _prompt_for_uri(self, required: Literal[True] = True) -> str: ...
-
-    @overload
-    def _prompt_for_uri(self, required: Literal[False]) -> str | None: ...
-
-    def _prompt_for_uri(self, required: bool = True) -> str | None:
+    def _prompt_for_uri(self, current: str | None = None) -> str:
         import questionary
 
-        label = "URI:" if required else "URI (leave empty to keep the current one):"
-        entered_uri = questionary.text(label).unsafe_ask()
-        uri = (entered_uri or "").strip()
-        if uri:
-            return uri
-        if required:
+        entered_uri = questionary.text("URI:", default=current or "").unsafe_ask()
+        uri = (entered_uri or "").strip() or current
+        if not uri:
             raise ValueError("A URI is required.")
-        return None
+        return uri
+
+    def _prompt_for_metadata(self, current: DiscMetadata | None = None) -> DiscMetadata:
+        """Ask for each metadata field; an empty answer keeps the current value (none when adding)."""
+        import questionary
+
+        hint = " (optional)" if current is None else ""
+        current = current or DiscMetadata()
+        values = {}
+        for field in ("artist", "album", "track", "playlist"):
+            current_value = getattr(current, field)
+            entered = questionary.text(f"{field.capitalize()}{hint}:", default=current_value or "").unsafe_ask()
+            values[field] = (entered or "").strip() or current_value
+        return DiscMetadata(**values)
+
+    def _prompt_for_option(self, current: DiscOption | None = None) -> DiscOption:
+        import questionary
+
+        current = current or DiscOption()
+        shuffle = questionary.confirm("Shuffle?", default=current.shuffle).unsafe_ask()
+        return DiscOption(shuffle=shuffle)
