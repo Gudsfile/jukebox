@@ -104,7 +104,7 @@ describe('apiUpload', () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/v1/import/library',
-      expect.objectContaining({ method: 'POST', body: file }),
+      expect.objectContaining({ method: 'POST', body: file, headers: { 'Content-Type': 'application/json' } }),
     )
     expect(result).toEqual({ disc_count: 1 })
   })
@@ -118,6 +118,18 @@ describe('apiUpload', () => {
     expect(globalThis.fetch).toHaveBeenCalledWith(
       '/api/v1/import/library/preview',
       expect.objectContaining({ method: 'POST', signal }),
+    )
+  })
+
+  it('sends a file without a known type as binary', async () => {
+    mockFetchOnce()
+    const file = new File(['PK'], 'jukebox-backup.zip')
+
+    await apiUpload('/import/all', file)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      '/api/v1/import/all',
+      expect.objectContaining({ headers: { 'Content-Type': 'application/octet-stream' } }),
     )
   })
 

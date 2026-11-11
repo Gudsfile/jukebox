@@ -42,7 +42,12 @@ export function apiDelete(path) {
 
 // Sends a file picked by the user as is: the server parses and validates it.
 export function apiUpload(path, file, options = {}) {
-  return request(path, { method: 'POST', body: file, ...options })
+  return request(path, {
+    method: 'POST',
+    body: file,
+    headers: { 'Content-Type': file.type || 'application/octet-stream' },
+    ...options,
+  })
 }
 
 export async function apiDownload(path) {
