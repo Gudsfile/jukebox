@@ -334,6 +334,10 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             CliRemoveCommand(type="remove", use_current_tag=True),
         ),
         (
+            ["library", "remove", "--from-current", "--expect-tag", "tag-123"],
+            CliRemoveCommand(type="remove", use_current_tag=True, expected_tag_id="tag-123"),
+        ),
+        (
             ["library", "edit", "tag-123", "--artist", "Updated Artist"],
             CliEditCommand(type="edit", tag="tag-123", artist="Updated Artist"),
         ),
@@ -377,3 +381,31 @@ def test_jukebox_admin_routes_library_commands_to_shared_handler(app_mocks, args
     app_mocks.execute_settings_command.assert_not_called()
     app_mocks.execute_sonos_command.assert_not_called()
     app_mocks.execute_server_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["library", "add", "tag-123", "--uri", "/music/song.mp3", "--expect-tag", "tag-123"],
+        ["library", "remove", "tag-123", "--expect-tag", "tag-123"],
+        ["library", "edit", "tag-123", "--artist", "Artist", "--expect-tag", "tag-123"],
+        ["library", "get", "tag-123", "--expect-tag", "tag-123"],
+    ],
+)
+def test_jukebox_admin_rejects_expect_tag_without_from_current(app_mocks, args):
+    result = runner.invoke(app, args)
+
+    assert result.exit_code == 1
+    assert "--expect-tag requires --from-current" in result.output
+    app_mocks.execute_library_command.assert_not_called()
+
+
+def test_jukebox_admin_fails_when_current_tag_differs_from_expected_tag(app_mocks):
+    app_mocks.execute_library_command.side_effect = ValueError(
+        "Current tag changed: expected_tag_id='tag-123', actual_tag_id='other-tag'"
+    )
+
+    result = runner.invoke(app, ["library", "remove", "--from-current", "--expect-tag", "tag-123"])
+
+    assert result.exit_code == 1
+    assert "Current tag changed: expected_tag_id='tag-123', actual_tag_id='other-tag'" in result.output

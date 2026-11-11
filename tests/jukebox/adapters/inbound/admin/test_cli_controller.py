@@ -28,7 +28,7 @@ def test_add_disc_flow_uses_resolved_current_tag():
 
     controller.add_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, None)
     controller.add_disc.execute.assert_called_once_with(
         "tag-current",
         Disc(
@@ -64,7 +64,7 @@ def test_edit_disc_flow_resolves_current_tag():
 
     controller.edit_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, None)
     controller.edit_disc.execute.assert_called_once_with(
         tag_id="tag-current",
         uri="/music/updated.mp3",
@@ -91,8 +91,29 @@ def test_remove_disc_flow_resolves_current_tag_without_clearing():
 
     controller.remove_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, None)
     controller.remove_disc.execute.assert_called_once_with("tag-current")
+
+
+def test_remove_disc_flow_passes_expected_tag_to_resolution():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-current"
+    command = CliRemoveCommand(type="remove", use_current_tag=True, expected_tag_id="tag-current")
+
+    controller.remove_disc_flow(command)
+
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, "tag-current")
+    controller.remove_disc.execute.assert_called_once_with("tag-current")
+
+
+def test_remove_disc_flow_does_not_remove_when_current_tag_changed():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.side_effect = ValueError("Current tag changed")
+    command = CliRemoveCommand(type="remove", use_current_tag=True, expected_tag_id="tag-expected")
+
+    with pytest.raises(ValueError, match="Current tag changed"):
+        controller.remove_disc_flow(command)
+    controller.remove_disc.execute.assert_not_called()
 
 
 def test_remove_disc_flow_propagates_remove_failures():
@@ -117,7 +138,7 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
 
     controller.get_disc_flow(command)
 
-    controller.resolve_tag_id.execute.assert_called_once_with(None, True)
+    controller.resolve_tag_id.execute.assert_called_once_with(None, True, None)
     controller.get_disc.execute.assert_called_once_with("tag-current")
     assert capsys.readouterr().out.splitlines() == [
         "",

@@ -7,12 +7,15 @@ from pydantic import BaseModel, model_validator
 class CliTagSourceCommand(BaseModel):
     tag: str | None = None
     use_current_tag: bool = False
+    expected_tag_id: str | None = None
 
     @model_validator(mode="after")
     def validate_tag_source(self) -> Self:
         has_explicit_tag = bool(self.tag)
         if has_explicit_tag == self.use_current_tag:
             raise ValueError("Exactly one tag source must be provided: explicit tag or --from-current.")
+        if self.expected_tag_id is not None and not self.use_current_tag:
+            raise ValueError("--expect-tag requires --from-current.")
         return self
 
 
