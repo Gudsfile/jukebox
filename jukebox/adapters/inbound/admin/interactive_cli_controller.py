@@ -179,16 +179,17 @@ class InteractiveCLIController:
         return uri
 
     def _prompt_for_metadata(self, current: DiscMetadata | None = None) -> DiscMetadata:
-        """Ask for each metadata field; an empty answer keeps the current value (none when adding)."""
+        """Ask for each metadata field, prefilled with the current value; an empty answer means no value."""
         import questionary
 
-        hint = " (optional)" if current is None else ""
+        hint = " (optional)" if current is None else " (empty to clear)"
         current = current or DiscMetadata()
         values = {}
         for field in ("artist", "album", "track", "playlist"):
-            current_value = getattr(current, field)
-            entered = questionary.text(f"{field.capitalize()}{hint}:", default=current_value or "").unsafe_ask()
-            values[field] = (entered or "").strip() or current_value
+            entered = questionary.text(
+                f"{field.capitalize()}{hint}:", default=getattr(current, field) or ""
+            ).unsafe_ask()
+            values[field] = (entered or "").strip() or None
         return DiscMetadata(**values)
 
     def _prompt_for_option(self, current: DiscOption | None = None) -> DiscOption:
