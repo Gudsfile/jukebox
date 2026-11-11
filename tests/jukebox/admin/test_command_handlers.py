@@ -27,7 +27,7 @@ from jukebox.sonos.service import InspectedSelectedSonosGroup
 
 
 def build_services():
-    return AdminServices(settings=MagicMock(), sonos=MagicMock())
+    return AdminServices(settings=MagicMock(), sonos=MagicMock(), settings_path="/test/settings.json")
 
 
 def build_inspected_group(

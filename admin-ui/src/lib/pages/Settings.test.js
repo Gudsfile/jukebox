@@ -2,9 +2,11 @@ import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Settings from './Settings.svelte'
-import { apiGet, apiPatch, apiPost } from '../api.js'
+import { apiDownload, apiGet, apiPatch, apiPost } from '../api.js'
+import { toastStore } from '../stores/toastStore.js'
 
 vi.mock('../api.js', () => ({
+  apiDownload: vi.fn(),
   apiGet: vi.fn(),
   apiPatch: vi.fn(),
   apiPost: vi.fn(),
@@ -85,6 +87,7 @@ const displaysResponse = {
 }
 
 beforeEach(() => {
+  apiDownload.mockReset()
   apiGet.mockReset()
   apiPatch.mockReset()
   apiPost.mockReset()
@@ -235,7 +238,7 @@ describe('Settings — search', () => {
     render(Settings, { props: {} })
 
     expect(await screen.findByRole('searchbox', { name: 'Search settings' })).toHaveValue('')
-    expect(screen.getAllByRole('heading', { level: 3 })).toHaveLength(3)
+    expect(screen.getAllByRole('table')).toHaveLength(3)
     expect(screen.getByText('Library Path')).toBeInTheDocument()
     expect(screen.getByText('Sonos Selected Group')).toBeInTheDocument()
   })
@@ -381,5 +384,71 @@ describe('Settings — PN532 board profile row', () => {
     await fireEvent.click(within(row).getByRole('button', { name: 'Configure PN532 🔌' }))
 
     expect(onConfigurePn532).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Settings — backup', () => {
+  it('downloads each export under the file name given by the server', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    const blob = new Blob(['{}'], { type: 'application/json' })
+    apiDownload.mockResolvedValue({ blob, filename: 'library-2026-11-11.json' })
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:library')
+    URL.revokeObjectURL = vi.fn()
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+    render(Settings, { props: {} })
+
+    const backup = (await screen.findByRole('heading', { name: 'Backup' })).closest('section')
+    vi.useFakeTimers()
+    await fireEvent.click(within(backup).getByRole('button', { name: 'Export library' }))
+    await vi.waitFor(() => expect(click).toHaveBeenCalledOnce())
+
+    expect(apiDownload).toHaveBeenCalledWith('/export/library')
+    expect(URL.createObjectURL).toHaveBeenCalledWith(blob)
+    expect(click.mock.contexts[0].download).toBe('library-2026-11-11.json')
+    expect(URL.revokeObjectURL).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(40_000)
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:library')
+    vi.useRealTimers()
+    click.mockRestore()
+  })
+
+  it('exports the persisted settings from the Export settings button', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    apiDownload.mockReturnValue(new Promise(() => {}))
+    render(Settings, { props: {} })
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Export settings' }))
+
+    expect(apiDownload).toHaveBeenCalledWith('/export/settings')
+  })
+
+  it('shows the server error in a toast when an export fails', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    apiDownload.mockRejectedValue({ body: { detail: 'No library file to export.' } })
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    render(Settings, { props: {} })
+
+    await fireEvent.click(await screen.findByRole('button', { name: 'Export library' }))
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('⚠️ Export failed: No library file to export.'))
+    showToast.mockRestore()
+  })
+
+  it('still offers the backup when loading the settings fails', async () => {
+    apiGet.mockRejectedValue(new Error('Network error'))
+    render(Settings, { props: {} })
+
+    expect(await screen.findByText('Network error')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Export library' })).toBeInTheDocument()
+  })
+
+  it('hides the backup while a setting is being edited', async () => {
+    apiGet.mockResolvedValue(displaysResponse)
+    render(Settings, { props: {} })
+
+    const row = (await screen.findByText('Admin API Port')).closest('tr')
+    await fireEvent.click(within(row).getByRole('button', { name: 'Edit' }))
+
+    expect(screen.queryByRole('heading', { name: 'Backup' })).not.toBeInTheDocument()
   })
 })

@@ -15,7 +15,9 @@ pytestmark = pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependenc
 
 
 def build_controller():
-    return UIController(*(MagicMock() for _ in range(8)))
+    return UIController(
+        *(MagicMock() for _ in range(8)), library_path="/test/library.json", settings_path="/test/settings.json"
+    )
 
 
 def test_admin_ui_static_bundle_is_mounted_at_root():

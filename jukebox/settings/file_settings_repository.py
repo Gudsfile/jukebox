@@ -12,13 +12,14 @@ from .migration import CURRENT_SETTINGS_SCHEMA_VERSION, migrate_settings_data
 from .types import JsonObject
 
 
+def default_settings_path() -> str:
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
+    return os.path.expanduser(os.path.join(xdg_config_home, "jukebox/settings.json"))
+
+
 class FileSettingsRepository:
     def __init__(self, filepath: str | None = None):
-        if filepath is None:
-            xdg_config_home = os.environ.get("XDG_CONFIG_HOME", "~/.config")
-            self.filepath = os.path.expanduser(os.path.join(xdg_config_home, "jukebox/settings.json"))
-        else:
-            self.filepath = os.path.expanduser(filepath)
+        self.filepath = default_settings_path() if filepath is None else os.path.expanduser(filepath)
 
     def load_persisted_settings_data(self) -> JsonObject:
         if not os.path.exists(self.filepath):

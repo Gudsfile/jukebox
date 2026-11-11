@@ -13,7 +13,7 @@ from jukebox.domain.use_cases import (
     ResolveTagId,
     SearchDiscs,
 )
-from jukebox.settings.file_settings_repository import FileSettingsRepository
+from jukebox.settings.file_settings_repository import FileSettingsRepository, default_settings_path
 from jukebox.settings.resolve import SettingsService as SettingsServiceImpl
 from jukebox.settings.resolve import build_environment_settings_overrides
 from jukebox.settings.service_protocols import SettingsService
@@ -28,6 +28,7 @@ from .services import AdminServices
 def build_settings_service(
     library: str | None,
     command: object | None,
+    settings_path: str | None = None,
 ) -> SettingsService:
     cli_overrides: JsonObject = {}
 
@@ -43,7 +44,7 @@ def build_settings_service(
         cast(JsonObject, admin.setdefault("ui", {}))["port"] = command.port
 
     return SettingsServiceImpl(
-        repository=FileSettingsRepository(),
+        repository=FileSettingsRepository(settings_path),
         env_overrides=build_environment_settings_overrides(),
         cli_overrides=cli_overrides,
     )
@@ -54,11 +55,13 @@ def build_admin_services(
     command: object | None,
 ) -> AdminServices:
     sonos_service = build_sonos_service()
+    settings_path = default_settings_path()
     settings_service = build_settings_service(
         library=library,
         command=command,
+        settings_path=settings_path,
     )
-    return AdminServices(settings=settings_service, sonos=sonos_service)
+    return AdminServices(settings=settings_service, sonos=sonos_service, settings_path=settings_path)
 
 
 def build_admin_api_app(library_path: str, services: AdminServices):
@@ -76,6 +79,8 @@ def build_admin_api_app(library_path: str, services: AdminServices):
         GetCurrentTagStatus(current_tag_repository, repository),
         services.settings,
         services.sonos,
+        library_path=library_path,
+        settings_path=services.settings_path,
     )
 
 
@@ -94,6 +99,8 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
         GetCurrentTagStatus(current_tag_repository, repository),
         services.settings,
         services.sonos,
+        library_path=library_path,
+        settings_path=services.settings_path,
     )
 
 

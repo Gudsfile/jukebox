@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, apiDelete, apiGet, apiPatch, apiPost, apiPut } from './api.js'
+import { ApiError, apiDelete, apiDownload, apiGet, apiPatch, apiPost, apiPut } from './api.js'
 
 function mockFetchOnce({ ok = true, status = 200, body = {} } = {}) {
   globalThis.fetch = vi.fn().mockResolvedValue({
@@ -92,5 +92,46 @@ describe('error handling', () => {
     const result = await apiGet('/settings/reset')
 
     expect(result).toBeNull()
+  })
+})
+
+describe('apiDownload', () => {
+  function mockDownloadOnce({ ok = true, status = 200, disposition = null, body = null } = {}) {
+    const blob = new Blob(['{}'], { type: 'application/json' })
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok,
+      status,
+      headers: new Headers(disposition ? { 'Content-Disposition': disposition } : {}),
+      blob: () => Promise.resolve(blob),
+      json: () => Promise.resolve(body),
+    })
+    return blob
+  }
+
+  it('returns the file content and the file name given by the server', async () => {
+    const blob = mockDownloadOnce({ disposition: 'attachment; filename="library-2026-11-11.json"' })
+
+    const result = await apiDownload('/export/library')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/export/library')
+    expect(result).toEqual({ blob, filename: 'library-2026-11-11.json' })
+  })
+
+  it('falls back to the last path segment when the server gives no file name', async () => {
+    mockDownloadOnce()
+
+    const result = await apiDownload('/export/settings')
+
+    expect(result.filename).toBe('settings.json')
+  })
+
+  it('throws an ApiError carrying the error body instead of returning it as a file', async () => {
+    mockDownloadOnce({ ok: false, status: 404, body: { detail: 'No library file to export.' } })
+
+    const error = await apiDownload('/export/library').catch((err) => err)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect(error.status).toBe(404)
+    expect(error.body).toEqual({ detail: 'No library file to export.' })
   })
 })
