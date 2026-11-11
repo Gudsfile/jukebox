@@ -14,14 +14,14 @@ const discs = {
   'tag-1': {
     uri: 'spotify:album:abc',
     metadata: { artist: 'Veridis Project', album: 'Voir le soleil', track: null, playlist: null },
-    option: { shuffle: false, is_test: false },
+    option: { shuffle: false },
     display_type: '💿 Album',
     display_title: 'Veridis Project — Voir le soleil',
   },
   'tag-2': {
     uri: 'spotify:playlist:xyz',
     metadata: { artist: null, album: null, track: null, playlist: 'Radio Veridis' },
-    option: { shuffle: true, is_test: false },
+    option: { shuffle: true },
     display_type: '🎧 Playlist',
     display_title: 'Radio Veridis',
   },

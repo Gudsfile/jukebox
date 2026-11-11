@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from './filter.js'
 
 function disc(displayType, shuffle) {
-  return { uri: 'x', display_type: displayType, option: { shuffle, is_test: false } }
+  return { uri: 'x', display_type: displayType, option: { shuffle } }
 }
 
 const entries = [
