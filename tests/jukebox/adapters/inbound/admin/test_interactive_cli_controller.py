@@ -259,6 +259,51 @@ def test_add_disc_flow_requires_a_tag_when_no_current_tag_exists():
             raise AssertionError("Expected ValueError")
 
 
+def test_get_disc_flow_uses_known_current_tag_as_default():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=True)
+    disc = Disc(uri="/music/song.mp3", metadata=DiscMetadata(), option=DiscOption())
+    controller.get_disc.execute.return_value = disc
+
+    with (
+        patch("questionary.text", _mock_text("")),
+        patch("builtins.print"),
+        patch("jukebox.adapters.inbound.admin.interactive_cli_controller.display_disc") as mock_display,
+    ):
+        controller.get_disc_flow()
+
+    controller.get_disc.execute.assert_called_once_with("tag-456")
+    mock_display.assert_called_once_with("tag-456", disc)
+
+
+def test_get_disc_flow_does_not_default_to_unknown_current_tag():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=False)
+
+    with pytest.raises(ValueError) as exc, patch("questionary.text", _mock_text("")), patch("builtins.print"):
+        controller.get_disc_flow()
+
+    controller.get_disc.execute.assert_not_called()
+    assert "A tag ID is required." in str(exc.value)
+
+
+def test_get_disc_flow_propagates_unknown_tag_errors():
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='tag-123'")
+
+    with (
+        pytest.raises(ValueError) as exc,
+        patch("questionary.text", _mock_text("tag-123")),
+        patch("builtins.print"),
+        patch("jukebox.adapters.inbound.admin.interactive_cli_controller.display_disc") as mock_display,
+    ):
+        controller.get_disc_flow()
+
+    mock_display.assert_not_called()
+    assert str(exc.value) == "Tag not found: tag_id='tag-123'"
+
+
 def test_list_discs_flow_displays_table(capsys):
     controller = build_controller()
     controller.list_discs.execute.return_value = []
@@ -316,3 +361,24 @@ def test_run_dispatches_command_then_exits():
         controller.run()
 
     controller.get_current_tag_status.execute.assert_called_once_with()
+
+
+def test_run_shows_get_error_then_returns_to_menu(capsys):
+    controller = build_controller()
+    controller.get_current_tag_status.execute.return_value = None
+    controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='tag-123'")
+    select_responses = iter(["get", KeyboardInterrupt()])
+
+    def mock_unsafe_ask():
+        val = next(select_responses)
+        if isinstance(val, KeyboardInterrupt):
+            raise val
+        return val
+
+    mock_select = MagicMock(return_value=MagicMock(unsafe_ask=mock_unsafe_ask))
+
+    with patch("questionary.select", mock_select), patch("questionary.text", _mock_text("tag-123")):
+        controller.run()
+
+    assert mock_select.call_count == 2
+    assert "Error: Tag not found: tag_id='tag-123'" in capsys.readouterr().err
