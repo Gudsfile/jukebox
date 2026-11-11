@@ -49,3 +49,42 @@ def test_resolve_tag_id_fails_when_current_tag_is_missing():
 
     with pytest.raises(ValueError, match="No current tag is available"):
         use_case.execute(None, True)
+
+
+def test_resolve_tag_id_returns_current_tag_when_it_matches_expected_tag():
+    get_current_tag_status = MagicMock()
+    get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="tag-456", known_in_library=True)
+
+    use_case = ResolveTagId(get_current_tag_status)
+
+    assert use_case.execute(None, True, expected_tag_id="tag-456") == "tag-456"
+
+
+def test_resolve_tag_id_fails_when_current_tag_differs_from_expected_tag():
+    get_current_tag_status = MagicMock()
+    get_current_tag_status.execute.return_value = CurrentTagStatus(tag_id="other-tag", known_in_library=True)
+
+    use_case = ResolveTagId(get_current_tag_status)
+
+    with pytest.raises(ValueError, match="Current tag changed: expected_tag_id='tag-456', actual_tag_id='other-tag'"):
+        use_case.execute(None, True, expected_tag_id="tag-456")
+
+
+def test_resolve_tag_id_fails_when_expected_tag_is_given_without_current_tag():
+    get_current_tag_status = MagicMock()
+    get_current_tag_status.execute.return_value = None
+
+    use_case = ResolveTagId(get_current_tag_status)
+
+    with pytest.raises(ValueError, match="No current tag is available"):
+        use_case.execute(None, True, expected_tag_id="tag-456")
+
+
+def test_resolve_tag_id_rejects_expected_tag_with_explicit_tag():
+    get_current_tag_status = MagicMock()
+
+    use_case = ResolveTagId(get_current_tag_status)
+
+    with pytest.raises(ValueError, match="--expect-tag requires --from-current"):
+        use_case.execute("tag-123", False, expected_tag_id="tag-123")
+    get_current_tag_status.execute.assert_not_called()
