@@ -45,13 +45,13 @@ jobs:
     name: Python
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    uses: ./.github/workflows/python.yml
+    uses: ./.github/workflows/_jukebox.yml
 
   admin-ui:
     name: Admin UI
     needs: changes
     if: needs.changes.outputs.admin-ui == 'true'
-    uses: ./.github/workflows/admin-ui.yml
+    uses: ./.github/workflows/_admin-ui.yml
 
   ci-result:
     name: ci-result
