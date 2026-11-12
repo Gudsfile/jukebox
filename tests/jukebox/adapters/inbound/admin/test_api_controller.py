@@ -183,6 +183,15 @@ def test_pn532_route_is_registered():
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
+def test_version_route_is_registered():
+    controller = build_controller()
+
+    schema = controller.app.openapi()
+
+    assert "get" in schema["paths"]["/api/v1/version"]
+
+
+@pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")
 def test_get_sonos_speakers_returns_normalized_discovered_speakers():
     sonos_service = MagicMock()
     sonos_service.list_network_speakers.return_value = [

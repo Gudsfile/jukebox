@@ -20,6 +20,7 @@ try:
     from jukebox.adapters.inbound.admin.api.pn532_router import build_pn532_router
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
     from jukebox.adapters.inbound.admin.api.sonos_router import build_sonos_router
+    from jukebox.adapters.inbound.admin.api.version_router import build_version_router
 except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
@@ -119,3 +120,4 @@ class APIController:
                 self.library_repository, self.preview_library_import, self.import_library, self.settings_service
             )
         )
+        self.app.include_router(build_version_router())
