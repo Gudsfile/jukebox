@@ -139,10 +139,11 @@ on:
         options: [major, minor, patch, major-dev, minor-dev, patch-dev, dev, stable]
 ```
 
-It runs two jobs:
+It runs three jobs:
 
-1. `test`: format, lint, tests and type check on the commit to release.
-2. `publish` (`needs: test`, `prod` environment): fails unless dispatched from `main`, bumps the version with the same 8 bump types as v1, commits `🔖 v{version}` and tags `v{version}` with the GitHub App token, pushes the commit and the tag together, builds the admin UI bundle and the package, and publishes to PyPI.
+1. `jukebox`: the same reusable Python checks as on pull requests (`_jukebox.yml`), on the commit to release.
+2. `admin-ui`: the same reusable admin UI checks as on pull requests (`_admin-ui.yml`), which also upload the admin UI bundle as an artifact.
+3. `publish` (`needs: [jukebox, admin-ui]`, `prod` environment, the only job with write permissions): downloads the admin UI bundle, fails unless dispatched from `main`, bumps the version with the same 8 bump types as v1, builds the package, commits `🔖 v{version}` and tags `v{version}` with the GitHub App token, pushes the commit and the tag together, and publishes to PyPI.
 
 - **Dev versions** (`.devN`): publish to PyPI only.
 - **Stable versions**: publish to PyPI and create a GitHub Release.
