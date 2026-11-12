@@ -20,3 +20,28 @@ npm --prefix admin-ui run build -- --outDir ../jukebox/adapters/inbound/admin/st
 touch jukebox/adapters/inbound/admin/static/.gitkeep
 uv run --extra ui jukebox-admin ui
 ```
+
+### check
+Run the Python checks run by CI.
+```shell
+set -e
+trap 'status=$?; [ $status -eq 0 ] && echo "✅ Python checks passed" || echo "❌ Python checks failed (exit $status)"' EXIT
+cd "$(git rev-parse --show-toplevel)"
+uv run ruff check
+uv run ruff format --check
+uv run --extra api --extra ui ty check
+uv run --extra api --extra ui pytest
+```
+
+### check-ui
+Run the admin UI checks run by CI.
+```shell
+set -e
+trap 'status=$?; [ $status -eq 0 ] && echo "✅ Admin UI checks passed" || echo "❌ Admin UI checks failed (exit $status)"' EXIT
+cd "$(git rev-parse --show-toplevel)/admin-ui"
+npm install
+npm run lint
+npm run format:check
+npm run build
+npm test
+```
