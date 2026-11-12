@@ -136,6 +136,7 @@ def test_build_admin_api_app_wiring(mocker, bootstrap_mocks):
         settings_path="/test/settings.json",
         preview_library_import=bootstrap_mocks.preview_library_import_instance,
         import_library=bootstrap_mocks.import_library_instance,
+        library_repository=bootstrap_mocks.repo_instance,
     )
     bootstrap_mocks.preview_library_import_class.assert_called_once_with(bootstrap_mocks.repo_instance)
     bootstrap_mocks.import_library_class.assert_called_once_with(bootstrap_mocks.repo_instance)
@@ -168,6 +169,7 @@ def test_build_admin_ui_app_wiring(mocker, bootstrap_mocks):
         settings_path="/test/settings.json",
         preview_library_import=bootstrap_mocks.preview_library_import_instance,
         import_library=bootstrap_mocks.import_library_instance,
+        library_repository=bootstrap_mocks.repo_instance,
     )
     bootstrap_mocks.preview_library_import_class.assert_called_once_with(bootstrap_mocks.repo_instance)
     bootstrap_mocks.import_library_class.assert_called_once_with(bootstrap_mocks.repo_instance)

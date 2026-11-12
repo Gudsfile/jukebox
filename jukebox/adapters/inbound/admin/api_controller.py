@@ -24,6 +24,7 @@ except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
     raise MissingOptionalDependencyError("The `api_controller` module", "api", "jukebox-admin api") from e
+from jukebox.domain.repositories import LibraryRepository
 from jukebox.domain.use_cases import (
     AddDisc,
     EditDisc,
@@ -65,6 +66,7 @@ class APIController:
         settings_path: str,
         preview_library_import: PreviewLibraryImport,
         import_library: ImportLibrary,
+        library_repository: LibraryRepository,
     ):
         self.add_disc = add_disc
         self.list_discs = list_discs
@@ -78,6 +80,7 @@ class APIController:
         self.settings_path = settings_path
         self.preview_library_import = preview_library_import
         self.import_library = import_library
+        self.library_repository = library_repository
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
@@ -112,5 +115,7 @@ class APIController:
         self.app.include_router(build_pn532_router(self.settings_service))
         self.app.include_router(build_export_router(self.library_path, self.settings_path))
         self.app.include_router(
-            build_import_router(self.preview_library_import, self.import_library, self.settings_service)
+            build_import_router(
+                self.library_repository, self.preview_library_import, self.import_library, self.settings_service
+            )
         )

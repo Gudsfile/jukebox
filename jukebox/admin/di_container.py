@@ -85,6 +85,7 @@ def build_admin_api_app(library_path: str, services: AdminServices):
         settings_path=services.settings_path,
         preview_library_import=PreviewLibraryImport(repository),
         import_library=ImportLibrary(repository),
+        library_repository=repository,
     )
 
 
@@ -107,6 +108,7 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
         settings_path=services.settings_path,
         preview_library_import=PreviewLibraryImport(repository),
         import_library=ImportLibrary(repository),
+        library_repository=repository,
     )
 
 

@@ -122,7 +122,7 @@
       ondrop={onDrop}
     >
       <strong>{busy ? 'Reading the file…' : 'Drop a file here, or click to choose'}</strong>
-      <span class="path">A library or a settings .json file</span>
+      <span class="path">A full backup .zip, or a library or settings .json file</span>
     </button>
   {:else}
     {@const kind = BACKUP_KINDS[pending.kind]}

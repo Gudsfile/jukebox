@@ -1,4 +1,5 @@
 import json
+import os
 
 import pytest
 
@@ -284,6 +285,58 @@ def test_replace_library_creates_missing_file(tmp_path):
     adapter.replace_library(imported)
 
     assert read_library(filepath) == imported.model_dump()
+
+
+def test_snapshot_returns_the_file_bytes_even_when_corrupted(tmp_path):
+    filepath = tmp_path / "library.json"
+    filepath.write_bytes(b'{"discs": not even json')
+
+    assert JsonLibraryAdapter(str(filepath)).snapshot() == b'{"discs": not even json'
+
+
+def test_snapshot_returns_none_when_file_does_not_exist(tmp_path):
+    assert JsonLibraryAdapter(str(tmp_path / "library.json")).snapshot() is None
+
+
+def test_restore_writes_the_snapshot_back_byte_for_byte_and_atomically(tmp_path, mocker):
+    filepath = tmp_path / "library.json"
+    filepath.write_bytes(b'{"discs": not even json')
+    adapter = JsonLibraryAdapter(str(filepath))
+    snapshot = adapter.snapshot()
+    adapter.replace_library(Library(discs={"new-tag": Disc(uri="new.mp3", metadata=DiscMetadata())}))
+    replace_spy = mocker.spy(os, "replace")
+    fsync_spy = mocker.spy(os, "fsync")
+
+    adapter.restore(snapshot)
+
+    assert filepath.read_bytes() == b'{"discs": not even json'
+    assert replace_spy.call_count == 1
+    assert fsync_spy.call_count == 2  # the temporary file, then the directory
+
+
+def test_restore_removes_the_file_when_there_was_none(tmp_path):
+    filepath = tmp_path / "library.json"
+    adapter = JsonLibraryAdapter(str(filepath))
+    adapter.replace_library(Library(discs={"new-tag": Disc(uri="new.mp3", metadata=DiscMetadata())}))
+
+    adapter.restore(None)
+
+    assert not filepath.exists()
+    assert adapter.list_discs() == {}
+
+
+def test_restore_reloads_from_disk_even_when_the_file_state_looks_unchanged(tmp_path, mocker):
+    filepath = tmp_path / "library.json"
+    write_library(filepath, Library(discs={"old-tag": Disc(uri="old.mp3", metadata=DiscMetadata())}))
+    adapter = JsonLibraryAdapter(str(filepath))
+    snapshot = adapter.snapshot()
+    # Same size and a coarse mtime (FAT, exFAT): the file state cannot tell the restored file apart.
+    mocker.patch.object(adapter, "_get_file_state", return_value=(1, 1))
+    adapter.replace_library(Library(discs={"new-tag": Disc(uri="new.mp3", metadata=DiscMetadata())}))
+
+    adapter.restore(snapshot)
+
+    assert list(adapter.list_discs()) == ["old-tag"]
 
 
 def test_add_disc_raises_for_duplicate_tag(tmp_path):

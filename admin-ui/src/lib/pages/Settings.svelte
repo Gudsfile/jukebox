@@ -91,7 +91,10 @@
 
   async function handleImported(kind, result) {
     restoring = false
-    if (kind === 'settings') {
+    if (kind === 'all') {
+      await loadSettings()
+      toastStore.showToast(`💾 Backup imported: ${result.library.disc_count} discs. ${result.settings.message}`)
+    } else if (kind === 'settings') {
       await loadSettings()
       toastStore.showToast(`⚙️ ${result.message}`)
     } else {
@@ -183,10 +186,11 @@
 {#if !editingSetting}
   <h3 id="backup-title">Backup</h3>
   <section class="backup-card" aria-labelledby="backup-title">
-    <p>Restore the library or the persisted settings of this jukebox from a backup file.</p>
+    <p>Save the library and the persisted settings of this jukebox in one archive, or restore them from a backup.</p>
     <div class="backup-actions">
+      <button class="btn-primary" onclick={() => exportFile('/export/all')}>Download backup (.zip)</button>
       <button
-        class="btn-primary"
+        class="btn-secondary"
         onclick={(event) => {
           restoreOpener = event.currentTarget
           restoring = true

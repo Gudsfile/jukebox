@@ -89,6 +89,7 @@ def build_controller(
         settings_path="/test/settings.json",
         preview_library_import=MagicMock(),
         import_library=MagicMock(),
+        library_repository=MagicMock(),
     )
 
 
@@ -154,10 +155,13 @@ def test_disc_routes_register_explicit_crud_paths():
     assert ("/api/v1/current-tag/disc", ("DELETE",)) in route_index
     assert ("/api/v1/export/library", ("GET",)) in route_index
     assert ("/api/v1/export/settings", ("GET",)) in route_index
+    assert ("/api/v1/export/all", ("GET",)) in route_index
     assert ("/api/v1/import/library/preview", ("POST",)) in route_index
     assert ("/api/v1/import/library", ("POST",)) in route_index
     assert ("/api/v1/import/settings/preview", ("POST",)) in route_index
     assert ("/api/v1/import/settings", ("POST",)) in route_index
+    assert ("/api/v1/import/all/preview", ("POST",)) in route_index
+    assert ("/api/v1/import/all", ("POST",)) in route_index
 
 
 @pytest.mark.skipif(not FASTAPI_INSTALLED, reason="FastAPI dependencies are not installed")

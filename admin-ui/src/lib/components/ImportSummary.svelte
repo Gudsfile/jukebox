@@ -1,8 +1,15 @@
 <script>
+  import ImportSummary from './ImportSummary.svelte'
+
   let { kind, summary } = $props()
 </script>
 
-{#if kind === 'library'}
+{#if kind === 'all'}
+  <h4>Library</h4>
+  <ImportSummary kind="library" summary={summary.library} />
+  <h4>Settings</h4>
+  <ImportSummary kind="settings" summary={summary.settings} />
+{:else if kind === 'library'}
   <p>The current library will be replaced by {summary.disc_count} discs.</p>
   <ul>
     {#each [['Added', summary.added], ['Changed', summary.changed], ['Removed', summary.removed]] as [label, tags] (label)}

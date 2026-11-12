@@ -13,10 +13,17 @@ describe('detectBackupKind', () => {
     await expect(detectBackupKind(new File([content], 'backup.json'))).resolves.toBe(kind)
   })
 
+  it('detects a zip archive as a full backup', async () => {
+    const zip = new File([new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00])], 'jukebox-backup.zip')
+
+    await expect(detectBackupKind(zip)).resolves.toBe('all')
+  })
+
   it.each([
-    ['not json', 'notes.txt is not a JSON file: choose a library or a settings file.'],
-    ['[]', 'notes.txt is neither a library nor a settings file.'],
-    ['null', 'notes.txt is neither a library nor a settings file.'],
+    ['not json', 'notes.txt is neither a zip archive nor a JSON file: choose a backup, a library or a settings file.'],
+    ['[]', 'notes.txt is neither a backup, a library nor a settings file.'],
+    ['null', 'notes.txt is neither a backup, a library nor a settings file.'],
+    ['PK', 'notes.txt is neither a zip archive nor a JSON file: choose a backup, a library or a settings file.'],
   ])('rejects %s', async (content, message) => {
     const result = detectBackupKind(new File([content], 'notes.txt'))
 
