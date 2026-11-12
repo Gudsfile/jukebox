@@ -37,6 +37,7 @@ from jukebox.domain.use_cases import (
     RemoveDisc,
 )
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.shared.config_utils import get_package_version
 from jukebox.sonos.service import SonosService
 
 __all__ = [
@@ -85,6 +86,7 @@ class APIController:
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
+            version=get_package_version(),
             docs_url="/docs",
             redoc_url="/redoc",
         )
