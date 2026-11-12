@@ -27,7 +27,7 @@ The sections below are for code changes. You can skip them for doc fixes and iss
 Requirements:
 
 - [uv](https://github.com/astral-sh/uv), which installs a compatible Python version
-- Node.js 22 and npm, to work on the admin UI (`admin-ui/`) and to run the pre-commit hooks on its files
+- Node.js 26 and npm, to work on the admin UI (`admin-ui/`) and to run the pre-commit hooks on its files
 
 ```shell
 git clone https://github.com/Gudsfile/jukebox.git
