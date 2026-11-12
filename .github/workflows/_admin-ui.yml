@@ -1,4 +1,4 @@
-name: admin-ui
+name: Admin UI
 
 on:
   workflow_call:
@@ -8,8 +8,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    name: Lint, Format, Build & Test
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -34,10 +33,10 @@ jobs:
         run: npm run format:check
         working-directory: admin-ui
 
-      - name: Build
-        run: npm run build
-        working-directory: admin-ui
-
       - name: Test
         run: npm test
+        working-directory: admin-ui
+
+      - name: Build
+        run: npm run build
         working-directory: admin-ui

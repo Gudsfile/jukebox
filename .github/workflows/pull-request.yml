@@ -1,4 +1,4 @@
-name: ci
+name: Pull Request
 
 on:
   pull_request:
@@ -18,7 +18,7 @@ jobs:
     permissions:
       pull-requests: read
     outputs:
-      python: ${{ steps.filter.outputs.python }}
+      jukebox: ${{ steps.filter.outputs.jukebox }}
       admin-ui: ${{ steps.filter.outputs.admin-ui }}
 
     steps:
@@ -29,22 +29,22 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           files=$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER/files" --jq '.[].filename')
-          python=false
+          jukebox=false
           admin_ui=false
           while read -r file; do
             case "$file" in
-              .github/workflows/*) python=true; admin_ui=true ;;
-              admin-ui/*) python=true; admin_ui=true ;;
-              *.py | pyproject.toml | uv.lock) python=true ;;
+              .github/workflows/*) jukebox=true; admin_ui=true ;;
+              admin-ui/*) jukebox=true; admin_ui=true ;;
+              *.py | pyproject.toml | uv.lock) jukebox=true ;;
             esac
           done <<< "$files"
-          echo "python=$python" >> "$GITHUB_OUTPUT"
+          echo "jukebox=$jukebox" >> "$GITHUB_OUTPUT"
           echo "admin-ui=$admin_ui" >> "$GITHUB_OUTPUT"
 
-  python:
-    name: Python
+  jukebox:
+    name: Jukebox
     needs: changes
-    if: needs.changes.outputs.python == 'true'
+    if: needs.changes.outputs.jukebox == 'true'
     uses: ./.github/workflows/_jukebox.yml
 
   admin-ui:
@@ -54,8 +54,8 @@ jobs:
     uses: ./.github/workflows/_admin-ui.yml
 
   ci-result:
-    name: ci-result
-    needs: [changes, python, admin-ui]
+    name: CI Result
+    needs: [changes, jukebox, admin-ui]
     if: always()
     runs-on: ubuntu-latest
 

@@ -1,4 +1,4 @@
-name: release
+name: Release
 
 on:
   workflow_dispatch:
@@ -43,20 +43,20 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install the project
+      - name: Install dependencies
         run: uv sync --locked --all-extras --dev
 
-      - name: Check format with ruff
-        run: uv run ruff format --check
-
-      - name: Lint with ruff
+      - name: Lint
         run: uv run ruff check
 
-      - name: Test with pytest
-        run: uv run pytest
+      - name: Check formatting
+        run: uv run ruff format --check
 
-      - name: Type check with ty
+      - name: Type check
         run: uv run ty check --output-format github --exit-zero-on-warning
+
+      - name: Test
+        run: uv run pytest
 
   publish:
     name: Bump, Tag & Publish
@@ -136,7 +136,7 @@ jobs:
           mkdir -p jukebox/adapters/inbound/admin/static
           cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
 
-      - name: Build package
+      - name: Build
         run: uv build
 
       - name: Publish to PyPI

@@ -156,7 +156,7 @@ Since the release workflow runs its own tests, CI runs on pull requests only, no
 `pull-request.yml` runs on every pull request, without `paths`:
 
 - `changes` lists the files of the pull request and decides which parts to check (Python, admin UI; a change under `.github/workflows/` checks both).
-- `python` and `admin-ui` call the reusable workflows `_jukebox.yml` and `_admin-ui.yml` (`workflow_call`), only when their part changed. Both keep `workflow_dispatch` to run them by hand.
+- `jukebox` and `admin-ui` call the reusable workflows `_jukebox.yml` and `_admin-ui.yml` (`workflow_call`), only when their part changed. Both keep `workflow_dispatch` to run them by hand.
 - `ci-result` needs all of them and runs `if: always()`: it passes when every job succeeded or was skipped, and fails otherwise.
 
 `ci-result` is the required status check of the `main` ruleset. As it runs on every pull request, the check never stays pending, and a failing job blocks the merge.

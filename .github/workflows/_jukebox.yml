@@ -1,4 +1,4 @@
-name: python
+name: Jukebox
 
 on:
   workflow_call:
@@ -16,8 +16,7 @@ env:
   UV_PROJECT_ENVIRONMENT: $pythonLocation
 
 jobs:
-  test-and-lint:
-    name: Run Tests & Linting
+  check:
     runs-on: ubuntu-latest
 
     strategy:
@@ -49,28 +48,27 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install the project
+      - name: Install dependencies
         run: uv sync --locked ${{ matrix.extras }} --dev
 
-      - name: Check format with ruff
-        run: uv run ruff format --check --output-format github
-
-      - name: Lint with ruff
+      - name: Lint
         run: uv run ruff check --output-format github
 
-      - name: Test with pytest
-        run: uv run pytest
+      - name: Check formatting
+        run: uv run ruff format --check --output-format github
 
-      - name: Type check with ty
+      - name: Type check
         # Skip on the no-extras variant: optional dependencies (fastapi, pn532, ...)
         # are guarded at runtime via `try/except ModuleNotFoundError`, but ty cannot infer
         # that semantically and reports false-positive `unresolved-import` errors.
         if: matrix.extras != ''
         run: uv run ty check --output-format github --exit-zero-on-warning
 
+      - name: Test
+        run: uv run pytest
+
   build:
-    name: Build Package
-    needs: test-and-lint
+    needs: check
     runs-on: ubuntu-22.04
 
     steps:
@@ -108,7 +106,7 @@ jobs:
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
-      - name: Build package
+      - name: Build
         run: uv build
 
       - name: Upload package artifact
