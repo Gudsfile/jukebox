@@ -20,6 +20,7 @@ try:
     from jukebox.adapters.inbound.admin.api.pn532_router import build_pn532_router
     from jukebox.adapters.inbound.admin.api.settings_router import build_settings_router
     from jukebox.adapters.inbound.admin.api.sonos_router import build_sonos_router
+    from jukebox.adapters.inbound.admin.api.version_router import build_version_router
 except ModuleNotFoundError as e:
     if e.name != "fastapi":
         raise
@@ -36,6 +37,7 @@ from jukebox.domain.use_cases import (
     RemoveDisc,
 )
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.shared.config_utils import get_package_version
 from jukebox.sonos.service import SonosService
 
 __all__ = [
@@ -84,6 +86,7 @@ class APIController:
         self.app = FastAPI(
             title="Jukebox Admin API",
             description="API for managing Jukebox disc library and settings",
+            version=get_package_version(),
             docs_url="/docs",
             redoc_url="/redoc",
         )
@@ -119,3 +122,4 @@ class APIController:
                 self.library_repository, self.preview_library_import, self.import_library, self.settings_service
             )
         )
+        self.app.include_router(build_version_router())
