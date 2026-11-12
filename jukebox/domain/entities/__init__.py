@@ -10,6 +10,7 @@ from .current_tag_state import (
 from .current_tag_status import CurrentTagStatus
 from .disc import Disc, DiscMetadata, DiscOption
 from .library import Library
+from .library_import_summary import LibraryImportSummary
 from .playback_state import (
     PLAYBACK_RETRY_DELAYS_SECONDS,
     Idle,
@@ -35,6 +36,7 @@ __all__ = [
     "DiscOption",
     "Idle",
     "Library",
+    "LibraryImportSummary",
     "NoTag",
     "Paused",
     "PlaybackCommand",

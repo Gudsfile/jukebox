@@ -8,7 +8,9 @@ from jukebox.domain.use_cases import (
     EditDisc,
     GetCurrentTagStatus,
     GetDisc,
+    ImportLibrary,
     ListDiscs,
+    PreviewLibraryImport,
     RemoveDisc,
     ResolveTagId,
     SearchDiscs,
@@ -81,6 +83,8 @@ def build_admin_api_app(library_path: str, services: AdminServices):
         services.sonos,
         library_path=library_path,
         settings_path=services.settings_path,
+        preview_library_import=PreviewLibraryImport(repository),
+        import_library=ImportLibrary(repository),
     )
 
 
@@ -101,6 +105,8 @@ def build_admin_ui_app(library_path: str, services: AdminServices):
         services.sonos,
         library_path=library_path,
         settings_path=services.settings_path,
+        preview_library_import=PreviewLibraryImport(repository),
+        import_library=ImportLibrary(repository),
     )
 
 

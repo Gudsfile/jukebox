@@ -5,7 +5,7 @@ from jukebox.settings.entities import (
     SelectedSonosSpeakerSettings,
 )
 from jukebox.settings.selected_sonos_group_repository import SettingsSelectedSonosGroupRepository
-from jukebox.settings.types import JsonObject
+from jukebox.settings.types import JsonObject, JsonValue
 
 
 class StubSettingsService:
@@ -43,6 +43,12 @@ class StubSettingsService:
     def patch_persisted_settings(self, patch: JsonObject) -> JsonObject:
         self.patch = patch
         return self.patch_result
+
+    def preview_settings_import(self, raw_data: JsonValue) -> JsonObject:
+        raise AssertionError("preview_settings_import should not be called in this test")
+
+    def import_persisted_settings(self, raw_data: JsonValue) -> JsonObject:
+        raise AssertionError("import_persisted_settings should not be called in this test")
 
     def resolve_admin_runtime(self, verbose: bool = False) -> ResolvedAdminRuntimeConfig:
         raise AssertionError("resolve_admin_runtime should not be called in this test")

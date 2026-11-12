@@ -8,6 +8,7 @@ class MockRepo(LibraryRepository):
         self.add_calls: list[tuple[str, Disc]] = []
         self.update_calls: list[tuple[str, Disc]] = []
         self.remove_calls: list[str] = []
+        self.replace_calls: list[Library] = []
         self.get_calls: list[str] = []
         self.list_calls = 0
 
@@ -47,3 +48,7 @@ class MockRepo(LibraryRepository):
             raise ValueError(f"Tag does not exist: tag_id='{tag_id}'")
 
         self.library.discs.pop(tag_id)
+
+    def replace_library(self, library: Library):
+        self.replace_calls.append(library.model_copy(deep=True))
+        self.library = library.model_copy(deep=True)

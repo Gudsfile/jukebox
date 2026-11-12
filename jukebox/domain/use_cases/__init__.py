@@ -3,6 +3,7 @@ from .library.add_disc import AddDisc
 from .library.edit_disc import EditDisc
 from .library.get_current_tag_status import GetCurrentTagStatus
 from .library.get_disc import GetDisc
+from .library.import_library import ImportLibrary, PreviewLibraryImport
 from .library.list_discs import ListDiscs
 from .library.remove_disc import RemoveDisc
 from .library.resolve_tag_id import ResolveTagId
@@ -15,7 +16,9 @@ __all__ = [
     "GetCurrentTagStatus",
     "GetDisc",
     "HandleTagEvent",
+    "ImportLibrary",
     "ListDiscs",
+    "PreviewLibraryImport",
     "RemoveDisc",
     "ResolveTagId",
     "SearchDiscs",

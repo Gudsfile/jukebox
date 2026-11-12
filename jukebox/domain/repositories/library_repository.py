@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from jukebox.domain.entities import Disc
+from jukebox.domain.entities import Disc, Library
 
 
 class LibraryRepository(ABC):
@@ -22,4 +22,8 @@ class LibraryRepository(ABC):
 
     @abstractmethod
     def remove_disc(self, tag_id: str) -> None:
+        pass
+
+    @abstractmethod
+    def replace_library(self, library: Library) -> None:
         pass

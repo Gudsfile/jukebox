@@ -46,6 +46,11 @@
   }
 }
 
+/* `hidden` must win over the display of element rules (e.g. `input { display: block }`). */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   height: 100%;
@@ -484,6 +489,191 @@ form {
 
 .form-card > h3:first-child {
   margin-top: 0;
+}
+
+/* Backup section: a card under its heading, like the edit forms, its main action first and the
+   single-file exports folded under a link. */
+.backup-card {
+  padding: 22px 24px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+}
+
+.backup-card > p:first-child {
+  margin-top: 0;
+}
+
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.backup-exports {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+button.link-button {
+  padding: 0;
+  font-size: 0.9em;
+  color: var(--accent);
+  background: none;
+  border: none;
+}
+
+button.link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Modal dialog: a card over a dimmed page. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.modal {
+  box-sizing: border-box;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  padding: 22px 24px;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.modal:focus-visible {
+  outline: none;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-header > h3 {
+  margin: 0;
+}
+
+button.modal-close {
+  padding: 4px 10px;
+  color: var(--text);
+  background: none;
+  border-color: transparent;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.restore-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin: 14px 0 18px;
+  padding: 0;
+  font-size: 0.9em;
+  list-style: none;
+  counter-reset: step;
+}
+
+.restore-steps li {
+  counter-increment: step;
+  opacity: 0.55;
+}
+
+.restore-steps li::before {
+  content: counter(step);
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 6px;
+  font-size: 0.8em;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+}
+
+.restore-steps li.current {
+  color: var(--text-h);
+  opacity: 1;
+}
+
+.restore-steps li.done::before {
+  content: '✓';
+  color: var(--success-text);
+  background: var(--success);
+  border-color: var(--success);
+}
+
+button.dropzone {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+  width: 100%;
+  padding: 36px 16px;
+  color: var(--text);
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: 14px;
+}
+
+.dropzone strong {
+  color: var(--text-h);
+}
+
+/* The children must not take the pointer: entering them fires dragleave on the zone and makes it flicker. */
+.dropzone > * {
+  pointer-events: none;
+}
+
+.restore-review {
+  margin: 0 0 4px;
+}
+
+.restore-review:focus-visible {
+  outline: none;
+}
+
+button.dropzone:is(:hover, :focus-visible, .dragging) {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+}
+
+.restore-file {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--text-h);
+}
+
+.restore-diff {
+  max-height: 40vh;
+  overflow: auto;
+  padding: 4px 14px;
+  background: var(--surface);
+  border-radius: 12px;
+}
+
+.restore-warning {
+  font-size: 0.9em;
+  color: var(--danger);
 }
 
 @media (max-width: 640px) {
