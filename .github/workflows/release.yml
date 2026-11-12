@@ -58,6 +58,12 @@ jobs:
         with:
           token: ${{ steps.app-token.outputs.token }}
 
+      - name: Download admin-ui bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: admin-ui-dist
+          path: jukebox/adapters/inbound/admin/static/
+
       - name: Assert release branch is main
         run: |
           if [ "${{ github.ref_name }}" != "main" ]; then
@@ -81,6 +87,9 @@ jobs:
         id: version
         run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
 
+      - name: Build
+        run: uv build
+
       - name: Commit, push & tag
         run: |
           git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
@@ -89,30 +98,6 @@ jobs:
           git commit -m "🔖 v${{ steps.version.outputs.version }}"
           git tag "v${{ steps.version.outputs.version }}"
           git push origin HEAD:${{ github.ref_name }} "v${{ steps.version.outputs.version }}"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: admin-ui/package-lock.json
-
-      - name: Install admin-ui dependencies
-        run: npm ci
-        working-directory: admin-ui
-
-      - name: Build admin-ui
-        run: npm run build
-        working-directory: admin-ui
-
-      - name: Copy admin-ui bundle into the package
-        run: |
-          rm -rf jukebox/adapters/inbound/admin/static
-          mkdir -p jukebox/adapters/inbound/admin/static
-          cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
-
-      - name: Build
-        run: uv build
 
       - name: Publish to PyPI
         run: uv publish
