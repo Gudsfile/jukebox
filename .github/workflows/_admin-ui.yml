@@ -38,3 +38,11 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Upload bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: admin-ui-dist
+          path: admin-ui/dist/
+          if-no-files-found: error
+          retention-days: 1

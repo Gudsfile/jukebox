@@ -19,45 +19,30 @@ on:
         default: dev
 
 permissions:
-  contents: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  test:
-    name: Run Tests & Linting
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
+  jukebox:
+    name: Jukebox
+    uses: ./.github/workflows/_jukebox.yml
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.13"
-
-      - name: Install dependencies
-        run: uv sync --locked --all-extras --dev
-
-      - name: Lint
-        run: uv run ruff check
-
-      - name: Check formatting
-        run: uv run ruff format --check
-
-      - name: Type check
-        run: uv run ty check --output-format github --exit-zero-on-warning
-
-      - name: Test
-        run: uv run pytest
+  admin-ui:
+    name: Admin UI
+    uses: ./.github/workflows/_admin-ui.yml
 
   publish:
     name: Bump, Tag & Publish
-    needs: test
+    needs: [jukebox, admin-ui]
     runs-on: ubuntu-latest
     environment: prod
+    permissions:
+      contents: write
+      id-token: write
+
     steps:
       - name: Generate app token
         id: app-token
@@ -68,79 +53,75 @@ jobs:
 
       - name: Get app user ID
         id: user-id
-        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        run: echo "user-id=$(gh api "/users/${APP_SLUG}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
         env:
           GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
 
       - uses: actions/checkout@v7
         with:
           token: ${{ steps.app-token.outputs.token }}
 
+      - name: Download admin-ui bundle
+        uses: actions/download-artifact@v8
+        with:
+          name: admin-ui-dist
+          path: jukebox/adapters/inbound/admin/static/
+
       - name: Assert release branch is main
         run: |
-          if [ "${{ github.ref_name }}" != "main" ]; then
-            echo "Release must be dispatched from main, got: ${{ github.ref_name }}"
+          if [ "$REF_NAME" != "main" ]; then
+            echo "Release must be dispatched from main, got: $REF_NAME"
             exit 1
           fi
+        env:
+          REF_NAME: ${{ github.ref_name }}
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
 
       - name: Bump version
         run: |
-          case "${{ github.event.inputs.bump }}" in
+          case "$BUMP" in
             major-dev)  uv version --bump major --bump dev ;;
             minor-dev)  uv version --bump minor --bump dev ;;
             patch-dev)  uv version --bump patch --bump dev ;;
-            *)          uv version --bump ${{ github.event.inputs.bump }} ;;
+            *)          uv version --bump "$BUMP" ;;
           esac
+        env:
+          BUMP: ${{ inputs.bump }}
 
       - name: Get version
         id: version
-        run: echo "version=$(uv version --short)" >> $GITHUB_OUTPUT
-
-      - name: Commit, push & tag
-        run: |
-          git config user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
-          git config user.email '${{ steps.user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
-          git add pyproject.toml uv.lock
-          git commit -m "🔖 v${{ steps.version.outputs.version }}"
-          git tag "v${{ steps.version.outputs.version }}"
-          git push origin HEAD:${{ github.ref_name }} "v${{ steps.version.outputs.version }}"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: admin-ui/package-lock.json
-
-      - name: Install admin-ui dependencies
-        run: npm ci
-        working-directory: admin-ui
-
-      - name: Build admin-ui
-        run: npm run build
-        working-directory: admin-ui
-
-      - name: Copy admin-ui bundle into the package
-        run: |
-          rm -rf jukebox/adapters/inbound/admin/static
-          mkdir -p jukebox/adapters/inbound/admin/static
-          cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
+        run: echo "version=$(uv version --short)" >> "$GITHUB_OUTPUT"
 
       - name: Build
         run: uv build
+
+      - name: Commit, push & tag
+        run: |
+          git config user.name "${APP_SLUG}[bot]"
+          git config user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.github.com"
+          git add pyproject.toml uv.lock
+          git commit -m "🔖 v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin "HEAD:${REF_NAME}" "v${VERSION}"
+        env:
+          APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+          USER_ID: ${{ steps.user-id.outputs.user-id }}
+          VERSION: ${{ steps.version.outputs.version }}
+          REF_NAME: ${{ github.ref_name }}
 
       - name: Publish to PyPI
         run: uv publish
 
       - name: Create GitHub Release
         if: "!contains(steps.version.outputs.version, '.dev')"
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release create "v${{ steps.version.outputs.version }}" \
-            --title "v${{ steps.version.outputs.version }}" \
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
             --generate-notes \
             dist/*
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.version.outputs.version }}
