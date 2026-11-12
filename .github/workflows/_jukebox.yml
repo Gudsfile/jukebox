@@ -62,45 +62,7 @@ jobs:
       - name: Test
         run: uv run pytest
 
-  build:
-    needs: check
-    runs-on: ubuntu-22.04
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: admin-ui/package-lock.json
-
-      - name: Install admin-ui dependencies
-        run: npm ci
-        working-directory: admin-ui
-
-      - name: Build admin-ui
-        run: npm run build
-        working-directory: admin-ui
-
-      - name: Copy admin-ui bundle into the package
-        run: |
-          rm -rf jukebox/adapters/inbound/admin/static
-          mkdir -p jukebox/adapters/inbound/admin/static
-          cp -r admin-ui/dist/. jukebox/adapters/inbound/admin/static/
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          python-version: "3.11"
-
       - name: Build
+        # One build is enough: the package does not depend on the Python version or the extras.
+        if: matrix.extras == ''
         run: uv build
-
-      - name: Upload package artifact
-        if: github.event_name == 'workflow_dispatch'
-        uses: actions/upload-artifact@v7
-        with:
-          name: built-package
-          path: dist/
