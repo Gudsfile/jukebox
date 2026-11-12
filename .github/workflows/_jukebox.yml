@@ -2,10 +2,17 @@ name: Jukebox
 
 on:
   workflow_call:
+    inputs:
+      python-version:
+        description: "Python version (leave empty for all)"
+        type: string
+        required: false
+        default: ""
   workflow_dispatch:
     inputs:
       python-version:
         description: "Python version (leave empty for all)"
+        type: string
         required: false
         default: ""
 
@@ -19,17 +26,13 @@ jobs:
     strategy:
       matrix:
         python-version: ${{ fromJson(
-          github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
-          && format('["{0}"]', github.event.inputs.python-version)
+          inputs.python-version != ''
+          && format('["{0}"]', inputs.python-version)
           || '["3.11", "3.12", "3.13"]'
           ) }}
         extras: ["--all-extras"]
         include:
-          - python-version: ${{
-              github.event_name == 'workflow_dispatch' && github.event.inputs.python-version != ''
-              && format('{0}', github.event.inputs.python-version)
-              || '3.13'
-              }}
+          - python-version: ${{ inputs.python-version != '' && inputs.python-version || '3.13' }}
             extras: ""
 
     steps:
