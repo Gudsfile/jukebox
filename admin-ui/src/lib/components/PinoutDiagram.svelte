@@ -61,9 +61,9 @@
     {#if clashes.size}
       <p class="error">Several lines share the same header pin.</p>
     {/if}
-    {#each wiring.claimed as { key, bcm } (key)}
+    {#each wiring.claimed as { key, bcm, name } (key)}
       <p class="error">
-        GPIO{bcm} ({key}) is CE0, already claimed by the kernel SPI driver: probing fails with GPIO busy.
+        GPIO{bcm} ({key}) is {name}, already claimed by the kernel SPI driver: probing fails with GPIO busy.
       </p>
     {/each}
     {#each wiring.unmapped as { key, bcm } (key)}

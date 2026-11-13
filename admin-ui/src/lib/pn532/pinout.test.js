@@ -41,7 +41,10 @@ describe('wiringFor', () => {
   })
 
   it('flags a pin the kernel SPI driver already claims', () => {
-    expect(wiringFor('custom', { reset: null, cs: 8, irq: null }).claimed).toEqual([{ key: 'cs', bcm: 8 }])
+    expect(wiringFor('custom', { reset: null, cs: 8, irq: null }).claimed).toEqual([{ key: 'cs', bcm: 8, name: 'CE0' }])
+    expect(wiringFor('custom', { reset: 7, cs: null, irq: null }).claimed).toEqual([
+      { key: 'reset', bcm: 7, name: 'CE1' },
+    ])
     expect(wiringFor('custom', { reset: null, cs: 4, irq: null }).claimed).toEqual([])
   })
 })

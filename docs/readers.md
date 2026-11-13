@@ -93,7 +93,7 @@ sudo raspi-config
 The reader drives SS (chip select) itself, on the GPIO given by `cs`.
 
 > [!IMPORTANT]
-> Do not wire SS to pin 24 (GPIO8 / CE0). GPIO8 is already claimed by the kernel SPI driver (`/dev/spidev0.0`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
+> Do not wire SS, RST or IRQ to pin 24 (GPIO8 / CE0) or pin 26 (GPIO7 / CE1). Both are already claimed by the kernel SPI driver (`/dev/spidev0.0` and `/dev/spidev0.1`), so probing fails with `GPIO busy` ([#261](https://github.com/Gudsfile/jukebox/issues/261)).
 
 #### Waveshare PN532 NFC HAT
 

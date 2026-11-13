@@ -34,4 +34,10 @@ describe('PinoutDiagram — kernel-claimed pins', () => {
 
     expect(screen.getByText(/GPIO8 \(cs\) is CE0, already claimed by the kernel SPI driver/)).toBeInTheDocument()
   })
+
+  it('warns when a line is on GPIO7, claimed by the kernel SPI driver', () => {
+    renderDiagram({ reset: 7 })
+
+    expect(screen.getByText(/GPIO7 \(reset\) is CE1, already claimed by the kernel SPI driver/)).toBeInTheDocument()
+  })
 })
