@@ -1,6 +1,6 @@
 <script>
   import { untrack } from 'svelte'
-  import { apiPut } from '../api.js'
+  import { apiPost, apiPut } from '../api.js'
 
   let { speakers, selectedGroup, onSaved, onCancel } = $props()
 
@@ -33,7 +33,20 @@
         uids: [...selectedUids],
         coordinator_uid: coordinatorUid,
       })
-      onSaved()
+      onSaved('save')
+    } catch (err) {
+      error = err.body?.detail ?? err.message
+    } finally {
+      saving = false
+    }
+  }
+
+  async function handleClear() {
+    error = null
+    saving = true
+    try {
+      await apiPost('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
+      onSaved('clear')
     } catch (err) {
       error = err.body?.detail ?? err.message
     } finally {
@@ -66,12 +79,19 @@
     </select>
   </label>
 
+  {#if selectedGroup}
+    <p class="path">Clear saved selection removes the saved speakers and coordinator.</p>
+  {/if}
+
   {#if error}
     <p class="error">{error}</p>
   {/if}
 
   <div class="actions">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+    {#if selectedGroup}
+      <button type="button" class="btn-danger" onclick={handleClear} disabled={saving}>Clear saved selection</button>
+    {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
