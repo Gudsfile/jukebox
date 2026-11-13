@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import { apiPut } from '../api.js'
   import { PIN_FIELDS, formatPin } from '../pn532/format.js'
+  import PinoutDiagram from './PinoutDiagram.svelte'
 
   let { config, onSaved, onCancel } = $props()
 
@@ -18,9 +19,20 @@
     untrack(() => Object.fromEntries(PIN_FIELDS.map(({ key }) => [key, toInput(config.overrides[key])]))),
   )
   let error = $state(null)
+  // Override field the next click on the diagram fills; follows the last focused pin input.
+  let activeField = $state(PIN_FIELDS[0].key)
+
+  function handlePinClick(bcm) {
+    // Clicking the current override or the profile default clears the override instead of storing a no-op one.
+    const current = toPin(pins[activeField])
+    pins[activeField] = bcm === current || bcm === profileDefaults[activeField] ? '' : bcm
+  }
   let saving = $state(false)
 
   let profileDefaults = $derived(config.profiles.find((profile) => profile.name === boardProfile)?.defaults ?? {})
+  let effectivePins = $derived(
+    Object.fromEntries(PIN_FIELDS.map(({ key }) => [key, toPin(pins[key]) ?? profileDefaults[key] ?? null])),
+  )
   let hasOverrides = $derived(PIN_FIELDS.some(({ key }) => config.overrides[key] !== null))
 
   async function save(action, payload) {
@@ -98,10 +110,18 @@
           step="1"
           placeholder={`Profile default: ${formatPin(profileDefaults[field.key])}`}
           bind:value={pins[field.key]}
+          onfocus={() => (activeField = field.key)}
         />
       </label>
     {/each}
   </fieldset>
+
+  <p class="path">
+    Click a GPIO on the diagram to use it as
+    <strong>{PIN_FIELDS.find(({ key }) => key === activeField).label}</strong>. Focus another pin field to change which
+    one.
+  </p>
+  <PinoutDiagram profile={boardProfile} resolved={effectivePins} onPinClick={handlePinClick} />
 
   {#if hasOverrides}
     <p class="path">Reset removes every pin override; the saved profile then uses its default pins.</p>
