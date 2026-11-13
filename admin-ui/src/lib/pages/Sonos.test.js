@@ -103,6 +103,9 @@ describe('Sonos — saved selection', () => {
     )
     render(Sonos, { props: {} })
     await screen.findByRole('button', { name: 'Edit selection' })
+    expect(screen.getByRole('heading', { name: 'Saved selection' }).closest('.panel')).toContainElement(
+      screen.getByRole('button', { name: 'Edit selection' }),
+    )
 
     await fireEvent.click(screen.getByRole('button', { name: 'Edit selection' }))
 

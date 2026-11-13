@@ -103,13 +103,12 @@
       <p>Coordinator: {memberLabel(selection.selected_group.coordinator_uid)}</p>
       <p>Members: {selection.selected_group.members.map((member) => memberLabel(member.uid)).join(', ')}</p>
     {/if}
-  </div>
-
-  <div class="row-actions">
-    <button onclick={openEdit}>Edit selection</button>
-    {#if selection?.selected_group}
-      <button class="btn-danger" onclick={handleClearSelection}>Clear saved selection</button>
-    {/if}
+    <div class="row-actions">
+      <button onclick={openEdit}>Edit selection</button>
+      {#if selection?.selected_group}
+        <button class="btn-danger" onclick={handleClearSelection}>Clear saved selection</button>
+      {/if}
+    </div>
   </div>
 
   {#if !discoveryError}
