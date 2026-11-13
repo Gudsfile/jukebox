@@ -38,15 +38,22 @@ def _log_upnp_failure(command_name: str, err: SoCoUPnPException) -> None:
 
 
 @dataclass(frozen=True)
-class _QueueFingerprint:
-    """What play() left in the queue, to tell on resume() whether the speaker still holds it."""
+class _PlaybackFingerprint:
+    """What play() left on the speaker, to tell on resume() whether the speaker still holds it."""
 
+    # Source of the transport, `x-rincon-queue:<uid>#0` when playing the local queue
+    transport_uri: str
     first_item_uri: str
     size: int
 
-    def is_still_held_by(self, current: "_QueueFingerprint | None") -> bool:
+    def is_still_held_by(self, current: "_PlaybackFingerprint | None") -> bool:
         # Tracks appended from the Sonos app still count as the same queue
-        return current is not None and current.first_item_uri == self.first_item_uri and current.size >= self.size
+        return (
+            current is not None
+            and current.transport_uri == self.transport_uri
+            and current.first_item_uri == self.first_item_uri
+            and current.size >= self.size
+        )
 
 
 class SonosPlayerAdapter(PlayerPort):
@@ -91,7 +98,7 @@ class SonosPlayerAdapter(PlayerPort):
             speaker_info.get("software_version", None),
         )
         self.sharelink = ShareLinkPlugin(self.speaker)
-        self._played_fingerprint: _QueueFingerprint | None = None
+        self._played_fingerprint: _PlaybackFingerprint | None = None
 
     @staticmethod
     def _discover(name: str | None = None) -> SoCo:
@@ -342,9 +349,13 @@ class SonosPlayerAdapter(PlayerPort):
             index = random.randrange(self.speaker.queue_size) if shuffle else 0
             self.speaker.play_from_queue(index=index, start=True)
             self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
-            self._played_fingerprint = self._read_queue_fingerprint()
 
         self._execute_with_recovery("play", command)
+        # Best effort: the disc already plays, and without a fingerprint the next resume() replays it
+        try:
+            self._played_fingerprint = self._read_playback_fingerprint()
+        except _SONOS_TRANSPORT_ERRORS as err:
+            LOGGER.warning("Could not read what `%s` holds after play, resume will replay: %s", self.speaker_name, err)
 
     def pause(self) -> None:
         def command() -> None:
@@ -363,10 +374,10 @@ class SonosPlayerAdapter(PlayerPort):
         def command() -> None:
             LOGGER.info("Resuming player `%s`", self.speaker_name)
             played = self._played_fingerprint
-            if played is None or not played.is_still_held_by(self._read_queue_fingerprint()):
-                # The queue was replaced (e.g. from the Sonos app) or never filled by play()
+            if played is None or not played.is_still_held_by(self._read_playback_fingerprint()):
+                # The queue or the source was replaced (e.g. from the Sonos app) or never set by play()
                 LOGGER.info("Player `%s` no longer holds what was played, nothing to resume", self.speaker_name)
-                raise CannotResumeError("the queue changed since the last play")
+                raise CannotResumeError("the queue or the source changed since the last play")
             try:
                 self.speaker.play()
             except SoCoUPnPException as err:
@@ -386,11 +397,16 @@ class SonosPlayerAdapter(PlayerPort):
 
         self._execute_with_recovery("stop", command)
 
-    def _read_queue_fingerprint(self) -> _QueueFingerprint | None:
+    def _read_playback_fingerprint(self) -> _PlaybackFingerprint | None:
         queue = self.speaker.get_queue(max_items=1)
         if not queue:
             return None
-        return _QueueFingerprint(first_item_uri=queue[0].get_uri(), size=self.speaker.queue_size)
+        media_info = self.speaker.avTransport.GetMediaInfo([("InstanceID", 0)])
+        return _PlaybackFingerprint(
+            transport_uri=media_info["CurrentURI"],
+            first_item_uri=queue[0].get_uri(),
+            size=queue.total_matches,
+        )
 
     def handle_uri(self, uri):
         if self.sharelink.is_share_link(uri):

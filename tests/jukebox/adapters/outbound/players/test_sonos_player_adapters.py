@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, PropertyMock, call, patch
 
 import pytest
 from requests.exceptions import ConnectionError as RequestConnectionError
+from soco.data_structures import Queue
 from soco.exceptions import SoCoUPnPException
 
 from jukebox.adapters.outbound.players.sonos_player_adapter import SonosPlayerAdapter
@@ -41,8 +42,15 @@ def set_queue(mock_speaker: MagicMock, uris: list[str]) -> None:
         item.get_uri.return_value = uri
         item.resources = [MagicMock(uri=uri)]
         items.append(item)
-    mock_speaker.get_queue.return_value = items
-    mock_speaker.queue_size = len(items)
+    mock_speaker.get_queue.return_value = Queue(
+        items, number_returned=min(len(items), 1), total_matches=len(items), update_id=0
+    )
+    set_transport_uri(mock_speaker, "x-rincon-queue:RINCON_TEST#0")
+
+
+def set_transport_uri(mock_speaker: MagicMock, uri: str) -> None:
+    """Make the speaker report this source (`CurrentURI`) for its transport."""
+    mock_speaker.avTransport.GetMediaInfo.return_value = {"CurrentURI": uri}
 
 
 def build_adapter(**kwargs: Any) -> SonosPlayerAdapter:
@@ -960,6 +968,34 @@ def test_resume_tolerates_tracks_appended_to_the_queue(mock_sharelink, mock_soco
     mock_speaker.play.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "transport_uri",
+    [
+        pytest.param("x-sonosapi-stream:s12345?sid=254&flags=8224&sn=0", id="radio"),
+        pytest.param("x-sonos-vli:RINCON_TEST:2,spotify:abc", id="spotify_connect"),
+        pytest.param("x-rincon-stream:RINCON_TEST", id="line_in"),
+        pytest.param("x-rincon-queue:RINCON_TEST#6", id="cloud_queue"),
+    ],
+)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_cannot_resume_when_source_is_not_the_queue(mock_sharelink, mock_soco, transport_uri):
+    """Should not resume a source started outside jukebox that leaves the queue untouched."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    set_transport_uri(mock_speaker, transport_uri)
+
+    with pytest.raises(CannotResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+
+
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_resume_compares_the_queue_not_the_played_share_link(mock_sharelink, mock_soco):
@@ -991,6 +1027,92 @@ def test_resume_raises_cannot_resume_without_previous_play(mock_sharelink, mock_
     with pytest.raises(CannotResumeError):
         adapter.resume()
 
+    mock_speaker.play.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "read_error",
+    [
+        pytest.param(make_exception("501"), id="upnp_error"),
+        pytest.param(RequestConnectionError("No route to host"), id="transport_error"),
+    ],
+)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_play_succeeds_when_reading_what_was_played_fails(mock_sharelink, mock_soco, read_error, caplog):
+    """Should keep a play that worked, without retry or recovery, and replay the disc on the next resume."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+    mock_speaker.avTransport.GetMediaInfo.side_effect = read_error
+    resolver = MagicMock()
+
+    adapter = build_adapter(host="192.168.1.100", sonos_playback_target_resolver=resolver)
+    adapter.play("uri:123")
+
+    mock_speaker.clear_queue.assert_called_once()
+    mock_speaker.play_from_queue.assert_called_once()
+    resolver.assert_not_called()
+    assert "Could not read what" in caplog.text
+
+    mock_speaker.avTransport.GetMediaInfo.side_effect = None
+    with pytest.raises(CannotResumeError):
+        adapter.resume()
+    mock_speaker.play.assert_not_called()
+
+
+def build_recoverable_speaker(mock_soco: MagicMock) -> MagicMock:
+    """Build a speaker that recovery resolves back to itself."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.uid = "RINCON_TEST"
+    mock_speaker.household_id = "household-1"
+    mock_speaker.group = None
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0", "zone_name": "Living Room"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+    return mock_speaker
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_reads_what_the_speaker_holds_again_after_recovery(mock_sharelink, mock_soco):
+    """Should retry the read after a transport error, then resume."""
+    mock_speaker = build_recoverable_speaker(mock_soco)
+    resolver = StubSonosService(
+        resolved_group=build_resolved_sonos_group_runtime(
+            coordinator_uid="RINCON_TEST",
+            speakers=[("RINCON_TEST", "Living Room", "192.168.1.100", "household-1")],
+        )
+    )
+
+    adapter = build_adapter(host="192.168.1.100", sonos_playback_target_resolver=resolver)
+    adapter.play("uri:123")
+    mock_speaker.avTransport.GetMediaInfo.side_effect = [
+        RequestConnectionError("No route to host"),
+        {"CurrentURI": "x-rincon-queue:RINCON_TEST#0"},
+    ]
+    adapter.resume()
+
+    assert len(resolver.calls) == 1
+    mock_speaker.play.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_playback_error_when_reading_what_the_speaker_holds_fails(mock_sharelink, mock_soco):
+    """Should report a failed read as a playback error to retry, not as a player holding something else."""
+    mock_speaker = build_recoverable_speaker(mock_soco)
+    resolver = StubSonosService(error=ValueError("not found on network"))
+
+    adapter = build_adapter(host="192.168.1.100", sonos_playback_target_resolver=resolver)
+    adapter.play("uri:123")
+    mock_speaker.get_queue.side_effect = RequestConnectionError("No route to host")
+
+    with pytest.raises(PlaybackError) as exc_info:
+        adapter.resume()
+
+    assert not isinstance(exc_info.value, CannotResumeError)
     mock_speaker.play.assert_not_called()
 
 
