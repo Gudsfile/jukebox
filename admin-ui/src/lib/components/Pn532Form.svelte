@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import { apiPut } from '../api.js'
   import { PIN_FIELDS, formatPin } from '../pn532/format.js'
+  import ConfirmDialog from './ConfirmDialog.svelte'
   import PinoutDiagram from './PinoutDiagram.svelte'
 
   let { config, onSaved, onCancel } = $props()
@@ -28,6 +29,7 @@
     pins[activeField] = bcm === current || bcm === profileDefaults[activeField] ? '' : bcm
   }
   let saving = $state(false)
+  let resetOpener = $state(null) // the Reset button while its confirmation is open
 
   let profileDefaults = $derived(config.profiles.find((profile) => profile.name === boardProfile)?.defaults ?? {})
   let effectivePins = $derived(
@@ -60,6 +62,15 @@
       board_profile: config.board_profile,
       spi: Object.fromEntries(PIN_FIELDS.map(({ key }) => [key, null])),
     })
+  }
+
+  function askReset(event) {
+    resetOpener = event.currentTarget
+  }
+
+  function confirmReset() {
+    resetOpener = null
+    return handleReset()
   }
 </script>
 
@@ -112,8 +123,19 @@
   <div class="actions">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     {#if hasOverrides}
-      <button type="button" class="btn-danger" onclick={handleReset} disabled={saving}>Reset</button>
+      <button type="button" class="btn-danger" onclick={askReset} disabled={saving}>Reset</button>
     {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
+
+{#if resetOpener}
+  <ConfirmDialog
+    title="Reset the pin overrides?"
+    message="This removes every pin override; the saved profile then uses its default pins."
+    confirmLabel="Reset"
+    onConfirm={confirmReset}
+    onCancel={() => (resetOpener = null)}
+    returnFocus={resetOpener}
+  />
+{/if}

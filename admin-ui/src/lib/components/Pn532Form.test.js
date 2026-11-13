@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Pn532Form from './Pn532Form.svelte'
@@ -7,6 +7,8 @@ import { apiPut } from '../api.js'
 vi.mock('../api.js', () => ({
   apiPut: vi.fn(),
 }))
+
+const resetDialog = () => screen.getByRole('dialog', { name: 'Reset the pin overrides?' })
 
 const profiles = [
   {
@@ -73,7 +75,7 @@ describe('Pn532Form — submit', () => {
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved, 'save'))
   })
 
-  it('resets every pin override of the saved profile right away', async () => {
+  it('resets every pin override of the saved profile once confirmed', async () => {
     const saved = { ...config, overrides: { reset: null, cs: null, irq: null } }
     apiPut.mockResolvedValue(saved)
     const onSaved = vi.fn()
@@ -81,12 +83,29 @@ describe('Pn532Form — submit', () => {
 
     await fireEvent.change(screen.getByLabelText('Board profile'), { target: { value: 'custom' } })
     await fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(apiPut).not.toHaveBeenCalled()
+    await fireEvent.click(within(resetDialog()).getByRole('button', { name: 'Reset' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(apiPut).toHaveBeenCalledWith('/pn532', {
       board_profile: 'waveshare_hat',
       spi: { reset: null, cs: null, irq: null },
     })
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith(saved, 'reset'))
+  })
+
+  it('keeps the pin overrides when the reset is cancelled, and gives the focus back to Reset', async () => {
+    const onSaved = vi.fn()
+    renderForm({ onSaved })
+    const reset = screen.getByRole('button', { name: 'Reset' })
+
+    await fireEvent.click(reset)
+    await fireEvent.click(within(resetDialog()).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(apiPut).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(reset).toHaveFocus()
   })
 
   it('styles Reset like the settings reset and hides it when no pin is overridden', () => {
