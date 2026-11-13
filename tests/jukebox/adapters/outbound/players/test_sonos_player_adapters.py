@@ -33,6 +33,18 @@ def recorded_play_calls(tracker: MagicMock) -> list:
     return [c for c in tracker.mock_calls if c != call.play_mode()]
 
 
+def set_queue(mock_speaker: MagicMock, uris: list[str]) -> None:
+    """Make the speaker report a queue holding these item URIs, in order."""
+    items = []
+    for uri in uris:
+        item = MagicMock()
+        item.get_uri.return_value = uri
+        item.resources = [MagicMock(uri=uri)]
+        items.append(item)
+    mock_speaker.get_queue.return_value = items
+    mock_speaker.queue_size = len(items)
+
+
 def build_adapter(**kwargs: Any) -> SonosPlayerAdapter:
     kwargs.setdefault("sonos_playback_target_resolver", MagicMock())
     return SonosPlayerAdapter(**kwargs)
@@ -859,16 +871,167 @@ def test_pause_does_not_swallow_group_switch_invariant_failures(mock_sharelink, 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
-def test_resume_calls_underlying_sonos_player(mock_sharelink, mock_soco):
-    """Should delegate resume to underlying Sonos player."""
+def test_resume_calls_underlying_sonos_player_when_queue_is_unchanged(mock_sharelink, mock_soco):
+    """Should resume when the queue still holds what the last play() put in it."""
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
 
     adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
     adapter.resume()
 
     mock_speaker.play.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_when_queue_was_replaced(mock_sharelink, mock_soco, caplog):
+    """Should not resume music started outside jukebox (e.g. from the Sonos app) after play()."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    set_queue(mock_speaker, ["x-sonos:other-1", "x-sonos:other-2"])
+
+    with caplog.at_level("INFO", logger="jukebox"), pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+    assert not [record for record in caplog.records if record.levelname == "WARNING"]
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_when_queue_was_shortened(mock_sharelink, mock_soco):
+    """Should not resume when the queue keeps the same first track but lost some of the others."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+
+    with pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_when_queue_was_emptied(mock_sharelink, mock_soco):
+    """Should not resume when the queue was cleared, without waiting for Sonos to reject play()."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    set_queue(mock_speaker, [])
+
+    with pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_tolerates_tracks_appended_to_the_queue(mock_sharelink, mock_soco):
+    """Should still resume when tracks were only added after the ones play() queued."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2", "x-sonos:added-1"])
+    adapter.resume()
+
+    mock_speaker.play.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_compares_the_queue_not_the_played_share_link(mock_sharelink, mock_soco):
+    """Should resume a share link, whose URI differs from the items it puts in the queue."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_sharelink.return_value.is_share_link.return_value = True
+    set_queue(mock_speaker, ["x-sonos-spotify:spotify%3atrack%3a1", "x-sonos-spotify:spotify%3atrack%3a2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("https://open.spotify.com/album/abc")
+    adapter.resume()
+
+    mock_speaker.play.assert_called_once()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_without_previous_play(mock_sharelink, mock_soco):
+    """Should not resume whatever the speaker holds when jukebox never played anything on it."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+
+    adapter = build_adapter(host="192.168.1.100")
+
+    with pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_raises_nothing_to_resume_after_stop(mock_sharelink, mock_soco):
+    """Should forget the last play() once stop() cleared the queue, even if the same tracks are queued again."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    adapter.stop()
+
+    with pytest.raises(NothingToResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_resume_logs_and_raises_on_bad_uri(mock_sharelink, mock_soco, caplog):
+    """Should report a non-701 UPnP error on resume as a playback error."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
+    mock_speaker.play.side_effect = make_exception("804")
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+
+    with pytest.raises(PlaybackError) as exc_info:
+        adapter.resume()
+
+    assert not isinstance(exc_info.value, NothingToResumeError)
+    assert "bad uri" in caplog.text
+    mock_speaker.play.assert_called()
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
@@ -878,10 +1041,12 @@ def test_resume_raises_nothing_to_resume_on_upnp_701(mock_sharelink, mock_soco, 
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1"])
     mock_speaker.play.side_effect = make_exception("701")
     resolver = MagicMock()
 
     adapter = build_adapter(host="192.168.1.100", sonos_playback_target_resolver=resolver)
+    adapter.play("uri:123")
 
     with caplog.at_level("INFO", logger="jukebox"), pytest.raises(NothingToResumeError):
         adapter.resume()
@@ -938,8 +1103,8 @@ def test_init_with_duplicate_speaker_names_logs_warning(mock_sharelink, mock_soc
         ),
         pytest.param("pause", "pause", (), "804", "bad uri", id="pause_with_bad_uri"),
         # pause tolerates 701, see test_pause_ignores_upnp_701_when_player_is_not_playing
-        pytest.param("resume", "play", (), "804", "bad uri", id="resume_with_bad_uri"),
-        # resume maps 701 to NothingToResumeError, see test_resume_raises_nothing_to_resume_on_upnp_701
+        # resume needs a previous play, see test_resume_logs_and_raises_on_bad_uri
+        # and test_resume_raises_nothing_to_resume_on_upnp_701
         pytest.param("stop", "clear_queue", (), "804", "bad uri", id="stop_with_bad_uri"),
         pytest.param(
             "stop", "clear_queue", (), "701", "not available transition", id="stop_with_unavailable_transition"
