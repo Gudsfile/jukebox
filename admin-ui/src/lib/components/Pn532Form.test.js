@@ -53,14 +53,6 @@ describe('Pn532Form — prefill', () => {
 
     expect(screen.getByLabelText('Reset')).toHaveAttribute('placeholder', 'Profile default: —')
   })
-
-  it('shows every profile in the defaults table', () => {
-    renderForm()
-
-    expect(screen.getByRole('cell', { name: 'WaveShare PN532 NFC HAT' })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'HiLetgo PN532 V3' })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'Custom' })).toBeInTheDocument()
-  })
 })
 
 describe('Pn532Form — submit', () => {

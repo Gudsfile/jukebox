@@ -77,28 +77,6 @@
     </select>
   </label>
 
-  <table>
-    <caption>Profile defaults (BCM)</caption>
-    <thead>
-      <tr>
-        <th>Profile</th>
-        {#each PIN_FIELDS as field (field.key)}
-          <th>{field.label}</th>
-        {/each}
-      </tr>
-    </thead>
-    <tbody>
-      {#each config.profiles as profile (profile.name)}
-        <tr class:active={profile.name === boardProfile}>
-          <td>{profile.label}</td>
-          {#each PIN_FIELDS as field (field.key)}
-            <td>{formatPin(profile.defaults[field.key])}</td>
-          {/each}
-        </tr>
-      {/each}
-    </tbody>
-  </table>
-
   <fieldset>
     <legend>SPI pin overrides (BCM)</legend>
     {#each PIN_FIELDS as field (field.key)}
