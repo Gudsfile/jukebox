@@ -711,6 +711,21 @@ button.dropzone:is(:hover, :focus-visible, .dragging) {
   overflow-wrap: anywhere;
 }
 
+/* A long value (a JSON object) scrolls inside its box instead of stretching the page past the
+   screen height. Not on a short screen, where a scroll box inside the page leaves too little room. */
+@media (min-height: 600px) {
+  .setting-value,
+  .form-card textarea {
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  /* The form stacks three values: a lower cap keeps it close to one screen. */
+  .setting-values dd.setting-value {
+    max-height: 40vh;
+  }
+}
+
 form > label,
 form > .checkbox {
   display: block;

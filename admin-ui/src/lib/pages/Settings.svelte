@@ -5,7 +5,7 @@
   import RestoreDialog from '../components/RestoreDialog.svelte'
   import SettingBadges from '../components/SettingBadges.svelte'
   import SettingForm from '../components/SettingForm.svelte'
-  import { formatProvenance, formatValue } from '../settings/format.js'
+  import { formatProvenance, formatValue, scrollableValueAttributes } from '../settings/format.js'
   import { searchSettings } from '../settings/search.js'
 
   const SONOS_SELECTED_GROUP_PATH = 'jukebox.player.sonos.selected_group'
@@ -153,15 +153,37 @@
               <SettingBadges {setting} />
               <div class="path">{setting.path}</div>
             </td>
-            <td>{formatValue(setting.default_value)}</td>
             <td>
-              {#if setting.is_persisted}
-                {formatValue(setting.persisted_value)}
-              {:else}
-                <span class="path">—</span>
-              {/if}
+              <div
+                class="setting-value"
+                {...scrollableValueAttributes(setting.default_value, `${setting.label}, default`)}
+              >
+                {formatValue(setting.default_value)}
+              </div>
             </td>
-            <td>{formatValue(setting.effective_value)}</td>
+            <td>
+              <div
+                class="setting-value"
+                {...scrollableValueAttributes(
+                  setting.is_persisted ? setting.persisted_value : null,
+                  `${setting.label}, persisted`,
+                )}
+              >
+                {#if setting.is_persisted}
+                  {formatValue(setting.persisted_value)}
+                {:else}
+                  <span class="path">—</span>
+                {/if}
+              </div>
+            </td>
+            <td>
+              <div
+                class="setting-value"
+                {...scrollableValueAttributes(setting.effective_value, `${setting.label}, effective value`)}
+              >
+                {formatValue(setting.effective_value)}
+              </div>
+            </td>
             <td>{formatProvenance(setting.provenance)}</td>
             <td>
               {#if setting.path === SONOS_SELECTED_GROUP_PATH}
