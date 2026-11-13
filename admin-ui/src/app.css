@@ -325,6 +325,21 @@ table.discs {
   min-width: 760px;
 }
 
+/* Same fix for the Settings sections, so every section table spans the page width; a long value
+   wraps anywhere rather than widening its table. */
+.settings-scroll {
+  overflow-x: auto;
+}
+
+table.settings {
+  display: table;
+}
+
+table.settings .setting-value {
+  min-width: 16ch;
+  overflow-wrap: anywhere;
+}
+
 .page-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -709,6 +724,21 @@ button.dropzone:is(:hover, :focus-visible, .dragging) {
 .setting-values dd {
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+/* A long value (a JSON object) scrolls inside its box instead of stretching the page past the
+   screen height. Not on a short screen, where a scroll box inside the page leaves too little room. */
+@media (min-height: 600px) {
+  .setting-value,
+  .form-card textarea {
+    max-height: 60vh;
+    overflow: auto;
+  }
+
+  /* The form stacks three values: a lower cap keeps it close to one screen. */
+  .setting-values dd.setting-value {
+    max-height: 40vh;
+  }
 }
 
 form > label,

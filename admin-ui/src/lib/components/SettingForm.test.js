@@ -276,6 +276,22 @@ describe('SettingForm — current values', () => {
     expect(within(section).getByText('Advanced')).toBeInTheDocument()
   })
 
+  it('lets the keyboard reach the object values, which may scroll, and only them', () => {
+    const group = { coordinator_uid: 'RINCON_1' }
+    const setting = baseSetting({
+      field_type: 'object',
+      default_value: null,
+      is_persisted: true,
+      persisted_value: group,
+      effective_value: group,
+    })
+    render(SettingForm, { props: { setting, onSaved: vi.fn(), onCancel: vi.fn() } })
+
+    expect(screen.getByRole('group', { name: 'Persisted' })).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('group', { name: 'Effective value' })).toHaveAttribute('tabindex', '0')
+    expect(screen.queryByRole('group', { name: 'Default' })).not.toBeInTheDocument()
+  })
+
   it('shows no badges for a plain default setting', () => {
     render(SettingForm, { props: { setting: baseSetting(), onSaved: vi.fn(), onCancel: vi.fn() } })
 

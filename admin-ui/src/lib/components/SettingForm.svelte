@@ -1,7 +1,7 @@
 <script>
   import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
-  import { formatProvenance, formatValue } from '../settings/format.js'
+  import { formatProvenance, formatValue, scrollableValueAttributes } from '../settings/format.js'
   import SettingBadges from './SettingBadges.svelte'
 
   let { setting, onSaved, onCancel } = $props()
@@ -95,9 +95,14 @@
     <h4 id="setting-values-heading">Current values</h4>
     <dl>
       <dt>Default</dt>
-      <dd>{formatValue(setting.default_value)}</dd>
+      <dd class="setting-value" {...scrollableValueAttributes(setting.default_value, 'Default')}>
+        {formatValue(setting.default_value)}
+      </dd>
       <dt>Persisted</dt>
-      <dd>
+      <dd
+        class="setting-value"
+        {...scrollableValueAttributes(setting.is_persisted ? setting.persisted_value : null, 'Persisted')}
+      >
         {#if setting.is_persisted}
           {formatValue(setting.persisted_value)}
         {:else}
@@ -105,7 +110,9 @@
         {/if}
       </dd>
       <dt>Effective value</dt>
-      <dd>{formatValue(setting.effective_value)}</dd>
+      <dd class="setting-value" {...scrollableValueAttributes(setting.effective_value, 'Effective value')}>
+        {formatValue(setting.effective_value)}
+      </dd>
       <dt>Source</dt>
       <dd>{formatProvenance(setting.provenance)}</dd>
     </dl>

@@ -17,3 +17,10 @@ const PROVENANCE_LABELS = {
 export function formatProvenance(provenance) {
   return PROVENANCE_LABELS[provenance] ?? provenance
 }
+
+// An object value may overflow its capped box and scroll: make it reachable from the keyboard, under
+// the given name. Other values stay out of the tab order, so a table row is not one stop per cell.
+export function scrollableValueAttributes(value, label) {
+  if (value === null || typeof value !== 'object') return {}
+  return { tabindex: 0, role: 'group', 'aria-label': label }
+}

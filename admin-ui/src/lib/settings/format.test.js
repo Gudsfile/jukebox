@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatProvenance, formatValue } from './format.js'
+import { formatProvenance, formatValue, scrollableValueAttributes } from './format.js'
 
 describe('formatValue', () => {
   it('formats null, objects and scalars', () => {
@@ -21,5 +21,20 @@ describe('formatProvenance', () => {
 
   it('keeps an unknown provenance as is', () => {
     expect(formatProvenance('runtime')).toBe('runtime')
+  })
+})
+
+describe('scrollableValueAttributes', () => {
+  it('makes an object value focusable under the given name', () => {
+    expect(scrollableValueAttributes({ a: 1 }, 'Persisted')).toEqual({
+      tabindex: 0,
+      role: 'group',
+      'aria-label': 'Persisted',
+    })
+  })
+
+  it('leaves null and scalars out of the tab order', () => {
+    expect(scrollableValueAttributes(null, 'Persisted')).toEqual({})
+    expect(scrollableValueAttributes(8000, 'Persisted')).toEqual({})
   })
 })
