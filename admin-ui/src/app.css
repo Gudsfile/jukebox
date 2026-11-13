@@ -325,6 +325,21 @@ table.discs {
   min-width: 760px;
 }
 
+/* Same fix for the Settings sections, so every section table spans the page width; a long value
+   wraps anywhere rather than widening its table. */
+.settings-scroll {
+  overflow-x: auto;
+}
+
+table.settings {
+  display: table;
+}
+
+table.settings .setting-value {
+  min-width: 16ch;
+  overflow-wrap: anywhere;
+}
+
 .page-toolbar {
   display: flex;
   flex-wrap: wrap;

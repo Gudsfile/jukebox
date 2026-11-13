@@ -134,70 +134,72 @@
 
   {#each sections as section (section.section)}
     <h3>{section.label}</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Setting</th>
-          <th>Default</th>
-          <th>Persisted</th>
-          <th>Effective value</th>
-          <th>Source</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {#each section.entries as setting (setting.path)}
+    <div class="settings-scroll">
+      <table class="settings">
+        <thead>
           <tr>
-            <td>
-              <strong>{setting.label}</strong>
-              <SettingBadges {setting} />
-              <div class="path">{setting.path}</div>
-            </td>
-            <td>
-              <div
-                class="setting-value"
-                {...scrollableValueAttributes(setting.default_value, `${setting.label}, default`)}
-              >
-                {formatValue(setting.default_value)}
-              </div>
-            </td>
-            <td>
-              <div
-                class="setting-value"
-                {...scrollableValueAttributes(
-                  setting.is_persisted ? setting.persisted_value : null,
-                  `${setting.label}, persisted`,
-                )}
-              >
-                {#if setting.is_persisted}
-                  {formatValue(setting.persisted_value)}
-                {:else}
-                  <span class="path">—</span>
-                {/if}
-              </div>
-            </td>
-            <td>
-              <div
-                class="setting-value"
-                {...scrollableValueAttributes(setting.effective_value, `${setting.label}, effective value`)}
-              >
-                {formatValue(setting.effective_value)}
-              </div>
-            </td>
-            <td>{formatProvenance(setting.provenance)}</td>
-            <td>
-              {#if setting.path === SONOS_SELECTED_GROUP_PATH}
-                <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>
-              {:else if setting.path === PN532_BOARD_PROFILE_PATH}
-                <button onclick={() => onConfigurePn532?.()}>Configure PN532 🔌</button>
-              {:else}
-                <button onclick={() => openEdit(setting.path)}>Edit</button>
-              {/if}
-            </td>
+            <th>Setting</th>
+            <th>Default</th>
+            <th>Persisted</th>
+            <th>Effective value</th>
+            <th>Source</th>
+            <th></th>
           </tr>
-        {/each}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {#each section.entries as setting (setting.path)}
+            <tr>
+              <td>
+                <strong>{setting.label}</strong>
+                <SettingBadges {setting} />
+                <div class="path">{setting.path}</div>
+              </td>
+              <td>
+                <div
+                  class="setting-value"
+                  {...scrollableValueAttributes(setting.default_value, `${setting.label}, default`)}
+                >
+                  {formatValue(setting.default_value)}
+                </div>
+              </td>
+              <td>
+                <div
+                  class="setting-value"
+                  {...scrollableValueAttributes(
+                    setting.is_persisted ? setting.persisted_value : null,
+                    `${setting.label}, persisted`,
+                  )}
+                >
+                  {#if setting.is_persisted}
+                    {formatValue(setting.persisted_value)}
+                  {:else}
+                    <span class="path">—</span>
+                  {/if}
+                </div>
+              </td>
+              <td>
+                <div
+                  class="setting-value"
+                  {...scrollableValueAttributes(setting.effective_value, `${setting.label}, effective value`)}
+                >
+                  {formatValue(setting.effective_value)}
+                </div>
+              </td>
+              <td>{formatProvenance(setting.provenance)}</td>
+              <td>
+                {#if setting.path === SONOS_SELECTED_GROUP_PATH}
+                  <button onclick={() => onManageSpeakers?.()}>Manage Speakers 🔊</button>
+                {:else if setting.path === PN532_BOARD_PROFILE_PATH}
+                  <button onclick={() => onConfigurePn532?.()}>Configure PN532 🔌</button>
+                {:else}
+                  <button onclick={() => openEdit(setting.path)}>Edit</button>
+                {/if}
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
+    </div>
   {:else}
     {#if searchQuery.trim()}
       <p class="no-results">No setting matches “{searchQuery.trim()}”</p>
