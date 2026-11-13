@@ -105,7 +105,7 @@ Jukebox 1.0+ requires Python 3.11 or newer.
 | 3.9 – 3.10     | 0.4.0 – 0.9.0 (incl. 1.0.0.dev13) | Legacy |
 | 3.11 – 3.12    | 0.4.0 – latest              | Actively supported |
 | 3.13           | 0.5.3 – latest              | Actively supported (see installation notes) |
-| 3.14           | 1.10.0 – latest (incl. 1.10.0.dev4) | Supported, only tested in CI (see installation notes) |
+| 3.14 - 3.15    | 1.10.0 – latest (incl. 1.10.0.dev4) | Supported, only tested in CI (see installation notes) |
 
 ## First steps
 
