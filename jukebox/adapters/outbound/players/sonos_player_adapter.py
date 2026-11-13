@@ -1,4 +1,5 @@
 import logging
+import random
 from collections.abc import Callable
 
 import soco
@@ -321,9 +322,11 @@ class SonosPlayerAdapter(PlayerPort):
         def command() -> None:
             LOGGER.info("Playing `%s` on the player `%s`", uri, self.speaker_name)
             self.speaker.clear_queue()
+            self.speaker.play_mode = "NORMAL"
             _ = self.handle_uri(uri)
+            index = random.randrange(self.speaker.queue_size) if shuffle else 0
+            self.speaker.play_from_queue(index=index, start=True)
             self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
-            self.speaker.play_from_queue(index=0, start=True)
 
         self._execute_with_recovery("play", command)
 

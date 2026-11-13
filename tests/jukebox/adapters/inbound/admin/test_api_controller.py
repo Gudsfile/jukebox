@@ -120,8 +120,8 @@ def build_inspected_group(
 
 
 def test_dependencies_import_failure(mocker):
-    sys.modules.pop("jukebox.adapters.inbound.admin.api_controller", None)
     mocker.patch.dict("sys.modules", {"fastapi": None})
+    sys.modules.pop("jukebox.adapters.inbound.admin.api_controller", None)
 
     with pytest.raises(MissingOptionalDependencyError) as err:
         import jukebox.adapters.inbound.admin.api_controller  # ruff: ignore[F401]
