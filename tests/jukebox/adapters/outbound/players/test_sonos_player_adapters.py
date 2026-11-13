@@ -953,8 +953,8 @@ def test_resume_raises_cannot_resume_when_queue_was_emptied(mock_sharelink, mock
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
-def test_resume_tolerates_tracks_appended_to_the_queue(mock_sharelink, mock_soco):
-    """Should still resume when tracks were only added after the ones play() queued."""
+def test_resume_raises_cannot_resume_when_tracks_were_added_to_the_queue(mock_sharelink, mock_soco):
+    """Should not resume when tracks were added, since Play Now inserts them after the current track."""
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
@@ -962,10 +962,12 @@ def test_resume_tolerates_tracks_appended_to_the_queue(mock_sharelink, mock_soco
 
     adapter = build_adapter(host="192.168.1.100")
     adapter.play("uri:123")
-    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2", "x-sonos:added-1"])
-    adapter.resume()
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:added-1", "x-sonos:track-2"])
 
-    mock_speaker.play.assert_called_once()
+    with pytest.raises(CannotResumeError):
+        adapter.resume()
+
+    mock_speaker.play.assert_not_called()
 
 
 @pytest.mark.parametrize(

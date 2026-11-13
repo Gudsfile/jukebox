@@ -44,16 +44,8 @@ class _PlaybackFingerprint:
     # Source of the transport, `x-rincon-queue:<uid>#0` when playing the local queue
     transport_uri: str
     first_item_uri: str
+    # Any added track changes it: Play Now inserts tracks after the current one, not at the end
     size: int
-
-    def is_still_held_by(self, current: "_PlaybackFingerprint | None") -> bool:
-        # Tracks appended from the Sonos app still count as the same queue
-        return (
-            current is not None
-            and current.transport_uri == self.transport_uri
-            and current.first_item_uri == self.first_item_uri
-            and current.size >= self.size
-        )
 
 
 class SonosPlayerAdapter(PlayerPort):
@@ -374,7 +366,7 @@ class SonosPlayerAdapter(PlayerPort):
         def command() -> None:
             LOGGER.info("Resuming player `%s`", self.speaker_name)
             played = self._played_fingerprint
-            if played is None or not played.is_still_held_by(self._read_playback_fingerprint()):
+            if played is None or played != self._read_playback_fingerprint():
                 # The queue or the source was replaced (e.g. from the Sonos app) or never set by play()
                 LOGGER.info("Player `%s` no longer holds what was played, nothing to resume", self.speaker_name)
                 raise CannotResumeError("the queue or the source changed since the last play")
