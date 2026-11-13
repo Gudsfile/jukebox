@@ -608,6 +608,7 @@ def test_play_without_shuffle_sets_normal_mode_before_filling_queue(mock_shareli
         call.play_mode("NORMAL"),
         call.add_share_link_to_queue("uri:456", position=1),
         call.play_from_queue(index=0, start=True),
+        call.play_mode("NORMAL"),
     ]
 
 
