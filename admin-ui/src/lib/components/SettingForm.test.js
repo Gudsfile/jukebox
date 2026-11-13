@@ -9,6 +9,8 @@ vi.mock('../api.js', () => ({
   apiPost: vi.fn(),
 }))
 
+const resetDialog = () => screen.getByRole('dialog', { name: 'Reset Admin API Port?' })
+
 function baseSetting(overrides = {}) {
   return {
     path: 'admin.api.port',
@@ -133,7 +135,7 @@ describe('SettingForm — field types', () => {
 })
 
 describe('SettingForm — reset and cancel', () => {
-  it('shows Reset only when the setting is persisted, and posts the reset path', async () => {
+  it('shows Reset only when the setting is persisted, and posts the reset path once confirmed', async () => {
     apiPost.mockResolvedValue({})
     const onSaved = vi.fn()
     render(SettingForm, {
@@ -141,9 +143,28 @@ describe('SettingForm — reset and cancel', () => {
     })
 
     await fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    expect(apiPost).not.toHaveBeenCalled()
+    await fireEvent.click(within(resetDialog()).getByRole('button', { name: 'Reset' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(apiPost).toHaveBeenCalledWith('/settings/reset', { path: 'admin.api.port' })
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled())
+  })
+
+  it('keeps the persisted override when the reset is cancelled, and gives the focus back to Reset', async () => {
+    const onSaved = vi.fn()
+    render(SettingForm, {
+      props: { setting: baseSetting({ is_persisted: true, persisted_value: 9000 }), onSaved, onCancel: vi.fn() },
+    })
+    const reset = screen.getByRole('button', { name: 'Reset' })
+
+    await fireEvent.click(reset)
+    await fireEvent.click(within(resetDialog()).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(reset).toHaveFocus()
   })
 
   it('hides Reset when the setting has no persisted override', () => {
@@ -203,6 +224,7 @@ describe('SettingForm — server errors', () => {
     })
 
     await fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await fireEvent.click(within(resetDialog()).getByRole('button', { name: 'Reset' }))
 
     expect(await screen.findByText('Settings file is corrupted.')).toBeInTheDocument()
     expect(onSaved).not.toHaveBeenCalled()
