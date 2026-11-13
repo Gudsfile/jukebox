@@ -111,11 +111,15 @@ Once plugged, the HAT connects to the Raspberry Pi as follows, which matches the
 
 | PN532 | Raspberry Pi | Physical pin | BCM |
 | --- | --- | --- | --- |
+| VIN | 5V | 2 or 4 | — |
+| GND | Ground | Any of 6, 9, 14, 20, 25, 30, 34, 39 | — |
 | SCK | SPI0 SCLK | 23 | GPIO11 |
 | MISO | SPI0 MISO | 21 | GPIO9 |
 | MOSI | SPI0 MOSI | 19 | GPIO10 |
 | NSS | Chip select (`cs`) | 7 | GPIO4 |
 | RSTPDN | Reset (`reset`) | 38 | GPIO20 |
+
+*The HAT draws 5V from the header and regulates its own 3.3V; the Raspberry Pi 3V3 pins (1, 17) are not connected. Plugged in, it touches every 5V and ground pin; wired by hand, one of each is enough. See the [schematic](https://files.waveshare.com/wiki/PN532%20NFC%20HAT/Pn532-nfc-hat-schematic.pdf).*
 
 See the [Waveshare wiki](https://www.waveshare.com/wiki/PN532_NFC_HAT) ([archived copy](https://web.archive.org/web/20251024091802/https://www.waveshare.com/wiki/PN532_NFC_HAT)) for the board layout.
 
@@ -133,8 +137,8 @@ Wire it to the Raspberry Pi 40-pin header:
 
 | PN532 | Raspberry Pi | Physical pin | BCM |
 | --- | --- | --- | --- |
-| VCC | 3.3V | 1 | — |
-| GND | Ground | 9 | — |
+| VCC | 3.3V | 1 or 17 | — |
+| GND | Ground | Any of 6, 9, 14, 20, 25, 30, 34, 39 | — |
 | SCK | SPI0 SCLK | 23 | GPIO11 |
 | MISO | SPI0 MISO | 21 | GPIO9 |
 | MOSI | SPI0 MOSI | 19 | GPIO10 |
