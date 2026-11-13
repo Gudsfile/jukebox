@@ -71,7 +71,7 @@ describe('Pn532 — edit', () => {
     })
     render(Pn532)
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Edit configuration' }))
     await fireEvent.change(screen.getByLabelText('Board profile'), { target: { value: 'hiletgo_v3' } })
     await fireEvent.input(screen.getByLabelText('Chip select'), { target: { value: '' } })
     await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -84,7 +84,7 @@ describe('Pn532 — edit', () => {
     apiGet.mockResolvedValue(config)
     render(Pn532)
 
-    await fireEvent.click(await screen.findByRole('button', { name: 'Edit' }))
+    await fireEvent.click(await screen.findByRole('button', { name: 'Edit configuration' }))
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.getByText('Profile: WaveShare PN532 NFC HAT')).toBeInTheDocument()

@@ -67,7 +67,7 @@
         </p>
       {/each}
       <div class="row-actions">
-        <button onclick={openEdit}>Edit</button>
+        <button onclick={openEdit}>Edit configuration</button>
       </div>
     </div>
 
