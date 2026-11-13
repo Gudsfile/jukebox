@@ -43,6 +43,8 @@
       {#if onPinClick}
         {#each Object.entries(BCM_TO_PHYSICAL) as [bcm, physical] (bcm)}
           {@const { x, y } = centre(physical)}
+          <!-- Mouse shortcut only: the svg is aria-hidden and every pin is set through the form's text inputs. -->
+          <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
           <circle class="hit" cx={x} cy={y} r="20" onclick={() => onPinClick(Number(bcm))}>
             <title>GPIO{bcm} · pin {physical}</title>
           </circle>
