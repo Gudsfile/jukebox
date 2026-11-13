@@ -16,7 +16,7 @@ class PlayerPort(ABC):
     def resume(self) -> None:
         """Resume what the last play() started.
 
-        Raises NothingToResumeError if the player no longer holds it (e.g. its queue was cleared,
+        Raises CannotResumeError if the player no longer holds it (e.g. its queue was cleared,
         or replaced from another app).
         """
 

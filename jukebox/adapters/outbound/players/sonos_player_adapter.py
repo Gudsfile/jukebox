@@ -10,7 +10,7 @@ from soco.exceptions import SoCoException, SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
 from urllib3.exceptions import HTTPError
 
-from jukebox.domain.errors import NothingToResumeError, PlaybackError
+from jukebox.domain.errors import CannotResumeError, PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import ErrorCode, InvalidSettingsError
@@ -366,7 +366,7 @@ class SonosPlayerAdapter(PlayerPort):
             if played is None or not played.is_still_held_by(self._read_queue_fingerprint()):
                 # The queue was replaced (e.g. from the Sonos app) or never filled by play()
                 LOGGER.info("Player `%s` no longer holds what was played, nothing to resume", self.speaker_name)
-                raise NothingToResumeError("the queue changed since the last play")
+                raise CannotResumeError("the queue changed since the last play")
             try:
                 self.speaker.play()
             except SoCoUPnPException as err:
@@ -374,7 +374,7 @@ class SonosPlayerAdapter(PlayerPort):
                 if err.error_code != "701":
                     raise
                 LOGGER.info("Player `%s` has nothing to resume", self.speaker_name)
-                raise NothingToResumeError(str(err)) from err
+                raise CannotResumeError(str(err)) from err
 
         self._execute_with_recovery("resume", command)
 
