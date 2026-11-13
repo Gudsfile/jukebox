@@ -115,13 +115,19 @@
     }, 1500)
   }
 
-  async function handleDelete(tagId) {
+  // Shared by the table row and the edit form, which shows a failure in its own error slot.
+  async function deleteDisc(tagId) {
     if (!confirm(`Delete disc "${tagId}"?`)) return
+    await apiDelete(`/discs/${tagId}`)
+    deleteError = null
+    formMode = null
+    await loadDiscs()
+    toastStore.showToast('💿 Disc deleted.')
+  }
+
+  async function handleDelete(tagId) {
     try {
-      await apiDelete(`/discs/${tagId}`)
-      deleteError = null
-      await loadDiscs()
-      toastStore.showToast('💿 Disc deleted.')
+      await deleteDisc(tagId)
     } catch (err) {
       deleteError = err.body?.detail ?? err.message
     }
@@ -183,7 +189,14 @@
 {#if formMode?.type === 'create'}
   <DiscForm mode="create" tagId={formMode.tagId} onSaved={handleSaved} onCancel={closeForm} />
 {:else if formMode?.type === 'edit'}
-  <DiscForm mode="edit" tagId={formMode.tagId} disc={formMode.disc} onSaved={handleSaved} onCancel={closeForm} />
+  <DiscForm
+    mode="edit"
+    tagId={formMode.tagId}
+    disc={formMode.disc}
+    onSaved={handleSaved}
+    onCancel={closeForm}
+    onDelete={() => deleteDisc(formMode.tagId)}
+  />
 {:else}
   {#if loading}
     <p>Loading…</p>

@@ -2,7 +2,7 @@
   import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
 
-  let { mode, tagId: initialTagId = '', disc = null, onSaved, onCancel } = $props()
+  let { mode, tagId: initialTagId = '', disc = null, onSaved, onCancel, onDelete = null } = $props()
 
   // Prefill from props once at mount — Library.svelte always remounts this component
   // (different {#if} branch) rather than updating `disc` in place, so a one-time read is correct.
@@ -34,6 +34,19 @@
         await apiPatch(`/discs/${tagId}`, payload)
       }
       onSaved()
+    } catch (err) {
+      error = err.body?.detail ?? err.message
+    } finally {
+      saving = false
+    }
+  }
+
+  // `onDelete` asks for confirmation and throws when the deletion fails.
+  async function handleDelete() {
+    saving = true
+    error = null
+    try {
+      await onDelete()
     } catch (err) {
       error = err.body?.detail ?? err.message
     } finally {
@@ -78,6 +91,9 @@
 
   <div class="actions wide">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+    {#if mode === 'edit' && onDelete}
+      <button type="button" class="btn-danger" onclick={handleDelete} disabled={saving}>Delete</button>
+    {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>

@@ -228,6 +228,53 @@ describe('Library — add/edit/delete flow', () => {
     expect(apiGet).toHaveBeenCalledTimes(1)
   })
 
+  it('shows the error and keeps the edit form open when delete fails from it', async () => {
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
+    apiGet.mockResolvedValue(discs)
+    apiDelete.mockRejectedValue({ body: { detail: "Tag does not exist: tag_id='tag-1'" } })
+    render(Library, { props: {} })
+    const row1 = (await screen.findByText('tag-1')).closest('tr')
+    await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText("Tag does not exist: tag_id='tag-1'")).toBeInTheDocument()
+    expect(screen.getByLabelText('Tag ID')).toHaveValue('tag-1')
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(apiGet).toHaveBeenCalledTimes(1)
+  })
+
+  it('deletes the edited disc after the same confirmation and returns to the list', async () => {
+    vi.useFakeTimers()
+    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
+    apiGet.mockResolvedValueOnce(discs).mockResolvedValueOnce({ 'tag-2': discs['tag-2'] })
+    apiDelete.mockResolvedValue(null)
+    render(Library, { props: {} })
+    const row1 = (await screen.findByText('tag-1')).closest('tr')
+    await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-1"?')
+    expect(apiDelete).toHaveBeenCalledWith('/discs/tag-1')
+    await vi.waitFor(() => expect(rowTags()).toEqual(['tag-2']))
+    expect(screen.queryByLabelText('Tag ID')).toBeNull()
+    vi.runOnlyPendingTimers()
+  })
+
+  it('stays on the edit form when the confirmation is dismissed', async () => {
+    vi.spyOn(globalThis, 'confirm').mockReturnValue(false)
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+    const row1 = (await screen.findByText('tag-1')).closest('tr')
+    await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(apiDelete).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Tag ID')).toHaveValue('tag-1')
+  })
+
   it('does not delete when the confirmation is dismissed', async () => {
     vi.spyOn(globalThis, 'confirm').mockReturnValue(false)
     apiGet.mockResolvedValue(discs)
