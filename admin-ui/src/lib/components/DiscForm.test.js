@@ -80,6 +80,38 @@ describe('DiscForm — edit mode', () => {
     })
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
+
+  it('shows a danger Delete between Save and Cancel and calls onDelete', async () => {
+    const onDelete = vi.fn().mockResolvedValue(undefined)
+    render(DiscForm, { props: { mode: 'edit', tagId: 'tag-abc', disc, onSaved: vi.fn(), onCancel: vi.fn(), onDelete } })
+
+    const deleteButton = screen.getByRole('button', { name: 'Delete' })
+    expect(deleteButton).toHaveClass('btn-danger')
+    const actions = Array.from(deleteButton.parentElement.children).map((button) => button.textContent)
+    expect(actions).toEqual(['Save', 'Delete', 'Cancel'])
+
+    await fireEvent.click(deleteButton)
+
+    expect(onDelete).toHaveBeenCalled()
+  })
+
+  it('shows the error when onDelete fails', async () => {
+    const onDelete = vi.fn().mockRejectedValue(new ApiError(404, { detail: 'Tag does not exist' }))
+    render(DiscForm, { props: { mode: 'edit', tagId: 'tag-abc', disc, onSaved: vi.fn(), onCancel: vi.fn(), onDelete } })
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    expect(await screen.findByText('Tag does not exist')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()
+  })
+})
+
+describe('DiscForm — create mode has no Delete', () => {
+  it('does not show Delete when creating a disc', () => {
+    render(DiscForm, { props: { mode: 'create', tagId: '', onSaved: vi.fn(), onCancel: vi.fn(), onDelete: vi.fn() } })
+
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull()
+  })
 })
 
 describe('DiscForm — errors and cancel', () => {
