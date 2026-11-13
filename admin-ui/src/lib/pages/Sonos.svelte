@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { ApiError, apiGet, apiPost } from '../api.js'
+  import { ApiError, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
   import SonosSelectionForm from '../components/SonosSelectionForm.svelte'
 
@@ -61,16 +61,10 @@
     editing = false
   }
 
-  async function handleSaved() {
+  async function handleSaved(action) {
     editing = false
     await load()
-    toastStore.showToast('🔊 Sonos settings saved.')
-  }
-
-  async function handleClearSelection() {
-    await apiPost('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
-    await load()
-    toastStore.showToast('🔊 Selection cleared.')
+    toastStore.showToast(action === 'clear' ? '🔊 Selection cleared.' : '🔊 Sonos settings saved.')
   }
 </script>
 
@@ -105,9 +99,6 @@
     {/if}
     <div class="row-actions">
       <button onclick={openEdit}>Edit selection</button>
-      {#if selection?.selected_group}
-        <button class="btn-danger" onclick={handleClearSelection}>Clear saved selection</button>
-      {/if}
     </div>
   </div>
 

@@ -1,8 +1,9 @@
 import { render, screen } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sonos from './Sonos.svelte'
-import { ApiError, apiGet, apiPost } from '../api.js'
+import { ApiError, apiGet, apiPost, apiPut } from '../api.js'
+import { toastStore } from '../stores/toastStore.js'
 
 vi.mock('../api.js', () => ({
   ApiError: class ApiError extends Error {
@@ -14,6 +15,7 @@ vi.mock('../api.js', () => ({
   },
   apiGet: vi.fn(),
   apiPost: vi.fn(),
+  apiPut: vi.fn(),
 }))
 
 const speaker = { uid: 'RINCON_1', name: 'Kitchen', host: '192.168.1.10', household_id: 'h', is_visible: true }
@@ -22,6 +24,11 @@ const speaker2 = { uid: 'RINCON_2', name: 'Living Room', host: '192.168.1.11', h
 beforeEach(() => {
   apiGet.mockReset()
   apiPost.mockReset()
+  apiPut.mockReset()
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
 })
 
 describe('Sonos — no saved selection', () => {
@@ -58,6 +65,7 @@ describe('Sonos — saved selection', () => {
     expect(screen.getByText('Coordinator: Kitchen [RINCON_1]')).toBeInTheDocument()
     expect(screen.getByText('Selection', { selector: 'th' })).toBeInTheDocument()
     expect(screen.getByText('Coordinator', { selector: 'td' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Clear saved selection' })).toBeNull()
   })
 
   it('shows Available when every selected member is currently discoverable', async () => {
@@ -81,20 +89,37 @@ describe('Sonos — saved selection', () => {
     expect(screen.getByText('Members: Kitchen [RINCON_1], Living Room [RINCON_2]')).toBeInTheDocument()
   })
 
-  it('clears the saved selection and reloads', async () => {
-    vi.useFakeTimers()
+  it('reloads and toasts after clearing the selection from the edit form', async () => {
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
     apiGet.mockImplementation((path) =>
       path === '/sonos/selection' ? Promise.resolve(selection) : Promise.resolve([speaker]),
     )
     apiPost.mockResolvedValue({})
     render(Sonos, { props: {} })
-    await screen.findByRole('button', { name: 'Clear saved selection' })
+    await fireEvent.click(await screen.findByRole('button', { name: 'Edit selection' }))
+    apiGet.mockClear()
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear saved selection' }))
 
     expect(apiPost).toHaveBeenCalledWith('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
-    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/sonos/selection'))
-    vi.runOnlyPendingTimers()
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('🔊 Selection cleared.'))
+    expect(apiGet).toHaveBeenCalledWith('/sonos/selection')
+  })
+
+  it('reloads and toasts after saving the selection from the edit form', async () => {
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    apiGet.mockImplementation((path) =>
+      path === '/sonos/selection' ? Promise.resolve(selection) : Promise.resolve([speaker]),
+    )
+    apiPut.mockResolvedValue({})
+    render(Sonos, { props: {} })
+    await fireEvent.click(await screen.findByRole('button', { name: 'Edit selection' }))
+    apiGet.mockClear()
+
+    await fireEvent.click(screen.getByRole('button', { name: 'Save' }))
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('🔊 Sonos settings saved.'))
+    expect(apiGet).toHaveBeenCalledWith('/sonos/selection')
   })
 
   it('opens the edit form and returns to the summary on save', async () => {
