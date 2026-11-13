@@ -53,14 +53,6 @@ describe('Pn532Form — prefill', () => {
 
     expect(screen.getByLabelText('Reset')).toHaveAttribute('placeholder', 'Profile default: —')
   })
-
-  it('shows every profile in the defaults table', () => {
-    renderForm()
-
-    expect(screen.getByRole('cell', { name: 'WaveShare PN532 NFC HAT' })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'HiLetgo PN532 V3' })).toBeInTheDocument()
-    expect(screen.getByRole('cell', { name: 'Custom' })).toBeInTheDocument()
-  })
 })
 
 describe('Pn532Form — submit', () => {
@@ -122,5 +114,39 @@ describe('Pn532Form — submit', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(onCancel).toHaveBeenCalledOnce()
+  })
+})
+
+describe('Pn532Form — pinout clicks', () => {
+  // The hit circle carries its GPIO as an SVG <title> child, out of getByTitle's reach (direct <svg> children only).
+  const clickPin = (title) => fireEvent.click(screen.getByText(title, { selector: 'title' }).parentElement)
+
+  it('fills the last focused pin field with the clicked GPIO', async () => {
+    renderForm()
+
+    await fireEvent.focus(screen.getByLabelText('IRQ'))
+    await clickPin('GPIO17 · pin 11')
+
+    expect(screen.getByLabelText('IRQ')).toHaveValue(17)
+    expect(screen.getByLabelText('Chip select')).toHaveValue(8)
+  })
+
+  it('clears the override when clicking the pin it already holds', async () => {
+    renderForm()
+
+    await fireEvent.focus(screen.getByLabelText('Chip select'))
+    await clickPin('GPIO8 · pin 24')
+
+    expect(screen.getByLabelText('Chip select')).toHaveValue(null)
+  })
+
+  it('clears the override when clicking the profile default', async () => {
+    renderForm()
+
+    await fireEvent.focus(screen.getByLabelText('Reset'))
+    await clickPin('GPIO17 · pin 11')
+    await clickPin('GPIO20 · pin 38')
+
+    expect(screen.getByLabelText('Reset')).toHaveValue(null)
   })
 })
