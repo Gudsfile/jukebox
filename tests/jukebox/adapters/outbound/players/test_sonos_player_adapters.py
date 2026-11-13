@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, call, patch
 
 import pytest
 from requests.exceptions import ConnectionError as RequestConnectionError
@@ -13,6 +13,24 @@ from tests.jukebox.settings._helpers import StubSonosService, build_resolved_son
 
 def make_exception(code: str):
     return SoCoUPnPException(f"UPnP Error {code} received", code, f"<errorCode>{code}</errorCode>")
+
+
+def track_play_calls(mock_speaker: MagicMock, mock_sharelink: MagicMock) -> MagicMock:
+    """Record the queue commands and `play_mode` assignments of `play()` in one ordered list."""
+    tracker = MagicMock()
+    play_mode = PropertyMock(return_value="NORMAL")
+    type(mock_speaker).play_mode = play_mode
+    tracker.attach_mock(play_mode, "play_mode")
+    tracker.attach_mock(mock_speaker.clear_queue, "clear_queue")
+    tracker.attach_mock(mock_speaker.add_uri_to_queue, "add_uri_to_queue")
+    tracker.attach_mock(mock_sharelink.return_value.add_share_link_to_queue, "add_share_link_to_queue")
+    tracker.attach_mock(mock_speaker.play_from_queue, "play_from_queue")
+    return tracker
+
+
+def recorded_play_calls(tracker: MagicMock) -> list:
+    # Reading `play_mode` back is allowed, only assignments matter
+    return [c for c in tracker.mock_calls if c != call.play_mode()]
 
 
 def build_adapter(**kwargs: Any) -> SonosPlayerAdapter:
@@ -575,16 +593,80 @@ def test_play_calls_underlying_sonos_player_for_non_share_link(mock_sharelink, m
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
-def test_play_with_shuffle(mock_sharelink, mock_soco):
-    """Should set shuffle mode when shuffle is True."""
+def test_play_without_shuffle_sets_normal_mode_before_filling_queue(mock_sharelink, mock_soco):
+    """Should switch to normal mode on the empty queue, then play the queue from its first track."""
     mock_speaker = MagicMock()
     mock_soco.return_value = mock_speaker
     mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    tracker = track_play_calls(mock_speaker, mock_sharelink)
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:456", shuffle=False)
+
+    assert recorded_play_calls(tracker) == [
+        call.clear_queue(),
+        call.play_mode("NORMAL"),
+        call.add_share_link_to_queue("uri:456", position=1),
+        call.play_from_queue(index=0, start=True),
+    ]
+
+
+@patch("random.randrange", return_value=7)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_play_with_shuffle_starts_from_random_track_then_shuffles(mock_sharelink, mock_soco, mock_randrange):
+    """Should start from a random track, then shuffle the rest of the queue after it (#454)."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.queue_size = 12
+    tracker = track_play_calls(mock_speaker, mock_sharelink)
 
     adapter = build_adapter(host="192.168.1.100")
     adapter.play("uri:456", shuffle=True)
 
-    assert mock_speaker.play_mode == "SHUFFLE_NOREPEAT"
+    assert recorded_play_calls(tracker) == [
+        call.clear_queue(),
+        call.play_mode("NORMAL"),
+        call.add_share_link_to_queue("uri:456", position=1),
+        call.play_from_queue(index=7, start=True),
+        call.play_mode("SHUFFLE_NOREPEAT"),
+    ]
+
+
+@patch("random.randrange", return_value=0)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_play_with_shuffle_draws_start_track_from_whole_queue(mock_sharelink, mock_soco, mock_randrange):
+    """Should draw the start index from the queue size, not from the index returned when enqueuing."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    mock_speaker.queue_size = 12
+    # soco returns the queue index of the first enqueued track, not the number of tracks
+    mock_sharelink.return_value.add_share_link_to_queue.return_value = 1
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:456", shuffle=True)
+
+    mock_randrange.assert_called_once_with(12)
+
+
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_play_with_shuffle_raises_playback_error_when_uri_adds_nothing_to_queue(mock_sharelink, mock_soco):
+    """Should raise a PlaybackError without playing when the speaker refuses to enqueue the URI."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    # e.g. an empty playlist or an unavailable album: the speaker fails before the queue size is read
+    mock_sharelink.return_value.add_share_link_to_queue.side_effect = make_exception("800")
+
+    adapter = build_adapter(host="192.168.1.100")
+    with pytest.raises(PlaybackError):
+        adapter.play("uri:456", shuffle=True)
+
+    mock_speaker.play_from_queue.assert_not_called()
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
