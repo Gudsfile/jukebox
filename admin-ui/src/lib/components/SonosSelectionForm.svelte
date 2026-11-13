@@ -1,6 +1,7 @@
 <script>
   import { untrack } from 'svelte'
   import { apiPost, apiPut } from '../api.js'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   let { speakers, selectedGroup, onSaved, onCancel } = $props()
 
@@ -13,6 +14,7 @@
   let coordinatorUid = $state(untrack(() => selectedGroup?.coordinator_uid ?? initialUids()[0] ?? ''))
   let error = $state(null)
   let saving = $state(false)
+  let clearOpener = $state(null) // the Clear button while its confirmation is open
 
   function toggleSpeaker(uid) {
     const next = new Set(selectedUids)
@@ -41,7 +43,12 @@
     }
   }
 
+  function askClear(event) {
+    clearOpener = event.currentTarget
+  }
+
   async function handleClear() {
+    clearOpener = null
     error = null
     saving = true
     try {
@@ -90,8 +97,19 @@
   <div class="actions">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     {#if selectedGroup}
-      <button type="button" class="btn-danger" onclick={handleClear} disabled={saving}>Clear saved selection</button>
+      <button type="button" class="btn-danger" onclick={askClear} disabled={saving}>Clear saved selection</button>
     {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
+
+  {#if clearOpener}
+    <ConfirmDialog
+      title="Clear the saved selection?"
+      message="This removes the saved speakers and coordinator."
+      confirmLabel="Clear selection"
+      onConfirm={handleClear}
+      onCancel={() => (clearOpener = null)}
+      returnFocus={clearOpener}
+    />
+  {/if}
 </form>

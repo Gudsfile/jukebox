@@ -2,6 +2,7 @@
   import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
   import { formatProvenance, formatValue, scrollableValueAttributes } from '../settings/format.js'
+  import ConfirmDialog from './ConfirmDialog.svelte'
   import SettingBadges from './SettingBadges.svelte'
 
   let { setting, onSaved, onCancel } = $props()
@@ -16,6 +17,7 @@
   let rawValue = $state(untrack(() => formatInitialValue(setting)))
   let error = $state(null)
   let saving = $state(false)
+  let resetOpener = $state(null) // the Reset button while its confirmation is open
 
   function buildDottedPatch(path, value) {
     const parts = path.split('.')
@@ -82,6 +84,15 @@
     } finally {
       saving = false
     }
+  }
+
+  function askReset(event) {
+    resetOpener = event.currentTarget
+  }
+
+  function confirmReset() {
+    resetOpener = null
+    return handleReset()
   }
 </script>
 
@@ -150,8 +161,19 @@
   <div class="actions">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     {#if setting.is_persisted}
-      <button type="button" class="btn-danger" onclick={handleReset} disabled={saving}>Reset</button>
+      <button type="button" class="btn-danger" onclick={askReset} disabled={saving}>Reset</button>
     {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
+
+{#if resetOpener}
+  <ConfirmDialog
+    title={`Reset ${setting.label}?`}
+    message="This removes the persisted override; the setting then uses its default value unless an environment or CLI override applies."
+    confirmLabel="Reset"
+    onConfirm={confirmReset}
+    onCancel={() => (resetOpener = null)}
+    returnFocus={resetOpener}
+  />
+{/if}

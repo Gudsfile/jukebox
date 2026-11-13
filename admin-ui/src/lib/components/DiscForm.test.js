@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DiscForm from './DiscForm.svelte'
 import { ApiError, apiPatch, apiPost } from '../api.js'
+import { DELETE_DISC_TITLE, deleteDiscMessage } from '../library/deleteConfirmation.js'
 
 vi.mock('../api.js', () => ({
   apiPost: vi.fn(),
@@ -15,6 +16,8 @@ vi.mock('../api.js', () => ({
     }
   },
 }))
+
+const deleteDialog = () => screen.getByRole('dialog', { name: DELETE_DISC_TITLE })
 
 beforeEach(() => {
   apiPost.mockReset()
@@ -81,7 +84,7 @@ describe('DiscForm — edit mode', () => {
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalled())
   })
 
-  it('shows a danger Delete between Save and Cancel and calls onDelete', async () => {
+  it('shows a danger Delete between Save and Cancel and calls onDelete once confirmed', async () => {
     const onDelete = vi.fn().mockResolvedValue(undefined)
     render(DiscForm, { props: { mode: 'edit', tagId: 'tag-abc', disc, onSaved: vi.fn(), onCancel: vi.fn(), onDelete } })
 
@@ -91,8 +94,25 @@ describe('DiscForm — edit mode', () => {
     expect(actions).toEqual(['Save', 'Delete', 'Cancel'])
 
     await fireEvent.click(deleteButton)
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(deleteDialog()).toHaveAccessibleDescription(deleteDiscMessage('tag-abc', disc))
+    await fireEvent.click(within(deleteDialog()).getByRole('button', { name: 'Delete' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(onDelete).toHaveBeenCalled()
+  })
+
+  it('does not call onDelete when the confirmation is cancelled, and gives the focus back to Delete', async () => {
+    const onDelete = vi.fn()
+    render(DiscForm, { props: { mode: 'edit', tagId: 'tag-abc', disc, onSaved: vi.fn(), onCancel: vi.fn(), onDelete } })
+    const deleteButton = screen.getByRole('button', { name: 'Delete' })
+
+    await fireEvent.click(deleteButton)
+    await fireEvent.click(within(deleteDialog()).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(onDelete).not.toHaveBeenCalled()
+    expect(deleteButton).toHaveFocus()
   })
 
   it('shows the error when onDelete fails', async () => {
@@ -100,6 +120,7 @@ describe('DiscForm — edit mode', () => {
     render(DiscForm, { props: { mode: 'edit', tagId: 'tag-abc', disc, onSaved: vi.fn(), onCancel: vi.fn(), onDelete } })
 
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(within(deleteDialog()).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText('Tag does not exist')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled()

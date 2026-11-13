@@ -4,8 +4,9 @@
   // A modal dialog, mounted while open: focus moves in and stays trapped, Escape, the close button and
   // the backdrop close it unless `closable` is false, and focus goes back to the element that opened it.
   // Keys are listened to on the window: a step change can remove the focused element and drop the
-  // focus on <body>, and Escape and Tab must still work then.
-  let { title, onClose, closable = true, returnFocus = null, children } = $props()
+  // focus on <body>, and Escape and Tab must still work then. `describedBy` is the id of an element of the
+  // body that describes the dialog, read out with its title.
+  let { title, onClose, closable = true, returnFocus = null, describedBy = undefined, children } = $props()
 
   const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
   const titleId = `modal-title-${Math.random().toString(36).slice(2)}`
@@ -86,10 +87,18 @@
   ondragover={preventFileDrop}
   ondrop={preventFileDrop}
 >
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby={titleId} tabindex="-1" bind:this={dialog}>
+  <div
+    class="modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby={titleId}
+    aria-describedby={describedBy}
+    tabindex="-1"
+    bind:this={dialog}
+  >
     <header class="modal-header">
       <h3 id={titleId}>{title}</h3>
-      <button class="modal-close" aria-label="Close" disabled={!closable} onclick={close}>✕</button>
+      <button type="button" class="modal-close" aria-label="Close" disabled={!closable} onclick={close}>✕</button>
     </header>
     {@render children()}
   </div>

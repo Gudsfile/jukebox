@@ -22,6 +22,16 @@ describe('Modal', () => {
     expect(screen.getByRole('button', { name: 'Close' })).toHaveFocus()
   })
 
+  it('is described by the element given as its description', () => {
+    const described = createRawSnippet(() => ({
+      render: () => '<p id="modal-description">Nothing is written yet.</p>',
+    }))
+
+    const { dialog } = renderModal({ describedBy: 'modal-description', children: described })
+
+    expect(dialog).toHaveAccessibleDescription('Nothing is written yet.')
+  })
+
   it('closes on Escape even when the focus fell on the page', async () => {
     const { onClose } = renderModal()
     document.body.focus()

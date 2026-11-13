@@ -1,6 +1,8 @@
 <script>
   import { untrack } from 'svelte'
   import { apiPatch, apiPost } from '../api.js'
+  import { DELETE_DISC_TITLE, deleteDiscMessage } from '../library/deleteConfirmation.js'
+  import ConfirmDialog from './ConfirmDialog.svelte'
 
   let { mode, tagId: initialTagId = '', disc = null, onSaved, onCancel, onDelete = null } = $props()
 
@@ -15,6 +17,7 @@
   let shuffle = $state(untrack(() => disc?.option.shuffle ?? false))
   let error = $state(null)
   let saving = $state(false)
+  let deleteOpener = $state(null) // the Delete button while its confirmation is open
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -41,8 +44,13 @@
     }
   }
 
-  // `onDelete` asks for confirmation and throws when the deletion fails.
+  function askDelete(event) {
+    deleteOpener = event.currentTarget
+  }
+
+  // `onDelete` throws when the deletion fails.
   async function handleDelete() {
+    deleteOpener = null
     saving = true
     error = null
     try {
@@ -92,11 +100,22 @@
   <div class="actions wide">
     <button type="submit" class="btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
     {#if mode === 'edit' && onDelete}
-      <button type="button" class="btn-danger" onclick={handleDelete} disabled={saving}>Delete</button>
+      <button type="button" class="btn-danger" onclick={askDelete} disabled={saving}>Delete</button>
     {/if}
     <button type="button" class="btn-secondary" onclick={onCancel}>Cancel</button>
   </div>
 </form>
+
+{#if deleteOpener}
+  <ConfirmDialog
+    title={DELETE_DISC_TITLE}
+    message={deleteDiscMessage(initialTagId, disc)}
+    confirmLabel="Delete"
+    onConfirm={handleDelete}
+    onCancel={() => (deleteOpener = null)}
+    returnFocus={deleteOpener}
+  />
+{/if}
 
 <style>
   /* Two columns pair Artist / Album and Track / Playlist; `.wide` items span both. */

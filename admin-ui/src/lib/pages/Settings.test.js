@@ -304,9 +304,9 @@ describe('Settings — search', () => {
   })
 
   it.each([
-    ['Save', () => apiPatch.mockResolvedValue({})],
-    ['Reset', () => apiPost.mockResolvedValue({})],
-  ])('keeps the query and the filtering after the list reloads on %s', async (button, mockSubmit) => {
+    ['Save', () => apiPatch.mockResolvedValue({}), false],
+    ['Reset', () => apiPost.mockResolvedValue({}), true],
+  ])('keeps the query and the filtering after the list reloads on %s', async (button, mockSubmit, confirmed) => {
     apiGet.mockResolvedValue(displaysResponse)
     mockSubmit()
     render(Settings, { props: {} })
@@ -318,6 +318,7 @@ describe('Settings — search', () => {
       within(screen.getByText('Admin API Port').closest('tr')).getByRole('button', { name: 'Edit' }),
     )
     await fireEvent.click(screen.getByRole('button', { name: button }))
+    if (confirmed) await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: button }))
 
     expect(await screen.findByRole('searchbox', { name: 'Search settings' })).toHaveValue('port')
     expect(apiGet).toHaveBeenCalledTimes(2)

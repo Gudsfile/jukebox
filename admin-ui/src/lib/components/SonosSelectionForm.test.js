@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import SonosSelectionForm from './SonosSelectionForm.svelte'
@@ -13,6 +13,8 @@ const speakers = [
   { uid: 'RINCON_1', name: 'Kitchen', host: '192.168.1.10', household_id: 'h', is_visible: true },
   { uid: 'RINCON_2', name: 'Living Room', host: '192.168.1.11', household_id: 'h', is_visible: true },
 ]
+
+const clearDialog = () => screen.getByRole('dialog', { name: 'Clear the saved selection?' })
 
 beforeEach(() => {
   apiPost.mockReset()
@@ -93,15 +95,34 @@ describe('SonosSelectionForm — clear', () => {
     expect(screen.getByRole('button', { name: 'Clear saved selection' })).toHaveClass('btn-danger')
   })
 
-  it('resets the saved selection and calls onSaved with clear', async () => {
+  it('resets the saved selection once confirmed and calls onSaved with clear', async () => {
     apiPost.mockResolvedValue({})
     const onSaved = vi.fn()
     render(SonosSelectionForm, { props: { speakers, selectedGroup, onSaved, onCancel: vi.fn() } })
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear saved selection' }))
+    expect(apiPost).not.toHaveBeenCalled()
+    await fireEvent.click(within(clearDialog()).getByRole('button', { name: 'Clear selection' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(apiPut).not.toHaveBeenCalled()
     expect(apiPost).toHaveBeenCalledWith('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
     await vi.waitFor(() => expect(onSaved).toHaveBeenCalledWith('clear'))
+  })
+
+  it('keeps the saved selection when the clear is cancelled, and gives the focus back to Clear', async () => {
+    const onSaved = vi.fn()
+    render(SonosSelectionForm, { props: { speakers, selectedGroup, onSaved, onCancel: vi.fn() } })
+    const clear = screen.getByRole('button', { name: 'Clear saved selection' })
+
+    await fireEvent.click(clear)
+    await fireEvent.click(within(clearDialog()).getByRole('button', { name: 'Cancel' }))
+
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPut).not.toHaveBeenCalled()
+    expect(onSaved).not.toHaveBeenCalled()
+    expect(clear).toHaveFocus()
   })
 
   it('shows the API error and does not call onSaved when clearing fails', async () => {
@@ -110,6 +131,7 @@ describe('SonosSelectionForm — clear', () => {
     render(SonosSelectionForm, { props: { speakers, selectedGroup, onSaved, onCancel: vi.fn() } })
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear saved selection' }))
+    await fireEvent.click(within(clearDialog()).getByRole('button', { name: 'Clear selection' }))
 
     expect(await screen.findByText('Reset failed.')).toBeInTheDocument()
     expect(onSaved).not.toHaveBeenCalled()

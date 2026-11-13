@@ -2,9 +2,11 @@
   import { onMount } from 'svelte'
   import { apiDelete, apiGet } from '../api.js'
   import { toastStore } from '../stores/toastStore.js'
+  import ConfirmDialog from '../components/ConfirmDialog.svelte'
   import DiscForm from '../components/DiscForm.svelte'
   import ReaderSlot from '../components/ReaderSlot.svelte'
   import { searchDiscs } from '../library/search.js'
+  import { DELETE_DISC_TITLE, deleteDiscMessage } from '../library/deleteConfirmation.js'
   import { typeIcon, typeLabel } from '../library/discType.js'
   import { ALL, SHUFFLE_OFF, SHUFFLE_ON, filterDiscs, isFiltering, typeOptions } from '../library/filter.js'
   import { nextSort, sortEntries } from '../library/sort.js'
@@ -16,6 +18,7 @@
   let currentTag = $state(null) // null | { tag_id, known_in_library }, pushed by the SSE stream
   let copiedTagId = $state(null)
   let deleteError = $state(null)
+  let pendingDelete = $state(null) // null | { tagId, opener }
   let searchQuery = $state('')
   let typeFilter = $state(ALL)
   let shuffleFilter = $state(ALL)
@@ -115,9 +118,9 @@
     }, 1500)
   }
 
-  // Shared by the table row and the edit form, which shows a failure in its own error slot.
+  // Shared by the table row and the edit form, which shows a failure in its own error slot. Both ask for
+  // confirmation before calling it.
   async function deleteDisc(tagId) {
-    if (!confirm(`Delete disc "${tagId}"?`)) return
     await apiDelete(`/discs/${tagId}`)
     deleteError = null
     formMode = null
@@ -125,7 +128,12 @@
     toastStore.showToast('💿 Disc deleted.')
   }
 
+  function askDelete(event, tagId) {
+    pendingDelete = { tagId, opener: event.currentTarget }
+  }
+
   async function handleDelete(tagId) {
+    pendingDelete = null
     try {
       await deleteDisc(tagId)
     } catch (err) {
@@ -283,7 +291,7 @@
               <td>
                 <div class="row-actions">
                   <button onclick={() => openEdit(tagId)}>Edit</button>
-                  <button class="btn-danger" onclick={() => handleDelete(tagId)}>Delete</button>
+                  <button class="btn-danger" onclick={(event) => askDelete(event, tagId)}>Delete</button>
                 </div>
               </td>
             </tr>
@@ -296,6 +304,18 @@
       </table>
     </div>
   {/if}
+{/if}
+
+{#if pendingDelete}
+  {@const { tagId, opener } = pendingDelete}
+  <ConfirmDialog
+    title={DELETE_DISC_TITLE}
+    message={deleteDiscMessage(tagId, discs[tagId])}
+    confirmLabel="Delete"
+    onConfirm={() => handleDelete(tagId)}
+    onCancel={() => (pendingDelete = null)}
+    returnFocus={opener}
+  />
 {/if}
 
 <ReaderSlot

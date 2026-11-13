@@ -34,6 +34,8 @@ const rowTags = () =>
     .slice(1)
     .map((row) => row.querySelector('.tag').textContent)
 
+const confirmDialog = () => screen.getByRole('dialog', { name: 'Delete this disc?' })
+
 beforeEach(() => {
   apiGet.mockReset()
   apiDelete.mockReset()
@@ -152,7 +154,6 @@ describe('Library — search', () => {
 
   it('deletes the disc of a row narrowed by the search', async () => {
     vi.useFakeTimers()
-    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
     apiDelete.mockResolvedValue(null)
     render(Library, { props: {} })
@@ -163,8 +164,9 @@ describe('Library — search', () => {
     })
     const row = screen.getByText('tag-2').closest('tr')
     await fireEvent.click(within(row).getByRole('button', { name: 'Delete' }))
+    expect(confirmDialog()).toHaveTextContent('“Radio Veridis” (tag-2)')
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
-    expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-2"?')
     expect(apiDelete).toHaveBeenCalledWith('/discs/tag-2')
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
     vi.runOnlyPendingTimers()
@@ -200,28 +202,30 @@ describe('Library — add/edit/delete flow', () => {
 
   it('deletes a disc after confirmation and reloads', async () => {
     vi.useFakeTimers()
-    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
     apiDelete.mockResolvedValue(null)
     render(Library, { props: {} })
     const row1 = (await screen.findByText('tag-1')).closest('tr')
 
     await fireEvent.click(within(row1).getByRole('button', { name: 'Delete' }))
+    expect(apiDelete).not.toHaveBeenCalled()
+    expect(confirmDialog()).toHaveTextContent('“Veridis Project — Voir le soleil” (tag-1)')
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
-    expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-1"?')
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(apiDelete).toHaveBeenCalledWith('/discs/tag-1')
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(2))
     vi.runOnlyPendingTimers()
   })
 
   it('shows an error and keeps the row when delete fails', async () => {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
     apiDelete.mockRejectedValue({ body: { detail: "Tag does not exist: tag_id='tag-1'" } })
     render(Library, { props: {} })
     const row1 = (await screen.findByText('tag-1')).closest('tr')
 
     await fireEvent.click(within(row1).getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText("Tag does not exist: tag_id='tag-1'")).toBeInTheDocument()
     expect(screen.getByText('tag-1')).toBeInTheDocument()
@@ -229,7 +233,6 @@ describe('Library — add/edit/delete flow', () => {
   })
 
   it('shows the error and keeps the edit form open when delete fails from it', async () => {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValue(discs)
     apiDelete.mockRejectedValue({ body: { detail: "Tag does not exist: tag_id='tag-1'" } })
     render(Library, { props: {} })
@@ -237,6 +240,7 @@ describe('Library — add/edit/delete flow', () => {
     await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
 
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText("Tag does not exist: tag_id='tag-1'")).toBeInTheDocument()
     expect(screen.getByLabelText('Tag ID')).toHaveValue('tag-1')
@@ -246,7 +250,6 @@ describe('Library — add/edit/delete flow', () => {
 
   it('deletes the edited disc after the same confirmation and returns to the list', async () => {
     vi.useFakeTimers()
-    const confirmSpy = vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiGet.mockResolvedValueOnce(discs).mockResolvedValueOnce({ 'tag-2': discs['tag-2'] })
     apiDelete.mockResolvedValue(null)
     render(Library, { props: {} })
@@ -254,36 +257,42 @@ describe('Library — add/edit/delete flow', () => {
     await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
 
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(apiDelete).not.toHaveBeenCalled()
+    expect(confirmDialog()).toHaveTextContent('“Veridis Project — Voir le soleil” (tag-1)')
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
-    expect(confirmSpy).toHaveBeenCalledWith('Delete disc "tag-1"?')
     expect(apiDelete).toHaveBeenCalledWith('/discs/tag-1')
     await vi.waitFor(() => expect(rowTags()).toEqual(['tag-2']))
     expect(screen.queryByLabelText('Tag ID')).toBeNull()
     vi.runOnlyPendingTimers()
   })
 
-  it('stays on the edit form when the confirmation is dismissed', async () => {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(false)
+  it('stays on the edit form when the confirmation is cancelled', async () => {
     apiGet.mockResolvedValue(discs)
     render(Library, { props: {} })
     const row1 = (await screen.findByText('tag-1')).closest('tr')
     await fireEvent.click(within(row1).getByRole('button', { name: 'Edit' }))
 
     await fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Cancel' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(apiDelete).not.toHaveBeenCalled()
     expect(screen.getByLabelText('Tag ID')).toHaveValue('tag-1')
   })
 
-  it('does not delete when the confirmation is dismissed', async () => {
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(false)
+  it('does not delete when the confirmation is cancelled, and gives the focus back to Delete', async () => {
     apiGet.mockResolvedValue(discs)
     render(Library, { props: {} })
     const row1 = (await screen.findByText('tag-1')).closest('tr')
+    const deleteButton = within(row1).getByRole('button', { name: 'Delete' })
 
-    await fireEvent.click(within(row1).getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(deleteButton)
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Cancel' }))
 
+    expect(screen.queryByRole('dialog')).toBeNull()
     expect(apiDelete).not.toHaveBeenCalled()
+    expect(deleteButton).toHaveFocus()
   })
 })
 
@@ -470,7 +479,6 @@ describe('Library — filters', () => {
   it('falls back to all types when the filtered type leaves the library', async () => {
     vi.useFakeTimers()
     apiGet.mockResolvedValueOnce(discs).mockResolvedValueOnce({ 'tag-1': discs['tag-1'] })
-    vi.spyOn(globalThis, 'confirm').mockReturnValue(true)
     apiDelete.mockResolvedValue(null)
     render(Library, { props: {} })
     await screen.findByText('tag-1')
@@ -478,6 +486,7 @@ describe('Library — filters', () => {
     await fireEvent.change(screen.getByLabelText('Filter by type'), { target: { value: '🎧 Playlist' } })
     const row2 = screen.getByText('tag-2').closest('tr')
     await fireEvent.click(within(row2).getByRole('button', { name: 'Delete' }))
+    await fireEvent.click(within(confirmDialog()).getByRole('button', { name: 'Delete' }))
 
     expect(await screen.findByText('tag-1')).toBeInTheDocument()
     expect(screen.getByLabelText('Filter by type')).toHaveValue('')
