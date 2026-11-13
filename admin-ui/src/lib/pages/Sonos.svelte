@@ -113,30 +113,32 @@
   </div>
 
   {#if !discoveryError}
-    <h3>Discovered speakers</h3>
-    {#if speakers.length === 0}
-      <p>No visible Sonos speakers found.</p>
-    {:else}
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Host</th>
-            <th>Household</th>
-            <th>Selection</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each speakers as speaker (speaker.uid)}
+    <div class="panel">
+      <h3>Discovered speakers</h3>
+      {#if speakers.length === 0}
+        <p>No visible Sonos speakers found.</p>
+      {:else}
+        <table>
+          <thead>
             <tr>
-              <td>{speaker.name}</td>
-              <td>{speaker.host}</td>
-              <td>{speaker.household_id}</td>
-              <td class="center">{speakerSelectionLabel(speaker.uid)}</td>
+              <th>Name</th>
+              <th>Host</th>
+              <th>Household</th>
+              <th>Selection</th>
             </tr>
-          {/each}
-        </tbody>
-      </table>
-    {/if}
+          </thead>
+          <tbody>
+            {#each speakers as speaker (speaker.uid)}
+              <tr>
+                <td>{speaker.name}</td>
+                <td>{speaker.host}</td>
+                <td>{speaker.household_id}</td>
+                <td class="center">{speakerSelectionLabel(speaker.uid)}</td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    </div>
   {/if}
 {/if}

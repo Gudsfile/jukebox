@@ -35,6 +35,9 @@ describe('Sonos — no saved selection', () => {
 
     expect(await screen.findByText('No Sonos speaker selection is currently saved.')).toBeInTheDocument()
     expect(screen.getByText('Kitchen')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Discovered speakers' }).closest('.panel')).toContainElement(
+      screen.getByRole('table'),
+    )
     expect(screen.queryByRole('button', { name: 'Clear saved selection' })).toBeNull()
   })
 })
