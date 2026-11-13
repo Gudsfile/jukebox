@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/svelte'
+import { render, screen, within } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Sonos from './Sonos.svelte'
@@ -100,6 +100,7 @@ describe('Sonos — saved selection', () => {
     apiGet.mockClear()
 
     await fireEvent.click(screen.getByRole('button', { name: 'Clear saved selection' }))
+    await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Clear selection' }))
 
     expect(apiPost).toHaveBeenCalledWith('/settings/reset', { path: 'jukebox.player.sonos.selected_group' })
     await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('🔊 Selection cleared.'))
