@@ -39,4 +39,9 @@ describe('wiringFor', () => {
   it('reports a GPIO that is not on the 40-pin header', () => {
     expect(wiringFor('custom', { reset: null, cs: 30, irq: null }).unmapped).toEqual([{ key: 'cs', bcm: 30 }])
   })
+
+  it('flags a pin the kernel SPI driver already claims', () => {
+    expect(wiringFor('custom', { reset: null, cs: 8, irq: null }).claimed).toEqual([{ key: 'cs', bcm: 8 }])
+    expect(wiringFor('custom', { reset: null, cs: 4, irq: null }).claimed).toEqual([])
+  })
 })

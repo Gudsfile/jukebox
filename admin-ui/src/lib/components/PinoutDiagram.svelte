@@ -31,7 +31,11 @@
       {#each wiring.wired as pin (`${pin.label}-${pin.physical}`)}
         {@const { x, y } = centre(pin.physical)}
         {@const right = pin.physical % 2 === 0}
-        <g class={`pin pin-${pin.kind}`} class:pin-clash={clashes.has(pin.physical)} class:pin-any={pin.anyOf}>
+        <g
+          class={`pin pin-${pin.kind}`}
+          class:pin-clash={clashes.has(pin.physical) || wiring.claimed.some(({ bcm }) => bcm === pin.bcm)}
+          class:pin-any={pin.anyOf}
+        >
           <circle cx={x} cy={y} r="19" />
           <text x={right ? x + 34 : x - 34} y={y + 9} text-anchor={right ? 'start' : 'end'}>{pin.label}</text>
         </g>
@@ -57,6 +61,11 @@
     {#if clashes.size}
       <p class="error">Several lines share the same header pin.</p>
     {/if}
+    {#each wiring.claimed as { key, bcm } (key)}
+      <p class="error">
+        GPIO{bcm} ({key}) is CE0, already claimed by the kernel SPI driver: probing fails with GPIO busy.
+      </p>
+    {/each}
     {#each wiring.unmapped as { key, bcm } (key)}
       <p class="error">GPIO{bcm} ({key}) is not on the 40-pin header.</p>
     {/each}

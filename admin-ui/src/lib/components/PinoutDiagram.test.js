@@ -27,3 +27,11 @@ describe('PinoutDiagram — warnings', () => {
     expect(screen.getByText('GPIO30 (irq) is not on the 40-pin header.')).toBeInTheDocument()
   })
 })
+
+describe('PinoutDiagram — kernel-claimed pins', () => {
+  it('warns when a line is on GPIO8, claimed by the kernel SPI driver', () => {
+    renderDiagram({ cs: 8 })
+
+    expect(screen.getByText(/GPIO8 \(cs\) is CE0, already claimed by the kernel SPI driver/)).toBeInTheDocument()
+  })
+})

@@ -49,21 +49,26 @@ const WIRED_POWER = [...powerPins('3V3', [1, 17]), ...powerPins('GND', GROUNDS)]
 // The Waveshare HAT regulates its own 3.3V from 5V; plugged in, it touches every one of these pins anyway.
 const HAT_POWER = [...powerPins('5V', [2, 4]), ...powerPins('GND', GROUNDS)]
 
+// GPIO8 (CE0) is claimed by the kernel SPI driver (/dev/spidev0.0): probing fails with `GPIO busy` (#261).
+const KERNEL_CLAIMED = [8]
+
 const SHORT_LABELS = { reset: 'RST', cs: 'CS', irq: 'IRQ' }
 
 /**
  * Lists the header pins to highlight for a profile and its effective (BCM) pins.
- * Returns { wired: [{ physical, label, kind, bcm? }], unmapped: [{ key, bcm }] }.
+ * Returns { wired: [{ physical, label, kind, bcm? }], unmapped: [{ key, bcm }], claimed: [{ key, bcm }] }.
  */
 export function wiringFor(profileName, resolved) {
   const wired = [...SPI_BUS, ...(profileName === 'waveshare_hat' ? HAT_POWER : WIRED_POWER)]
   const unmapped = []
+  const claimed = []
   for (const { key } of PIN_FIELDS) {
     const bcm = resolved[key]
     if (bcm === null || bcm === undefined) continue
     const physical = BCM_TO_PHYSICAL[bcm]
     if (physical === undefined) unmapped.push({ key, bcm })
     else wired.push({ physical, label: SHORT_LABELS[key], kind: 'signal', bcm })
+    if (KERNEL_CLAIMED.includes(bcm)) claimed.push({ key, bcm })
   }
-  return { wired, unmapped }
+  return { wired, unmapped, claimed }
 }
