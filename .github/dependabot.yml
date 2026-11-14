@@ -16,6 +16,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
@@ -31,6 +35,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/admin-ui"
@@ -46,3 +54,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
