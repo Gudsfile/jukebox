@@ -1,6 +1,7 @@
 import logging
 import random
 from collections.abc import Callable
+from dataclasses import dataclass
 
 import soco
 from requests.exceptions import RequestException
@@ -9,7 +10,7 @@ from soco.exceptions import SoCoException, SoCoUPnPException
 from soco.plugins.sharelink import ShareLinkPlugin
 from urllib3.exceptions import HTTPError
 
-from jukebox.domain.errors import NothingToResumeError, PlaybackError
+from jukebox.domain.errors import CannotResumeError, PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.settings.entities import ResolvedSonosGroupRuntime
 from jukebox.settings.errors import ErrorCode, InvalidSettingsError
@@ -34,6 +35,17 @@ def _log_upnp_failure(command_name: str, err: SoCoUPnPException) -> None:
         )
     else:
         LOGGER.exception("%s failed: %s", command_name, str(err))
+
+
+@dataclass(frozen=True)
+class _PlaybackFingerprint:
+    """What play() left on the speaker, to tell on resume() whether the speaker still holds it."""
+
+    # Source of the transport, `x-rincon-queue:<uid>#0` when playing the local queue
+    transport_uri: str
+    first_item_uri: str
+    # Any added track changes it: Play Now inserts tracks after the current one, not at the end
+    size: int
 
 
 class SonosPlayerAdapter(PlayerPort):
@@ -78,6 +90,7 @@ class SonosPlayerAdapter(PlayerPort):
             speaker_info.get("software_version", None),
         )
         self.sharelink = ShareLinkPlugin(self.speaker)
+        self._played_fingerprint: _PlaybackFingerprint | None = None
 
     @staticmethod
     def _discover(name: str | None = None) -> SoCo:
@@ -321,6 +334,7 @@ class SonosPlayerAdapter(PlayerPort):
     def play(self, uri: str, shuffle: bool = False) -> None:
         def command() -> None:
             LOGGER.info("Playing `%s` on the player `%s`", uri, self.speaker_name)
+            self._played_fingerprint = None
             self.speaker.clear_queue()
             self.speaker.play_mode = "NORMAL"
             _ = self.handle_uri(uri)
@@ -329,6 +343,11 @@ class SonosPlayerAdapter(PlayerPort):
             self.speaker.play_mode = "SHUFFLE_NOREPEAT" if shuffle else "NORMAL"
 
         self._execute_with_recovery("play", command)
+        # Best effort: the disc already plays, and without a fingerprint the next resume() replays it
+        try:
+            self._played_fingerprint = self._read_playback_fingerprint()
+        except _SONOS_TRANSPORT_ERRORS as err:
+            LOGGER.warning("Could not read what `%s` holds after play, resume will replay: %s", self.speaker_name, err)
 
     def pause(self) -> None:
         def command() -> None:
@@ -346,6 +365,11 @@ class SonosPlayerAdapter(PlayerPort):
     def resume(self) -> None:
         def command() -> None:
             LOGGER.info("Resuming player `%s`", self.speaker_name)
+            played = self._played_fingerprint
+            if played is None or played != self._read_playback_fingerprint():
+                # The queue or the source was replaced (e.g. from the Sonos app) or never set by play()
+                LOGGER.info("Player `%s` no longer holds what was played, nothing to resume", self.speaker_name)
+                raise CannotResumeError("the queue or the source changed since the last play")
             try:
                 self.speaker.play()
             except SoCoUPnPException as err:
@@ -353,16 +377,28 @@ class SonosPlayerAdapter(PlayerPort):
                 if err.error_code != "701":
                     raise
                 LOGGER.info("Player `%s` has nothing to resume", self.speaker_name)
-                raise NothingToResumeError(str(err)) from err
+                raise CannotResumeError(str(err)) from err
 
         self._execute_with_recovery("resume", command)
 
     def stop(self) -> None:
         def command() -> None:
             LOGGER.info("Stopping player `%s` and clearing its queue", self.speaker_name)
+            self._played_fingerprint = None
             self.speaker.clear_queue()
 
         self._execute_with_recovery("stop", command)
+
+    def _read_playback_fingerprint(self) -> _PlaybackFingerprint | None:
+        queue = self.speaker.get_queue(max_items=1)
+        if not queue:
+            return None
+        media_info = self.speaker.avTransport.GetMediaInfo([("InstanceID", 0)])
+        return _PlaybackFingerprint(
+            transport_uri=media_info["CurrentURI"],
+            first_item_uri=queue[0].get_uri(),
+            size=queue.total_matches,
+        )
 
     def handle_uri(self, uri):
         if self.sharelink.is_share_link(uri):

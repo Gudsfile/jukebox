@@ -14,7 +14,11 @@ class PlayerPort(ABC):
 
     @abstractmethod
     def resume(self) -> None:
-        """Resume playback. Raises NothingToResumeError if there is nothing to resume."""
+        """Resume what the last play() started.
+
+        Raises CannotResumeError if the player no longer holds it (e.g. its queue was cleared,
+        or replaced from another app).
+        """
 
     @abstractmethod
     def stop(self) -> None:

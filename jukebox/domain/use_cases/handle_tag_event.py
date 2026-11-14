@@ -11,7 +11,7 @@ from jukebox.domain.entities import (
     TransitionContext,
     Waiting,
 )
-from jukebox.domain.errors import NothingToResumeError, PlaybackError
+from jukebox.domain.errors import CannotResumeError, PlaybackError
 from jukebox.domain.ports import PlayerPort
 from jukebox.domain.repositories import LibraryRepository
 
@@ -87,10 +87,10 @@ class HandleTagEvent:
                 case "resume":
                     try:
                         self.player.resume()
-                    except NothingToResumeError:
+                    except CannotResumeError:
                         if disc is None:
                             raise
-                        LOGGER.info("Nothing to resume, replaying disc: %s", disc)
+                        LOGGER.info("Cannot resume, replaying disc: %s", disc)
                         self.player.play(disc.uri, disc.option.shuffle)
                 case "stop":
                     self.player.stop()
