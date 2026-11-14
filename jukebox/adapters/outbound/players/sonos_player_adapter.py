@@ -39,7 +39,7 @@ def _log_upnp_failure(command_name: str, err: SoCoUPnPException) -> None:
 
 @dataclass(frozen=True)
 class _PlaybackFingerprint:
-    """What play() left on the speaker, to tell on resume() whether the speaker still holds it."""
+    """What play() left on the speaker, to tell on resume() and stop() whether the speaker still holds it."""
 
     # Source of the transport, `x-rincon-queue:<uid>#0` when playing the local queue
     transport_uri: str
@@ -382,12 +382,23 @@ class SonosPlayerAdapter(PlayerPort):
         self._execute_with_recovery("resume", command)
 
     def stop(self) -> None:
+        played = self._played_fingerprint
+        if played is None:
+            # Without a record of the last play() (none, or its read failed), the queue may not be ours
+            LOGGER.info("Player `%s` holds nothing known to be played, leaving it alone", self.speaker_name)
+            return
+
         def command() -> None:
+            if played != self._read_playback_fingerprint():
+                # The queue or the source was replaced (e.g. from the Sonos app), so it is not ours to clear
+                LOGGER.info("Player `%s` no longer holds what was played, leaving it alone", self.speaker_name)
+                return
             LOGGER.info("Stopping player `%s` and clearing its queue", self.speaker_name)
-            self._played_fingerprint = None
             self.speaker.clear_queue()
 
         self._execute_with_recovery("stop", command)
+        # Forgotten only once stop() succeeded: after a PlaybackError, the retried stop() compares again
+        self._played_fingerprint = None
 
     def _read_playback_fingerprint(self) -> _PlaybackFingerprint | None:
         queue = self.speaker.get_queue(max_items=1)
