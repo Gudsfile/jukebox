@@ -1,5 +1,5 @@
 <script>
-  import pinoutImage from '../../assets/raspberry-pi-gpio-pinout.png'
+  import pinoutImage from '../../assets/raspberry-pi-gpio-pinout.webp'
   import { BCM_TO_PHYSICAL, wiringFor } from '../pn532/pinout.js'
 
   // onPinClick(bcm) is optional: when given, every GPIO pin of the header becomes clickable.
