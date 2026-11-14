@@ -1,0 +1,85 @@
+name: Prek Update
+
+# Stopgap until Dependabot supports prek: https://github.com/dependabot/dependabot-core/issues/14624
+# Kept minimal on purpose, hence the manual close and reopen to run the CI on the pull request.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    name: Update hook revisions
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Update hook revisions
+        # Same release age as the Dependabot cooldown (see .github/dependabot.yml).
+        # pipefail: fail the step when prek fails, not only when tee does.
+        run: |
+          set -o pipefail
+          uvx prek update --cooldown-days 4 | tee "$RUNNER_TEMP/prek-update.txt"
+
+      - name: Open pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: chore/prek-update
+        run: |
+          if git diff --quiet; then
+            echo "Hook revisions are up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$BRANCH"
+          git commit -am "⬆️ update prek hook revisions"
+          git push --force origin "$BRANCH"
+
+          {
+            echo "## Problem"
+            echo
+            echo "Some prek hook revisions in \`prek.toml\` are outdated."
+            echo
+            echo "## Proposal"
+            echo
+            echo "Update them with \`prek update --cooldown-days 4\`:"
+            echo
+            echo '```text'
+            cat "$RUNNER_TEMP/prek-update.txt"
+            echo '```'
+            echo
+            echo "## Comments"
+            echo
+            echo "This pull request is opened with \`GITHUB_TOKEN\`, which does not trigger the CI: close and reopen it to run the checks."
+            echo
+            echo "## Test"
+            echo
+            echo "Run \`prek run --all-files\` locally."
+          } > "$RUNNER_TEMP/body.md"
+
+          if [ -n "$(gh pr list --head "$BRANCH" --state open --json number --jq '.[].number')" ]; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/body.md"
+            echo "Pull request already open, branch and description updated"
+            exit 0
+          fi
+
+          gh pr create --draft --base main --head "$BRANCH" \
+            --title "⬆️ Update prek hook revisions" \
+            --body-file "$RUNNER_TEMP/body.md"
