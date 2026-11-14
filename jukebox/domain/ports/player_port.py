@@ -22,4 +22,7 @@ class PlayerPort(ABC):
 
     @abstractmethod
     def stop(self) -> None:
-        """Stop playback."""
+        """Stop what the last play() started.
+
+        Leaves the player alone if it no longer holds it (e.g. its queue was replaced from another app).
+        """
