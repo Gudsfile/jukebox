@@ -1198,16 +1198,18 @@ def test_stop_clears_the_queue_when_it_is_unchanged(mock_sharelink, mock_soco):
     mock_speaker.clear_queue.assert_called_once()
 
 
-@pytest.mark.parametrize(
-    "queue_uris, transport_uri",
-    [
-        pytest.param(["x-sonos:other-1", "x-sonos:other-2"], None, id="queue_replaced"),
-        pytest.param(["x-sonos:track-1", "x-sonos:added-1", "x-sonos:track-2"], None, id="tracks_added"),
-        pytest.param([], None, id="queue_emptied"),
-        pytest.param(None, "x-sonosapi-stream:s12345?sid=254&flags=8224&sn=0", id="radio"),
-        pytest.param(None, "x-sonos-vli:RINCON_TEST:1,spotify:abc", id="spotify_connect"),
-    ],
-)
+# What the Sonos app may change on a speaker that played ["x-sonos:track-1", "x-sonos:track-2"]:
+# the new queue item URIs and the new transport source, None when left as is
+SPEAKER_CHANGES_SINCE_PLAY = [
+    pytest.param(["x-sonos:other-1", "x-sonos:other-2"], None, id="queue_replaced"),
+    pytest.param(["x-sonos:track-1", "x-sonos:added-1", "x-sonos:track-2"], None, id="tracks_added"),
+    pytest.param([], None, id="queue_emptied"),
+    pytest.param(None, "x-sonosapi-stream:s12345?sid=254&flags=8224&sn=0", id="radio"),
+    pytest.param(None, "x-sonos-vli:RINCON_TEST:1,spotify:abc", id="spotify_connect"),
+]
+
+
+@pytest.mark.parametrize("queue_uris, transport_uri", SPEAKER_CHANGES_SINCE_PLAY)
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
 def test_stop_leaves_alone_what_the_speaker_plays_since(mock_sharelink, mock_soco, queue_uris, transport_uri, caplog):
@@ -1231,6 +1233,29 @@ def test_stop_leaves_alone_what_the_speaker_plays_since(mock_sharelink, mock_soc
     mock_speaker.clear_queue.assert_not_called()
     mock_speaker.stop.assert_not_called()
     assert "leaving it alone" in caplog.text
+
+
+@pytest.mark.parametrize("queue_uris, transport_uri", SPEAKER_CHANGES_SINCE_PLAY)
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
+@patch("jukebox.adapters.outbound.players.sonos_player_adapter.ShareLinkPlugin")
+def test_pause_pauses_what_the_speaker_plays_since(mock_sharelink, mock_soco, queue_uris, transport_uri):
+    """Should pause even what the speaker plays since the last play(): removing the tag is an explicit action (see #475)."""
+    mock_speaker = MagicMock()
+    mock_soco.return_value = mock_speaker
+    mock_speaker.get_speaker_info.return_value = {"software_version": "1.0"}
+    set_queue(mock_speaker, ["x-sonos:track-1", "x-sonos:track-2"])
+
+    adapter = build_adapter(host="192.168.1.100")
+    adapter.play("uri:123")
+    mock_speaker.pause.reset_mock()
+    if queue_uris is not None:
+        set_queue(mock_speaker, queue_uris)
+    if transport_uri is not None:
+        set_transport_uri(mock_speaker, transport_uri)
+
+    adapter.pause()
+
+    mock_speaker.pause.assert_called_once()
 
 
 @patch("jukebox.adapters.outbound.players.sonos_player_adapter.SoCo")
