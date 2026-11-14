@@ -1,11 +1,12 @@
 version: 2
-enable-beta-ecosystems: true
 updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 4
     commit-message:
       prefix: "⬆️ "
     groups:
@@ -15,12 +16,18 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 4
     commit-message:
       prefix: "⬆️ "
     groups:
@@ -28,12 +35,18 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
 
   - package-ecosystem: "npm"
     directory: "/admin-ui"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     open-pull-requests-limit: 10
+    cooldown:
+      default-days: 4
     commit-message:
       prefix: "⬆️ "
     groups:
@@ -41,3 +54,7 @@ updates:
         update-types:
           - "minor"
           - "patch"
+      security:
+        applies-to: "security-updates"
+        patterns:
+          - "*"
