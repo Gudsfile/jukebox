@@ -51,7 +51,7 @@ def test_composition_roots_exist() -> None:
         )
 
 
-@pytest.mark.xfail(reason="admin/pn532_command_handlers.py imports adapter directly", strict=True)
+@pytest.mark.xfail(reason="admin/pn532_probe.py imports adapter directly", strict=True)
 def test_only_composition_roots_import_adapters() -> None:
     violations = find_external_adapter_violations()
     if violations:

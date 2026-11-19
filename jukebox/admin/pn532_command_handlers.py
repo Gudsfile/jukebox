@@ -7,8 +7,6 @@ from jukebox.pn532.profiles import (
     Pn532BoardProfile,
     Pn532ConnectionParams,
     Pn532Protocol,
-    SpiConnectionParams,
-    resolve_connection_params,
 )
 from jukebox.settings.pn532_configuration import save_pn532_configuration
 from jukebox.settings.service_protocols import SettingsService
@@ -16,25 +14,7 @@ from jukebox.shared.errors import MissingOptionalDependencyError
 from jukebox.shared.terminal_ui import table
 
 from .pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
-
-
-def _default_build_pn532_reader(
-    read_timeout_seconds: float,
-    protocol: Pn532Protocol,
-    connection: Pn532ConnectionParams,
-) -> Any:
-    from jukebox.adapters.outbound.readers.pn532_reader_adapter import Pn532ReaderAdapter
-
-    if protocol == "spi":
-        if not isinstance(connection, SpiConnectionParams):
-            raise ValueError(f"Expected SpiConnectionParams for protocol 'spi', got {type(connection).__name__}")
-        return Pn532ReaderAdapter(
-            read_timeout_seconds=read_timeout_seconds,
-            spi_reset=connection.reset,
-            spi_cs=connection.cs,
-            spi_irq=connection.irq,
-        )
-    raise ValueError(f"Unsupported PN532 protocol: {protocol}")
+from .pn532_probe import Pn532GpioError, default_build_pn532_reader, probe_pn532, resolve_pn532_probe_setup
 
 
 def _parse_pin(raw: str | None) -> "tuple[bool, str | None]":
@@ -52,7 +32,7 @@ def execute_pn532_command(
     profile_prompt_fn: Callable[[list], str | None] | None = None,
     protocol_prompt_fn: Callable[[list, str], str | None] | None = None,
     pin_prompt_fn: Callable[[str, int | None], str | None] | None = None,
-    build_pn532_reader: Callable[..., Any] = _default_build_pn532_reader,
+    build_pn532_reader: Callable[..., Any] = default_build_pn532_reader,
     stdout_fn: Callable[[str], None] = print,
 ) -> None:
     if isinstance(command, Pn532ProfilesCommand):
@@ -113,37 +93,24 @@ def execute_pn532_command(
         return
 
     if isinstance(command, Pn532ProbeCommand):
-        pn532 = settings_service.get_effective_settings().jukebox.reader.pn532
-        overrides = SpiConnectionParams(reset=pn532.spi.reset, cs=pn532.spi.cs, irq=pn532.spi.irq)
-        resolved = resolve_connection_params(pn532.board_profile, pn532.protocol, overrides)
+        setup = resolve_pn532_probe_setup(settings_service)
 
-        stdout_fn(render_pn532_probe_setup_output(pn532.board_profile, pn532.protocol, resolved))
+        stdout_fn(render_pn532_probe_setup_output(setup.board_profile, setup.protocol, setup.connection))
 
         try:
-            reader = build_pn532_reader(
-                read_timeout_seconds=pn532.read_timeout_seconds,
-                protocol=pn532.protocol,
-                connection=resolved,
-            )
+            result = probe_pn532(setup, build_pn532_reader)
         except MissingOptionalDependencyError as err:
             raise MissingOptionalDependencyError("The `pn532` command", "pn532", "jukebox-admin pn532 ...") from err
-        except RuntimeError:
-            raise
-        except Exception as err:
-            msg = str(err)
-            if any(s in msg.lower() for s in ("not permitted", "permission", "bad gpio")):
-                raise RuntimeError(
-                    "GPIO error — your pin configuration may be incorrect.\n"
-                    "Update it with: jukebox-admin pn532 select\n"
-                    "Re-run with `--verbose` for details."
-                ) from err
-            raise RuntimeError(msg) from err
+        except Pn532GpioError as err:
+            raise RuntimeError(
+                "GPIO error — your pin configuration may be incorrect.\n"
+                "Update it with: jukebox-admin pn532 select\n"
+                "Re-run with `--verbose` for details."
+            ) from err
 
-        ver, rev = reader.firmware_version
+        ver, rev = result.firmware_version
         stdout_fn(f"PN532 firmware version: {ver}.{rev}")
-
-        uid = reader.read()
-        stdout_fn(f"Tag UID: {uid}" if uid else "No tag detected")
+        stdout_fn(f"Tag UID: {result.uid}" if result.uid else "No tag detected")
         return
 
     raise TypeError("Unsupported PN532 command")
