@@ -104,6 +104,39 @@ def test_edit_only_artist():
     assert updated_disc.metadata.track is None
 
 
+def test_edit_only_playlist():
+    original_disc = Disc(
+        uri="uri:pl",
+        metadata=DiscMetadata(artist="Artist", playlist="Old Playlist"),
+        option=DiscOption(shuffle=True),
+    )
+    repo = MockRepo(Library(discs={"tag:pl": original_disc}))
+
+    edit_disc = EditDisc(repo)
+    updated_disc = edit_disc.execute(tag_id="tag:pl", metadata=DiscMetadata(playlist="New Playlist"))
+
+    assert repo.get_calls == ["tag:pl"]
+    assert repo.update_calls == [
+        (
+            "tag:pl",
+            Disc(
+                uri="uri:pl",
+                metadata=DiscMetadata(artist="Artist", playlist="New Playlist"),
+                option=DiscOption(shuffle=True),
+            ),
+        )
+    ]
+    updated_disc = repo.library.discs["tag:pl"]
+    assert updated_disc == Disc(
+        uri="uri:pl",
+        metadata=DiscMetadata(artist="Artist", playlist="New Playlist"),
+        option=DiscOption(shuffle=True),
+    )
+    assert updated_disc.metadata.playlist == "New Playlist"
+    assert updated_disc.metadata.artist == "Artist"
+    assert updated_disc.option.shuffle is True
+
+
 def test_edit_multiple_metadata_fields():
     original_disc = Disc(
         uri="uri:abc",
