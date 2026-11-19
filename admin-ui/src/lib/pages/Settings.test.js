@@ -770,3 +770,61 @@ describe('Settings — restore', () => {
     await vi.waitFor(() => expect(within(dialog).getByRole('alert')).toHaveFocus())
   })
 })
+
+describe('Settings — reset toast', () => {
+  function withPortProvenance(provenance) {
+    return {
+      ...displaysResponse,
+      settings: displaysResponse.settings.map((setting) =>
+        setting.path === 'admin.api.port' ? { ...setting, provenance } : setting,
+      ),
+    }
+  }
+
+  async function resetPort() {
+    apiPost.mockResolvedValue({})
+    render(Settings, { props: {} })
+    await fireEvent.click(
+      within((await screen.findByText('Admin API Port')).closest('tr')).getByRole('button', { name: 'Edit' }),
+    )
+    await fireEvent.click(screen.getByRole('button', { name: 'Reset' }))
+    await fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Reset' }))
+  }
+
+  it.each([
+    ['default', '⚙️ Setting reset to default.'],
+    ['env', '⚙️ Setting removed from the settings file, but still overridden by Environment override.'],
+    ['cli', '⚙️ Setting removed from the settings file, but still overridden by CLI override.'],
+  ])('names the source that applies after the reset (%s)', async (provenance, message) => {
+    apiGet.mockResolvedValueOnce(displaysResponse).mockResolvedValueOnce(withPortProvenance(provenance))
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+
+    await resetPort()
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith(message))
+    showToast.mockRestore()
+  })
+
+  it('does not guess the source when the reload fails', async () => {
+    apiGet.mockResolvedValueOnce(displaysResponse).mockRejectedValueOnce(new Error('Network error'))
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+
+    await resetPort()
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('⚙️ Setting removed from the settings file.'))
+    showToast.mockRestore()
+  })
+
+  it('does not guess the source when the effective settings cannot be resolved', async () => {
+    apiGet.mockResolvedValueOnce(displaysResponse).mockResolvedValueOnce({
+      ...withPortProvenance('unknown'),
+      effective_settings_error: 'Settings file is corrupted.',
+    })
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+
+    await resetPort()
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('⚙️ Setting removed from the settings file.'))
+    showToast.mockRestore()
+  })
+})

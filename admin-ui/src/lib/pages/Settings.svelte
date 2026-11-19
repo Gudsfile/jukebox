@@ -65,13 +65,24 @@
     editingPath = null
   }
 
+  // Reset only removes the value from the settings file: an env or CLI override may still apply.
+  // Without a fresh reload or resolved effective settings, the source is unknown.
+  function resetMessage(path) {
+    const sourceUnknown = error || effectiveSettingsError
+    const provenance = sourceUnknown ? undefined : settings.find((setting) => setting.path === path)?.provenance
+    if (provenance === undefined) return '⚙️ Setting removed from the settings file.'
+    if (provenance === 'default') return '⚙️ Setting reset to default.'
+    return `⚙️ Setting removed from the settings file, but still overridden by ${formatProvenance(provenance)}.`
+  }
+
   async function handleSaved(action) {
+    const path = editingPath
     editingPath = null
     await loadSettings()
     if (action === 'save') {
       toastStore.showToast('⚙️ Settings saved.')
     } else if (action === 'reset') {
-      toastStore.showToast('⚙️ Settings reset to default.')
+      toastStore.showToast(resetMessage(path))
     }
   }
 
