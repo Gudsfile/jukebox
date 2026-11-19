@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte'
   import { apiDelete, apiGet } from '../api.js'
+  import { copyText } from '../clipboard.js'
   import { toastStore } from '../stores/toastStore.js'
   import ConfirmDialog from '../components/ConfirmDialog.svelte'
   import DiscForm from '../components/DiscForm.svelte'
@@ -111,7 +112,12 @@
   }
 
   async function copyUri(tagId, uri) {
-    await navigator.clipboard.writeText(uri)
+    try {
+      await copyText(uri)
+    } catch {
+      toastStore.showToast('⚠️ Could not copy the URI.')
+      return
+    }
     copiedTagId = tagId
     setTimeout(() => {
       if (copiedTagId === tagId) copiedTagId = null
