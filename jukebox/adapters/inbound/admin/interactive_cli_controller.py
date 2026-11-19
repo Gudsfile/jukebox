@@ -38,7 +38,7 @@ class InteractiveCLIController:
             try:
                 command = questionary.select(
                     "What do you want to do?",
-                    choices=["add", "remove", "list", "edit", "get", "search", "current"],
+                    choices=["add", "remove", "list", "edit", "show", "search", "current"],
                 ).unsafe_ask()
             except KeyboardInterrupt:
                 return
@@ -53,8 +53,8 @@ class InteractiveCLIController:
                         self.list_discs_flow()
                     case "edit":
                         self.edit_disc_flow()
-                    case "get":
-                        self.get_disc_flow()
+                    case "show":
+                        self.show_disc_flow()
                     case "search":
                         self.search_discs_flow()
                     case "current":
@@ -114,10 +114,10 @@ class InteractiveCLIController:
         self.edit_disc.execute(tag, uri, metadata, option)
         print("✅ Disc successfully edited")
 
-    def get_disc_flow(self) -> None:
-        print("\n-- Get a disc --")
+    def show_disc_flow(self) -> None:
+        print("\n-- Show a disc --")
         current_tag_status = self.get_current_tag_status.execute()
-        tag = self._prompt_for_tag(current_tag_status, action="get")
+        tag = self._prompt_for_tag(current_tag_status, action="show")
         disc = self.get_disc.execute(tag)
         display_disc(tag, disc)
 
@@ -152,14 +152,14 @@ class InteractiveCLIController:
         print(f"Title            : {metadata.display_title}")
 
     def _prompt_for_tag(
-        self, current_tag_status: CurrentTagStatus | None, action: Literal["add", "edit", "get", "remove"]
+        self, current_tag_status: CurrentTagStatus | None, action: Literal["add", "edit", "show", "remove"]
     ) -> str:
         import questionary
 
         default_tag = ""
         if current_tag_status is not None and (
             (action == "add" and not current_tag_status.known_in_library)
-            or (action in ("edit", "get", "remove") and current_tag_status.known_in_library)
+            or (action in ("edit", "show", "remove") and current_tag_status.known_in_library)
         ):
             default_tag = current_tag_status.tag_id
 

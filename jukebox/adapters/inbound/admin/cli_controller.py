@@ -11,10 +11,10 @@ from jukebox.adapters.inbound.admin.cli_display import (
 from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
-    CliGetCommand,
     CliListCommand,
     CliRemoveCommand,
     CliSearchCommand,
+    CliShowCommand,
 )
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption
 from jukebox.domain.use_cases import AddDisc, EditDisc, GetDisc, ListDiscs, RemoveDisc, ResolveTagId, SearchDiscs
@@ -41,7 +41,7 @@ class CLIController:
 
     def run(
         self,
-        command: CliAddCommand | CliListCommand | CliRemoveCommand | CliEditCommand | CliGetCommand | CliSearchCommand,
+        command: CliAddCommand | CliListCommand | CliRemoveCommand | CliEditCommand | CliShowCommand | CliSearchCommand,
     ) -> None:
         match command:
             case CliAddCommand():
@@ -52,8 +52,8 @@ class CLIController:
                 self.remove_disc_flow(command)
             case CliEditCommand():
                 self.edit_disc_flow(command)
-            case CliGetCommand():
-                self.get_disc_flow(command)
+            case CliShowCommand():
+                self.show_disc_flow(command)
             case CliSearchCommand():
                 self.search_discs_flow(command)
 
@@ -112,7 +112,7 @@ class CLIController:
         )
         typer.echo("✅ Disc successfully edited")
 
-    def get_disc_flow(self, command: CliGetCommand) -> None:
+    def show_disc_flow(self, command: CliShowCommand) -> None:
         tag = self.resolve_tag_id.execute(command.tag, command.use_current_tag, command.expected_tag_id)
         disc = self.get_disc.execute(tag)
         display_disc(tag, disc)

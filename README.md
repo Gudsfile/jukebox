@@ -204,6 +204,11 @@ or to pull the `tag_id` currently on the reader:
 jukebox-admin library add --from-current --uri /path/to/media.mp3
 ```
 
+to show the disc associated with a tag:
+```shell
+jukebox-admin library show tag_id
+```
+
 Other commands are available, use `--help` to see them.
 
 ## The library file

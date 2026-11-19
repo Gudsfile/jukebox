@@ -21,11 +21,11 @@ from jukebox.admin.commands import (
 from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
-    CliGetCommand,
     CliListCommand,
     CliListCommandModes,
     CliRemoveCommand,
     CliSearchCommand,
+    CliShowCommand,
     InteractiveCliCommand,
 )
 from jukebox.admin.pn532_commands import Pn532ProbeCommand, Pn532ProfilesCommand, Pn532SelectCommand
@@ -218,7 +218,7 @@ def test_jukebox_admin_preserves_library_validation_errors(app_mocks):
     app_mocks.build_settings_service.return_value = settings_service
     app_mocks.execute_library_command.side_effect = ValueError("No current tag is available.")
 
-    result = runner.invoke(app, ["library", "get", "--from-current"])
+    result = runner.invoke(app, ["library", "show", "--from-current"])
 
     assert result.exit_code == 1
     assert "No current tag is available." in result.output
@@ -366,8 +366,8 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             CliEditCommand(type="edit", tag="tag-123", shuffle=False),
         ),
         (
-            ["library", "get", "--from-current"],
-            CliGetCommand(type="get", use_current_tag=True),
+            ["library", "show", "--from-current"],
+            CliShowCommand(type="show", use_current_tag=True),
         ),
         (
             ["library", "search", "beatles"],
@@ -403,13 +403,29 @@ def test_jukebox_admin_routes_library_commands_to_shared_handler(app_mocks, args
     app_mocks.execute_server_command.assert_not_called()
 
 
+def test_jukebox_admin_library_get_is_a_deprecated_alias_of_show(app_mocks):
+    result = runner.invoke(app, ["library", "get", "tag-123"])
+
+    assert result.exit_code == 0
+    assert "The command 'get' is deprecated." in result.stderr
+    assert app_mocks.execute_library_command.call_args.kwargs["command"] == CliShowCommand(type="show", tag="tag-123")
+
+
+def test_jukebox_admin_library_help_lists_show_but_not_get():
+    result = runner.invoke(app, ["library", "--help"])
+
+    assert result.exit_code == 0
+    assert "show" in result.output
+    assert " get " not in result.output
+
+
 @pytest.mark.parametrize(
     "args",
     [
         ["library", "add", "tag-123", "--uri", "/music/song.mp3", "--expect-tag", "tag-123"],
         ["library", "remove", "tag-123", "--expect-tag", "tag-123"],
         ["library", "edit", "tag-123", "--artist", "Artist", "--expect-tag", "tag-123"],
-        ["library", "get", "tag-123", "--expect-tag", "tag-123"],
+        ["library", "show", "tag-123", "--expect-tag", "tag-123"],
     ],
 )
 def test_jukebox_admin_rejects_expect_tag_without_from_current(app_mocks, args):
