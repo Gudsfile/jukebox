@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Library from './Library.svelte'
 import { SHUFFLE_OFF, SHUFFLE_ON } from '../library/filter.js'
 import { apiDelete, apiGet } from '../api.js'
+import { toastStore } from '../stores/toastStore.js'
 
 vi.mock('../api.js', () => ({
   apiGet: vi.fn(),
@@ -44,6 +45,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers()
+  vi.restoreAllMocks()
+  delete document.execCommand
 })
 
 describe('Library — loading and empty/error states', () => {
@@ -310,6 +313,37 @@ describe('Library — click-to-copy', () => {
     expect(await within(row1).findByRole('button', { name: 'Copied' })).toBeInTheDocument()
 
     await vi.advanceTimersByTimeAsync(1500)
+    expect(within(row1).getByRole('button', { name: 'Copy URI' })).toBeInTheDocument()
+  })
+
+  it('falls back to execCommand when the Clipboard API is unavailable (plain HTTP)', async () => {
+    vi.useFakeTimers()
+    globalThis.navigator.clipboard = undefined
+    document.execCommand = vi.fn().mockReturnValue(true)
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+
+    await vi.waitFor(() => expect(screen.getByText('tag-1')).toBeInTheDocument(), { timeout: 5000 })
+
+    const row1 = screen.getByText('tag-1').closest('tr')
+    await fireEvent.click(within(row1).getByRole('button', { name: 'Copy URI' }))
+
+    expect(document.execCommand).toHaveBeenCalledWith('copy')
+    expect(await within(row1).findByRole('button', { name: 'Copied' })).toBeInTheDocument()
+    await vi.advanceTimersByTimeAsync(1500)
+  })
+
+  it('shows an error toast when both the Clipboard API and the fallback fail', async () => {
+    const showToast = vi.spyOn(toastStore, 'showToast').mockImplementation(() => {})
+    globalThis.navigator.clipboard = { writeText: vi.fn().mockRejectedValue(new Error('denied')) }
+    document.execCommand = vi.fn().mockReturnValue(false)
+    apiGet.mockResolvedValue(discs)
+    render(Library, { props: {} })
+
+    const row1 = (await screen.findByText('tag-1')).closest('tr')
+    await fireEvent.click(within(row1).getByRole('button', { name: 'Copy URI' }))
+
+    await vi.waitFor(() => expect(showToast).toHaveBeenCalledWith('⚠️ Could not copy the URI.'))
     expect(within(row1).getByRole('button', { name: 'Copy URI' })).toBeInTheDocument()
   })
 })
