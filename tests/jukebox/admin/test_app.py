@@ -4,6 +4,7 @@ from typing import Any
 from unittest.mock import ANY, MagicMock
 
 import pytest
+import typer.main
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
@@ -445,3 +446,22 @@ def test_jukebox_admin_fails_when_current_tag_differs_from_expected_tag(app_mock
 
     assert result.exit_code == 1
     assert "Current tag changed: expected_tag_id='tag-123', actual_tag_id='other-tag'" in result.output
+
+
+def _iter_help_texts(command, path=("jukebox-admin",)):
+    yield " ".join(path), command.help
+    for param in command.params:
+        name = param.opts[0] if param.param_type_name == "option" else param.name
+        yield f"{' '.join(path)} {name}", param.help
+    for name, subcommand in getattr(command, "commands", {}).items():
+        yield from _iter_help_texts(subcommand, (*path, name))
+
+
+def test_jukebox_admin_help_texts_start_with_a_capital_letter_and_end_with_a_period():
+    help_texts = list(_iter_help_texts(typer.main.get_command(app)))
+    assert len(help_texts) > 50
+
+    for location, help_text in help_texts:
+        assert help_text, f"{location} has no help text"
+        assert help_text[0].isupper(), f"{location}: {help_text!r}"
+        assert help_text.endswith("."), f"{location}: {help_text!r}"

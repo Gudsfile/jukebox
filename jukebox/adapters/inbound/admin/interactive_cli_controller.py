@@ -38,7 +38,10 @@ class InteractiveCLIController:
             try:
                 command = questionary.select(
                     "What do you want to do?",
-                    choices=["add", "remove", "list", "edit", "show", "search", "current"],
+                    choices=[
+                        questionary.Choice(title=action.capitalize(), value=action)
+                        for action in ("add", "remove", "list", "edit", "show", "search", "current")
+                    ],
                 ).unsafe_ask()
             except KeyboardInterrupt:
                 return
@@ -81,7 +84,7 @@ class InteractiveCLIController:
         print("\n-- List all discs --")
         mode = questionary.select(
             "Display mode:",
-            choices=["table", "line"],
+            choices=[questionary.Choice(title=value.capitalize(), value=value) for value in ("table", "line")],
         ).unsafe_ask()
 
         discs = self.list_discs.execute()

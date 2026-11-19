@@ -311,11 +311,11 @@ def _pausing_for_prompt(status: Status | None, prompt_fn):
     return wrapped
 
 
-app = typer.Typer(help="Admin CLI for jukebox")
-settings_app = typer.Typer(help="Inspect and manage application settings")
-library_app = typer.Typer(help="Manage the library")
-sonos_app = typer.Typer(help="Inspect Sonos speakers and manage the saved Sonos selection")
-pn532_app = typer.Typer(help="Inspect and debug the PN532 NFC reader")
+app = typer.Typer(help="Admin CLI for Jukebox.")
+settings_app = typer.Typer(help="Inspect and manage application settings.")
+library_app = typer.Typer(help="Manage the library.")
+sonos_app = typer.Typer(help="Inspect Sonos speakers and manage the saved Sonos selection.")
+pn532_app = typer.Typer(help="Inspect and debug the PN532 NFC reader.")
 app.add_typer(settings_app, name="settings")
 app.add_typer(library_app, name="library")
 app.add_typer(sonos_app, name="sonos")
@@ -327,11 +327,11 @@ def main_callback(
     ctx: typer.Context,
     library: Annotated[
         str | None,
-        typer.Option("--library", "-l", help="override the library JSON path for this process"),
+        typer.Option("--library", "-l", help="Override the library JSON path for this process."),
     ] = None,
     verbose: Annotated[
         bool,
-        typer.Option("--verbose", "-v", help="enable verbose logging"),
+        typer.Option("--verbose", "-v", help="Enable verbose logging."),
     ] = False,
     version: Annotated[
         bool,
@@ -339,7 +339,7 @@ def main_callback(
             "--version",
             callback=_version_callback,
             is_eager=True,
-            help="show current installed version",
+            help="Show current installed version.",
         ),
     ] = False,
 ) -> None:
@@ -353,26 +353,28 @@ def settings_show(
     ctx: typer.Context,
     effective: Annotated[
         bool,
-        typer.Option("--effective", help="show merged effective settings with provenance"),
+        typer.Option("--effective", help="Show merged effective settings with provenance."),
     ] = False,
     json_output: Annotated[
         bool,
-        typer.Option("--json", help="print the raw machine-readable payload"),
+        typer.Option("--json", help="Print the raw machine-readable payload."),
     ] = False,
 ) -> None:
+    """Show persisted or effective settings."""
     _run_settings_command(ctx, SettingsShowCommand(type="settings_show", effective=effective, json_output=json_output))
 
 
 @settings_app.command("set")
 def settings_set(
     ctx: typer.Context,
-    dotted_path: Annotated[str, typer.Argument(help="canonical dotted path to update")],
-    value: Annotated[str, typer.Argument(help="value to persist for the given path")],
+    dotted_path: Annotated[str, typer.Argument(help="Canonical dotted path to update.")],
+    value: Annotated[str, typer.Argument(help="Value to persist for the given path.")],
     json_output: Annotated[
         bool,
-        typer.Option("--json", help="print the raw machine-readable payload"),
+        typer.Option("--json", help="Print the raw machine-readable payload."),
     ] = False,
 ) -> None:
+    """Set a setting value."""
     _run_settings_command(
         ctx,
         SettingsSetCommand(
@@ -387,12 +389,13 @@ def settings_set(
 @settings_app.command("reset")
 def settings_reset(
     ctx: typer.Context,
-    dotted_path: Annotated[str, typer.Argument(help="canonical dotted path to reset")],
+    dotted_path: Annotated[str, typer.Argument(help="Canonical dotted path to reset.")],
     json_output: Annotated[
         bool,
-        typer.Option("--json", help="print the raw machine-readable payload"),
+        typer.Option("--json", help="Print the raw machine-readable payload."),
     ] = False,
 ) -> None:
+    """Reset a setting to its default."""
     _run_settings_command(
         ctx,
         SettingsResetCommand(
@@ -408,9 +411,10 @@ def api(
     ctx: typer.Context,
     port: Annotated[
         int | None,
-        typer.Option("--port", help="override the configured API port"),
+        typer.Option("--port", help="Override the configured API port."),
     ] = None,
 ) -> None:
+    """Start the REST API server."""
     _run_command(ctx, ApiCommand(type="api", port=port))
 
 
@@ -419,14 +423,16 @@ def ui(
     ctx: typer.Context,
     port: Annotated[
         int | None,
-        typer.Option("--port", help="override the configured UI port"),
+        typer.Option("--port", help="Override the configured UI port."),
     ] = None,
 ) -> None:
+    """Start the web admin UI."""
     _run_command(ctx, UiCommand(type="ui", port=port))
 
 
 @sonos_app.command("list")
 def sonos_list(ctx: typer.Context) -> None:
+    """List Sonos speakers on the network."""
     _run_command(ctx, SonosListCommand(type="sonos_list"))
 
 
@@ -438,20 +444,21 @@ def sonos_select(
         typer.Option(
             "--uids",
             help=(
-                "comma-separated Sonos speaker UIDs to persist as the selected group; may be repeated; "
-                "first UID is used as coordinator if --coordinator is omitted"
+                "Comma-separated Sonos speaker UIDs to persist as the selected group; may be repeated; "
+                "first UID is used as coordinator if --coordinator is omitted."
             ),
         ),
     ] = None,
     coordinator: Annotated[
         str | None,
-        typer.Option("--coordinator", help="coordinator UID for the selected Sonos group"),
+        typer.Option("--coordinator", help="Coordinator UID for the selected Sonos group."),
     ] = None,
     household: Annotated[
         str | None,
-        typer.Option("--household", help="household ID to use for interactive Sonos speaker selection"),
+        typer.Option("--household", help="Household ID to use for interactive Sonos speaker selection."),
     ] = None,
 ) -> None:
+    """Select the Sonos speakers to play on."""
     parsed_uids = (
         None if uids is None else [uid.strip() for raw_uids in uids for uid in raw_uids.split(",") if uid.strip()]
     )
@@ -470,12 +477,13 @@ def sonos_select(
 
 @sonos_app.command("show")
 def sonos_show(ctx: typer.Context) -> None:
+    """Show the saved Sonos selection."""
     _run_command(ctx, SonosShowCommand(type="sonos_show"))
 
 
 @pn532_app.command("profiles")
 def pn532_profiles(ctx: typer.Context) -> None:
-    """List available board profiles and their default GPIO pins."""
+    """List board profiles and their default GPIO pins."""
     _run_command(ctx, Pn532ProfilesCommand(type="pn532_profiles"))
 
 
@@ -486,39 +494,40 @@ def pn532_select(
         str | None,
         typer.Option(
             "--profile",
-            help="board profile to persist (waveshare_hat, hiletgo_v3, custom)",
+            help="Board profile to persist (waveshare_hat, hiletgo_v3, custom).",
         ),
     ] = None,
 ) -> None:
-    """Select a board profile and persist it to settings."""
+    """Select a board profile and save it to settings."""
     _run_command(ctx, Pn532SelectCommand(type="pn532_select", profile=profile))
 
 
 @pn532_app.command("probe")
 def pn532_probe(ctx: typer.Context) -> None:
-    """Verify the PN532 is connected, show firmware version and attempt one tag read."""
+    """Check the PN532 answers, show its firmware and read one tag."""
     _run_command(ctx, Pn532ProbeCommand(type="pn532_probe"))
 
 
 @library_app.command("add")
 def library_add(
     ctx: typer.Context,
-    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file")],
-    tag: Annotated[str | None, typer.Argument(help="Tag to be associated with the disc")] = None,
-    track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
-    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
-    album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
-    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist")] = None,
-    shuffle: Annotated[bool, typer.Option("--shuffle", help="Enable shuffle playback")] = False,
+    uri: Annotated[str, typer.Option("--uri", help="Path or URI of the media file.")],
+    tag: Annotated[str | None, typer.Argument(help="Tag to be associated with the disc.")] = None,
+    track: Annotated[str | None, typer.Option("--track", help="Name of the track.")] = None,
+    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band.")] = None,
+    album: Annotated[str | None, typer.Option("--album", help="Name of the album.")] = None,
+    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist.")] = None,
+    shuffle: Annotated[bool, typer.Option("--shuffle", help="Enable shuffle playback.")] = False,
     use_current_tag: Annotated[
         bool,
-        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state."),
     ] = False,
     expected_tag_id: Annotated[
         str | None,
-        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID."),
     ] = None,
 ) -> None:
+    """Add a disc to the library."""
     try:
         command = CliAddCommand(
             type="add",
@@ -541,25 +550,27 @@ def library_add(
 @library_app.command("list")
 def library_list(
     ctx: typer.Context,
-    mode: Annotated[CliListCommandModes, typer.Option("--mode", help="Displaying mode")] = CliListCommandModes.table,
+    mode: Annotated[CliListCommandModes, typer.Option("--mode", help="Display mode.")] = CliListCommandModes.table,
 ) -> None:
+    """List the discs in the library."""
     _run_library_command(ctx, CliListCommand(type="list", mode=mode))
 
 
 @library_app.command("remove")
 def library_remove(
     ctx: typer.Context,
-    tag: Annotated[str | None, typer.Argument(help="Tag to remove")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to remove.")] = None,
     use_current_tag: Annotated[
         bool,
-        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state."),
     ] = False,
     expected_tag_id: Annotated[
         str | None,
-        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID."),
     ] = None,
-    yes: Annotated[bool, typer.Option("--yes", "-y", help="Remove without asking for confirmation")] = False,
+    yes: Annotated[bool, typer.Option("--yes", "-y", help="Remove without asking for confirmation.")] = False,
 ) -> None:
+    """Remove the disc associated with a tag."""
     try:
         command = CliRemoveCommand(
             type="remove", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id, yes=yes
@@ -573,25 +584,26 @@ def library_remove(
 @library_app.command("edit")
 def library_edit(
     ctx: typer.Context,
-    tag: Annotated[str | None, typer.Argument(help="Tag to be edited")] = None,
-    uri: Annotated[str | None, typer.Option("--uri", help="Path or URI of the media file")] = None,
-    track: Annotated[str | None, typer.Option("--track", help="Name of the track")] = None,
-    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band")] = None,
-    album: Annotated[str | None, typer.Option("--album", help="Name of the album")] = None,
-    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to be edited.")] = None,
+    uri: Annotated[str | None, typer.Option("--uri", help="Path or URI of the media file.")] = None,
+    track: Annotated[str | None, typer.Option("--track", help="Name of the track.")] = None,
+    artist: Annotated[str | None, typer.Option("--artist", help="Name of the artist or band.")] = None,
+    album: Annotated[str | None, typer.Option("--album", help="Name of the album.")] = None,
+    playlist: Annotated[str | None, typer.Option("--playlist", help="Name of the playlist.")] = None,
     shuffle: Annotated[
         bool | None,
-        typer.Option("--shuffle/--no-shuffle", help="Enable or disable shuffle playback (unchanged if omitted)"),
+        typer.Option("--shuffle/--no-shuffle", help="Enable or disable shuffle playback (unchanged if omitted)."),
     ] = None,
     use_current_tag: Annotated[
         bool,
-        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state."),
     ] = False,
     expected_tag_id: Annotated[
         str | None,
-        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID."),
     ] = None,
 ) -> None:
+    """Edit the disc associated with a tag."""
     try:
         command = CliEditCommand(
             type="edit",
@@ -614,16 +626,17 @@ def library_edit(
 @library_app.command("show")
 def library_show(
     ctx: typer.Context,
-    tag: Annotated[str | None, typer.Argument(help="Tag to show")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to show.")] = None,
     use_current_tag: Annotated[
         bool,
-        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state."),
     ] = False,
     expected_tag_id: Annotated[
         str | None,
-        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID."),
     ] = None,
 ) -> None:
+    """Show the disc associated with a tag."""
     try:
         command = CliShowCommand(type="show", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
     except ValidationError as err:
@@ -636,29 +649,32 @@ def library_show(
 @library_app.command("get", deprecated=True, hidden=True)
 def library_get(
     ctx: typer.Context,
-    tag: Annotated[str | None, typer.Argument(help="Tag to show")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to show.")] = None,
     use_current_tag: Annotated[
         bool,
-        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state."),
     ] = False,
     expected_tag_id: Annotated[
         str | None,
-        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID."),
     ] = None,
 ) -> None:
+    """Deprecated alias of `library show`."""
     library_show(ctx, tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
 
 
 @library_app.command("search")
 def library_search(
     ctx: typer.Context,
-    query: Annotated[str, typer.Argument(help="Search query (matches artist, album, track, playlist, or tag)")],
+    query: Annotated[str, typer.Argument(help="Search query (matches artist, album, track, playlist, or tag).")],
 ) -> None:
+    """Search discs by artist, album, track, playlist or tag."""
     _run_library_command(ctx, CliSearchCommand(type="search", query=query))
 
 
 @library_app.command("interactive")
 def library_interactive(ctx: typer.Context) -> None:
+    """Manage the library from an interactive menu."""
     _run_library_command(ctx, InteractiveCliCommand(type="interactive"))
 
 
