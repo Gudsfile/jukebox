@@ -582,9 +582,20 @@ def test_run_menu_lists_show_instead_of_get():
     with patch("questionary.select", mock_select):
         controller.run()
 
-    choices = mock_select.call_args.kwargs["choices"]
-    assert "show" in choices
-    assert "get" not in choices
+    values = [choice.value for choice in mock_select.call_args.kwargs["choices"]]
+    assert "show" in values
+    assert "get" not in values
+
+
+def test_run_menu_titles_start_with_a_capital_letter():
+    controller = build_controller()
+    mock_select = MagicMock(return_value=MagicMock(unsafe_ask=MagicMock(side_effect=KeyboardInterrupt())))
+
+    with patch("questionary.select", mock_select):
+        controller.run()
+
+    titles = [choice.title for choice in mock_select.call_args.kwargs["choices"]]
+    assert titles == ["Add", "Remove", "List", "Edit", "Show", "Search", "Current"]
 
 
 def test_run_prints_show_error_then_returns_to_menu(capsys):
