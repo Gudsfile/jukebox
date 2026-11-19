@@ -112,54 +112,49 @@ def test_edit_disc_flow_clears_field_given_an_empty_value():
     assert repo.library.discs["tag-123"].metadata.artist is None
 
 
-def build_controller_with_real_edit_disc(current_disc: Disc):
-    repository = MagicMock()
-    repository.get_disc.return_value = current_disc
+def test_edit_disc_flow_passes_only_shuffle_option():
     controller = build_controller()
-    controller.edit_disc = EditDisc(repository)
     controller.resolve_tag_id.execute.return_value = "tag-123"
-    return controller, repository
-
-
-CURRENT_DISC = Disc(
-    uri="/music/song.mp3",
-    metadata=DiscMetadata(artist="Artist", album="Album", track="Track", playlist="Chill"),
-    option=DiscOption(shuffle=True),
-)
-
-
-def test_edit_disc_flow_no_shuffle_only_changes_shuffle():
-    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
     command = CliEditCommand(type="edit", tag="tag-123", shuffle=False)
 
     controller.edit_disc_flow(command)
 
-    repository.update_disc.assert_called_once_with(
-        "tag-123",
-        Disc(uri=CURRENT_DISC.uri, metadata=CURRENT_DISC.metadata, option=DiscOption(shuffle=False)),
+    controller.edit_disc.execute.assert_called_once_with(
+        tag_id="tag-123",
+        uri=None,
+        metadata=None,
+        option=DiscOption(shuffle=False),
     )
 
 
-def test_edit_disc_flow_keeps_shuffle_when_omitted():
-    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
+def test_edit_disc_flow_omits_option_when_shuffle_is_omitted():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-123"
     command = CliEditCommand(type="edit", tag="tag-123", artist="New Artist")
 
     controller.edit_disc_flow(command)
 
-    updated_disc = repository.update_disc.call_args.args[1]
-    assert updated_disc.option.shuffle is True
-    assert updated_disc.metadata == DiscMetadata(artist="New Artist", album="Album", track="Track", playlist="Chill")
+    controller.edit_disc.execute.assert_called_once_with(
+        tag_id="tag-123",
+        uri=None,
+        metadata=DiscMetadata(artist="New Artist"),
+        option=None,
+    )
 
 
-def test_edit_disc_flow_updates_playlist():
-    controller, repository = build_controller_with_real_edit_disc(CURRENT_DISC)
+def test_edit_disc_flow_passes_playlist():
+    controller = build_controller()
+    controller.resolve_tag_id.execute.return_value = "tag-123"
     command = CliEditCommand(type="edit", tag="tag-123", playlist="Party")
 
     controller.edit_disc_flow(command)
 
-    updated_disc = repository.update_disc.call_args.args[1]
-    assert updated_disc.metadata.playlist == "Party"
-    assert updated_disc.option.shuffle is True
+    controller.edit_disc.execute.assert_called_once_with(
+        tag_id="tag-123",
+        uri=None,
+        metadata=DiscMetadata(playlist="Party"),
+        option=None,
+    )
 
 
 def test_remove_disc_flow_resolves_current_tag_without_clearing():
