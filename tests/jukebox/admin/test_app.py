@@ -322,6 +322,10 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
             CliAddCommand(type="add", tag="tag-123", uri="/music/song.mp3", track="Song"),
         ),
         (
+            ["library", "add", "tag-123", "--uri", "/music/song.mp3", "--playlist", "Chill", "--shuffle"],
+            CliAddCommand(type="add", tag="tag-123", uri="/music/song.mp3", playlist="Chill", shuffle=True),
+        ),
+        (
             ["library", "list", "--mode", "line"],
             CliListCommand(type="list", mode=CliListCommandModes.line),
         ),
@@ -352,6 +356,14 @@ def test_prompt_for_sonos_household_selection_prints_full_list_and_uses_short_la
         (
             ["library", "edit", "tag-123", "--artist", ""],
             CliEditCommand(type="edit", tag="tag-123", artist=""),
+        ),
+        (
+            ["library", "edit", "tag-123", "--playlist", "Chill", "--shuffle"],
+            CliEditCommand(type="edit", tag="tag-123", playlist="Chill", shuffle=True),
+        ),
+        (
+            ["library", "edit", "tag-123", "--no-shuffle"],
+            CliEditCommand(type="edit", tag="tag-123", shuffle=False),
         ),
         (
             ["library", "get", "--from-current"],
