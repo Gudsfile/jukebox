@@ -64,7 +64,7 @@ def display_library_table(discs: dict[str, Disc], console: Console | None = None
         _console.print("The library is empty")
         return
 
-    # The ID is what users copy into `library get`, so it never shrinks
+    # The ID is what users copy into `library show`, so it never shrinks
     id_width = max(cell_len(str(disc_id)) for disc_id in discs)
     widths = _table_widths(discs, available=_console.width - 1 - (id_width + COL_CHROME))
     fields = [(label, value) for label, value in DISC_FIELDS if label in widths]

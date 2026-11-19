@@ -12,11 +12,11 @@ from jukebox.admin.library_command_handlers import execute_library_command
 from jukebox.admin.library_commands import (
     CliAddCommand,
     CliEditCommand,
-    CliGetCommand,
     CliListCommand,
     CliListCommandModes,
     CliRemoveCommand,
     CliSearchCommand,
+    CliShowCommand,
     InteractiveCliCommand,
 )
 from jukebox.settings.errors import SettingsError
@@ -611,10 +611,10 @@ def library_edit(
     _run_library_command(ctx, command)
 
 
-@library_app.command("get")
-def library_get(
+@library_app.command("show")
+def library_show(
     ctx: typer.Context,
-    tag: Annotated[str | None, typer.Argument(help="Tag to retrieve")] = None,
+    tag: Annotated[str | None, typer.Argument(help="Tag to show")] = None,
     use_current_tag: Annotated[
         bool,
         typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
@@ -625,11 +625,28 @@ def library_get(
     ] = None,
 ) -> None:
     try:
-        command = CliGetCommand(type="get", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
+        command = CliShowCommand(type="show", tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
     except ValidationError as err:
         _exit_error(str(err))
 
     _run_library_command(ctx, command)
+
+
+# Deprecated alias of `library show`, kept for at least one release.
+@library_app.command("get", deprecated=True, hidden=True)
+def library_get(
+    ctx: typer.Context,
+    tag: Annotated[str | None, typer.Argument(help="Tag to show")] = None,
+    use_current_tag: Annotated[
+        bool,
+        typer.Option("--from-current", help="Resolve the tag ID from shared current-tag.txt state"),
+    ] = False,
+    expected_tag_id: Annotated[
+        str | None,
+        typer.Option("--expect-tag", help="With --from-current, fail unless the current tag is still this tag ID"),
+    ] = None,
+) -> None:
+    library_show(ctx, tag=tag, use_current_tag=use_current_tag, expected_tag_id=expected_tag_id)
 
 
 @library_app.command("search")

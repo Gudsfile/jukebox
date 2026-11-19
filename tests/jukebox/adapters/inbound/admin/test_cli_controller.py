@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from jukebox.adapters.inbound.admin.cli_controller import CLIController
-from jukebox.admin.library_commands import CliAddCommand, CliEditCommand, CliGetCommand, CliRemoveCommand
+from jukebox.admin.library_commands import CliAddCommand, CliEditCommand, CliRemoveCommand, CliShowCommand
 from jukebox.domain.entities import Disc, DiscMetadata, DiscOption, Library
 from jukebox.domain.use_cases.library.edit_disc import EditDisc
 from tests.jukebox.domain.use_cases.library.mock_repo import MockRepo
@@ -290,7 +290,7 @@ def test_remove_disc_flow_reports_unknown_tag_before_requiring_yes_without_a_tty
     controller.remove_disc.execute.assert_not_called()
 
 
-def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
+def test_show_disc_flow_resolves_current_tag_without_clearing(capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "tag-current"
     controller.get_disc.execute.return_value = Disc(
@@ -298,9 +298,9 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
         metadata=DiscMetadata(artist="Artist"),
         option=DiscOption(shuffle=True),
     )
-    command = CliGetCommand(type="get", use_current_tag=True)
+    command = CliShowCommand(type="show", use_current_tag=True)
 
-    controller.get_disc_flow(command)
+    controller.show_disc_flow(command)
 
     controller.resolve_tag_id.execute.assert_called_once_with(None, True, None)
     controller.get_disc.execute.assert_called_once_with("tag-current")
@@ -318,26 +318,26 @@ def test_get_disc_flow_resolves_current_tag_without_clearing(capsys):
     ]
 
 
-def test_get_disc_flow_propagates_missing_current_tag_error(capsys):
+def test_show_disc_flow_propagates_missing_current_tag_error(capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.side_effect = ValueError("No current tag is available.")
-    command = CliGetCommand(type="get", use_current_tag=True)
+    command = CliShowCommand(type="show", use_current_tag=True)
 
     with pytest.raises(ValueError, match="No current tag is available."):
-        controller.get_disc_flow(command)
+        controller.show_disc_flow(command)
 
     controller.get_disc.execute.assert_not_called()
     assert capsys.readouterr().out == ""
 
 
-def test_get_disc_flow_propagates_missing_tag_error(capsys):
+def test_show_disc_flow_propagates_missing_tag_error(capsys):
     controller = build_controller()
     controller.resolve_tag_id.execute.return_value = "missing-tag"
     controller.get_disc.execute.side_effect = ValueError("Tag not found: tag_id='missing-tag'")
-    command = CliGetCommand(type="get", tag="missing-tag")
+    command = CliShowCommand(type="show", tag="missing-tag")
 
     with pytest.raises(ValueError, match="Tag not found: tag_id='missing-tag'"):
-        controller.get_disc_flow(command)
+        controller.show_disc_flow(command)
 
     controller.get_disc.execute.assert_called_once_with("missing-tag")
     assert capsys.readouterr().out == ""

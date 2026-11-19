@@ -54,8 +54,8 @@ class CliEditCommand(CliTagSourceCommand):
     shuffle: bool | None = None
 
 
-class CliGetCommand(CliTagSourceCommand):
-    type: Literal["get"]
+class CliShowCommand(CliTagSourceCommand):
+    type: Literal["show"]
 
 
 class CliSearchCommand(BaseModel):
