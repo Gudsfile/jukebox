@@ -1,12 +1,23 @@
+import threading
+from collections.abc import Callable
+from typing import Any
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from jukebox.admin.pn532_probe import (
+    Pn532GpioError,
+    default_build_pn532_reader,
+    probe_pn532,
+    resolve_pn532_probe_setup,
+)
 from jukebox.pn532.profiles import PN532_PROFILES, Pn532BoardProfile, SpiConnectionParams, resolve_connection_params
 from jukebox.settings.definitions import get_setting_definition
 from jukebox.settings.entities import Pn532SpiSettings
 from jukebox.settings.errors import SettingsError
 from jukebox.settings.pn532_configuration import save_pn532_configuration
 from jukebox.settings.service_protocols import SettingsService
+from jukebox.shared.errors import MissingOptionalDependencyError
 
 
 class Pn532PinsOutput(BaseModel):
@@ -30,6 +41,14 @@ class Pn532ConfigOutput(BaseModel):
     profiles: list[Pn532ProfileOutput]
 
 
+class Pn532ProbeOutput(BaseModel):
+    board_profile: str
+    protocol: str
+    pins: Pn532PinsOutput
+    firmware_version: str
+    uid: str | None
+
+
 class Pn532ConfigInput(BaseModel):
     board_profile: Pn532BoardProfile
     spi: Pn532SpiSettings
@@ -44,8 +63,13 @@ def _profile_labels() -> dict[str, str]:
     return {choice.value: choice.label for choice in definition.choices} if definition else {}
 
 
-def build_pn532_router(settings_service: SettingsService) -> APIRouter:
+def build_pn532_router(
+    settings_service: SettingsService,
+    build_pn532_reader: Callable[..., Any] = default_build_pn532_reader,
+) -> APIRouter:
     router = APIRouter(prefix="/api/v1", tags=["pn532"])
+    # Two probes at once would claim the same GPIO pins and talk on the same SPI bus.
+    probe_lock = threading.Lock()
 
     @router.get(
         "/pn532",
@@ -76,6 +100,41 @@ def build_pn532_router(settings_service: SettingsService) -> APIRouter:
             raise HTTPException(status_code=400, detail=str(err))
         except Exception as err:
             raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+
+    @router.post(
+        "/pn532/probe",
+        response_model=Pn532ProbeOutput,
+        summary="Probe the PN532 reader with the effective config: read its firmware version and a tag",
+    )
+    def post_pn532_probe() -> Pn532ProbeOutput:
+        try:
+            setup = resolve_pn532_probe_setup(settings_service)
+        except Exception as err:
+            raise HTTPException(status_code=500, detail=f"Server error: {err!s}")
+        if not probe_lock.acquire(blocking=False):
+            raise HTTPException(status_code=409, detail="A probe is already running.")
+        try:
+            result = probe_pn532(setup, build_pn532_reader)
+        except MissingOptionalDependencyError as err:
+            raise HTTPException(status_code=501, detail=err.concise_hint)
+        except Pn532GpioError as err:
+            raise HTTPException(
+                status_code=502,
+                detail=f"GPIO error — your pin configuration may be incorrect ({err!s}). "
+                "Check the board profile and pins of the PN532 configuration.",
+            )
+        except Exception as err:
+            raise HTTPException(status_code=502, detail=f"PN532 error: {err!s}")
+        finally:
+            probe_lock.release()
+        ver, rev = result.firmware_version
+        return Pn532ProbeOutput(
+            board_profile=setup.board_profile,
+            protocol=setup.protocol,
+            pins=_pins(setup.connection),
+            firmware_version=f"{ver}.{rev}",
+            uid=result.uid,
+        )
 
     return router
 
