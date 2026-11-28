@@ -180,6 +180,8 @@ This connects to the PN532, prints the firmware version, and attempts one tag re
 
 The admin UI (`jukebox-admin ui`) also has a **pn532** page. It shows the effective pins (profile defaults merged with overrides) and lets you pick a profile and override its pins.
 
+Its **Probe** button runs the same check as `jukebox-admin pn532 probe` and shows the pins used, the firmware version and the tag UID, or the error with a hint to fix it. The probe opens the SPI bus that `jukebox` also uses when it runs with the PN532 reader, so it can disturb a running `jukebox`: the page asks for a confirmation first.
+
 ### Persistent settings
 
 | Settings path | Description | Default |

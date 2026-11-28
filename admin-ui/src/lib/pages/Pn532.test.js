@@ -2,10 +2,11 @@ import { render, screen } from '@testing-library/svelte'
 import { fireEvent } from '@testing-library/dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import Pn532 from './Pn532.svelte'
-import { apiGet, apiPut } from '../api.js'
+import { apiGet, apiPost, apiPut } from '../api.js'
 
 vi.mock('../api.js', () => ({
   apiGet: vi.fn(),
+  apiPost: vi.fn(),
   apiPut: vi.fn(),
 }))
 
@@ -28,6 +29,7 @@ const config = {
 
 beforeEach(() => {
   apiGet.mockReset()
+  apiPost.mockReset()
   apiPut.mockReset()
 })
 
@@ -88,5 +90,16 @@ describe('Pn532 — edit', () => {
     await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
 
     expect(screen.getByText('Profile: WaveShare PN532 NFC HAT')).toBeInTheDocument()
+  })
+})
+
+describe('Pn532 — probe', () => {
+  it('shows the probe panel next to the effective configuration', async () => {
+    apiGet.mockResolvedValue(config)
+    render(Pn532)
+
+    expect(await screen.findByRole('heading', { name: 'Probe' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Probe' })).toBeInTheDocument()
+    expect(apiPost).not.toHaveBeenCalled()
   })
 })

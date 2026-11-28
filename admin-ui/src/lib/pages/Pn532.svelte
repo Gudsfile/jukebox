@@ -4,6 +4,7 @@
   import { toastStore } from '../stores/toastStore.js'
   import Pn532Form from '../components/Pn532Form.svelte'
   import PinoutDiagram from '../components/PinoutDiagram.svelte'
+  import Pn532Probe from '../components/Pn532Probe.svelte'
   import { PIN_FIELDS, formatPin, profileLabel } from '../pn532/format.js'
 
   let config = $state(null)
@@ -56,19 +57,23 @@
   <Pn532Form {config} onSaved={handleSaved} onCancel={closeEdit} />
 {:else}
   <div class="pn532-layout">
-    <div class="panel">
-      <h3>Effective configuration</h3>
-      <p>Profile: {profileLabel(config.profiles, config.board_profile)}</p>
-      <p>Protocol: {config.protocol.toUpperCase()}</p>
-      {#each PIN_FIELDS as field (field.key)}
-        <p>
-          {field.label}: {formatPin(config.resolved[field.key])}
-          {#if isOverridden(field.key)}<span class="badge badge-configured">Override</span>{/if}
-        </p>
-      {/each}
-      <div class="row-actions">
-        <button onclick={openEdit}>Edit configuration</button>
+    <div>
+      <div class="panel">
+        <h3>Effective configuration</h3>
+        <p>Profile: {profileLabel(config.profiles, config.board_profile)}</p>
+        <p>Protocol: {config.protocol.toUpperCase()}</p>
+        {#each PIN_FIELDS as field (field.key)}
+          <p>
+            {field.label}: {formatPin(config.resolved[field.key])}
+            {#if isOverridden(field.key)}<span class="badge badge-configured">Override</span>{/if}
+          </p>
+        {/each}
+        <div class="row-actions">
+          <button onclick={openEdit}>Edit configuration</button>
+        </div>
       </div>
+
+      <Pn532Probe profiles={config.profiles} />
     </div>
 
     <div class="panel">
@@ -79,7 +84,7 @@
 {/if}
 
 <style>
-  /* Side by side on wide screens: the configuration on the left, its wiring on the right. */
+  /* Side by side on wide screens: the configuration and its probe on the left, the wiring on the right. */
   @media (min-width: 1024px) {
     .pn532-layout {
       display: grid;
